@@ -12,7 +12,7 @@ import {
 } from "./aiServices/streamResponse";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { join, resolve } from "path";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -149,6 +149,15 @@ app.post("/api/integrations/discord", async (req, res) => {
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Serve static client files in production
+const clientDistPath = resolve(__dirname, "../client/dist");
+if (existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get("*", (_req, res) => {
+    res.sendFile(join(clientDistPath, "index.html"));
+  });
+}
 
 // Create HTTP server and attach WebSocket
 const server = createServer(app);
