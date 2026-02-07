@@ -12,7 +12,7 @@ import {
 } from "../drizzle/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 import { processChat } from "./aiServices";
-import { defaultAgents } from "./agents";
+import { defaultAgents, promptTemplates } from "./agents";
 import { storeMemory, getMemories, deleteMemory } from "./aiServices/memory";
 
 const t = initTRPC.create();
@@ -327,6 +327,42 @@ export const appRouter = router({
           .from(analyticsEvents)
           .orderBy(desc(analyticsEvents.createdAt))
           .limit(input.limit);
+      }),
+  }),
+
+  // ===== Prompt Templates =====
+  promptTemplates: router({
+    list: publicProcedure.query(() => {
+      return promptTemplates;
+    }),
+  }),
+
+  // ===== Conversations Search =====
+  search: router({
+    messages: publicProcedure
+      .input(z.object({ query: z.string().min(1), limit: z.number().default(50) }))
+      .query(async ({ input }) => {
+        const allMessages = await db
+          .select()
+          .from(messages)
+          .orderBy(desc(messages.createdAt))
+          .limit(500);
+        const filtered = allMessages.filter((m) =>
+          m.content.toLowerCase().includes(input.query.toLowerCase())
+        );
+        return filtered.slice(0, input.limit);
+      }),
+
+    conversations: publicProcedure
+      .input(z.object({ query: z.string().min(1) }))
+      .query(async ({ input }) => {
+        const allConvs = await db
+          .select()
+          .from(conversations)
+          .orderBy(desc(conversations.updatedAt));
+        return allConvs.filter((c) =>
+          c.title.toLowerCase().includes(input.query.toLowerCase())
+        );
       }),
   }),
 

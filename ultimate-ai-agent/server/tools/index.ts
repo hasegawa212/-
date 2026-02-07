@@ -1,7 +1,11 @@
 import { registerBuiltinTools } from "../runtime/toolRegistry";
+import { registerTool } from "../aiServices/runTool";
+import { webSearchTool } from "./webSearch";
+import { codeExecutionTool } from "./codeExecution";
 
-// Initialize all built-in tools
 export function initializeTools() {
   registerBuiltinTools();
-  console.log("[Tools] Built-in tools registered");
+  registerTool(webSearchTool);
+  registerTool(codeExecutionTool);
+  console.log("[Tools] All tools registered (built-in + web search + code execution)");
 }
