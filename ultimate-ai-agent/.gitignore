@@ -8,3 +8,4 @@ data/
 .env.production
 .DS_Store
 *.log
+client/tsconfig.tsbuildinfo
