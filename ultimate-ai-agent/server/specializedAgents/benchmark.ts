@@ -37,7 +37,7 @@ export interface BenchmarkResult {
 const benchmarkResults: BenchmarkResult[] = [];
 
 // ---------------------------------------------------------------------------
-// 15 Benchmark Tests
+// 16 Benchmark Tests
 // ---------------------------------------------------------------------------
 
 export const benchmarkTests: BenchmarkTest[] = [
@@ -252,6 +252,21 @@ export const benchmarkTests: BenchmarkTest[] = [
       'safety stock', 'reorder point', 'ABC analysis', 'EOQ',
       'lead time', 'demand forecast', 'seasonal', 'warehouse',
       'SKU', 'service level', 'carrying cost', 'stockout',
+    ],
+    difficulty: 'hard',
+  },
+
+  // --- Sports ---
+  {
+    id: 'spt-tournament-planning',
+    name: 'Martial Arts: Tournament Planning',
+    domain: 'sports',
+    prompt:
+      'Plan a regional karate tournament for 300 competitors across youth, adult, and senior divisions, covering both kata and kumite events. Include bracket formats, weight classes, scheduling, referee requirements, venue logistics, and safety protocols.',
+    expectedTopics: [
+      'bracket', 'division', 'weight class', 'kata', 'kumite',
+      'referee', 'schedule', 'venue', 'safety', 'medical',
+      'registration', 'scoring',
     ],
     difficulty: 'hard',
   },

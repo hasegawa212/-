@@ -32,6 +32,7 @@ const domainColors: Record<string, { bg: string; text: string; border: string; b
   data: { bg: "bg-indigo-500/10", text: "text-indigo-500", border: "border-indigo-500/30", badge: "bg-indigo-500/20 text-indigo-400" },
   security: { bg: "bg-red-500/10", text: "text-red-500", border: "border-red-500/30", badge: "bg-red-500/20 text-red-400" },
   operations: { bg: "bg-teal-500/10", text: "text-teal-500", border: "border-teal-500/30", badge: "bg-teal-500/20 text-teal-400" },
+  sports: { bg: "bg-yellow-500/10", text: "text-yellow-500", border: "border-yellow-500/30", badge: "bg-yellow-500/20 text-yellow-400" },
 };
 
 const tierColors: Record<string, string> = {
@@ -409,9 +410,26 @@ const agents: Agent[] = [
     ],
     stats: { interactions: 4100, rating: 4.5 },
   },
+  {
+    id: "martial-arts-org-guide",
+    name: "Martial Arts Organization Guide",
+    domain: "sports",
+    avatar: "\u{1f94b}",
+    description: "Dojo management, tournament planning, and martial arts organization specialist.",
+    fullDescription: "Expert in martial arts organization management covering dojo business operations, tournament and competition planning, belt and rank system design, curriculum development, student recruitment and retention, instructor certification, and federation compliance across karate, judo, taekwondo, BJJ, kendo, and more.",
+    expertise: ["Dojo Management", "Tournament Planning", "Belt Systems", "Curriculum Design", "Student Retention", "Federation Compliance"],
+    tier: "free",
+    sampleQuestions: [
+      "Create a business plan for a new martial arts dojo",
+      "Design a belt ranking system for a karate school",
+      "Plan a regional judo tournament for 500 competitors",
+      "How to structure a youth martial arts program?",
+    ],
+    stats: { interactions: 3200, rating: 4.7 },
+  },
 ];
 
-const domains = ["All", "Engineering", "Business", "Creative", "Science", "Health", "Legal", "Education", "Data", "Security", "Operations"];
+const domains = ["All", "Engineering", "Business", "Creative", "Science", "Health", "Legal", "Education", "Data", "Security", "Operations", "Sports"];
 const tiers = ["All", "Free", "Pro", "Enterprise"] as const;
 
 function StarRating({ rating }: { rating: number }) {
@@ -494,7 +512,7 @@ export default function AgentMarketplace() {
         </div>
         <h1 className="text-4xl font-bold tracking-tight">Specialized AI Agents</h1>
         <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-          22 domain-expert agents ready to work
+          23 domain-expert agents ready to work
         </p>
         <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground pt-2">
           <span className="flex items-center gap-1.5">

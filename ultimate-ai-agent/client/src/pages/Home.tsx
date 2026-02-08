@@ -96,7 +96,7 @@ const features = [
   },
   {
     name: "AI Marketplace",
-    description: "22 domain-expert specialized AI agents: engineering, business, creative, science",
+    description: "23 domain-expert specialized AI agents: engineering, business, creative, science, sports",
     href: "/agent-marketplace",
     icon: Store,
     color: "text-rose-500",
