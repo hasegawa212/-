@@ -20,6 +20,13 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: "50mb" }));
 
+// General AI API
+import("./generalAI").then((mod) => {
+  app.use("/api/ai", mod.default);
+}).catch(() => {
+  console.warn("[GeneralAI] Module not loaded");
+});
+
 // tRPC API
 app.use(
   "/api/trpc",

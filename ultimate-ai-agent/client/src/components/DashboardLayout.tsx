@@ -21,6 +21,12 @@ import {
   Store,
   Users,
   TrendingUp,
+  Wand2,
+  FileText,
+  Image,
+  Code2,
+  Layers,
+  FlaskConical,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -37,22 +43,60 @@ export default function DashboardLayout() {
   const { t, locale, setLocale } = useI18n();
   const { user, logout } = useAuth();
 
-  const navigation = [
-    { name: t("nav.home"), href: "/", icon: Home },
-    { name: t("nav.chat"), href: "/chat", icon: MessageSquare },
-    { name: t("nav.analytics"), href: "/analytics", icon: BarChart3 },
-    { name: t("nav.rag"), href: "/rag", icon: Database },
-    { name: t("nav.agents"), href: "/agents", icon: Bot },
-    { name: t("nav.memory"), href: "/memory", icon: Brain },
-    { name: t("nav.workflows"), href: "/workflows", icon: GitBranch },
-    { name: "Workflow Builder", href: "/workflow-builder", icon: Workflow },
-    { name: "Templates", href: "/workflow-templates", icon: LayoutTemplate },
-    { name: "Executions", href: "/execution-history", icon: History },
-    { name: "AI Marketplace", href: "/agent-marketplace", icon: Store },
-    { name: "Collaboration", href: "/agent-collaboration", icon: Users },
-    { name: "Evolution", href: "/agent-evolution", icon: TrendingUp },
-    { name: t("nav.settings"), href: "/settings", icon: Settings },
+  const navSections = [
+    {
+      label: "",
+      items: [
+        { name: t("nav.home"), href: "/", icon: Home },
+        { name: t("nav.chat"), href: "/chat", icon: MessageSquare },
+      ],
+    },
+    {
+      label: "AI Tools",
+      items: [
+        { name: "Playground", href: "/ai-playground", icon: FlaskConical },
+        { name: "Prompt Studio", href: "/prompt-studio", icon: Wand2 },
+        { name: "Documents", href: "/document-analyzer", icon: FileText },
+        { name: "Images", href: "/image-generator", icon: Image },
+        { name: "Code", href: "/code-generator", icon: Code2 },
+        { name: "Batch", href: "/batch-processor", icon: Layers },
+      ],
+    },
+    {
+      label: "Agents",
+      items: [
+        { name: "Marketplace", href: "/agent-marketplace", icon: Store },
+        { name: "Collaboration", href: "/agent-collaboration", icon: Users },
+        { name: "Evolution", href: "/agent-evolution", icon: TrendingUp },
+        { name: t("nav.agents"), href: "/agents", icon: Bot },
+      ],
+    },
+    {
+      label: "Automation",
+      items: [
+        { name: "Builder", href: "/workflow-builder", icon: Workflow },
+        { name: "Templates", href: "/workflow-templates", icon: LayoutTemplate },
+        { name: "Executions", href: "/execution-history", icon: History },
+        { name: t("nav.workflows"), href: "/workflows", icon: GitBranch },
+      ],
+    },
+    {
+      label: "Data",
+      items: [
+        { name: t("nav.analytics"), href: "/analytics", icon: BarChart3 },
+        { name: t("nav.rag"), href: "/rag", icon: Database },
+        { name: t("nav.memory"), href: "/memory", icon: Brain },
+      ],
+    },
+    {
+      label: "",
+      items: [
+        { name: t("nav.settings"), href: "/settings", icon: Settings },
+      ],
+    },
   ];
+
+  const navigation = navSections.flatMap((s) => s.items);
 
   const cycleTheme = () => {
     const themes: Array<"light" | "dark" | "system"> = ["light", "dark", "system"];
@@ -82,20 +126,29 @@ export default function DashboardLayout() {
           </Button>
         </div>
 
-        <nav className="p-4 space-y-1">
-          {navigation.map((item) => {
-            const isActive = item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href);
-            return (
-              <Link key={item.href} to={item.href} onClick={() => setSidebarOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                )}>
-                <item.icon className="h-4 w-4" />
-                {item.name}
-              </Link>
-            );
-          })}
+        <nav className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
+          {navSections.map((section, si) => (
+            <div key={si}>
+              {section.label && (
+                <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                  {section.label}
+                </p>
+              )}
+              {section.items.map((item) => {
+                const isActive = item.href === "/" ? location.pathname === "/" : location.pathname.startsWith(item.href);
+                return (
+                  <Link key={item.href} to={item.href} onClick={() => setSidebarOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+                      isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}>
+                    <item.icon className="h-3.5 w-3.5" />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {user && (

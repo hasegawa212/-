@@ -15,6 +15,12 @@ import ExecutionHistory from "./pages/ExecutionHistory";
 import AgentMarketplace from "./pages/AgentMarketplace";
 import AgentCollaboration from "./pages/AgentCollaboration";
 import AgentEvolution from "./pages/AgentEvolution";
+import AIPlayground from "./pages/AIPlayground";
+import PromptStudio from "./pages/PromptStudio";
+import DocumentAnalyzer from "./pages/DocumentAnalyzer";
+import ImageGenerator from "./pages/ImageGenerator";
+import CodeGenerator from "./pages/CodeGenerator";
+import BatchProcessor from "./pages/BatchProcessor";
 import { useAuth } from "./contexts/AuthContext";
 
 function App() {
@@ -47,6 +53,12 @@ function App() {
         <Route path="/agent-marketplace" element={<AgentMarketplace />} />
         <Route path="/agent-collaboration" element={<AgentCollaboration />} />
         <Route path="/agent-evolution" element={<AgentEvolution />} />
+        <Route path="/ai-playground" element={<AIPlayground />} />
+        <Route path="/prompt-studio" element={<PromptStudio />} />
+        <Route path="/document-analyzer" element={<DocumentAnalyzer />} />
+        <Route path="/image-generator" element={<ImageGenerator />} />
+        <Route path="/code-generator" element={<CodeGenerator />} />
+        <Route path="/batch-processor" element={<BatchProcessor />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/login" element={<Navigate to="/" replace />} />
