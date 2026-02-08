@@ -8,6 +8,8 @@ import {
   GitBranch,
   ArrowRight,
   Sparkles,
+  Workflow,
+  LayoutTemplate,
 } from "lucide-react";
 import {
   Card,
@@ -66,6 +68,22 @@ const features = [
     icon: GitBranch,
     color: "text-cyan-500",
     bg: "bg-cyan-500/10",
+  },
+  {
+    name: "Workflow Builder",
+    description: "Visual drag-and-drop workflow editor with 34+ AI-native node types",
+    href: "/workflow-builder",
+    icon: Workflow,
+    color: "text-indigo-500",
+    bg: "bg-indigo-500/10",
+  },
+  {
+    name: "Templates",
+    description: "Pre-built workflow templates for marketing, DevOps, and AI automation",
+    href: "/workflow-templates",
+    icon: LayoutTemplate,
+    color: "text-amber-500",
+    bg: "bg-amber-500/10",
   },
 ];
 

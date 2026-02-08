@@ -15,6 +15,9 @@ import {
   Monitor,
   LogOut,
   Globe,
+  Workflow,
+  LayoutTemplate,
+  History,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -39,6 +42,9 @@ export default function DashboardLayout() {
     { name: t("nav.agents"), href: "/agents", icon: Bot },
     { name: t("nav.memory"), href: "/memory", icon: Brain },
     { name: t("nav.workflows"), href: "/workflows", icon: GitBranch },
+    { name: "Workflow Builder", href: "/workflow-builder", icon: Workflow },
+    { name: "Templates", href: "/workflow-templates", icon: LayoutTemplate },
+    { name: "Executions", href: "/execution-history", icon: History },
     { name: t("nav.settings"), href: "/settings", icon: Settings },
   ];
 

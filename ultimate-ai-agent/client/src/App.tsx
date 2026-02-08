@@ -9,6 +9,9 @@ import Memory from "./pages/Memory";
 import Workflows from "./pages/Workflows";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
+import WorkflowBuilder from "./pages/WorkflowBuilder";
+import WorkflowTemplates from "./pages/WorkflowTemplates";
+import ExecutionHistory from "./pages/ExecutionHistory";
 import { useAuth } from "./contexts/AuthContext";
 
 function App() {
@@ -34,6 +37,10 @@ function App() {
         <Route path="/agents" element={<CustomAgents />} />
         <Route path="/memory" element={<Memory />} />
         <Route path="/workflows" element={<Workflows />} />
+        <Route path="/workflow-builder" element={<WorkflowBuilder />} />
+        <Route path="/workflow-builder/:workflowId" element={<WorkflowBuilder />} />
+        <Route path="/workflow-templates" element={<WorkflowTemplates />} />
+        <Route path="/execution-history" element={<ExecutionHistory />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/login" element={<Navigate to="/" replace />} />

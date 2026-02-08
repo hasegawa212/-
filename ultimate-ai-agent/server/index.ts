@@ -145,6 +145,66 @@ app.post("/api/integrations/discord", async (req, res) => {
   }
 });
 
+// ===== Workflow Automation API =====
+
+// Execute workflow
+app.post("/api/workflow/execute", async (req, res) => {
+  try {
+    const { WorkflowEngine } = await import("./workflow/engine");
+    const engine = new WorkflowEngine();
+    const result = await engine.executeWorkflow(req.body.workflow, req.body.triggerData || {});
+    res.json({
+      ...result,
+      nodeResults: Object.fromEntries(result.nodeResults),
+    });
+  } catch (error) {
+    console.error("[Workflow] Execution error:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Workflow execution failed",
+    });
+  }
+});
+
+// Generate workflow from natural language
+app.post("/api/workflow/generate", async (req, res) => {
+  try {
+    const { buildWorkflowFromDescription } = await import("./workflow/nlBuilder");
+    const workflow = await buildWorkflowFromDescription(req.body.description);
+    res.json(workflow);
+  } catch (error) {
+    console.error("[Workflow] Generation error:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Workflow generation failed",
+    });
+  }
+});
+
+// List available node types
+app.get("/api/workflow/node-types", async (_req, res) => {
+  try {
+    const { allNodeTypes } = await import("./workflow/nodes");
+    res.json(allNodeTypes);
+  } catch (error) {
+    res.json([]);
+  }
+});
+
+// Webhook receiver for workflow triggers
+app.all("/api/webhook/:path", async (req, res) => {
+  try {
+    const { handleWebhook } = await import("./workflow/webhookHandler");
+    const result = await handleWebhook(
+      req.params.path,
+      req.method,
+      req.headers as Record<string, string>,
+      req.body
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(404).json({ error: "Webhook not found" });
+  }
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
