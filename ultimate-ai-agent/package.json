@@ -1,0 +1,23 @@
+{
+  "name": "ultimate-ai-agent",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:client": "cd client && npm run dev",
+    "dev:server": "cd server && npx tsx watch index.ts",
+    "build": "cd client && npm run build",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "drizzle-kit": "^0.24.0",
+    "typescript": "^5.5.0"
+  }
+}

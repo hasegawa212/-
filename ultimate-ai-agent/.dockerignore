@@ -1,0 +1,13 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+client/dist/
+data/
+*.db
+*.sqlite
+.env
+.env.local
+.env.production
+.git
+.gitignore
+*.md
