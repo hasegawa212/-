@@ -12,6 +12,9 @@ import Login from "./pages/Login";
 import WorkflowBuilder from "./pages/WorkflowBuilder";
 import WorkflowTemplates from "./pages/WorkflowTemplates";
 import ExecutionHistory from "./pages/ExecutionHistory";
+import AgentMarketplace from "./pages/AgentMarketplace";
+import AgentCollaboration from "./pages/AgentCollaboration";
+import AgentEvolution from "./pages/AgentEvolution";
 import { useAuth } from "./contexts/AuthContext";
 
 function App() {
@@ -41,6 +44,9 @@ function App() {
         <Route path="/workflow-builder/:workflowId" element={<WorkflowBuilder />} />
         <Route path="/workflow-templates" element={<WorkflowTemplates />} />
         <Route path="/execution-history" element={<ExecutionHistory />} />
+        <Route path="/agent-marketplace" element={<AgentMarketplace />} />
+        <Route path="/agent-collaboration" element={<AgentCollaboration />} />
+        <Route path="/agent-evolution" element={<AgentEvolution />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/login" element={<Navigate to="/" replace />} />

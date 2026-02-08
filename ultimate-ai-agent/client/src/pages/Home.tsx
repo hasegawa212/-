@@ -10,6 +10,9 @@ import {
   Sparkles,
   Workflow,
   LayoutTemplate,
+  Store,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import {
   Card,
@@ -84,6 +87,30 @@ const features = [
     icon: LayoutTemplate,
     color: "text-amber-500",
     bg: "bg-amber-500/10",
+  },
+  {
+    name: "AI Marketplace",
+    description: "22 domain-expert specialized AI agents: engineering, business, creative, science",
+    href: "/agent-marketplace",
+    icon: Store,
+    color: "text-rose-500",
+    bg: "bg-rose-500/10",
+  },
+  {
+    name: "Agent Collaboration",
+    description: "Multi-agent debate, brainstorm, review, and pipeline collaboration",
+    href: "/agent-collaboration",
+    icon: Users,
+    color: "text-violet-500",
+    bg: "bg-violet-500/10",
+  },
+  {
+    name: "Agent Evolution",
+    description: "Track agent performance, feedback, leaderboard, and evolution levels",
+    href: "/agent-evolution",
+    icon: TrendingUp,
+    color: "text-teal-500",
+    bg: "bg-teal-500/10",
   },
 ];
 

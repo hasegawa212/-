@@ -18,6 +18,9 @@ import {
   Workflow,
   LayoutTemplate,
   History,
+  Store,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -45,6 +48,9 @@ export default function DashboardLayout() {
     { name: "Workflow Builder", href: "/workflow-builder", icon: Workflow },
     { name: "Templates", href: "/workflow-templates", icon: LayoutTemplate },
     { name: "Executions", href: "/execution-history", icon: History },
+    { name: "AI Marketplace", href: "/agent-marketplace", icon: Store },
+    { name: "Collaboration", href: "/agent-collaboration", icon: Users },
+    { name: "Evolution", href: "/agent-evolution", icon: TrendingUp },
     { name: t("nav.settings"), href: "/settings", icon: Settings },
   ];
 

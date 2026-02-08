@@ -205,6 +205,99 @@ app.all("/api/webhook/:path", async (req, res) => {
   }
 });
 
+// ===== Specialized AI Agents API =====
+
+// List all specialized agents
+app.get("/api/agents/specialized", async (_req, res) => {
+  try {
+    const { specializedAgents } = await import("./specializedAgents/definitions");
+    res.json(specializedAgents);
+  } catch (error) {
+    res.json([]);
+  }
+});
+
+// Get specific specialized agent
+app.get("/api/agents/specialized/:id", async (req, res) => {
+  try {
+    const { getSpecializedAgent } = await import("./specializedAgents/definitions");
+    const agent = getSpecializedAgent(req.params.id);
+    if (!agent) return res.status(404).json({ error: "Agent not found" });
+    res.json(agent);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get agent" });
+  }
+});
+
+// Multi-agent collaboration
+app.post("/api/agents/collaborate", async (req, res) => {
+  try {
+    const { createCollaboration, runCollaborationRound } = await import("./specializedAgents/collaboration");
+    const { agentIds, mode, topic, message } = req.body;
+    const session = createCollaboration(agentIds, mode, topic);
+    const result = await runCollaborationRound(session, message || topic);
+    res.json(result);
+  } catch (error) {
+    console.error("[Collaboration] Error:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Collaboration failed",
+    });
+  }
+});
+
+// Agent feedback
+app.post("/api/agents/feedback", async (req, res) => {
+  try {
+    const { recordFeedback } = await import("./specializedAgents/evolution");
+    recordFeedback(req.body);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to record feedback" });
+  }
+});
+
+// Agent stats & leaderboard
+app.get("/api/agents/leaderboard", async (_req, res) => {
+  try {
+    const { getLeaderboard } = await import("./specializedAgents/evolution");
+    res.json(getLeaderboard());
+  } catch (error) {
+    res.json([]);
+  }
+});
+
+app.get("/api/agents/stats/:id", async (req, res) => {
+  try {
+    const { getAgentStats } = await import("./specializedAgents/evolution");
+    res.json(getAgentStats(req.params.id));
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get stats" });
+  }
+});
+
+// Agent benchmark
+app.post("/api/agents/benchmark", async (req, res) => {
+  try {
+    const { runBenchmark } = await import("./specializedAgents/benchmark");
+    const result = await runBenchmark(req.body.agentId, req.body.testId);
+    res.json(result);
+  } catch (error) {
+    console.error("[Benchmark] Error:", error);
+    res.status(500).json({
+      error: error instanceof Error ? error.message : "Benchmark failed",
+    });
+  }
+});
+
+app.get("/api/agents/benchmark/results", async (req, res) => {
+  try {
+    const { getBenchmarkResults } = await import("./specializedAgents/benchmark");
+    res.json(getBenchmarkResults(req.query.agentId as string | undefined));
+  } catch (error) {
+    res.json([]);
+  }
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
