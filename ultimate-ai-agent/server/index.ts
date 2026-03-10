@@ -152,6 +152,57 @@ app.post("/api/integrations/discord", async (req, res) => {
   }
 });
 
+// Email notification handler with proper charset/encoding support
+app.post("/api/integrations/email-notification", async (req, res) => {
+  try {
+    const { emailContent, webhookUrl } = req.body;
+    if (!emailContent) {
+      return res.status(400).json({ error: "Email content required" });
+    }
+
+    const { handleEmailWebhook } = await import("./_core/slackEmailNotification.js");
+
+    const config = {
+      webhookUrl: webhookUrl || process.env.EMAIL_NOTIFICATION_WEBHOOK || "",
+    };
+
+    const result = await handleEmailWebhook(emailContent, config);
+    res.json(result);
+  } catch (error) {
+    console.error("[Email Notification] Error:", error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to process email notification",
+    });
+  }
+});
+
+// Webhook for incoming emails (e.g., from Indeed, email services)
+app.post("/api/webhooks/email", async (req, res) => {
+  try {
+    const { handleEmailWebhook } = await import("./_core/slackEmailNotification.js");
+
+    // Support different email webhook formats
+    const rawEmail = req.body.raw || req.body.email || JSON.stringify(req.body);
+    const webhookUrl = process.env.EMAIL_NOTIFICATION_WEBHOOK;
+
+    if (!webhookUrl) {
+      return res.status(400).json({
+        error: "EMAIL_NOTIFICATION_WEBHOOK environment variable not set",
+      });
+    }
+
+    const result = await handleEmailWebhook(rawEmail, { webhookUrl });
+    res.json(result);
+  } catch (error) {
+    console.error("[Email Webhook] Error:", error);
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to process email webhook",
+    });
+  }
+});
+
 // ===== Workflow Automation API =====
 
 // Execute workflow

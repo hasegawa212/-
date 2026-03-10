@@ -27,6 +27,9 @@ export default function Settings() {
   const [googleMapsKey, setGoogleMapsKey] = useState(
     () => localStorage.getItem("settings.googleMapsKey") || ""
   );
+  const [emailNotificationWebhook, setEmailNotificationWebhook] = useState(
+    () => localStorage.getItem("settings.emailNotificationWebhook") || ""
+  );
   const [saved, setSaved] = useState(false);
 
   const { data: health } = trpc.health.useQuery();
@@ -38,6 +41,7 @@ export default function Settings() {
     if (slackWebhook) localStorage.setItem("settings.slackWebhook", slackWebhook);
     if (discordWebhook) localStorage.setItem("settings.discordWebhook", discordWebhook);
     if (googleMapsKey) localStorage.setItem("settings.googleMapsKey", googleMapsKey);
+    if (emailNotificationWebhook) localStorage.setItem("settings.emailNotificationWebhook", emailNotificationWebhook);
     if (apiKey) localStorage.setItem("settings.apiKeySet", "true");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -126,6 +130,11 @@ export default function Settings() {
           <div>
             <label className="text-sm font-medium mb-1 block">{t("settings.googleMapsKey")}</label>
             <Input placeholder="AIza..." value={googleMapsKey} onChange={(e) => setGoogleMapsKey(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">Email Notification Webhook</label>
+            <Input placeholder="https://hooks.slack.com/services/... (for email notifications)" value={emailNotificationWebhook} onChange={(e) => setEmailNotificationWebhook(e.target.value)} />
+            <p className="text-xs text-muted-foreground mt-1">Webhook URL where email notifications will be sent with proper encoding</p>
           </div>
         </CardContent>
       </Card>
