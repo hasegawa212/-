@@ -1,7 +1,7 @@
 import { chatCompletion, streamChatCompletion } from "./_core/llm";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { db } from "./db";
-import { messages, conversations, analyticsEvents } from "../drizzle/schema";
+import { messages, conversations } from "../drizzle/schema";
 import { eq, desc } from "drizzle-orm";
 import { defaultAgents, getAgentById } from "./agents";
 import type { Agent } from "../shared/types";
@@ -88,15 +88,15 @@ export async function processChat(options: ChatOptions): Promise<ChatResult> {
     metadata: result.usage ? JSON.stringify(result.usage) : null,
   });
 
-  // Log analytics
-  const responseTime = Date.now() - startTime;
-  await db.insert(analyticsEvents).values({
-    eventType: "chat_completion",
-    conversationId,
-    agentId: agent?.id,
-    tokensUsed: result.usage?.totalTokens || 0,
-    responseTimeMs: responseTime,
-  });
+  // Log analytics (disabled - analyticsEvents table not configured)
+  // const responseTime = Date.now() - startTime;
+  // await db.insert(analyticsEvents).values({
+  //   eventType: "chat_completion",
+  //   conversationId,
+  //   agentId: agent?.id,
+  //   tokensUsed: result.usage?.totalTokens || 0,
+  //   responseTimeMs: responseTime,
+  // });
 
   return {
     conversationId,
