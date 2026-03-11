@@ -13,6 +13,7 @@ import {
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "fs";
 import { join, resolve } from "path";
+import { processMamamaWebhook } from "./integrations/mamama.js";
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -149,6 +150,22 @@ app.post("/api/integrations/discord", async (req, res) => {
     res.json({ success: response.ok });
   } catch (error) {
     res.status(500).json({ error: "Failed to send Discord notification" });
+  }
+});
+
+// mamama.pro webhook integration
+app.post("/api/integrations/mamama", async (req, res) => {
+  try {
+    const result = await processMamamaWebhook(
+      req.body,
+      req.headers["x-slack-webhook-url"] as string | undefined
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to process webhook",
+    });
   }
 });
 
