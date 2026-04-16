@@ -9,7 +9,7 @@ import {
   memoryEntries,
   workflows,
   analyticsEvents,
-} from "../drizzle/schema";
+} from "./schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 import { processChat } from "./aiServices";
 import { defaultAgents, promptTemplates } from "./agents";

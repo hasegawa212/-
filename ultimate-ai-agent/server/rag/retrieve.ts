@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { ragDocuments } from "../../drizzle/schema";
+import { ragDocuments } from "../schema";
 import { like } from "drizzle-orm";
 
 export interface RetrievalResult {

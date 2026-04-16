@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { messages, conversations } from "../../drizzle/schema";
+import { messages, conversations } from "../schema";
 import { eq } from "drizzle-orm";
 import { processChat } from "../aiServices";
 

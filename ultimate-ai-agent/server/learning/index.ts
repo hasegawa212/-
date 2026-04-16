@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { analyticsEvents, messages } from "../../drizzle/schema";
+import { analyticsEvents, messages } from "../schema";
 import { eq, desc, sql } from "drizzle-orm";
 
 export interface LearningInsight {

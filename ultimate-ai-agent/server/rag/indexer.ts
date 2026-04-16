@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { ragDocuments } from "../../drizzle/schema";
+import { ragDocuments } from "../schema";
 
 export async function indexDocument(
   title: string,

@@ -1,7 +1,7 @@
 import { chatCompletion, streamChatCompletion } from "./_core/llm";
 import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import { db } from "./db";
-import { messages, conversations, analyticsEvents } from "../drizzle/schema";
+import { messages, conversations, analyticsEvents } from "./schema";
 import { eq, desc } from "drizzle-orm";
 import { defaultAgents, getAgentById } from "./agents";
 import type { Agent } from "../shared/types";
@@ -172,7 +172,7 @@ export async function* streamChat(
 
 async function loadAllAgents(): Promise<Agent[]> {
   const dbAgents = await db.select().from(
-    (await import("../drizzle/schema")).agents
+    (await import("./schema")).agents
   );
 
   const mapped: Agent[] = dbAgents.map((a) => ({

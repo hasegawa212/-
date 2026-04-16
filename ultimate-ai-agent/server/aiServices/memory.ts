@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { memoryEntries } from "../../drizzle/schema";
+import { memoryEntries } from "../schema";
 import { eq, and } from "drizzle-orm";
 
 export interface MemoryEntry {
