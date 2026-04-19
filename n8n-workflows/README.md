@@ -1,4 +1,15 @@
-# n8n Workflow: Telegram → Google Sheets + Slack
+# n8n Workflows
+
+Telegram / Google Sheets / Slack を組み合わせた業務自動化ワークフロー集です。
+
+| ファイル | 用途 |
+| --- | --- |
+| `telegram-to-sheets-slack.json` | Telegram受信 → ログをSheetsに追記 + Slack通知 |
+| `telegram-call-log-to-sheet.json` | Telegramで「No. 結果」を送ると、テレアポ管理シートの該当行を自動更新。アポ獲得時はSlackに通知 |
+
+---
+
+## ワークフロー1: Telegram → Google Sheets + Slack
 
 Telegramに届いたメッセージを Google Sheets に記録し、Slack にも通知するn8nワークフローです。
 
@@ -70,3 +81,72 @@ Telegram Trigger → Normalize Message → Has Text?
 - **画像/ファイル対応**: `Has Text?` を条件分岐にして `photo` / `document` を Google Drive へアップロードするノードを追加
 - **コマンド処理**: `Normalize Message` の後に `Switch` ノードを置き `/start` 等を振り分け
 - **要約**: `Append to Google Sheets` の前に OpenAI/Claude ノードを挟んで要約を保存
+
+---
+
+## ワークフロー2: Telegram → テレアポ管理シート 自動更新
+
+担当者がTelegramに「`<No.> <結果>`」と送るだけで、`テレアポ管理シート` の該当行の **架電日N / 架電結果N / 架電ステータス** が自動更新されるワークフロー。アポ獲得時は Slack にも通知します。
+
+### フロー図
+
+```
+Telegram Trigger → Parse Command → Parse OK?
+                                      ├─ NG → Telegram: Error
+                                      └─ OK → Lookup Row by No. → Pick Empty Slot → Slot OK?
+                                                                                        ├─ NG → Telegram: Error
+                                                                                        └─ OK → Update Sheet Row → Is Appointment?
+                                                                                                                       ├─ Yes → Slack: Appointment + Telegram: Confirm
+                                                                                                                       └─ No  → Telegram: Confirm
+```
+
+### 入力フォーマット
+
+担当者がボットに送る文言:
+
+```
+3 アポ獲得         ← No.3 にアポ獲得を記録
+12 不在            ← No.12 に不在を記録
+/log 7 再架電      ← /log プレフィックスもOK
+5:番号違い         ← コロン区切りもOK
+```
+
+結果キーワード → 架電ステータスの対応:
+
+| キーワード | 設定される 架電ステータス | アポ通知 |
+| --- | --- | --- |
+| アポ獲得 / 獲得 / 成約 | アポ獲得 | ✅ Slack通知 |
+| アポ | アポ予定 | — |
+| 不在 / 留守 | 次回架電予定 | — |
+| 拒否 / 断り / NG | 対応不可 | — |
+| 再架電 / 折り返し | 次回架電予定 | — |
+| 番号違い | 番号誤り | — |
+| その他 | 架電済み | — |
+
+### 動作
+
+1. `Parse Command` がメッセージを `No.` と `結果` に分解
+2. `Lookup Row by No.` で該当行をシートから取得
+3. `Pick Empty Slot` が `架電日1/2/3` のうち空いている枠を判定
+4. `Update Sheet Row` で `架電日N` / `架電結果N` / `架電ステータス` を更新 (結果欄には担当者名も付加)
+5. 「アポ獲得」系のキーワードならSlackチャンネルにお祝い通知
+6. 担当者にTelegramで「✅ 記録しました」と返信
+
+### 事前準備
+
+ワークフロー1と同じ Telegram / Google Sheets / Slack の認証情報を使い回せます。シートは既存の `テレアポ管理シート` (列: `No.`, `架電ステータス`, `架電日1〜3`, `架電結果1〜3` など) を Google Sheets にインポートしてください。
+
+### インポート手順
+
+1. n8nを開く → **Workflows → Import from File**
+2. `telegram-call-log-to-sheet.json` を選択
+3. `REPLACE_WITH_*` を置換 (Telegram / Google Sheets / Slack の認証情報ID + シートID + チャンネルID)
+4. シート名 (`テレアポ管理シート`) が実際のシートタブ名と一致しているか確認
+5. **Active** をONにする
+
+### テスト
+
+1. ボットに `1 アポ獲得` と送信
+2. シートの No.1 の `架電日1` に今日の日付、`架電結果1` に「アポ獲得 (担当者名)」、`架電ステータス` に「アポ獲得」が入る
+3. Slackに :tada: 通知が届く
+4. Telegramで「✅ 記録しました」と返信される
