@@ -1,8 +1,13 @@
 // テレアポ管理シート — Google Apps Script Web App
 // デプロイ後の exec URL に GET/POST でアクセスして操作する。
 //
-// スプレッドシートID を下記に設定してからデプロイすること。
-var SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') || '';
+// SPREADSHEET_ID はスクリプトプロパティで上書き可能。未設定時は下記の
+// デフォルト ID が使われる。スタンドアロンプロジェクトで動かす場合は
+// 対象スプレッドシートへのアクセス権を GAS 実行アカウントに付与すること。
+var DEFAULT_SPREADSHEET_ID = '1bMfdadJXV0NqdiawZmbGzDUMiDMbBt4Cr2d1uNVDjBw';
+var SPREADSHEET_ID =
+  PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID') ||
+  DEFAULT_SPREADSHEET_ID;
 var SHEET_NAME = 'テレアポ管理シート';
 
 var HEADERS = [
