@@ -172,7 +172,46 @@
     renderConversation();
   }
 
+  let backendAvailable = null;
+
+  async function checkBackend() {
+    if (backendAvailable !== null) return backendAvailable;
+    try {
+      const res = await fetch("/api/health", { method: "GET" });
+      if (!res.ok) throw new Error("health check failed");
+      const data = await res.json();
+      backendAvailable = Boolean(data.ok && data.configured);
+    } catch {
+      backendAvailable = false;
+    }
+    return backendAvailable;
+  }
+
   async function generateReply(prompt, history, model) {
+    if (await checkBackend()) {
+      try {
+        const payload = {
+          model,
+          messages: history
+            .filter((m) => !m.typing && m.content)
+            .map(({ role, content }) => ({ role, content })),
+        };
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        return data.content || "(空の応答)";
+      } catch (err) {
+        return `⚠️ バックエンドエラー: ${err.message}\n\nオフラインのデモ応答に切り替わります。`;
+      }
+    }
+
     await new Promise((r) => setTimeout(r, 400 + Math.random() * 600));
     const modelLabel = model.replace("clone-", "Clone ").replace(/\b\w/g, (c) => c.toUpperCase());
     const q = prompt.trim();
@@ -184,7 +223,7 @@
       return "どういたしまして! 他にお手伝いできることがあれば、気軽に聞いてください。";
     }
     if (/\?|？|教えて|とは|って何/.test(q)) {
-      return `「${q}」について考えてみます。\n\nこれはオフラインのデモ応答です。実際のLLMに接続するには、\`generateReply\` 関数を API 呼び出しに差し替えてください。\n\n例:\n\`\`\`js\nconst res = await fetch("/api/chat", {\n  method: "POST",\n  body: JSON.stringify({ messages: history, model })\n});\n\`\`\``;
+      return `「${q}」について考えてみます。\n\nこれはオフラインのデモ応答です。実LLMに接続するには \`ANTHROPIC_API_KEY\` を設定し \`npm start\` でサーバーを起動してください。`;
     }
     return `了解しました。\n\nあなたのメッセージ: *${q}*\n\n(これはローカル動作するデモ応答です。モデル: ${modelLabel})`;
   }
