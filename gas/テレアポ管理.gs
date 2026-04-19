@@ -53,6 +53,8 @@ function doPost(e) {
         return jsonResponse(handleUpdateStatus(body));
       case 'addCallResult':
         return jsonResponse(handleAddCallResult(body));
+      case 'bulkAdd':
+        return jsonResponse(handleBulkAdd(body));
       case 'delete':
         return jsonResponse(handleDelete(body));
       default:
@@ -196,6 +198,20 @@ function handleAddCallResult(body) {
   }
 
   throw new Error('All 3 call slots are already filled for No.' + body.no);
+}
+
+function handleBulkAdd(body) {
+  if (!body.records || !Array.isArray(body.records)) {
+    throw new Error('"records" array is required');
+  }
+  var sheet = getSheet();
+  var rows = body.records.map(function(rec) {
+    return HEADERS.map(function(h) { return rec[h] || ''; });
+  });
+  if (rows.length === 0) return { success: true, added: 0 };
+  var startRow = sheet.getLastRow() + 1;
+  sheet.getRange(startRow, 1, rows.length, HEADERS.length).setValues(rows);
+  return { success: true, added: rows.length };
 }
 
 function handleDelete(body) {
