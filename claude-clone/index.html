@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Clone - Claude風チャット</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <button class="new-chat-btn" id="newChatBtn">
+          <span class="icon">+</span>
+          <span>新しいチャット</span>
+        </button>
+      </div>
+      <nav class="chat-list" id="chatList"></nav>
+      <div class="sidebar-footer">
+        <div class="user-pill">
+          <div class="avatar">U</div>
+          <div class="user-info">
+            <div class="user-name">ユーザー</div>
+            <div class="user-plan">Open Clone</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-toggle" id="menuToggle" aria-label="メニュー">≡</button>
+        <div class="brand">
+          <div class="brand-mark">◆</div>
+          <div class="brand-name">Open Clone</div>
+        </div>
+        <div class="topbar-spacer"></div>
+        <select class="model-select" id="modelSelect" aria-label="モデル選択">
+          <option value="clone-opus">Clone Opus</option>
+          <option value="clone-sonnet" selected>Clone Sonnet</option>
+          <option value="clone-haiku">Clone Haiku</option>
+        </select>
+      </header>
+
+      <section class="conversation" id="conversation">
+        <div class="welcome" id="welcome">
+          <h1>こんにちは、何をお手伝いしましょうか?</h1>
+          <div class="suggestions">
+            <button class="suggest">アイデアをブレスト</button>
+            <button class="suggest">文章を要約</button>
+            <button class="suggest">コードをレビュー</button>
+            <button class="suggest">計画を立てる</button>
+          </div>
+        </div>
+      </section>
+
+      <footer class="composer">
+        <form id="composerForm" class="composer-form">
+          <textarea
+            id="input"
+            class="input"
+            rows="1"
+            placeholder="Open Clone にメッセージを送る..."
+            aria-label="メッセージ入力"
+          ></textarea>
+          <button type="submit" class="send-btn" id="sendBtn" aria-label="送信">↑</button>
+        </form>
+        <div class="hint">Enter で送信 / Shift+Enter で改行</div>
+      </footer>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
