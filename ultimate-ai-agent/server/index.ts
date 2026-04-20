@@ -13,12 +13,124 @@ import {
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { writeFileSync, unlinkSync, mkdirSync, existsSync } from "fs";
 import { join, resolve } from "path";
+import crypto from "crypto";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+app.use(
+  express.json({
+    limit: "50mb",
+    verify: (req: express.Request & { rawBody?: string }, _res, buf) => {
+      req.rawBody = buf.toString("utf-8");
+    },
+  })
+);
+
+// ===== Bot Logs (in-memory) =====
+
+type BotLogLevel = "info" | "warn" | "error";
+type BotLogEntry = {
+  id: string;
+  timestamp: string;
+  source: string;
+  level: BotLogLevel;
+  event: string;
+  message?: string;
+  data?: unknown;
+};
+
+const botLogs: BotLogEntry[] = [];
+const MAX_BOT_LOGS = 1000;
+
+function addBotLog(entry: Omit<BotLogEntry, "id" | "timestamp">): BotLogEntry {
+  const log: BotLogEntry = {
+    id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    ...entry,
+  };
+  botLogs.unshift(log);
+  if (botLogs.length > MAX_BOT_LOGS) botLogs.length = MAX_BOT_LOGS;
+  return log;
+}
+
+app.get("/api/bot-logs", (req, res) => {
+  const limit = Math.min(Math.max(Number(req.query.limit) || 100, 1), 500);
+  const level = req.query.level as BotLogLevel | undefined;
+  const source = req.query.source as string | undefined;
+  let logs = botLogs;
+  if (level) logs = logs.filter((l) => l.level === level);
+  if (source) logs = logs.filter((l) => l.source === source);
+  res.json({ logs: logs.slice(0, limit), total: logs.length });
+});
+
+// ===== Slack Events API =====
+
+function verifySlackSignature(
+  req: express.Request & { rawBody?: string }
+): boolean {
+  const signingSecret = process.env.SLACK_SIGNING_SECRET;
+  if (!signingSecret) return false;
+  const timestamp = req.headers["x-slack-request-timestamp"];
+  const signature = req.headers["x-slack-signature"];
+  if (typeof timestamp !== "string" || typeof signature !== "string") {
+    return false;
+  }
+  const now = Math.floor(Date.now() / 1000);
+  if (Math.abs(now - Number(timestamp)) > 60 * 5) return false;
+  const rawBody = req.rawBody ?? "";
+  const baseString = `v0:${timestamp}:${rawBody}`;
+  const expected =
+    "v0=" +
+    crypto.createHmac("sha256", signingSecret).update(baseString).digest("hex");
+  const expectedBuf = Buffer.from(expected);
+  const signatureBuf = Buffer.from(signature);
+  if (expectedBuf.length !== signatureBuf.length) return false;
+  try {
+    return crypto.timingSafeEqual(expectedBuf, signatureBuf);
+  } catch {
+    return false;
+  }
+}
+
+app.post("/api/slack/events", (req, res) => {
+  if (!verifySlackSignature(req)) {
+    addBotLog({
+      source: "slack",
+      level: "warn",
+      event: "events.signature_invalid",
+      message: "Invalid Slack signature",
+    });
+    return res.status(401).json({ error: "Invalid signature" });
+  }
+
+  const body = req.body ?? {};
+
+  if (body.type === "url_verification") {
+    return res.status(200).json({ challenge: body.challenge });
+  }
+
+  if (body.type === "event_callback") {
+    const event = body.event ?? {};
+    addBotLog({
+      source: "slack",
+      level: "info",
+      event: event.type || "event_callback",
+      message: typeof event.text === "string" ? event.text : undefined,
+      data: event,
+    });
+    return res.status(200).json({ ok: true });
+  }
+
+  addBotLog({
+    source: "slack",
+    level: "info",
+    event: body.type || "unknown",
+    data: body,
+  });
+  res.status(200).json({ ok: true });
+});
 
 // General AI API
 import("./generalAI").then((mod) => {
