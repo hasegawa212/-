@@ -1,0 +1,253 @@
+{
+  "name": "Telegram → Sheets + Slack Notify",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "1f9e3a01-1111-4a01-8001-000000000001",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "webhookId": "telegram-incoming",
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "timestamp",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "number"
+            },
+            {
+              "id": "a3",
+              "name": "chat_title",
+              "value": "={{ $json.message.chat.title || ($json.message.chat.first_name + ' ' + ($json.message.chat.last_name || '')).trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "user_id",
+              "value": "={{ $json.message.from.id }}",
+              "type": "number"
+            },
+            {
+              "id": "a5",
+              "name": "username",
+              "value": "={{ $json.message.from.username || ($json.message.from.first_name + ' ' + ($json.message.from.last_name || '')).trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "text",
+              "value": "={{ $json.message.text || $json.message.caption || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "message_id",
+              "value": "={{ $json.message.message_id }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f9e3a01-2222-4a02-8002-000000000002",
+      "name": "Normalize Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.text }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1f9e3a01-3333-4a03-8003-000000000003",
+      "name": "Has Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Messages",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "chat_id": "={{ $json.chat_id }}",
+            "chat_title": "={{ $json.chat_title }}",
+            "user_id": "={{ $json.user_id }}",
+            "username": "={{ $json.username }}",
+            "text": "={{ $json.text }}",
+            "message_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "timestamp", "displayName": "timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "chat_id", "displayName": "chat_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "chat_title", "displayName": "chat_title", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "user_id", "displayName": "user_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "username", "displayName": "username", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "text", "displayName": "text", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "message_id", "displayName": "message_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1f9e3a01-4444-4a04-8004-000000000004",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [980, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=:incoming_envelope: *New Telegram message*\n*From:* {{ $json.username }} (chat: {{ $json.chat_title }})\n*At:* {{ $json.timestamp }}\n\n> {{ $json.text }}",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "1f9e3a01-5555-4a05-8005-000000000005",
+      "name": "Notify Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [980, 400],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "Slack"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalize Message').item.json.chat_id }}",
+        "text": "受信しました :white_check_mark:",
+        "additionalFields": {
+          "reply_to_message_id": "={{ $('Normalize Message').item.json.message_id }}"
+        }
+      },
+      "id": "1f9e3a01-6666-4a06-8006-000000000006",
+      "name": "Telegram Ack",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1240, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_WITH_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          { "node": "Normalize Message", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Normalize Message": {
+      "main": [
+        [
+          { "node": "Has Text?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Has Text?": {
+      "main": [
+        [
+          { "node": "Append to Google Sheets", "type": "main", "index": 0 },
+          { "node": "Notify Slack", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Append to Google Sheets": {
+      "main": [
+        [
+          { "node": "Telegram Ack", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Notify Slack": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    { "name": "telegram" },
+    { "name": "slack" },
+    { "name": "sheets" }
+  ]
+}
