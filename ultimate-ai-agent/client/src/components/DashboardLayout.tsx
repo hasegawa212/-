@@ -27,6 +27,7 @@ import {
   Code2,
   Layers,
   FlaskConical,
+  Building2,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -49,6 +50,12 @@ export default function DashboardLayout() {
       items: [
         { name: t("nav.home"), href: "/", icon: Home },
         { name: t("nav.chat"), href: "/chat", icon: MessageSquare },
+      ],
+    },
+    {
+      label: "仕入れ業務",
+      items: [
+        { name: "銀行評価額", href: "/bank-valuation", icon: Building2 },
       ],
     },
     {

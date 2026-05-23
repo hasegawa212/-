@@ -92,6 +92,78 @@ export const WorkflowSchema = z.object({
 });
 export type Workflow = z.infer<typeof WorkflowSchema>;
 
+// ===== 銀行評価額シミュレーター =====
+
+export const StructureTypeSchema = z.enum([
+  "wood",
+  "lightSteel",
+  "heavySteel",
+  "rc",
+  "src",
+]);
+export type StructureType = z.infer<typeof StructureTypeSchema>;
+
+export const PropertyTypeSchema = z.enum([
+  "apartmentUnit",
+  "wholeApartment",
+  "wholeMansion",
+  "detachedHouse",
+  "landOnly",
+]);
+export type PropertyType = z.infer<typeof PropertyTypeSchema>;
+
+export const AreaTierSchema = z.enum(["tokyo23", "majorCity", "suburb", "rural"]);
+export type AreaTier = z.infer<typeof AreaTierSchema>;
+
+export const ValuationInputSchema = z.object({
+  propertyType: PropertyTypeSchema,
+  areaTier: AreaTierSchema,
+  landAreaSqm: z.number().min(0),
+  buildingAreaSqm: z.number().min(0),
+  rosenkaPerSqm: z.number().min(0),
+  structure: StructureTypeSchema.nullable(),
+  buildingAgeYears: z.number().min(0).max(120),
+  annualRentIncome: z.number().min(0).default(0),
+  askingPriceYen: z.number().min(0),
+});
+export type ValuationInput = z.infer<typeof ValuationInputSchema>;
+
+export const BankResultSchema = z.object({
+  bankId: z.string(),
+  label: z.string(),
+  category: z.enum(["megabank", "regional", "shinkin", "nonbank"]),
+  estimatedValuationYen: z.number(),
+  loanToValueRatio: z.number(),
+  estimatedLoanYen: z.number(),
+  ownFundsRequiredYen: z.number(),
+  feasible: z.boolean(),
+  judgement: z.enum(["A", "B", "C"]),
+  note: z.string(),
+});
+export type BankResult = z.infer<typeof BankResultSchema>;
+
+export const ValuationResultSchema = z.object({
+  cost: z.object({
+    landValuationYen: z.number(),
+    buildingValuationYen: z.number(),
+    totalYen: z.number(),
+    remainingLifeYears: z.number(),
+  }),
+  income: z.object({
+    capRatePercent: z.number(),
+    valuationYen: z.number(),
+    applies: z.boolean(),
+  }),
+  banks: z.array(BankResultSchema),
+  summary: z.object({
+    bestBankId: z.string(),
+    bestLoanYen: z.number(),
+    minOwnFundsYen: z.number(),
+    overallJudgement: z.enum(["A", "B", "C"]),
+  }),
+});
+export type ValuationResult = z.infer<typeof ValuationResultSchema>;
+
 // Analytics
 export const AnalyticsSchema = z.object({
   totalConversations: z.number(),
