@@ -115,6 +115,25 @@ export type PropertyType = z.infer<typeof PropertyTypeSchema>;
 export const AreaTierSchema = z.enum(["tokyo23", "majorCity", "suburb", "rural"]);
 export type AreaTier = z.infer<typeof AreaTierSchema>;
 
+export const RoadFrontageTypeSchema = z.enum([
+  "single",
+  "corner",
+  "semiCorner",
+  "twoSides",
+]);
+export type RoadFrontageType = z.infer<typeof RoadFrontageTypeSchema>;
+
+export const LandParcelDetailSchema = z.object({
+  frontageM: z.number().min(0).default(0),
+  depthM: z.number().min(0).default(0),
+  kagechiPercent: z.number().min(0).max(100).default(0),
+  roadFrontageType: RoadFrontageTypeSchema.default("single"),
+  accessWidthM: z.number().min(0).default(0),
+  roadWidthM: z.number().min(0).default(0),
+  floorAreaRatioPercent: z.number().min(0).max(1300).default(0),
+});
+export type LandParcelDetail = z.infer<typeof LandParcelDetailSchema>;
+
 export const ValuationInputSchema = z.object({
   propertyType: PropertyTypeSchema,
   areaTier: AreaTierSchema,
@@ -125,6 +144,15 @@ export const ValuationInputSchema = z.object({
   buildingAgeYears: z.number().min(0).max(120),
   annualRentIncome: z.number().min(0).default(0),
   askingPriceYen: z.number().min(0),
+  landDetail: LandParcelDetailSchema.default({
+    frontageM: 0,
+    depthM: 0,
+    kagechiPercent: 0,
+    roadFrontageType: "single",
+    accessWidthM: 0,
+    roadWidthM: 0,
+    floorAreaRatioPercent: 0,
+  }),
 });
 export type ValuationInput = z.infer<typeof ValuationInputSchema>;
 
@@ -142,10 +170,30 @@ export const BankResultSchema = z.object({
 });
 export type BankResult = z.infer<typeof BankResultSchema>;
 
+export const LandValuationBreakdownSchema = z.object({
+  rosenkaPerSqm: z.number(),
+  baseLandValueYen: z.number(),
+  depthPriceFactor: z.number(),
+  narrowFrontageFactor: z.number(),
+  depthRatioFactor: z.number(),
+  irregularShapeFactor: z.number(),
+  roadFrontageAddition: z.number(),
+  roadAccessFactor: z.number(),
+  roadAccessNote: z.string(),
+  combinedAdjustmentFactor: z.number(),
+  adjustedLandValueYen: z.number(),
+  areaMultiplier: z.number(),
+  finalLandValueYen: z.number(),
+});
+export type LandValuationBreakdown = z.infer<typeof LandValuationBreakdownSchema>;
+
 export const ValuationResultSchema = z.object({
   cost: z.object({
     landValuationYen: z.number(),
+    landBreakdown: LandValuationBreakdownSchema,
     buildingValuationYen: z.number(),
+    buildingFarUtilization: z.number(),
+    buildingFarFactor: z.number(),
     totalYen: z.number(),
     remainingLifeYears: z.number(),
   }),
