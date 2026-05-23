@@ -22,6 +22,7 @@ import ImageGenerator from "./pages/ImageGenerator";
 import CodeGenerator from "./pages/CodeGenerator";
 import BatchProcessor from "./pages/BatchProcessor";
 import BankValuation from "./pages/BankValuation";
+import DealHistory from "./pages/DealHistory";
 import { useAuth } from "./contexts/AuthContext";
 
 function App() {
@@ -61,6 +62,7 @@ function App() {
         <Route path="/code-generator" element={<CodeGenerator />} />
         <Route path="/batch-processor" element={<BatchProcessor />} />
         <Route path="/bank-valuation" element={<BankValuation />} />
+        <Route path="/deal-history" element={<DealHistory />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/login" element={<Navigate to="/" replace />} />
