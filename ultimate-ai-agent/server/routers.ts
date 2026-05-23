@@ -14,6 +14,14 @@ import { eq, desc, sql, count } from "drizzle-orm";
 import { processChat } from "./aiServices";
 import { defaultAgents, promptTemplates } from "./agents";
 import { storeMemory, getMemories, deleteMemory } from "./aiServices/memory";
+import { calculateValuation } from "./bankValuation/calculator";
+import {
+  STRUCTURE_PROFILES,
+  PROPERTY_PROFILES,
+  AREA_PROFILES,
+  BANK_PROFILES,
+} from "./bankValuation/constants";
+import { ValuationInputSchema } from "../shared/types";
 
 const t = initTRPC.create();
 
@@ -363,6 +371,39 @@ export const appRouter = router({
         return allConvs.filter((c) =>
           c.title.toLowerCase().includes(input.query.toLowerCase())
         );
+      }),
+  }),
+
+  // ===== 銀行評価額シミュレーター =====
+  bankValuation: router({
+    metadata: publicProcedure.query(() => ({
+      structures: Object.entries(STRUCTURE_PROFILES).map(([id, p]) => ({
+        id,
+        label: p.label,
+        legalLifeYears: p.legalLifeYears,
+        replacementCostPerSqm: p.replacementCostPerSqm,
+      })),
+      propertyTypes: Object.entries(PROPERTY_PROFILES).map(([id, p]) => ({
+        id,
+        label: p.label,
+        defaultCapRate: p.defaultCapRate,
+        appliesIncomeApproach: p.appliesIncomeApproach,
+      })),
+      areaTiers: Object.entries(AREA_PROFILES).map(([id, p]) => ({
+        id,
+        label: p.label,
+      })),
+      banks: BANK_PROFILES.map((b) => ({
+        id: b.id,
+        label: b.label,
+        category: b.category,
+        loanToValueRatio: b.loanToValueRatio,
+      })),
+    })),
+    calculate: publicProcedure
+      .input(ValuationInputSchema)
+      .mutation(({ input }) => {
+        return calculateValuation(input);
       }),
   }),
 
