@@ -35,14 +35,26 @@ function statusBadge(s: DealStatus) {
   );
 }
 
+const BANK_LABEL: Record<string, string> = {
+  megabank: "メガバンク",
+  regional: "地方銀行",
+  shinkin: "信用金庫",
+  nonbank: "ノンバンク",
+};
+
 export default function DealHistory() {
   const navigate = useNavigate();
   const dealsQuery = trpc.bankValuationDeals.list.useQuery();
+  const calibQuery = trpc.bankCalibration.list.useQuery();
+  const recomputeMutation = trpc.bankCalibration.recomputeAll.useMutation({
+    onSuccess: () => calibQuery.refetch(),
+  });
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
 
   if (dealsQuery.isLoading) return <div className="p-6">読み込み中…</div>;
 
   const deals = dealsQuery.data ?? [];
+  const calibData = calibQuery.data;
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -51,12 +63,76 @@ export default function DealHistory() {
           <h1 className="text-2xl font-bold">案件履歴 / 実績</h1>
           <p className="text-sm text-muted-foreground mt-1">
             銀行評価額シミュレーターで保存した案件一覧。実際の融資結果を記録すると、予測 vs 実績の差が見えます。
+            実績が {calibData?.minSamples ?? 3} 件以上溜まった銀行は、自動で予測値が校正されます。
           </p>
         </div>
         <Button variant="outline" onClick={() => navigate("/bank-valuation")}>
           ← シミュレーターに戻る
         </Button>
       </div>
+
+      {/* 学習状況 */}
+      {calibData && (
+        <div className="bg-card rounded-lg border p-5">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-semibold">📊 実績ベース 学習状況</h2>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => recomputeMutation.mutate()}
+              disabled={recomputeMutation.isPending}
+            >
+              {recomputeMutation.isPending ? "再計算中…" : "再計算"}
+            </Button>
+          </div>
+          {calibData.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              校正対象データなし。融資承認 or クロージング完了の実績を記録すると学習されます。
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="text-left px-3 py-2">銀行</th>
+                  <th className="text-right px-3 py-2">サンプル</th>
+                  <th className="text-right px-3 py-2">融資補正</th>
+                  <th className="text-right px-3 py-2">評価補正</th>
+                  <th className="text-right px-3 py-2">実効 LTV</th>
+                  <th className="text-center px-3 py-2">状態</th>
+                </tr>
+              </thead>
+              <tbody>
+                {calibData.items.map((c) => (
+                  <tr key={c.bankId} className="border-t">
+                    <td className="px-3 py-2">{BANK_LABEL[c.bankId] ?? c.bankId}</td>
+                    <td className="text-right px-3 py-2">{c.sampleCount} 件</td>
+                    <td className="text-right px-3 py-2 font-mono">
+                      × {c.loanMultiplier.toFixed(3)}
+                    </td>
+                    <td className="text-right px-3 py-2 font-mono">
+                      × {c.valuationMultiplier.toFixed(3)}
+                    </td>
+                    <td className="text-right px-3 py-2 font-mono">
+                      {(c.effectiveLtv * 100).toFixed(1)}%
+                    </td>
+                    <td className="text-center px-3 py-2">
+                      {c.active ? (
+                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                          適用中
+                        </span>
+                      ) : (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                          サンプル不足
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
 
       {deals.length === 0 ? (
         <div className="bg-card rounded-lg border p-10 text-center text-muted-foreground">
@@ -111,7 +187,14 @@ export default function DealHistory() {
       )}
 
       {editingDeal && (
-        <ActualEditor deal={editingDeal} onClose={() => setEditingDeal(null)} onSaved={() => dealsQuery.refetch()} />
+        <ActualEditor
+          deal={editingDeal}
+          onClose={() => setEditingDeal(null)}
+          onSaved={() => {
+            dealsQuery.refetch();
+            calibQuery.refetch();
+          }}
+        />
       )}
     </div>
   );

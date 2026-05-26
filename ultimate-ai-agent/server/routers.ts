@@ -28,6 +28,13 @@ import {
   type Deal,
 } from "../shared/types";
 import { bankValuationDeals } from "../drizzle/schema";
+import {
+  getCalibrations,
+  listCalibrations,
+  recomputeAllCalibrations,
+  recomputeCalibrationFor,
+  MIN_SAMPLES_FOR_CALIBRATION,
+} from "./bankValuation/calibration";
 
 const t = initTRPC.create();
 
@@ -446,9 +453,24 @@ export const appRouter = router({
     })),
     calculate: publicProcedure
       .input(ValuationInputSchema)
-      .mutation(({ input }) => {
-        return calculateValuation(input);
+      .mutation(async ({ input }) => {
+        const calibrations = await getCalibrations();
+        return calculateValuation(input, calibrations);
       }),
+  }),
+
+  // ===== 銀行プロファイル校正（学習結果） =====
+  bankCalibration: router({
+    list: publicProcedure.query(async () => {
+      const items = await listCalibrations();
+      return {
+        minSamples: MIN_SAMPLES_FOR_CALIBRATION,
+        items,
+      };
+    }),
+    recomputeAll: publicProcedure.mutation(async () => {
+      return await recomputeAllCalibrations();
+    }),
   }),
 
   // ===== 案件保存・実績記録 =====
@@ -515,6 +537,16 @@ export const appRouter = router({
           .where(eq(bankValuationDeals.id, input.id))
           .returning();
         if (updated.length === 0) throw new Error("Deal not found");
+
+        // 実績が更新されたら校正を再計算（該当銀行のみ）
+        const deal = updated[0];
+        if (deal.actualBankId) {
+          await recomputeCalibrationFor(deal.actualBankId).catch(() => {
+            // 校正失敗は致命的でないため握り潰す（ログだけ）
+            console.warn("recomputeCalibrationFor failed for", deal.actualBankId);
+          });
+        }
+
         return deserializeDeal(updated[0]);
       }),
 

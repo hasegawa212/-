@@ -91,6 +91,19 @@ sqlite.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS bank_profile_calibrations (
+    bank_id TEXT PRIMARY KEY,
+    sample_count INTEGER NOT NULL DEFAULT 0,
+    loan_multiplier_x1000 INTEGER NOT NULL DEFAULT 1000,
+    valuation_multiplier_x1000 INTEGER NOT NULL DEFAULT 1000,
+    effective_ltv_x1000 INTEGER NOT NULL DEFAULT 0,
+    mean_actual_valuation_yen INTEGER NOT NULL DEFAULT 0,
+    mean_actual_loan_yen INTEGER NOT NULL DEFAULT 0,
+    mean_predicted_valuation_yen INTEGER NOT NULL DEFAULT 0,
+    mean_predicted_loan_yen INTEGER NOT NULL DEFAULT 0,
+    computed_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE TABLE IF NOT EXISTS bank_valuation_deals (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     deal_code TEXT NOT NULL UNIQUE,

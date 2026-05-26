@@ -121,3 +121,20 @@ export const bankValuationDeals = sqliteTable("bank_valuation_deals", {
     .notNull()
     .default(sql`(datetime('now'))`),
 });
+
+// 銀行プロファイル校正（実績ベース学習結果）
+export const bankProfileCalibrations = sqliteTable("bank_profile_calibrations", {
+  bankId: text("bank_id").primaryKey(), // megabank / regional / shinkin / nonbank
+  sampleCount: integer("sample_count").notNull().default(0),
+  // 各倍率 ×1000 で整数保管（例: 0.923 → 923）
+  loanMultiplierX1000: integer("loan_multiplier_x1000").notNull().default(1000),
+  valuationMultiplierX1000: integer("valuation_multiplier_x1000").notNull().default(1000),
+  effectiveLtvX1000: integer("effective_ltv_x1000").notNull().default(0),
+  meanActualValuationYen: integer("mean_actual_valuation_yen").notNull().default(0),
+  meanActualLoanYen: integer("mean_actual_loan_yen").notNull().default(0),
+  meanPredictedValuationYen: integer("mean_predicted_valuation_yen").notNull().default(0),
+  meanPredictedLoanYen: integer("mean_predicted_loan_yen").notNull().default(0),
+  computedAt: text("computed_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});
