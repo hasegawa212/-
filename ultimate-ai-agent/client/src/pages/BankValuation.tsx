@@ -11,6 +11,8 @@ import type {
   RoadFrontageType,
   LandParcelDetail,
   CashFlowAssumptions,
+  BorrowerAttributes,
+  EmploymentType,
 } from "@shared/types";
 import { Button } from "@/components/ui/button";
 
@@ -31,6 +33,14 @@ const initialCashFlow: CashFlowAssumptions = {
   loanTermYears: 25,
 };
 
+const initialBorrower: BorrowerAttributes = {
+  annualIncomeYen: 0,
+  employmentType: "salaryman",
+  yearsOfEmployment: 0,
+  ownFundsYen: 0,
+  otherDebtMonthlyYen: 0,
+};
+
 const initialInput: ValuationInput = {
   propertyType: "wholeApartment",
   areaTier: "majorCity",
@@ -44,7 +54,16 @@ const initialInput: ValuationInput = {
   landDetail: initialLandDetail,
   cashFlow: initialCashFlow,
   otherDebtMonthlyYen: 0,
+  borrower: initialBorrower,
 };
+
+const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
+  { value: "salaryman", label: "会社員（給与所得者）" },
+  { value: "executive", label: "役員" },
+  { value: "soleProprietor", label: "個人事業主" },
+  { value: "companyOwner", label: "法人代表者" },
+  { value: "other", label: "その他" },
+];
 
 const ROAD_FRONTAGE_OPTIONS: { value: RoadFrontageType; label: string }[] = [
   { value: "single", label: "単一路線（標準）" },
@@ -167,6 +186,23 @@ export default function BankValuation() {
       ...prev,
       cashFlow: { ...(prev.cashFlow ?? initialCashFlow), [key]: v },
     }));
+  };
+
+  const handleBorrower = <K extends keyof BorrowerAttributes>(
+    key: K,
+    value: BorrowerAttributes[K]
+  ) => {
+    setInput((prev) => ({
+      ...prev,
+      borrower: { ...(prev.borrower ?? initialBorrower), [key]: value },
+    }));
+  };
+
+  const handleBorrowerNumber = (key: keyof BorrowerAttributes) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const v = e.target.value === "" ? 0 : Number(e.target.value);
+    handleBorrower(key, v as BorrowerAttributes[typeof key]);
   };
 
   const submit = () => {
@@ -367,18 +403,50 @@ export default function BankValuation() {
                 />
               </Field>
             </div>
-            <Field label="他借入 月返済（円）">
+          </Section>
+
+          <Section title="借入人属性（任意・未入力で補正なし）">
+            <Field label="年収（円）">
               <NumberInput
-                value={input.otherDebtMonthlyYen ?? 0}
-                onChange={(e) =>
-                  setInput((prev) => ({
-                    ...prev,
-                    otherDebtMonthlyYen:
-                      e.target.value === "" ? 0 : Number(e.target.value),
-                  }))
-                }
+                value={input.borrower?.annualIncomeYen ?? 0}
+                onChange={handleBorrowerNumber("annualIncomeYen")}
               />
-              <Hint>DSCR 計算に含める（住宅ローン・他物件等）</Hint>
+              <Hint>0 のまま計算すると属性補正をスキップ</Hint>
+            </Field>
+            <Field label="職業">
+              <select
+                className="w-full border rounded px-3 py-2 bg-background"
+                value={input.borrower?.employmentType ?? "salaryman"}
+                onChange={(e) =>
+                  handleBorrower("employmentType", e.target.value as EmploymentType)
+                }
+              >
+                {EMPLOYMENT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="勤続年数">
+                <NumberInput
+                  value={input.borrower?.yearsOfEmployment ?? 0}
+                  onChange={handleBorrowerNumber("yearsOfEmployment")}
+                />
+              </Field>
+              <Field label="他借入 月返済（円）">
+                <NumberInput
+                  value={input.borrower?.otherDebtMonthlyYen ?? 0}
+                  onChange={handleBorrowerNumber("otherDebtMonthlyYen")}
+                />
+                <Hint>DSCR にも反映</Hint>
+              </Field>
+            </div>
+            <Field label="自己資金（円）">
+              <NumberInput
+                value={input.borrower?.ownFundsYen ?? 0}
+                onChange={handleBorrowerNumber("ownFundsYen")}
+              />
+              <Hint>売出価格の 10%/20%/30% でボーナス加算</Hint>
             </Field>
           </Section>
 
@@ -617,6 +685,11 @@ export default function BankValuation() {
                               📊 実績校正済（{b.calibrationSampleCount} 件、補正 ×{b.calibrationMultiplier.toFixed(3)}）
                             </div>
                           )}
+                          {b.borrowerLtvFactor < 1 && (
+                            <div className="text-xs text-orange-700 mt-0.5">
+                              👤 借入人適合度 {(b.borrowerFitScore * 100).toFixed(0)}% → LTV × {b.borrowerLtvFactor.toFixed(2)}
+                            </div>
+                          )}
                           {!b.feasible && (
                             <div className="text-xs text-red-600 mt-0.5">
                               耐用年数残不足のため対象外
@@ -626,6 +699,11 @@ export default function BankValuation() {
                         <td className="text-right px-4 py-3">{yen(b.estimatedValuationYen)}</td>
                         <td className="text-right px-4 py-3">
                           {Math.round(b.loanToValueRatio * 100)}%
+                          {b.borrowerLtvFactor < 1 && (
+                            <div className="text-xs text-muted-foreground">
+                              (素 {Math.round(b.baseLoanToValueRatio * 100)}%)
+                            </div>
+                          )}
                         </td>
                         <td className="text-right px-4 py-3 font-semibold">
                           {yen(b.estimatedLoanYen)}
