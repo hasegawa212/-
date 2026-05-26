@@ -18,6 +18,7 @@ import {
   farUtilizationFactor,
   type RoadFrontageType,
 } from "./rosenkaAdjustments";
+import { buildingDepreciationFactor } from "./buildingDepreciation";
 
 export interface LandParcelDetail {
   frontageM: number; // 間口（道路に接する幅・m）。0 で補正なし
@@ -155,20 +156,35 @@ function calcLandValuation(input: ValuationInput): LandValuationBreakdown {
 function calcCostApproach(input: ValuationInput) {
   const landBreakdown = calcLandValuation(input);
   const landValuation = landBreakdown.finalLandValueYen;
+  const area = AREA_PROFILES[input.areaTier];
 
   let buildingValuation = 0;
   let remainingLifeYears = 0;
   let farUtilization = 1;
   let farFactor = 1;
+  let replacementCostBase = 0; // 全国平均（エリア補正前）
+  let replacementCostAdjusted = 0; // エリア補正後
+  let depreciationFactor = 1;
+  let residualRatio = 0;
+  let buildCostMultiplier = area.buildCostMultiplier;
+  let legalLifeYears = 0;
 
   if (input.structure && input.buildingAreaSqm > 0) {
     const profile = STRUCTURE_PROFILES[input.structure];
-    const replacementCost = profile.replacementCostPerSqm * input.buildingAreaSqm;
-    remainingLifeYears = Math.max(
-      0,
-      profile.legalLifeYears - input.buildingAgeYears
+    legalLifeYears = profile.legalLifeYears;
+    residualRatio = profile.residualRatio;
+
+    replacementCostBase = profile.replacementCostPerSqm * input.buildingAreaSqm;
+    replacementCostAdjusted = replacementCostBase * area.buildCostMultiplier;
+
+    remainingLifeYears = Math.max(0, profile.legalLifeYears - input.buildingAgeYears);
+
+    depreciationFactor = buildingDepreciationFactor(
+      input.buildingAgeYears,
+      profile.legalLifeYears,
+      profile.residualRatio
     );
-    const ageBased = replacementCost * (remainingLifeYears / profile.legalLifeYears);
+    const ageBased = replacementCostAdjusted * depreciationFactor;
 
     // 容積率消化率補正
     if (input.landDetail.floorAreaRatioPercent > 0 && input.landAreaSqm > 0) {
@@ -193,6 +209,13 @@ function calcCostApproach(input: ValuationInput) {
     buildingFarFactor: farFactor,
     totalYen: round(landValuation + buildingValuation),
     remainingLifeYears,
+    // ★ PR #13 で追加: 建物評価の内訳
+    buildingReplacementCostBaseYen: round(replacementCostBase),
+    buildingReplacementCostAdjustedYen: round(replacementCostAdjusted),
+    buildingBuildCostMultiplier: buildCostMultiplier,
+    buildingDepreciationFactor: Math.round(depreciationFactor * 10000) / 10000,
+    buildingResidualRatio: residualRatio,
+    buildingLegalLifeYears: legalLifeYears,
   };
 }
 
