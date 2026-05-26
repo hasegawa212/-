@@ -36,6 +36,8 @@ import {
   MIN_SAMPLES_FOR_CALIBRATION,
 } from "./bankValuation/calibration";
 import { lookupRosenka } from "./bankValuation/rosenkaLookup";
+import { simulateLoanFull } from "./loanSimulator/simulator";
+import { LoanSimulationInputSchema } from "../shared/types";
 
 const t = initTRPC.create();
 
@@ -562,6 +564,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         await db.delete(bankValuationDeals).where(eq(bankValuationDeals.id, input.id));
         return { ok: true };
+      }),
+  }),
+
+  // ===== 住宅ローン シミュレーター（実銀行データ + 否決パターン学習） =====
+  loanSimulator: router({
+    simulate: publicProcedure
+      .input(LoanSimulationInputSchema)
+      .mutation(({ input }) => {
+        return simulateLoanFull(input);
       }),
   }),
 
