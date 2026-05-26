@@ -43,24 +43,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("auth_token", data.token);
         return true;
       }
-
-      // Fallback: simple local auth for demo
-      if (username === "admin" && password === "admin") {
-        const demoUser: AuthUser = { id: "1", username: "admin", role: "admin" };
-        setUser(demoUser);
-        localStorage.setItem("auth_user", JSON.stringify(demoUser));
-        return true;
-      }
-
       return false;
     } catch {
-      // Fallback for when server doesn't have auth endpoint
-      if (username === "admin" && password === "admin") {
-        const demoUser: AuthUser = { id: "1", username: "admin", role: "admin" };
-        setUser(demoUser);
-        localStorage.setItem("auth_user", JSON.stringify(demoUser));
-        return true;
-      }
       return false;
     }
   }, []);

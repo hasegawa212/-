@@ -26,6 +26,8 @@ import DealHistory from "./pages/DealHistory";
 import LoanSimulator from "./pages/LoanSimulator";
 import { useAuth } from "./contexts/AuthContext";
 
+const IS_PUBLIC_MODE = import.meta.env.VITE_PUBLIC_MODE === "true";
+
 function App() {
   const { isAuthenticated } = useAuth();
 
@@ -34,6 +36,23 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // 公開モード: 仕入れシミュ 2 ページ + 案件履歴 + Login + Home + Settings のみ
+  if (IS_PUBLIC_MODE) {
+    return (
+      <Routes>
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<Navigate to="/loan-simulator" replace />} />
+          <Route path="/bank-valuation" element={<BankValuation />} />
+          <Route path="/loan-simulator" element={<LoanSimulator />} />
+          <Route path="/deal-history" element={<DealHistory />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/loan-simulator" replace />} />
+        </Route>
+        <Route path="/login" element={<Navigate to="/loan-simulator" replace />} />
       </Routes>
     );
   }

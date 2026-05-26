@@ -94,26 +94,77 @@ app.post("/api/transcribe", express.raw({ type: "multipart/form-data", limit: "2
   }
 });
 
-// Auth endpoint (simple demo auth)
+// Auth endpoint — env var で本番認証
+//   ADMIN_USERNAME と ADMIN_PASSWORD を環境変数で必須化
+//   両方が未設定の場合のみ開発用の admin/admin を許可
 app.post("/api/auth/login", (req, res) => {
-  const { username, password } = req.body;
+  const { username, password } = req.body || {};
 
-  // Demo authentication - in production use proper auth
-  if (username === "admin" && password === "admin") {
-    res.json({
-      user: { id: "1", username: "admin", role: "admin" },
-      token: "demo-token-" + Date.now(),
-    });
-  } else if (username && password === password) {
-    // Accept any username/password for demo
-    res.json({
-      user: { id: "2", username, role: "user" },
-      token: "demo-token-" + Date.now(),
-    });
-  } else {
-    res.status(401).json({ error: "Invalid credentials" });
+  const expectedUsername = process.env.ADMIN_USERNAME;
+  const expectedPassword = process.env.ADMIN_PASSWORD;
+
+  // 本番モード: env var が設定されている場合は厳密に照合
+  if (expectedUsername && expectedPassword) {
+    if (username === expectedUsername && password === expectedPassword) {
+      return res.json({
+        user: { id: "1", username: expectedUsername, role: "admin" },
+        token: "auth-token-" + Date.now(),
+      });
+    }
+    return res.status(401).json({ error: "Invalid credentials" });
   }
+
+  // 開発モード: env var 未設定時のみ admin/admin を許可（warn 表示）
+  if (process.env.NODE_ENV !== "production") {
+    if (username === "admin" && password === "admin") {
+      console.warn("[Auth] DEV MODE: admin/admin accepted. Set ADMIN_USERNAME and ADMIN_PASSWORD env vars for production.");
+      return res.json({
+        user: { id: "1", username: "admin", role: "admin" },
+        token: "dev-token-" + Date.now(),
+      });
+    }
+  }
+
+  return res.status(401).json({ error: "Invalid credentials" });
 });
+
+// Rate limiting: 公開シミュレーター API への spam 防止
+//   1 IP あたり 60 リクエスト/分
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 60;
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimitMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const ip = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || req.ip || "unknown";
+  const now = Date.now();
+  const bucket = rateLimitBuckets.get(ip);
+  if (!bucket || bucket.resetAt < now) {
+    rateLimitBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  bucket.count++;
+  if (bucket.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({ error: "Too many requests. Please try again later." });
+  }
+  next();
+}
+app.use("/api/trpc", rateLimitMiddleware);
+
+// 公開モードガード: PUBLIC_MODE=true で OpenAI 系エンドポイントを 403
+//   仕入れシミュ 2 ページ以外を実質無効化
+if (process.env.PUBLIC_MODE === "true") {
+  console.log("[PublicMode] OpenAI-using endpoints disabled. Only /loan-simulator and /bank-valuation are available.");
+  const publicModeBlocked = (_req: express.Request, res: express.Response) => {
+    res.status(403).json({ error: "This endpoint is disabled in public mode." });
+  };
+  app.post("/api/chat/stream", publicModeBlocked);
+  app.post("/api/transcribe", publicModeBlocked);
+  app.post("/api/workflow/execute", publicModeBlocked);
+  app.post("/api/workflow/generate", publicModeBlocked);
+  app.post("/api/agents/collaborate", publicModeBlocked);
+  app.post("/api/agents/benchmark", publicModeBlocked);
+  app.use("/api/ai", publicModeBlocked);
+}
 
 // Integration webhooks
 app.post("/api/integrations/slack", async (req, res) => {
