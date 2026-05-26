@@ -355,6 +355,150 @@ export const RecordActualSchema = z.object({
 });
 export type RecordActualInput = z.infer<typeof RecordActualSchema>;
 
+// ===== 住宅ローンシミュレーター（実銀行データ + 否決パターン学習） =====
+
+export const PropertyKindSchema = z.enum(["newCondo", "usedHouse", "investment"]);
+export type PropertyKind = z.infer<typeof PropertyKindSchema>;
+
+export const RepaymentMethodSchema = z.enum(["annuity", "equalPrincipal"]);
+export type RepaymentMethod = z.infer<typeof RepaymentMethodSchema>;
+
+export const LoanBorrowerProfileSchema = z.object({
+  ageYears: z.number().min(18).max(80).default(40),
+  annualIncomeYen: z.number().min(0).default(5_000_000),
+  employmentType: z
+    .enum(["salaryman", "executive", "soleProprietor", "companyOwner", "other"])
+    .default("salaryman"),
+  yearsOfEmployment: z.number().min(0).default(5),
+  existingDebtMonthlyYen: z.number().min(0).default(0),
+  isSingle: z.boolean().default(false),
+  hasInsuranceConcern: z.boolean().default(false), // 団信告知事項
+  hasCreditConcern: z.boolean().default(false), // 個信記録
+});
+export type LoanBorrowerProfile = z.infer<typeof LoanBorrowerProfileSchema>;
+
+export const LoanPropertyInfoSchema = z.object({
+  priceYen: z.number().min(0).default(40_000_000),
+  kind: PropertyKindSchema.default("usedHouse"),
+  ageYears: z.number().min(0).default(15),
+  prefecture: z.string().default(""), // 任意の都道府県名（"茨城県" 等）
+  hasRoadAccessIssue: z.boolean().default(false), // 接道義務違反
+});
+export type LoanPropertyInfo = z.infer<typeof LoanPropertyInfoSchema>;
+
+export const LoanSimulationInputSchema = z.object({
+  property: LoanPropertyInfoSchema.default({
+    priceYen: 40_000_000,
+    kind: "usedHouse",
+    ageYears: 15,
+    prefecture: "",
+    hasRoadAccessIssue: false,
+  }),
+  ownFundsYen: z.number().min(0).default(2_000_000),
+  loanAmountYen: z.number().min(0).default(0), // 0 で property.priceYen - ownFundsYen を使用
+  loanTermYears: z.number().min(1).max(50).default(35),
+  repaymentMethod: RepaymentMethodSchema.default("annuity"),
+  borrower: LoanBorrowerProfileSchema.default({
+    ageYears: 40,
+    annualIncomeYen: 5_000_000,
+    employmentType: "salaryman",
+    yearsOfEmployment: 5,
+    existingDebtMonthlyYen: 0,
+    isSingle: false,
+    hasInsuranceConcern: false,
+    hasCreditConcern: false,
+  }),
+  prepaymentAmountYen: z.number().min(0).default(0),
+  prepaymentAfterYears: z.number().min(0).default(10),
+  prepaymentMode: z.enum(["shorten", "reduce"]).default("shorten"),
+  variableRateShockPercent: z.number().min(0).max(10).default(0),
+});
+export type LoanSimulationInput = z.infer<typeof LoanSimulationInputSchema>;
+
+export const LoanScreeningSchema = z.object({
+  pass: z.boolean(),
+  completionAge: z.number(),
+  completionAgePass: z.boolean(),
+  loanToIncomeRatio: z.number(),
+  loanToIncomePass: z.boolean(),
+  repaymentBurdenRatio: z.number(),
+  repaymentBurdenPass: z.boolean(),
+  reasons: z.array(z.string()),
+});
+
+export const LoanProductResultSchema = z.object({
+  productId: z.string(),
+  bankLabel: z.string(),
+  productLabel: z.string(),
+  effectiveRatePercent: z.number(),
+  baseRatePercent: z.number(),
+  monthlyPaymentYen: z.number(),
+  totalPaymentYen: z.number(),
+  totalInterestYen: z.number(),
+  miscCostYen: z.number(),
+  totalCashOutYen: z.number(),
+  screening: LoanScreeningSchema,
+  monthlyPaymentBreakdown: z
+    .object({ firstYear: z.number(), lastYear: z.number() })
+    .optional(),
+  prepaymentEffect: z
+    .object({
+      monthlySavingYen: z.number(),
+      totalSavingYen: z.number(),
+      shortenMonths: z.number(),
+    })
+    .optional(),
+  shockScenario: z
+    .object({ monthlyAfterShockYen: z.number(), additionalTotalYen: z.number() })
+    .optional(),
+});
+export type LoanProductResult = z.infer<typeof LoanProductResultSchema>;
+
+export const BankFitScoreSchema = z.object({
+  bankId: z.string(),
+  bankName: z.string(),
+  category: z.string(),
+  score: z.number(),
+  matchReasons: z.array(z.string()),
+  warnings: z.array(z.string()),
+  preliminaryReviewDays: z.object({ min: z.number(), max: z.number() }),
+  fullReviewDays: z.object({ min: z.number(), max: z.number() }),
+  reviewRatePercent: z.object({ min: z.number(), max: z.number() }),
+  strengths: z.array(z.string()),
+  notes: z.array(z.string()),
+});
+export type BankFitScoreData = z.infer<typeof BankFitScoreSchema>;
+
+export const RejectionRiskAlertSchema = z.object({
+  riskLevel: z.enum(["high", "medium", "low"]),
+  category: z.string(),
+  message: z.string(),
+  similarCaseIds: z.array(z.string()),
+  recommendedAction: z.string(),
+});
+export type RejectionRiskAlert = z.infer<typeof RejectionRiskAlertSchema>;
+
+export const LoanSimulationResultSchema = z.object({
+  resolvedLoanAmountYen: z.number(),
+  miscCostYen: z.number(),
+  products: z.array(LoanProductResultSchema),
+  recommendation: z.object({
+    bestProductId: z.string(),
+    reason: z.string(),
+  }),
+  // 実銀行マッチング（PR で追加）
+  bankFitScores: z.array(BankFitScoreSchema),
+  // 否決パターンリスク警告
+  riskAlerts: z.array(RejectionRiskAlertSchema),
+  // 否決統計
+  rejectionStats: z.object({
+    totalCases: z.number(),
+    uniqueCustomers: z.number(),
+    topPatterns: z.array(z.object({ tag: z.string(), count: z.number() })),
+  }),
+});
+export type LoanSimulationResult = z.infer<typeof LoanSimulationResultSchema>;
+
 // Analytics
 export const AnalyticsSchema = z.object({
   totalConversations: z.number(),

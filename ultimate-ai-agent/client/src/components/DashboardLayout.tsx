@@ -29,6 +29,7 @@ import {
   FlaskConical,
   Building2,
   ClipboardList,
+  Calculator,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -57,6 +58,7 @@ export default function DashboardLayout() {
       label: "仕入れ業務",
       items: [
         { name: "銀行評価額", href: "/bank-valuation", icon: Building2 },
+        { name: "住宅ローン シミュ", href: "/loan-simulator", icon: Calculator },
         { name: "案件履歴/実績", href: "/deal-history", icon: ClipboardList },
       ],
     },
