@@ -498,6 +498,11 @@ export default function BankValuation() {
                         <td className="px-4 py-3">
                           <div className="font-medium">{b.label}</div>
                           <div className="text-xs text-muted-foreground mt-0.5">{b.note}</div>
+                          {b.calibrationApplied && (
+                            <div className="text-xs text-blue-700 mt-0.5">
+                              📊 実績校正済（{b.calibrationSampleCount} 件、補正 ×{b.calibrationMultiplier.toFixed(3)}）
+                            </div>
+                          )}
                           {!b.feasible && (
                             <div className="text-xs text-red-600 mt-0.5">
                               耐用年数残不足のため対象外

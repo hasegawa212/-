@@ -167,8 +167,29 @@ export const BankResultSchema = z.object({
   feasible: z.boolean(),
   judgement: z.enum(["A", "B", "C"]),
   note: z.string(),
+  // 実績校正（PR #12 で追加）
+  rawEstimatedValuationYen: z.number().default(0),
+  rawEstimatedLoanYen: z.number().default(0),
+  calibrationApplied: z.boolean().default(false),
+  calibrationMultiplier: z.number().default(1),
+  calibrationSampleCount: z.number().default(0),
 });
 export type BankResult = z.infer<typeof BankResultSchema>;
+
+export const CalibrationSnapshotSchema = z.object({
+  bankId: z.string(),
+  sampleCount: z.number(),
+  loanMultiplier: z.number(),
+  valuationMultiplier: z.number(),
+  effectiveLtv: z.number(),
+  meanActualValuationYen: z.number(),
+  meanActualLoanYen: z.number(),
+  meanPredictedValuationYen: z.number(),
+  meanPredictedLoanYen: z.number(),
+  computedAt: z.string(),
+  active: z.boolean(),
+});
+export type CalibrationSnapshot = z.infer<typeof CalibrationSnapshotSchema>;
 
 export const LandValuationBreakdownSchema = z.object({
   rosenkaPerSqm: z.number(),

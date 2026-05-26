@@ -69,6 +69,12 @@ export interface BankResult {
   feasible: boolean;
   judgement: "A" | "B" | "C";
   note: string;
+  // 実績校正
+  rawEstimatedValuationYen: number; // 校正前
+  rawEstimatedLoanYen: number; // 校正前
+  calibrationApplied: boolean;
+  calibrationMultiplier: number; // 適用された倍率（融資）
+  calibrationSampleCount: number;
 }
 
 export interface ValuationResult {
@@ -219,19 +225,36 @@ function judge(askingPrice: number, loanAmount: number): "A" | "B" | "C" {
   return "C";
 }
 
+export interface CalibrationHint {
+  bankId: string;
+  loanMultiplier: number;
+  valuationMultiplier: number;
+  sampleCount: number;
+  active: boolean;
+}
+
 function calcBank(
   bank: BankProfile,
   costTotal: number,
   incomeTotal: number,
   remainingLife: number,
-  askingPrice: number
+  askingPrice: number,
+  calibration: CalibrationHint | undefined
 ): BankResult {
   const incomeWeighted = incomeTotal > 0 ? incomeTotal : costTotal;
-  const valuation =
+  const rawValuation =
     costTotal * bank.weightCost + incomeWeighted * bank.weightIncome;
 
   const feasible = remainingLife >= bank.minLegalLifeRemaining;
-  const loan = feasible ? valuation * bank.loanToValueRatio : 0;
+  const rawLoan = feasible ? rawValuation * bank.loanToValueRatio : 0;
+
+  // 実績校正の適用（active 状態のみ）
+  const calibActive = !!calibration?.active;
+  const loanMult = calibActive ? calibration!.loanMultiplier : 1;
+  const valMult = calibActive ? calibration!.valuationMultiplier : 1;
+
+  const valuation = rawValuation * valMult;
+  const loan = rawLoan * loanMult;
   const ownFunds = Math.max(0, askingPrice - loan);
 
   return {
@@ -245,15 +268,30 @@ function calcBank(
     feasible,
     judgement: feasible ? judge(askingPrice, loan) : "C",
     note: bank.note,
+    rawEstimatedValuationYen: round(rawValuation),
+    rawEstimatedLoanYen: round(rawLoan),
+    calibrationApplied: calibActive,
+    calibrationMultiplier: Math.round(loanMult * 1000) / 1000,
+    calibrationSampleCount: calibration?.sampleCount ?? 0,
   };
 }
 
-export function calculateValuation(input: ValuationInput): ValuationResult {
+export function calculateValuation(
+  input: ValuationInput,
+  calibrations?: Map<string, CalibrationHint>
+): ValuationResult {
   const cost = calcCostApproach(input);
   const income = calcIncomeApproach(input);
 
   const banks = BANK_PROFILES.map((b) =>
-    calcBank(b, cost.totalYen, income.valuationYen, cost.remainingLifeYears, input.askingPriceYen)
+    calcBank(
+      b,
+      cost.totalYen,
+      income.valuationYen,
+      cost.remainingLifeYears,
+      input.askingPriceYen,
+      calibrations?.get(b.id)
+    )
   );
 
   const feasibleBanks = banks.filter((b) => b.feasible);
