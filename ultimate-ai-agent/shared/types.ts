@@ -151,6 +151,33 @@ export const DEFAULT_CF_ASSUMPTIONS: CashFlowAssumptions = {
   loanTermYears: 25,
 };
 
+// ★ PR #14 借入人属性
+export const EmploymentTypeSchema = z.enum([
+  "salaryman",
+  "executive",
+  "soleProprietor",
+  "companyOwner",
+  "other",
+]);
+export type EmploymentType = z.infer<typeof EmploymentTypeSchema>;
+
+export const BorrowerAttributesSchema = z.object({
+  annualIncomeYen: z.number().min(0).default(0),
+  employmentType: EmploymentTypeSchema.default("salaryman"),
+  yearsOfEmployment: z.number().min(0).default(0),
+  ownFundsYen: z.number().min(0).default(0),
+  otherDebtMonthlyYen: z.number().min(0).default(0),
+});
+export type BorrowerAttributes = z.infer<typeof BorrowerAttributesSchema>;
+
+export const DEFAULT_BORROWER_ATTRIBUTES: BorrowerAttributes = {
+  annualIncomeYen: 0,
+  employmentType: "salaryman",
+  yearsOfEmployment: 0,
+  ownFundsYen: 0,
+  otherDebtMonthlyYen: 0,
+};
+
 export const ValuationInputSchema = z.object({
   propertyType: PropertyTypeSchema,
   areaTier: AreaTierSchema,
@@ -172,6 +199,7 @@ export const ValuationInputSchema = z.object({
   }),
   cashFlow: CashFlowAssumptionsSchema.default(DEFAULT_CF_ASSUMPTIONS),
   otherDebtMonthlyYen: z.number().min(0).default(0),
+  borrower: BorrowerAttributesSchema.default(DEFAULT_BORROWER_ATTRIBUTES),
 });
 export type ValuationInput = z.infer<typeof ValuationInputSchema>;
 
@@ -201,6 +229,11 @@ export const BankResultSchema = z.object({
   dscrStatus: DscrStatusSchema.default("risky"),
   assumedInterestPercent: z.number().default(2.5),
   loanTermYears: z.number().default(25),
+  // ★ PR #14 借入人適合度
+  borrowerFitScore: z.number().default(1),
+  borrowerLtvFactor: z.number().default(1),
+  baseLoanToValueRatio: z.number().default(0),
+  borrowerNote: z.string().default(""),
 });
 export type BankResult = z.infer<typeof BankResultSchema>;
 

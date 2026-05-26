@@ -29,6 +29,12 @@ import {
   type IncomeBreakdown,
   type DscrStatus,
 } from "./cashflow";
+import {
+  calcBorrowerFit,
+  borrowerLtvAdjustment,
+  DEFAULT_BORROWER,
+  type BorrowerAttributes,
+} from "./borrowerFit";
 
 export interface LandParcelDetail {
   frontageM: number;
@@ -51,8 +57,9 @@ export interface ValuationInput {
   annualRentIncome: number;
   askingPriceYen: number;
   landDetail: LandParcelDetail;
-  cashFlow: CashFlowAssumptions; // ★ PR #15
-  otherDebtMonthlyYen?: number; // DSCR 計算用
+  cashFlow: CashFlowAssumptions;
+  otherDebtMonthlyYen?: number;
+  borrower: BorrowerAttributes;
 }
 
 export interface LandValuationBreakdown {
@@ -82,7 +89,7 @@ export interface BankResult {
   feasible: boolean;
   judgement: "A" | "B" | "C";
   note: string;
-  // 実績校正（PR #12 自動校正）
+  // 実績校正（PR #12）
   rawEstimatedValuationYen: number;
   rawEstimatedLoanYen: number;
   calibrationApplied: boolean;
@@ -94,6 +101,11 @@ export interface BankResult {
   dscrStatus: DscrStatus;
   assumedInterestPercent: number;
   loanTermYears: number;
+  // 借入人適合度（PR #14）
+  borrowerFitScore: number;
+  borrowerLtvFactor: number;
+  baseLoanToValueRatio: number;
+  borrowerNote: string;
 }
 
 export interface ValuationResult {
@@ -105,7 +117,6 @@ export interface ValuationResult {
     buildingFarFactor: number;
     totalYen: number;
     remainingLifeYears: number;
-    // PR #13 建物精緻化
     buildingReplacementCostBaseYen: number;
     buildingReplacementCostAdjustedYen: number;
     buildingBuildCostMultiplier: number;
@@ -277,16 +288,22 @@ function calcBank(
   noiYen: number,
   cf: CashFlowAssumptions,
   otherDebtMonthlyYen: number,
+  borrower: BorrowerAttributes,
   calibration: CalibrationHint | undefined
 ): BankResult {
   const incomeWeighted = incomeTotal > 0 ? incomeTotal : costTotal;
   const rawValuation =
     costTotal * bank.weightCost + incomeWeighted * bank.weightIncome;
 
-  const feasible = remainingLife >= bank.minLegalLifeRemaining;
-  const rawLoan = feasible ? rawValuation * bank.loanToValueRatio : 0;
+  // 借入人適合度
+  const fit = calcBorrowerFit(bank, borrower, askingPrice);
+  const borrowerFactor = borrowerLtvAdjustment(fit.score);
+  const ltvAfterBorrower = bank.loanToValueRatio * borrowerFactor;
 
-  // 実績校正の適用
+  const feasible = remainingLife >= bank.minLegalLifeRemaining;
+  const rawLoan = feasible ? rawValuation * ltvAfterBorrower : 0;
+
+  // 実績校正
   const calibActive = !!calibration?.active;
   const loanMult = calibActive ? calibration!.loanMultiplier : 1;
   const valMult = calibActive ? calibration!.valuationMultiplier : 1;
@@ -308,7 +325,7 @@ function calcBank(
     label: bank.label,
     category: bank.category,
     estimatedValuationYen: round(valuation),
-    loanToValueRatio: bank.loanToValueRatio,
+    loanToValueRatio: Math.round(ltvAfterBorrower * 1000) / 1000,
     estimatedLoanYen: round(loan),
     ownFundsRequiredYen: round(ownFunds),
     feasible,
@@ -324,6 +341,10 @@ function calcBank(
     dscrStatus: dscrStatus(dscr),
     assumedInterestPercent: cf.assumedInterestPercent,
     loanTermYears: cf.loanTermYears,
+    borrowerFitScore: fit.score,
+    borrowerLtvFactor: Math.round(borrowerFactor * 1000) / 1000,
+    baseLoanToValueRatio: bank.loanToValueRatio,
+    borrowerNote: fit.note,
   };
 }
 
@@ -334,7 +355,12 @@ export function calculateValuation(
   const cost = calcCostApproach(input);
   const income = calcIncomeApproach(input);
   const cf = input.cashFlow ?? DEFAULT_CF_ASSUMPTIONS;
-  const otherDebtMonthly = input.otherDebtMonthlyYen ?? 0;
+  const borrower = input.borrower ?? DEFAULT_BORROWER;
+  // 他借入は borrower 優先、未指定なら top-level
+  const otherDebtMonthly =
+    borrower.otherDebtMonthlyYen > 0
+      ? borrower.otherDebtMonthlyYen
+      : (input.otherDebtMonthlyYen ?? 0);
 
   const banks = BANK_PROFILES.map((b) =>
     calcBank(
@@ -346,6 +372,7 @@ export function calculateValuation(
       income.noiYen,
       cf,
       otherDebtMonthly,
+      borrower,
       calibrations?.get(b.id)
     )
   );
