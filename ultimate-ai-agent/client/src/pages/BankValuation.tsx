@@ -10,6 +10,7 @@ import type {
   AreaTier,
   RoadFrontageType,
   LandParcelDetail,
+  CashFlowAssumptions,
 } from "@shared/types";
 import { Button } from "@/components/ui/button";
 
@@ -23,6 +24,13 @@ const initialLandDetail: LandParcelDetail = {
   floorAreaRatioPercent: 200,
 };
 
+const initialCashFlow: CashFlowAssumptions = {
+  vacancyPercent: 10,
+  opexRatePercent: 20,
+  assumedInterestPercent: 2.5,
+  loanTermYears: 25,
+};
+
 const initialInput: ValuationInput = {
   propertyType: "wholeApartment",
   areaTier: "majorCity",
@@ -34,6 +42,8 @@ const initialInput: ValuationInput = {
   annualRentIncome: 7_200_000,
   askingPriceYen: 80_000_000,
   landDetail: initialLandDetail,
+  cashFlow: initialCashFlow,
+  otherDebtMonthlyYen: 0,
 };
 
 const ROAD_FRONTAGE_OPTIONS: { value: RoadFrontageType; label: string }[] = [
@@ -68,6 +78,12 @@ function judgementLabel(j: "A" | "B" | "C"): string {
     : j === "B"
     ? "B：ほぼ評価フィット（条件交渉次第）"
     : "C：評価不足（自己資金 or 見送り）";
+}
+
+function dscrColor(s: "healthy" | "caution" | "risky"): string {
+  if (s === "healthy") return "text-green-700 font-bold";
+  if (s === "caution") return "text-yellow-700 font-medium";
+  return "text-red-700 font-medium";
 }
 
 export default function BankValuation() {
@@ -141,6 +157,16 @@ export default function BankValuation() {
   ) => {
     const v = e.target.value === "" ? 0 : Number(e.target.value);
     handleLandDetail(key, v as LandParcelDetail[typeof key]);
+  };
+
+  const handleCfNumber = (key: keyof CashFlowAssumptions) => (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const v = e.target.value === "" ? 0 : Number(e.target.value);
+    setInput((prev) => ({
+      ...prev,
+      cashFlow: { ...(prev.cashFlow ?? initialCashFlow), [key]: v },
+    }));
   };
 
   const submit = () => {
@@ -311,6 +337,51 @@ export default function BankValuation() {
             </Section>
           )}
 
+          <Section title="キャッシュフロー前提（収益・返済シミュ）">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="空室率（%）">
+                <NumberInput
+                  value={input.cashFlow?.vacancyPercent ?? 10}
+                  onChange={handleCfNumber("vacancyPercent")}
+                />
+              </Field>
+              <Field label="運営費率（%）">
+                <NumberInput
+                  value={input.cashFlow?.opexRatePercent ?? 20}
+                  onChange={handleCfNumber("opexRatePercent")}
+                />
+                <Hint>家賃に対する固定資産税・修繕等の比率</Hint>
+              </Field>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="想定金利（%）">
+                <NumberInput
+                  value={input.cashFlow?.assumedInterestPercent ?? 2.5}
+                  onChange={handleCfNumber("assumedInterestPercent")}
+                />
+              </Field>
+              <Field label="返済期間（年）">
+                <NumberInput
+                  value={input.cashFlow?.loanTermYears ?? 25}
+                  onChange={handleCfNumber("loanTermYears")}
+                />
+              </Field>
+            </div>
+            <Field label="他借入 月返済（円）">
+              <NumberInput
+                value={input.otherDebtMonthlyYen ?? 0}
+                onChange={(e) =>
+                  setInput((prev) => ({
+                    ...prev,
+                    otherDebtMonthlyYen:
+                      e.target.value === "" ? 0 : Number(e.target.value),
+                  }))
+                }
+              />
+              <Hint>DSCR 計算に含める（住宅ローン・他物件等）</Hint>
+            </Field>
+          </Section>
+
           <Section title="価格">
             <Field label="売出価格（円）">
               <NumberInput
@@ -475,9 +546,30 @@ export default function BankValuation() {
                     emphasize
                   />
                 </Card>
-                <Card title="収益還元評価額">
+                <Card title="収益還元評価額（NOI ベース）">
                   {result.income.applies ? (
                     <>
+                      <Row
+                        label="グロス家賃（年）"
+                        value={yen(result.income.grossIncomeYen)}
+                      />
+                      <Row
+                        label="− 空室損"
+                        value={`− ${yen(result.income.vacancyLossYen)}`}
+                      />
+                      <Row
+                        label="実効家賃"
+                        value={yen(result.income.effectiveIncomeYen)}
+                      />
+                      <Row
+                        label="− 運営費"
+                        value={`− ${yen(result.income.opexYen)}`}
+                      />
+                      <Row
+                        label="NOI（純収益）"
+                        value={yen(result.income.noiYen)}
+                        emphasize
+                      />
                       <Row
                         label="採用還元利回り"
                         value={`${result.income.capRatePercent} %`}
@@ -508,6 +600,8 @@ export default function BankValuation() {
                       <th className="text-right px-4 py-2">評価額</th>
                       <th className="text-right px-4 py-2">掛け目</th>
                       <th className="text-right px-4 py-2">融資想定</th>
+                      <th className="text-right px-4 py-2">月返済</th>
+                      <th className="text-right px-4 py-2">DSCR</th>
                       <th className="text-right px-4 py-2">自己資金</th>
                       <th className="text-center px-4 py-2">判定</th>
                     </tr>
@@ -535,6 +629,17 @@ export default function BankValuation() {
                         </td>
                         <td className="text-right px-4 py-3 font-semibold">
                           {yen(b.estimatedLoanYen)}
+                        </td>
+                        <td className="text-right px-4 py-3">
+                          {yen(b.monthlyPaymentYen)}
+                          <div className="text-xs text-muted-foreground">
+                            {b.assumedInterestPercent}% / {b.loanTermYears}年
+                          </div>
+                        </td>
+                        <td className="text-right px-4 py-3">
+                          <span className={dscrColor(b.dscrStatus)}>
+                            {b.dscr > 0 ? b.dscr.toFixed(2) : "—"}
+                          </span>
                         </td>
                         <td className="text-right px-4 py-3">{yen(b.ownFundsRequiredYen)}</td>
                         <td className="text-center px-4 py-3">
