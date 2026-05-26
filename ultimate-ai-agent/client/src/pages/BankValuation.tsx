@@ -427,9 +427,29 @@ export default function BankValuation() {
 
               {/* 建物 + 収益 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Card title="積算評価額 — 建物">
+                <Card title="積算評価額 — 建物（減価内訳）">
+                  {result.cost.buildingReplacementCostBaseYen > 0 && (
+                    <>
+                      <Row
+                        label="再調達原価（全国平均）"
+                        value={yen(result.cost.buildingReplacementCostBaseYen)}
+                      />
+                      <FactorRow
+                        label={`地域別建築費補正（× ${result.cost.buildingBuildCostMultiplier.toFixed(2)}）`}
+                        factor={result.cost.buildingBuildCostMultiplier}
+                      />
+                      <Row
+                        label="再調達原価（補正後）"
+                        value={yen(result.cost.buildingReplacementCostAdjustedYen)}
+                      />
+                      <Row
+                        label={`減価率（残価率 ${pct(result.cost.buildingResidualRatio)} floor）`}
+                        value={`× ${result.cost.buildingDepreciationFactor.toFixed(3)}`}
+                      />
+                    </>
+                  )}
                   <Row
-                    label="残存耐用年数"
+                    label={`残存耐用年数 / 法定 ${result.cost.buildingLegalLifeYears} 年`}
                     value={`${result.cost.remainingLifeYears} 年`}
                   />
                   {result.cost.buildingFarUtilization < 1 && (

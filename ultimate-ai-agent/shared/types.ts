@@ -96,7 +96,8 @@ export type Workflow = z.infer<typeof WorkflowSchema>;
 
 export const StructureTypeSchema = z.enum([
   "wood",
-  "lightSteel",
+  "steelLight",   // 軽量鉄骨 3mm 以下（PR #13 で追加）
+  "lightSteel",   // 軽量鉄骨 3〜4mm（旧キー互換）
   "heavySteel",
   "rc",
   "src",
@@ -217,6 +218,13 @@ export const ValuationResultSchema = z.object({
     buildingFarFactor: z.number(),
     totalYen: z.number(),
     remainingLifeYears: z.number(),
+    // ★ PR #13 で追加: 建物評価の内訳
+    buildingReplacementCostBaseYen: z.number().default(0),
+    buildingReplacementCostAdjustedYen: z.number().default(0),
+    buildingBuildCostMultiplier: z.number().default(1),
+    buildingDepreciationFactor: z.number().default(1),
+    buildingResidualRatio: z.number().default(0.1),
+    buildingLegalLifeYears: z.number().default(0),
   }),
   income: z.object({
     capRatePercent: z.number(),
