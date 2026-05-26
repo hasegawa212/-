@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>顧客フィードバック</title>
+<style>
+  :root { --primary: #7c3aed; --bg: #f8fafc; --border: #cbd5e1; --text: #0f172a; --muted: #64748b; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+  .container { max-width: 720px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.06); overflow: hidden; }
+  header { background: var(--primary); color: white; padding: 20px 28px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { font-size: 13px; opacity: .85; margin-top: 4px; }
+  main { padding: 28px; }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: white;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .actions { display: flex; gap: 12px; margin-top: 24px; }
+  button { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .primary { background: var(--primary); color: white; }
+  .secondary { background: #e2e8f0; color: var(--text); }
+  .output { background: #f1f5f9; padding: 14px; border-radius: 8px; margin-top: 20px; font-family: monospace; font-size: 12px; white-space: pre-wrap; display: none; }
+  .stars { display: flex; gap: 6px; font-size: 28px; cursor: pointer; user-select: none; }
+  .stars .star { color: #d1d5db; transition: color .15s; }
+  .stars .star.active { color: #fbbf24; }
+  .nav { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .nav a { color: var(--primary); text-decoration: none; margin: 0 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>💬 顧客フィードバック</h1>
+    <div class="meta">アフターフォロー時の顧客からの声を構造化</div>
+  </header>
+  <main>
+    <form id="form">
+      <div class="row">
+        <div class="field">
+          <label>報告日</label>
+          <input type="date" name="reportDate" required>
+        </div>
+        <div class="field">
+          <label>担当者</label>
+          <input type="text" name="staff" placeholder="例: 上田" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>案件 ID</label>
+        <input type="text" name="dealCode" placeholder="DEAL-2026-00000" pattern="DEAL-\d{4}-\d{5}" required>
+      </div>
+
+      <div class="field">
+        <label>顧客匿名コード</label>
+        <input type="text" name="customerCode" placeholder="例: CUST-A" required>
+      </div>
+
+      <div class="field">
+        <label>フィードバック区分</label>
+        <select name="feedbackType" required>
+          <option value="">選択</option>
+          <option value="satisfaction">満足</option>
+          <option value="complaint">不満・クレーム</option>
+          <option value="trouble">トラブル発生</option>
+          <option value="referral">紹介意向あり</option>
+          <option value="repeat">追加購入意向</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>満足度評価（5 段階）</label>
+        <div class="stars" id="stars">
+          <span class="star" data-v="1">★</span>
+          <span class="star" data-v="2">★</span>
+          <span class="star" data-v="3">★</span>
+          <span class="star" data-v="4">★</span>
+          <span class="star" data-v="5">★</span>
+        </div>
+        <input type="hidden" name="rating" id="ratingInput" required>
+      </div>
+
+      <div class="field">
+        <label>具体的なフィードバック内容</label>
+        <textarea name="content" placeholder="例: 引渡し後 1 ヶ月の電話確認で、設備に問題なしとの回答。担当の対応に満足とのこと" required></textarea>
+      </div>
+
+      <div class="field">
+        <label>対応が必要な事項</label>
+        <textarea name="actionNeeded" placeholder="例: 紹介意向あり → 紹介者マスタへ登録、3 ヶ月後にもう一度コンタクト"></textarea>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>クレーム時の緊急度</label>
+          <select name="urgency">
+            <option value="">該当なし</option>
+            <option value="high">高（24 時間以内に対応）</option>
+            <option value="medium">中（1 週間以内）</option>
+            <option value="low">低（次回定期連絡時）</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>紹介意向の見込み数</label>
+          <input type="number" name="referralCount" min="0" value="0">
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="primary">フィードバックを送信</button>
+        <button type="reset" class="secondary">クリア</button>
+      </div>
+    </form>
+    <pre id="output" class="output"></pre>
+    <div class="nav">
+      <a href="sales-report-form-complete.html">完了報告</a> ·
+      <a href="search-customer.html">顧客検索</a>
+    </div>
+  </main>
+</div>
+<script>
+const stars = document.querySelectorAll('.star');
+const ratingInput = document.getElementById('ratingInput');
+stars.forEach(s => s.addEventListener('click', () => {
+  const v = +s.dataset.v;
+  ratingInput.value = v;
+  stars.forEach(x => x.classList.toggle('active', +x.dataset.v <= v));
+}));
+
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  if (!ratingInput.value) {
+    alert('満足度評価を選択してください');
+    return;
+  }
+  const data = Object.fromEntries(new FormData(e.target));
+  data.rating = Number(data.rating);
+  data.referralCount = Number(data.referralCount);
+  const out = document.getElementById('output');
+  out.style.display = 'block';
+  out.textContent = JSON.stringify({type: 'customer-feedback', ...data}, null, 2);
+  navigator.clipboard?.writeText(out.textContent).then(() => {
+    out.textContent += '\n\n--- ✓ クリップボードにコピー済み ---';
+  });
+});
+</script>
+</body>
+</html>
