@@ -19,15 +19,25 @@ import {
   type RoadFrontageType,
 } from "./rosenkaAdjustments";
 import { buildingDepreciationFactor } from "./buildingDepreciation";
+import {
+  DEFAULT_CF_ASSUMPTIONS,
+  calcIncomeBreakdown,
+  monthlyMortgagePayment,
+  calcDscr,
+  dscrStatus,
+  type CashFlowAssumptions,
+  type IncomeBreakdown,
+  type DscrStatus,
+} from "./cashflow";
 
 export interface LandParcelDetail {
-  frontageM: number; // 間口（道路に接する幅・m）。0 で補正なし
-  depthM: number; // 奥行（m）。0 で補正なし
-  kagechiPercent: number; // かげ地割合（%）。0 で整形地扱い
-  roadFrontageType: RoadFrontageType; // 単一路線 / 角地 / 準角地 / 二方路
-  accessWidthM: number; // 接道幅員（m）。0 で未指定
-  roadWidthM: number; // 前面道路幅員（m）。0 で未指定
-  floorAreaRatioPercent: number; // 容積率（%）。0 で消化率補正スキップ
+  frontageM: number;
+  depthM: number;
+  kagechiPercent: number;
+  roadFrontageType: RoadFrontageType;
+  accessWidthM: number;
+  roadWidthM: number;
+  floorAreaRatioPercent: number;
 }
 
 export interface ValuationInput {
@@ -40,12 +50,14 @@ export interface ValuationInput {
   buildingAgeYears: number;
   annualRentIncome: number;
   askingPriceYen: number;
-  landDetail: LandParcelDetail; // 詳細補正用。すべて 0 で旧来挙動
+  landDetail: LandParcelDetail;
+  cashFlow: CashFlowAssumptions; // ★ PR #15
+  otherDebtMonthlyYen?: number; // DSCR 計算用
 }
 
 export interface LandValuationBreakdown {
   rosenkaPerSqm: number;
-  baseLandValueYen: number; // 路線価 × 面積
+  baseLandValueYen: number;
   depthPriceFactor: number;
   narrowFrontageFactor: number;
   depthRatioFactor: number;
@@ -53,10 +65,10 @@ export interface LandValuationBreakdown {
   roadFrontageAddition: number;
   roadAccessFactor: number;
   roadAccessNote: string;
-  combinedAdjustmentFactor: number; // 全補正の積
-  adjustedLandValueYen: number; // 補正後土地評価額
-  areaMultiplier: number; // エリアによる路線価→実勢補正
-  finalLandValueYen: number; // adjustedLandValueYen × areaMultiplier
+  combinedAdjustmentFactor: number;
+  adjustedLandValueYen: number;
+  areaMultiplier: number;
+  finalLandValueYen: number;
 }
 
 export interface BankResult {
@@ -70,12 +82,18 @@ export interface BankResult {
   feasible: boolean;
   judgement: "A" | "B" | "C";
   note: string;
-  // 実績校正
-  rawEstimatedValuationYen: number; // 校正前
-  rawEstimatedLoanYen: number; // 校正前
+  // 実績校正（PR #12 自動校正）
+  rawEstimatedValuationYen: number;
+  rawEstimatedLoanYen: number;
   calibrationApplied: boolean;
-  calibrationMultiplier: number; // 適用された倍率（融資）
+  calibrationMultiplier: number;
   calibrationSampleCount: number;
+  // CF（PR #15）
+  monthlyPaymentYen: number;
+  dscr: number;
+  dscrStatus: DscrStatus;
+  assumedInterestPercent: number;
+  loanTermYears: number;
 }
 
 export interface ValuationResult {
@@ -83,22 +101,27 @@ export interface ValuationResult {
     landValuationYen: number;
     landBreakdown: LandValuationBreakdown;
     buildingValuationYen: number;
-    buildingFarUtilization: number; // 容積率消化率
-    buildingFarFactor: number; // 消化率補正
+    buildingFarUtilization: number;
+    buildingFarFactor: number;
     totalYen: number;
     remainingLifeYears: number;
+    // PR #13 建物精緻化
+    buildingReplacementCostBaseYen: number;
+    buildingReplacementCostAdjustedYen: number;
+    buildingBuildCostMultiplier: number;
+    buildingDepreciationFactor: number;
+    buildingResidualRatio: number;
+    buildingLegalLifeYears: number;
   };
-  income: {
-    capRatePercent: number;
-    valuationYen: number;
-    applies: boolean;
-  };
+  income: IncomeBreakdown;
   banks: BankResult[];
   summary: {
     bestBankId: string;
     bestLoanYen: number;
     minOwnFundsYen: number;
     overallJudgement: "A" | "B" | "C";
+    bestMonthlyPaymentYen: number;
+    bestDscr: number;
   };
 }
 
@@ -112,7 +135,6 @@ function calcLandValuation(input: ValuationInput): LandValuationBreakdown {
 
   const d = input.landDetail;
 
-  // 各補正率
   const fDepthPrice = d.depthM > 0 ? depthPriceFactor(d.depthM) : 1.0;
   const fNarrow = d.frontageM > 0 ? narrowFrontageFactor(d.frontageM) : 1.0;
   const fDepthRatio =
@@ -124,7 +146,6 @@ function calcLandValuation(input: ValuationInput): LandValuationBreakdown {
       ? roadAccessFactor({ accessWidthM: d.accessWidthM, roadWidthM: d.roadWidthM })
       : { factor: 1.0, note: "未指定" };
 
-  // 路線価補正の積（加算は最後）
   const combined =
     fDepthPrice *
     fNarrow *
@@ -162,8 +183,8 @@ function calcCostApproach(input: ValuationInput) {
   let remainingLifeYears = 0;
   let farUtilization = 1;
   let farFactor = 1;
-  let replacementCostBase = 0; // 全国平均（エリア補正前）
-  let replacementCostAdjusted = 0; // エリア補正後
+  let replacementCostBase = 0;
+  let replacementCostAdjusted = 0;
   let depreciationFactor = 1;
   let residualRatio = 0;
   let buildCostMultiplier = area.buildCostMultiplier;
@@ -186,7 +207,6 @@ function calcCostApproach(input: ValuationInput) {
     );
     const ageBased = replacementCostAdjusted * depreciationFactor;
 
-    // 容積率消化率補正
     if (input.landDetail.floorAreaRatioPercent > 0 && input.landAreaSqm > 0) {
       const u = farUtilizationFactor(
         input.buildingAreaSqm,
@@ -209,7 +229,6 @@ function calcCostApproach(input: ValuationInput) {
     buildingFarFactor: farFactor,
     totalYen: round(landValuation + buildingValuation),
     remainingLifeYears,
-    // ★ PR #13 で追加: 建物評価の内訳
     buildingReplacementCostBaseYen: round(replacementCostBase),
     buildingReplacementCostAdjustedYen: round(replacementCostAdjusted),
     buildingBuildCostMultiplier: buildCostMultiplier,
@@ -219,25 +238,18 @@ function calcCostApproach(input: ValuationInput) {
   };
 }
 
-function calcIncomeApproach(input: ValuationInput) {
+function calcIncomeApproach(input: ValuationInput): IncomeBreakdown {
   const propProfile = PROPERTY_PROFILES[input.propertyType];
   const area = AREA_PROFILES[input.areaTier];
   const adjustedCapRate = propProfile.defaultCapRate + area.capRateAdjustment;
+  const cf = input.cashFlow ?? DEFAULT_CF_ASSUMPTIONS;
 
-  if (!propProfile.appliesIncomeApproach || input.annualRentIncome <= 0 || adjustedCapRate <= 0) {
-    return {
-      capRatePercent: adjustedCapRate,
-      valuationYen: 0,
-      applies: false,
-    };
-  }
-
-  const valuation = input.annualRentIncome / (adjustedCapRate / 100);
-  return {
-    capRatePercent: Math.round(adjustedCapRate * 10) / 10,
-    valuationYen: round(valuation),
-    applies: true,
-  };
+  return calcIncomeBreakdown(
+    input.annualRentIncome,
+    cf,
+    adjustedCapRate,
+    propProfile.appliesIncomeApproach
+  );
 }
 
 function judge(askingPrice: number, loanAmount: number): "A" | "B" | "C" {
@@ -262,6 +274,9 @@ function calcBank(
   incomeTotal: number,
   remainingLife: number,
   askingPrice: number,
+  noiYen: number,
+  cf: CashFlowAssumptions,
+  otherDebtMonthlyYen: number,
   calibration: CalibrationHint | undefined
 ): BankResult {
   const incomeWeighted = incomeTotal > 0 ? incomeTotal : costTotal;
@@ -271,7 +286,7 @@ function calcBank(
   const feasible = remainingLife >= bank.minLegalLifeRemaining;
   const rawLoan = feasible ? rawValuation * bank.loanToValueRatio : 0;
 
-  // 実績校正の適用（active 状態のみ）
+  // 実績校正の適用
   const calibActive = !!calibration?.active;
   const loanMult = calibActive ? calibration!.loanMultiplier : 1;
   const valMult = calibActive ? calibration!.valuationMultiplier : 1;
@@ -279,6 +294,14 @@ function calcBank(
   const valuation = rawValuation * valMult;
   const loan = rawLoan * loanMult;
   const ownFunds = Math.max(0, askingPrice - loan);
+
+  // CF
+  const monthlyPayment = monthlyMortgagePayment(
+    loan,
+    cf.assumedInterestPercent,
+    cf.loanTermYears
+  );
+  const dscr = noiYen > 0 ? calcDscr(noiYen, monthlyPayment, otherDebtMonthlyYen) : 0;
 
   return {
     bankId: bank.id,
@@ -296,6 +319,11 @@ function calcBank(
     calibrationApplied: calibActive,
     calibrationMultiplier: Math.round(loanMult * 1000) / 1000,
     calibrationSampleCount: calibration?.sampleCount ?? 0,
+    monthlyPaymentYen: round(monthlyPayment),
+    dscr: Math.round(dscr * 100) / 100,
+    dscrStatus: dscrStatus(dscr),
+    assumedInterestPercent: cf.assumedInterestPercent,
+    loanTermYears: cf.loanTermYears,
   };
 }
 
@@ -305,6 +333,8 @@ export function calculateValuation(
 ): ValuationResult {
   const cost = calcCostApproach(input);
   const income = calcIncomeApproach(input);
+  const cf = input.cashFlow ?? DEFAULT_CF_ASSUMPTIONS;
+  const otherDebtMonthly = input.otherDebtMonthlyYen ?? 0;
 
   const banks = BANK_PROFILES.map((b) =>
     calcBank(
@@ -313,6 +343,9 @@ export function calculateValuation(
       income.valuationYen,
       cost.remainingLifeYears,
       input.askingPriceYen,
+      income.noiYen,
+      cf,
+      otherDebtMonthly,
       calibrations?.get(b.id)
     )
   );
@@ -339,6 +372,8 @@ export function calculateValuation(
       bestLoanYen: best.estimatedLoanYen,
       minOwnFundsYen: best.ownFundsRequiredYen,
       overallJudgement,
+      bestMonthlyPaymentYen: best.monthlyPaymentYen,
+      bestDscr: best.dscr,
     },
   };
 }

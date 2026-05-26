@@ -135,6 +135,22 @@ export const LandParcelDetailSchema = z.object({
 });
 export type LandParcelDetail = z.infer<typeof LandParcelDetailSchema>;
 
+// ★ PR #15 キャッシュフロー
+export const CashFlowAssumptionsSchema = z.object({
+  vacancyPercent: z.number().min(0).max(100).default(10),
+  opexRatePercent: z.number().min(0).max(100).default(20),
+  assumedInterestPercent: z.number().min(0).max(20).default(2.5),
+  loanTermYears: z.number().min(1).max(50).default(25),
+});
+export type CashFlowAssumptions = z.infer<typeof CashFlowAssumptionsSchema>;
+
+export const DEFAULT_CF_ASSUMPTIONS: CashFlowAssumptions = {
+  vacancyPercent: 10,
+  opexRatePercent: 20,
+  assumedInterestPercent: 2.5,
+  loanTermYears: 25,
+};
+
 export const ValuationInputSchema = z.object({
   propertyType: PropertyTypeSchema,
   areaTier: AreaTierSchema,
@@ -154,8 +170,13 @@ export const ValuationInputSchema = z.object({
     roadWidthM: 0,
     floorAreaRatioPercent: 0,
   }),
+  cashFlow: CashFlowAssumptionsSchema.default(DEFAULT_CF_ASSUMPTIONS),
+  otherDebtMonthlyYen: z.number().min(0).default(0),
 });
 export type ValuationInput = z.infer<typeof ValuationInputSchema>;
+
+export const DscrStatusSchema = z.enum(["healthy", "caution", "risky"]);
+export type DscrStatus = z.infer<typeof DscrStatusSchema>;
 
 export const BankResultSchema = z.object({
   bankId: z.string(),
@@ -174,6 +195,12 @@ export const BankResultSchema = z.object({
   calibrationApplied: z.boolean().default(false),
   calibrationMultiplier: z.number().default(1),
   calibrationSampleCount: z.number().default(0),
+  // ★ PR #15 キャッシュフロー
+  monthlyPaymentYen: z.number().default(0),
+  dscr: z.number().default(0),
+  dscrStatus: DscrStatusSchema.default("risky"),
+  assumedInterestPercent: z.number().default(2.5),
+  loanTermYears: z.number().default(25),
 });
 export type BankResult = z.infer<typeof BankResultSchema>;
 
@@ -191,6 +218,18 @@ export const CalibrationSnapshotSchema = z.object({
   active: z.boolean(),
 });
 export type CalibrationSnapshot = z.infer<typeof CalibrationSnapshotSchema>;
+
+export const IncomeBreakdownSchema = z.object({
+  grossIncomeYen: z.number().default(0),
+  vacancyLossYen: z.number().default(0),
+  effectiveIncomeYen: z.number().default(0),
+  opexYen: z.number().default(0),
+  noiYen: z.number().default(0),
+  capRatePercent: z.number(),
+  valuationYen: z.number(),
+  applies: z.boolean(),
+});
+export type IncomeBreakdown = z.infer<typeof IncomeBreakdownSchema>;
 
 export const LandValuationBreakdownSchema = z.object({
   rosenkaPerSqm: z.number(),
@@ -226,17 +265,15 @@ export const ValuationResultSchema = z.object({
     buildingResidualRatio: z.number().default(0.1),
     buildingLegalLifeYears: z.number().default(0),
   }),
-  income: z.object({
-    capRatePercent: z.number(),
-    valuationYen: z.number(),
-    applies: z.boolean(),
-  }),
+  income: IncomeBreakdownSchema, // ★ PR #15 で詳細化
   banks: z.array(BankResultSchema),
   summary: z.object({
     bestBankId: z.string(),
     bestLoanYen: z.number(),
     minOwnFundsYen: z.number(),
     overallJudgement: z.enum(["A", "B", "C"]),
+    bestMonthlyPaymentYen: z.number().default(0),
+    bestDscr: z.number().default(0),
   }),
 });
 export type ValuationResult = z.infer<typeof ValuationResultSchema>;
