@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>アポキャンセル報告</title>
+<style>
+  :root { --primary: #dc2626; --bg: #f8fafc; --border: #cbd5e1; --text: #0f172a; --muted: #64748b; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+  .container { max-width: 720px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.06); overflow: hidden; }
+  header { background: var(--primary); color: white; padding: 20px 28px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { font-size: 13px; opacity: .85; margin-top: 4px; }
+  main { padding: 28px; }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: white;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .actions { display: flex; gap: 12px; margin-top: 24px; }
+  button { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .primary { background: var(--primary); color: white; }
+  .secondary { background: #e2e8f0; color: var(--text); }
+  .output { background: #f1f5f9; padding: 14px; border-radius: 8px; margin-top: 20px; font-family: monospace; font-size: 12px; white-space: pre-wrap; display: none; }
+  .nav { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .nav a { color: var(--primary); text-decoration: none; margin: 0 8px; }
+  .reschedule-block { background: #fff1f2; padding: 12px; border-radius: 8px; margin-top: 12px; display: none; }
+  .reschedule-block.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>❌ アポキャンセル報告</h1>
+    <div class="meta">アポイント取消・リシェジュール記録</div>
+  </header>
+  <main>
+    <form id="form">
+      <div class="row">
+        <div class="field">
+          <label>報告日</label>
+          <input type="date" name="reportDate" required>
+        </div>
+        <div class="field">
+          <label>担当者</label>
+          <input type="text" name="staff" placeholder="例: 三浦" required>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>案件 ID（あれば）</label>
+        <input type="text" name="dealCode" placeholder="DEAL-2026-00000">
+        <div class="hint">商談前の段階なら空欄可</div>
+      </div>
+
+      <div class="field">
+        <label>顧客匿名コード</label>
+        <input type="text" name="customerCode" placeholder="例: CUST-A" required>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label>元アポ日時</label>
+          <input type="datetime-local" name="originalApoDateTime" required>
+        </div>
+        <div class="field">
+          <label>キャンセル区分</label>
+          <select name="cancelType" id="cancelType" required>
+            <option value="">選択</option>
+            <option value="reschedule">リシェジュール</option>
+            <option value="lost">失注</option>
+            <option value="unreachable">連絡不能</option>
+            <option value="customer-cancel">顧客都合キャンセル</option>
+            <option value="staff-cancel">弊社都合キャンセル</option>
+            <option value="other">その他</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>キャンセル理由（詳細）</label>
+        <textarea name="reason" placeholder="例: 物件価格交渉が決裂、他社で先約とのこと" required></textarea>
+      </div>
+
+      <div class="reschedule-block" id="rescheduleBlock">
+        <div class="field" style="margin: 0;">
+          <label>リシェジュール日時</label>
+          <input type="datetime-local" name="newApoDateTime">
+          <div class="hint">区分が「リシェジュール」の場合のみ</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>次のアクション・対応</label>
+        <textarea name="nextAction" placeholder="例: 別物件提案する / 3 ヶ月後再アプローチ / 失注クローズ"></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="primary">キャンセル報告を送信</button>
+        <button type="reset" class="secondary">クリア</button>
+      </div>
+    </form>
+    <pre id="output" class="output"></pre>
+    <div class="nav">
+      <a href="daily-report-form.html">日報</a> ·
+      <a href="sales-report-form.html">案件報告</a>
+    </div>
+  </main>
+</div>
+<script>
+const cancelType = document.getElementById('cancelType');
+const rescheduleBlock = document.getElementById('rescheduleBlock');
+cancelType.addEventListener('change', () => {
+  rescheduleBlock.classList.toggle('visible', cancelType.value === 'reschedule');
+});
+
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  const out = document.getElementById('output');
+  out.style.display = 'block';
+  out.textContent = JSON.stringify({type: 'apo-cancel', ...data}, null, 2);
+  navigator.clipboard?.writeText(out.textContent).then(() => {
+    out.textContent += '\n\n--- ✓ クリップボードにコピー済み ---';
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>顧客・案件検索</title>
+<style>
+  :root { --primary: #0284c7; --bg: #f8fafc; --border: #cbd5e1; --text: #0f172a; --muted: #64748b; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+  .container { max-width: 960px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.06); overflow: hidden; }
+  header { background: var(--primary); color: white; padding: 20px 28px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { font-size: 13px; opacity: .85; margin-top: 4px; }
+  main { padding: 28px; }
+  .search-bar { display: grid; grid-template-columns: 1fr 180px 180px auto; gap: 12px; margin-bottom: 24px; }
+  input, select {
+    padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: white;
+  }
+  button.primary { background: var(--primary); color: white; border: none; padding: 0 24px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #f1f5f9; padding: 10px 12px; text-align: left; font-weight: 700; border-bottom: 2px solid var(--border); }
+  td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+  .stage-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+  .stage-商談中 { background: #f1f5f9; color: #475569; }
+  .stage-事前審査 { background: #fef3c7; color: #92400e; }
+  .stage-本承認 { background: #dcfce7; color: #166534; }
+  .stage-金消完了 { background: #dbeafe; color: #1e40af; }
+  .stage-完了 { background: #ccfbf1; color: #115e59; }
+  .stage-否決 { background: #fee2e2; color: #991b1b; }
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+  .summary { padding: 12px 16px; background: #f8fafc; border-radius: 8px; font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+  .nav { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .nav a { color: var(--primary); text-decoration: none; margin: 0 8px; }
+  .alert { color: #dc2626; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔍 顧客・案件検索</h1>
+    <div class="meta">案件 ID・顧客コード・物件エリアから検索（モック表示）</div>
+  </header>
+  <main>
+    <div class="search-bar">
+      <input id="kw" type="text" placeholder="案件 ID / 顧客コード / 市町村 で検索">
+      <select id="stageFilter">
+        <option value="">全ステージ</option>
+        <option>商談中</option>
+        <option>事前審査</option>
+        <option>本承認</option>
+        <option>金消完了</option>
+        <option>完了</option>
+        <option>否決</option>
+      </select>
+      <select id="staffFilter">
+        <option value="">全担当者</option>
+        <option>嶺田</option>
+        <option>三浦</option>
+        <option>坂本</option>
+        <option>上田</option>
+        <option>藪</option>
+      </select>
+      <button class="primary" onclick="search()">検索</button>
+    </div>
+
+    <div class="summary" id="summary">検索結果がここに表示されます</div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>案件 ID</th>
+          <th>顧客</th>
+          <th>物件エリア</th>
+          <th>銀行</th>
+          <th>ステージ</th>
+          <th>担当</th>
+          <th>最終更新</th>
+        </tr>
+      </thead>
+      <tbody id="results"></tbody>
+    </table>
+
+    <div class="nav">
+      <a href="sales-report-form.html">案件報告</a> ·
+      <a href="sales-report-update-form.html">ステージ更新</a> ·
+      <a href="daily-report-form.html">日報</a>
+    </div>
+  </main>
+</div>
+<script>
+// モック・サンプルデータ（実データは Google Sheets で管理）
+const MOCK = [
+  { dealCode: 'DEAL-2026-00012', customer: 'CUST-A', area: '水戸市', bank: '水戸信用金庫', stage: '本承認', staff: '嶺田', updated: '2026-05-20', alert: false },
+  { dealCode: 'DEAL-2026-00013', customer: 'CUST-B', area: 'ひたちなか市', bank: '中央労金', stage: '金消完了', staff: '坂本', updated: '2026-05-22', alert: false },
+  { dealCode: 'DEAL-2026-00014', customer: 'CUST-C', area: '土浦市', bank: '茨城県信用組合', stage: '事前審査', staff: '三浦', updated: '2026-04-15', alert: true },
+  { dealCode: 'DEAL-2026-00015', customer: 'CUST-D', area: '日立市', bank: '住信SBI', stage: '否決', staff: '嶺田', updated: '2026-05-10', alert: false },
+  { dealCode: 'DEAL-2026-00016', customer: 'CUST-E', area: 'つくば市', bank: '常陽銀行', stage: '商談中', staff: '三浦', updated: '2026-05-25', alert: false },
+  { dealCode: 'DEAL-2026-00017', customer: 'CUST-F', area: '小山市', bank: '足利銀行', stage: '本承認', staff: '坂本', updated: '2026-05-24', alert: false },
+  { dealCode: 'DEAL-2026-00018', customer: 'CUST-G', area: '結城市', bank: '結城信用金庫', stage: '事前審査', staff: '上田', updated: '2026-05-23', alert: false },
+];
+
+function search() {
+  const kw = document.getElementById('kw').value.toLowerCase().trim();
+  const stage = document.getElementById('stageFilter').value;
+  const staff = document.getElementById('staffFilter').value;
+  let res = MOCK.filter(r => {
+    if (kw && !(r.dealCode.toLowerCase().includes(kw) || r.customer.toLowerCase().includes(kw) || r.area.includes(kw))) return false;
+    if (stage && !r.stage.includes(stage)) return false;
+    if (staff && r.staff !== staff) return false;
+    return true;
+  });
+  render(res);
+}
+
+function render(rows) {
+  const tbody = document.getElementById('results');
+  const summary = document.getElementById('summary');
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">該当案件なし</td></tr>';
+    summary.textContent = '0 件';
+    return;
+  }
+  summary.innerHTML = `<strong>${rows.length}</strong> 件ヒット` + (rows.some(r=>r.alert) ? ` · <span class="alert">⚠ ${rows.filter(r=>r.alert).length} 件で滞留アラート</span>` : '');
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><code>${r.dealCode}</code></td>
+      <td>${r.customer}</td>
+      <td>${r.area}</td>
+      <td>${r.bank}</td>
+      <td><span class="stage-badge stage-${r.stage}">${r.stage}</span></td>
+      <td>${r.staff}</td>
+      <td>${r.updated}${r.alert ? ' <span class="alert">⚠</span>' : ''}</td>
+    </tr>
+  `).join('');
+}
+
+// 初期表示
+render(MOCK);
+
+// Enter キーで検索
+document.getElementById('kw').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+</script>
+</body>
+</html>

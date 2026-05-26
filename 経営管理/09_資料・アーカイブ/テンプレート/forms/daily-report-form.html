@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>日報フォーム</title>
+<style>
+  :root { --primary: #0891b2; --bg: #f8fafc; --border: #cbd5e1; --text: #0f172a; --muted: #64748b; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; margin: 0; padding: 24px; background: var(--bg); color: var(--text); }
+  .container { max-width: 720px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.06); overflow: hidden; }
+  header { background: var(--primary); color: white; padding: 20px 28px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header .meta { font-size: 13px; opacity: .85; margin-top: 4px; }
+  main { padding: 28px; }
+  .field { margin-bottom: 18px; }
+  label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  input, select, textarea {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: inherit; background: white;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stats .field input { text-align: center; font-size: 16px; font-weight: 700; }
+  .stats .field label { text-align: center; }
+  .actions { display: flex; gap: 12px; margin-top: 24px; }
+  button { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .primary { background: var(--primary); color: white; }
+  .secondary { background: #e2e8f0; color: var(--text); }
+  .output { background: #f1f5f9; padding: 14px; border-radius: 8px; margin-top: 20px; font-family: monospace; font-size: 12px; white-space: pre-wrap; display: none; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 6px; margin: 20px 0 12px; }
+  .nav { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+  .nav a { color: var(--primary); text-decoration: none; margin: 0 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>📅 日報フォーム</h1>
+    <div class="meta">日次活動の数値 + ハイライト + 困りごと</div>
+  </header>
+  <main>
+    <form id="form">
+      <div class="row">
+        <div class="field">
+          <label>日付</label>
+          <input type="date" name="reportDate" required>
+        </div>
+        <div class="field">
+          <label>担当者</label>
+          <input type="text" name="staff" placeholder="例: 三浦" required>
+        </div>
+      </div>
+
+      <div class="section-title">活動数値</div>
+      <div class="stats">
+        <div class="field"><label>架電数</label><input type="number" name="callCount" min="0" value="0"></div>
+        <div class="field"><label>アポ獲得</label><input type="number" name="apoCount" min="0" value="0"></div>
+        <div class="field"><label>商談数</label><input type="number" name="meetingCount" min="0" value="0"></div>
+        <div class="field"><label>内見数</label><input type="number" name="viewingCount" min="0" value="0"></div>
+        <div class="field"><label>契約数</label><input type="number" name="contractCount" min="0" value="0"></div>
+        <div class="field"><label>否決数</label><input type="number" name="rejectionCount" min="0" value="0"></div>
+      </div>
+
+      <div class="section-title">テキスト</div>
+      <div class="field">
+        <label>今日のハイライト（3 行以内）</label>
+        <textarea name="highlights" placeholder="例: 綱川様 事前承認取得、CUST-D 様 物件提案実施" required></textarea>
+      </div>
+
+      <div class="field">
+        <label>明日の予定</label>
+        <textarea name="tomorrowPlan" placeholder="例: 9:00 仕入れ会議、14:00 内見 2 件"></textarea>
+      </div>
+
+      <div class="field">
+        <label>困りごと・相談事項</label>
+        <textarea name="blockers" placeholder="例: ◯◯銀行の本審査 7 営業日経過しても回答なし、催促判断したい"></textarea>
+        <div class="hint">週次レビューで個別追跡対象になります</div>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="primary">日報を送信</button>
+        <button type="reset" class="secondary">クリア</button>
+      </div>
+    </form>
+    <pre id="output" class="output"></pre>
+    <div class="nav">
+      <a href="sales-report-form.html">案件報告</a> ·
+      <a href="apo-cancel-form.html">アポキャンセル</a> ·
+      <a href="search-customer.html">顧客検索</a>
+    </div>
+  </main>
+</div>
+<script>
+// 今日の日付を自動入力
+document.querySelector('input[name="reportDate"]').valueAsDate = new Date();
+
+document.getElementById('form').addEventListener('submit', e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = Object.fromEntries(fd);
+  // 数値変換
+  ['callCount','apoCount','meetingCount','viewingCount','contractCount','rejectionCount'].forEach(k => data[k] = Number(data[k]));
+  // 効率指標を計算
+  const apoRate = data.callCount > 0 ? (data.apoCount / data.callCount * 100).toFixed(1) + '%' : '—';
+  data._derived = { apoRate };
+  const out = document.getElementById('output');
+  out.style.display = 'block';
+  out.textContent = JSON.stringify({type: 'daily-report', ...data}, null, 2);
+  navigator.clipboard?.writeText(out.textContent).then(() => {
+    out.textContent += '\n\n--- ✓ クリップボードにコピー済み ---';
+  });
+});
+</script>
+</body>
+</html>
