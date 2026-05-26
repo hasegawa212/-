@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect } from "react";
 import { trpc } from "@/lib/trpc";
 import type {
   ValuationInput,
@@ -69,14 +71,43 @@ function judgementLabel(j: "A" | "B" | "C"): string {
 }
 
 export default function BankValuation() {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const loadDealId = searchParams.get("loadDealId");
+
   const [input, setInput] = useState<ValuationInput>(initialInput);
   const [result, setResult] = useState<ValuationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savedDealCode, setSavedDealCode] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
 
   const metaQuery = trpc.bankValuation.metadata.useQuery();
   const calcMutation = trpc.bankValuation.calculate.useMutation({
     onSuccess: (data) => {
       setResult(data);
+      setSavedDealCode(null);
+      setError(null);
+    },
+    onError: (e) => setError(e.message),
+  });
+
+  // 履歴から呼び戻し
+  const loadDealQuery = trpc.bankValuationDeals.get.useQuery(
+    { id: Number(loadDealId) },
+    { enabled: !!loadDealId }
+  );
+  useEffect(() => {
+    if (loadDealQuery.data) {
+      setInput(loadDealQuery.data.input);
+      setResult(loadDealQuery.data.result);
+      setTitle(loadDealQuery.data.title);
+      setSavedDealCode(loadDealQuery.data.dealCode);
+    }
+  }, [loadDealQuery.data]);
+
+  const createDealMutation = trpc.bankValuationDeals.create.useMutation({
+    onSuccess: (data) => {
+      setSavedDealCode(data.dealCode);
       setError(null);
     },
     onError: (e) => setError(e.message),
@@ -132,12 +163,17 @@ export default function BankValuation() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">銀行評価額シミュレーター</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          物件情報を入力すると、積算・収益評価から銀行別の融資想定額と A/B/C 判定を出します。
-          国税庁 路線価補正（奥行・間口・形状・接道）を反映した実物件レベルの土地評価に対応。
-        </p>
+      <div className="flex justify-between items-start gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">銀行評価額シミュレーター</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            物件情報を入力すると、積算・収益評価から銀行別の融資想定額と A/B/C 判定を出します。
+            国税庁 路線価補正（奥行・間口・形状・接道）を反映した実物件レベルの土地評価に対応。
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => navigate("/deal-history")}>
+          案件履歴 / 実績
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -307,6 +343,39 @@ export default function BankValuation() {
                   最良条件：{meta.banks.find((b) => b.id === result.summary.bestBankId)?.label} /
                   融資想定 {yen(result.summary.bestLoanYen)} / 自己資金 {yen(result.summary.minOwnFundsYen)}
                 </div>
+              </div>
+
+              {/* 案件保存 */}
+              <div className="bg-card rounded-lg border p-4 flex items-center gap-3 flex-wrap">
+                <input
+                  type="text"
+                  className="flex-1 min-w-[200px] border rounded px-3 py-2 bg-background text-sm"
+                  placeholder="物件メモ（例: A 区 ◯◯町 中古一棟）"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                />
+                <Button
+                  onClick={() =>
+                    createDealMutation.mutate({
+                      title: title || "（メモなし）",
+                      input,
+                      result,
+                      note: "",
+                    })
+                  }
+                  disabled={createDealMutation.isPending || !!savedDealCode}
+                >
+                  {savedDealCode
+                    ? `保存済 (${savedDealCode})`
+                    : createDealMutation.isPending
+                    ? "保存中…"
+                    : "この計算結果を案件として保存"}
+                </Button>
+                {savedDealCode && (
+                  <Button variant="outline" onClick={() => navigate("/deal-history")}>
+                    履歴を見る
+                  </Button>
+                )}
               </div>
 
               {/* 土地評価 詳細 */}

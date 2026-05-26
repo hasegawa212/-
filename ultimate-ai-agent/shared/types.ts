@@ -212,6 +212,50 @@ export const ValuationResultSchema = z.object({
 });
 export type ValuationResult = z.infer<typeof ValuationResultSchema>;
 
+// ===== 案件保存・実績記録 =====
+
+export const DealStatusSchema = z.enum(["pending", "approved", "rejected", "closed"]);
+export type DealStatus = z.infer<typeof DealStatusSchema>;
+
+export const DealSchema = z.object({
+  id: z.number(),
+  dealCode: z.string(),
+  title: z.string(),
+  input: ValuationInputSchema,
+  result: ValuationResultSchema,
+  actualBankId: z.string().nullable(),
+  actualBankName: z.string().nullable(),
+  actualValuationYen: z.number().nullable(),
+  actualLoanYen: z.number().nullable(),
+  actualInterestRatePercent: z.number().nullable(), // 表示用は %、DB は ×100 で保管
+  dealStatus: DealStatusSchema,
+  note: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Deal = z.infer<typeof DealSchema>;
+
+export const CreateDealSchema = z.object({
+  dealCode: z.string().min(1).optional(), // 未指定なら自動採番
+  title: z.string().min(1),
+  input: ValuationInputSchema,
+  result: ValuationResultSchema,
+  note: z.string().default(""),
+});
+export type CreateDealInput = z.infer<typeof CreateDealSchema>;
+
+export const RecordActualSchema = z.object({
+  id: z.number(),
+  actualBankId: z.string().nullable().optional(),
+  actualBankName: z.string().nullable().optional(),
+  actualValuationYen: z.number().nullable().optional(),
+  actualLoanYen: z.number().nullable().optional(),
+  actualInterestRatePercent: z.number().nullable().optional(),
+  dealStatus: DealStatusSchema.optional(),
+  note: z.string().optional(),
+});
+export type RecordActualInput = z.infer<typeof RecordActualSchema>;
+
 // Analytics
 export const AnalyticsSchema = z.object({
   totalConversations: z.number(),

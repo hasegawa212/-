@@ -94,3 +94,30 @@ export const analyticsEvents = sqliteTable("analytics_events", {
     .notNull()
     .default(sql`(datetime('now'))`),
 });
+
+// 銀行評価額シミュレーター: 案件保存・実績記録
+export const bankValuationDeals = sqliteTable("bank_valuation_deals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  dealCode: text("deal_code").notNull().unique(), // 案件 ID（業務マニュアルの採番ルールと連携。例: DEAL-2026-00001）
+  title: text("title").notNull(), // 物件メモ（PII を含まない簡易ラベル）
+  inputJson: text("input_json", { mode: "json" }).notNull(), // ValuationInput スナップショット
+  resultJson: text("result_json", { mode: "json" }).notNull(), // ValuationResult スナップショット（予測）
+  // 実績フィールド（融資審査後に後追い記録）
+  actualBankId: text("actual_bank_id"), // 実取引銀行ID（megabank / regional / shinkin / nonbank ほか自由文字列）
+  actualBankName: text("actual_bank_name"), // 銀行名（自由テキスト）
+  actualValuationYen: integer("actual_valuation_yen"), // 実際の銀行評価額
+  actualLoanYen: integer("actual_loan_yen"), // 実際の融資承認額
+  actualInterestRateX100: integer("actual_interest_rate_x100"), // 金利（×100、例: 2.75% → 275）
+  dealStatus: text("deal_status", {
+    enum: ["pending", "approved", "rejected", "closed"],
+  })
+    .notNull()
+    .default("pending"),
+  note: text("note").notNull().default(""),
+  createdAt: text("created_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+  updatedAt: text("updated_at")
+    .notNull()
+    .default(sql`(datetime('now'))`),
+});

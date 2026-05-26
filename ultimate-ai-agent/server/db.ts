@@ -91,9 +91,28 @@ sqlite.exec(`
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS bank_valuation_deals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deal_code TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    input_json TEXT NOT NULL,
+    result_json TEXT NOT NULL,
+    actual_bank_id TEXT,
+    actual_bank_name TEXT,
+    actual_valuation_yen INTEGER,
+    actual_loan_yen INTEGER,
+    actual_interest_rate_x100 INTEGER,
+    deal_status TEXT NOT NULL DEFAULT 'pending' CHECK(deal_status IN ('pending', 'approved', 'rejected', 'closed')),
+    note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_messages_conversation ON messages(conversation_id);
   CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics_events(event_type);
   CREATE INDEX IF NOT EXISTS idx_memory_conversation ON memory_entries(conversation_id);
+  CREATE INDEX IF NOT EXISTS idx_deals_status ON bank_valuation_deals(deal_status);
+  CREATE INDEX IF NOT EXISTS idx_deals_actual_bank ON bank_valuation_deals(actual_bank_id);
 `);
 
 export default db;
