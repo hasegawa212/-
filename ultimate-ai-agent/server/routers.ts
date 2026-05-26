@@ -35,6 +35,7 @@ import {
   recomputeCalibrationFor,
   MIN_SAMPLES_FOR_CALIBRATION,
 } from "./bankValuation/calibration";
+import { lookupRosenka } from "./bankValuation/rosenkaLookup";
 
 const t = initTRPC.create();
 
@@ -456,6 +457,12 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const calibrations = await getCalibrations();
         return calculateValuation(input, calibrations);
+      }),
+    // ★ PR #16: 住所から路線価を推定
+    lookupRosenka: publicProcedure
+      .input(z.object({ address: z.string() }))
+      .query(({ input }) => {
+        return lookupRosenka(input.address);
       }),
   }),
 

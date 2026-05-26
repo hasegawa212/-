@@ -115,8 +115,27 @@ export default function BankValuation() {
   const [error, setError] = useState<string | null>(null);
   const [savedDealCode, setSavedDealCode] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [address, setAddress] = useState("");
+  const [lookupNote, setLookupNote] = useState<string | null>(null);
 
   const metaQuery = trpc.bankValuation.metadata.useQuery();
+  const trpcCtx = trpc.useUtils();
+  const handleLookup = async () => {
+    if (!address.trim()) {
+      setLookupNote("住所を入力してください");
+      return;
+    }
+    const res = await trpcCtx.bankValuation.lookupRosenka.fetch({ address });
+    if (res.rosenkaPerSqm > 0) {
+      setInput((prev) => ({ ...prev, rosenkaPerSqm: res.rosenkaPerSqm }));
+      const conf = res.confidence === "medium" ? "推定中" : "推定低";
+      setLookupNote(
+        `✓ ${res.parsedPrefecture ?? ""}${res.parsedCity ?? ""} → ${res.rosenkaPerSqm.toLocaleString()} 円/㎡（${conf}）／${res.note}`
+      );
+    } else {
+      setLookupNote(`× ${res.note}`);
+    }
+  };
   const calcMutation = trpc.bankValuation.calculate.useMutation({
     onSuccess: (data) => {
       setResult(data);
@@ -270,9 +289,31 @@ export default function BankValuation() {
             <Field label="土地面積（㎡）">
               <NumberInput value={input.landAreaSqm} onChange={handleNumber("landAreaSqm")} />
             </Field>
+            <Field label="所在地（推定用・PII 非保存）">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  className="flex-1 border rounded px-3 py-2 bg-background text-sm"
+                  placeholder="例: 東京都港区六本木"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleLookup}
+                  type="button"
+                >
+                  推定
+                </Button>
+              </div>
+              {lookupNote && (
+                <p className="text-xs mt-1 text-muted-foreground leading-relaxed">{lookupNote}</p>
+              )}
+            </Field>
             <Field label="路線価（円/㎡）">
               <NumberInput value={input.rosenkaPerSqm} onChange={handleNumber("rosenkaPerSqm")} />
-              <Hint>不明な場合は 公示価格 × 0.8 で代用</Hint>
+              <Hint>住所推定 or 公示価格 × 0.8 で代用</Hint>
             </Field>
           </Section>
 
