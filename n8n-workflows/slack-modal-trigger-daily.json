@@ -1,0 +1,86 @@
+{
+  "name": "Slack /daily → Open Daily Report Modal",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-modal-trigger-daily",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "daily-01-webhook",
+      "name": "Webhook /daily",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "slack-modal-trigger-daily"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "trigger_id", "value": "={{ $json.body.trigger_id }}", "type": "string" },
+            { "id": "s2", "name": "user_id", "value": "={{ $json.body.user_id }}", "type": "string" },
+            { "id": "s3", "name": "user_name", "value": "={{ $json.body.user_name }}", "type": "string" },
+            { "id": "s4", "name": "channel_id", "value": "={{ $json.body.channel_id }}", "type": "string" },
+            { "id": "s5", "name": "response_url", "value": "={{ $json.body.response_url }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "daily-02-extract",
+      "name": "Extract Slack Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer REPLACE_WITH_SLACK_BOT_TOKEN" },
+            { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"trigger_id\": \"{{ $json.trigger_id }}\",\n  \"view\": {\n    \"type\": \"modal\",\n    \"callback_id\": \"daily_report\",\n    \"private_metadata\": \"{{ JSON.stringify({channel_id: $json.channel_id, user_id: $json.user_id, user_name: $json.user_name}) }}\",\n    \"title\": { \"type\": \"plain_text\", \"text\": \"📅 日報\" },\n    \"submit\": { \"type\": \"plain_text\", \"text\": \"送信\" },\n    \"close\": { \"type\": \"plain_text\", \"text\": \"閉じる\" },\n    \"blocks\": [\n      {\n        \"type\": \"input\",\n        \"block_id\": \"report_date\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"日付\" },\n        \"element\": { \"type\": \"datepicker\", \"action_id\": \"value\", \"initial_date\": \"{{ $now.toFormat('yyyy-MM-dd') }}\" }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"call_count\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"架電数\" },\n        \"element\": { \"type\": \"number_input\", \"is_decimal_allowed\": false, \"action_id\": \"value\", \"min_value\": \"0\" }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"apo_count\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"アポ獲得数\" },\n        \"element\": { \"type\": \"number_input\", \"is_decimal_allowed\": false, \"action_id\": \"value\", \"min_value\": \"0\" }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"meeting_count\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"商談数\" },\n        \"element\": { \"type\": \"number_input\", \"is_decimal_allowed\": false, \"action_id\": \"value\", \"min_value\": \"0\" },\n        \"optional\": true\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"contract_count\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"契約数\" },\n        \"element\": { \"type\": \"number_input\", \"is_decimal_allowed\": false, \"action_id\": \"value\", \"min_value\": \"0\" },\n        \"optional\": true\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"highlights\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"今日のハイライト\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true, \"placeholder\": { \"type\": \"plain_text\", \"text\": \"3 行以内で要点を\" } }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"tomorrow_plan\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"明日の予定\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true },\n        \"optional\": true\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"blockers\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"困りごと・相談\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true },\n        \"optional\": true\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "daily-03-views-open",
+      "name": "Slack views.open",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "daily-04-respond",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook /daily": { "main": [[{ "node": "Extract Slack Payload", "type": "main", "index": 0 }]] },
+    "Extract Slack Payload": { "main": [[{ "node": "Slack views.open", "type": "main", "index": 0 }]] },
+    "Slack views.open": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": [{ "name": "slack" }, { "name": "modal" }, { "name": "daily-report" }]
+}

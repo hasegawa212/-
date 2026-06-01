@@ -1,0 +1,81 @@
+{
+  "name": "Slack /feedback → Open Customer Feedback Modal",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-modal-trigger-feedback",
+        "responseMode": "responseNode",
+        "options": { "rawBody": false }
+      },
+      "id": "fb-01-webhook",
+      "name": "Webhook /feedback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "slack-modal-trigger-feedback"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "trigger_id", "value": "={{ $json.body.trigger_id }}", "type": "string" },
+            { "id": "s2", "name": "user_id", "value": "={{ $json.body.user_id }}", "type": "string" },
+            { "id": "s3", "name": "user_name", "value": "={{ $json.body.user_name }}", "type": "string" },
+            { "id": "s4", "name": "channel_id", "value": "={{ $json.body.channel_id }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb-02-extract",
+      "name": "Extract Slack Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer REPLACE_WITH_SLACK_BOT_TOKEN" },
+            { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"trigger_id\": \"{{ $json.trigger_id }}\",\n  \"view\": {\n    \"type\": \"modal\",\n    \"callback_id\": \"customer_feedback\",\n    \"private_metadata\": \"{{ JSON.stringify({channel_id: $json.channel_id, user_id: $json.user_id, user_name: $json.user_name}) }}\",\n    \"title\": { \"type\": \"plain_text\", \"text\": \"💬 顧客フィードバック\" },\n    \"submit\": { \"type\": \"plain_text\", \"text\": \"送信\" },\n    \"close\": { \"type\": \"plain_text\", \"text\": \"閉じる\" },\n    \"blocks\": [\n      {\n        \"type\": \"input\", \"block_id\": \"deal_code\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"案件 ID\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"placeholder\": { \"type\": \"plain_text\", \"text\": \"DEAL-2026-00000\" } }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"customer_code\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"顧客匿名コード\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"placeholder\": { \"type\": \"plain_text\", \"text\": \"例: CUST-A\" } }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"feedback_type\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"フィードバック区分\" },\n        \"element\": {\n          \"type\": \"static_select\", \"action_id\": \"value\",\n          \"placeholder\": { \"type\": \"plain_text\", \"text\": \"選択\" },\n          \"options\": [\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"満足\" }, \"value\": \"satisfaction\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"不満・クレーム\" }, \"value\": \"complaint\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"トラブル発生\" }, \"value\": \"trouble\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"紹介意向あり\" }, \"value\": \"referral\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"追加購入意向\" }, \"value\": \"repeat\" }\n          ]\n        }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"rating\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"満足度（1-5）\" },\n        \"element\": {\n          \"type\": \"static_select\", \"action_id\": \"value\",\n          \"options\": [\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"★☆☆☆☆ (1)\" }, \"value\": \"1\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"★★☆☆☆ (2)\" }, \"value\": \"2\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"★★★☆☆ (3)\" }, \"value\": \"3\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"★★★★☆ (4)\" }, \"value\": \"4\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"★★★★★ (5)\" }, \"value\": \"5\" }\n          ]\n        }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"content\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"具体的なフィードバック\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"action_needed\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"対応が必要な事項\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true },\n        \"optional\": true\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "fb-03-views-open",
+      "name": "Slack views.open",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "",
+        "options": { "responseCode": 200 }
+      },
+      "id": "fb-04-respond",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook /feedback": { "main": [[{ "node": "Extract Slack Payload", "type": "main", "index": 0 }]] },
+    "Extract Slack Payload": { "main": [[{ "node": "Slack views.open", "type": "main", "index": 0 }]] },
+    "Slack views.open": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": [{ "name": "slack" }, { "name": "modal" }, { "name": "feedback" }]
+}
