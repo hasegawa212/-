@@ -1,0 +1,81 @@
+{
+  "name": "Slack /apo → Open Apo Add/Cancel Modal",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-modal-trigger-apo",
+        "responseMode": "responseNode",
+        "options": { "rawBody": false }
+      },
+      "id": "apo-01-webhook",
+      "name": "Webhook /apo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "slack-modal-trigger-apo"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "trigger_id", "value": "={{ $json.body.trigger_id }}", "type": "string" },
+            { "id": "s2", "name": "user_id", "value": "={{ $json.body.user_id }}", "type": "string" },
+            { "id": "s3", "name": "user_name", "value": "={{ $json.body.user_name }}", "type": "string" },
+            { "id": "s4", "name": "channel_id", "value": "={{ $json.body.channel_id }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "apo-02-extract",
+      "name": "Extract Slack Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer REPLACE_WITH_SLACK_BOT_TOKEN" },
+            { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"trigger_id\": \"{{ $json.trigger_id }}\",\n  \"view\": {\n    \"type\": \"modal\",\n    \"callback_id\": \"apo_action\",\n    \"private_metadata\": \"{{ JSON.stringify({channel_id: $json.channel_id, user_id: $json.user_id, user_name: $json.user_name}) }}\",\n    \"title\": { \"type\": \"plain_text\", \"text\": \"📌 アポ追加 / キャンセル\" },\n    \"submit\": { \"type\": \"plain_text\", \"text\": \"送信\" },\n    \"close\": { \"type\": \"plain_text\", \"text\": \"閉じる\" },\n    \"blocks\": [\n      {\n        \"type\": \"input\", \"block_id\": \"action_type\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"区分\" },\n        \"element\": {\n          \"type\": \"static_select\", \"action_id\": \"value\",\n          \"placeholder\": { \"type\": \"plain_text\", \"text\": \"選択\" },\n          \"options\": [\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"アポ追加\" }, \"value\": \"add\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"リシェジュール\" }, \"value\": \"reschedule\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"キャンセル（失注）\" }, \"value\": \"cancel_lost\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"キャンセル（連絡不能）\" }, \"value\": \"cancel_unreachable\" },\n            { \"text\": { \"type\": \"plain_text\", \"text\": \"キャンセル（顧客都合）\" }, \"value\": \"cancel_customer\" }\n          ]\n        }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"customer_code\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"顧客匿名コード\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"placeholder\": { \"type\": \"plain_text\", \"text\": \"例: CUST-A\" } }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"deal_code\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"案件 ID（任意）\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"placeholder\": { \"type\": \"plain_text\", \"text\": \"DEAL-2026-00000\" } },\n        \"optional\": true\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"apo_datetime\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"アポ日時\" },\n        \"element\": { \"type\": \"datetimepicker\", \"action_id\": \"value\" }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"reason\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"理由 / メモ\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true },\n        \"optional\": true\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "apo-03-views-open",
+      "name": "Slack views.open",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "",
+        "options": { "responseCode": 200 }
+      },
+      "id": "apo-04-respond",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook /apo": { "main": [[{ "node": "Extract Slack Payload", "type": "main", "index": 0 }]] },
+    "Extract Slack Payload": { "main": [[{ "node": "Slack views.open", "type": "main", "index": 0 }]] },
+    "Slack views.open": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": [{ "name": "slack" }, { "name": "modal" }, { "name": "apo" }]
+}
