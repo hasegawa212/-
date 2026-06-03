@@ -39,7 +39,7 @@
 
 - **トリガー**: 親メッセージへの特定絵文字リアクション（`REPLACE_WITH_TRIGGER_EMOJI`、例: `furikomi_done`）
 - **結合エンジン**: CloudConvert（画像のPDF化と複数PDFの結合を1ジョブで実行）
-- **保存先**: 梅本様共有フォルダ（Google Drive、`REPLACE_WITH_DRIVE_FOLDER_ID`）
+- **保存先**: 梅本様共有フォルダ（Google Drive、親フォルダ `REPLACE_WITH_DRIVE_PARENT_FOLDER_ID`）配下の**請求分ごとの期間フォルダ**（例 `★2026.3.25請求分　長谷川光`）へ自動振り分け（無ければ自動作成）
 - **漏れ防止**: 完了後に親メッセージへ `:white_check_mark:` を自動付与＋`merge_log` シートに台帳記録
 - **まとめ処理にも対応**: 週次/月次でまとめてリアクションを付けていけば、その分だけ順次処理されます
 
@@ -56,7 +56,12 @@ Slack Events Webhook → Parse Slack Event ─┬→ Ack Slack 200 (即時応答
                                                                    → CloudConvert: Wait
                                                                    → Get Export URL
                                                                    → Download Merged PDF
-                                                                   → Upload to Drive
+                                                                   → Find Period Folder
+                                                                   → Period folder exists?
+                                                                      ├(無)→ Create Period Folder ─┐
+                                                                      └(有)──────────────────────┤
+                                                                   → Resolve Folder Id ←──────────┘
+                                                                   → Upload to Drive（期間フォルダへ）
                                                                    → Append merge_log
                                                                    → Notify Thread (done)
                                                                    → Add Done Reaction
@@ -86,13 +91,14 @@ Slack Events Webhook → Parse Slack Event ─┬→ Ack Slack 200 (即時応答
 n8n の **Credentials → New → Header Auth** をもう1つ作成し、`Name = Authorization` / `Value = Bearer xoxb-...`（Bot User OAuth Token）を登録（このワークフローでは `Slack Bot Token` という名前で参照）。
 
 ### 3. Google Drive
-- 梅本様共有フォルダの **フォルダ ID** を控える（URL `.../folders/<FOLDER_ID>`）
-- n8n の **Credentials → New → Google Drive OAuth2 API** を登録
+- 梅本様共有フォルダ（**親フォルダ**）の **フォルダ ID** を控える（URL `.../folders/<FOLDER_ID>`）。この配下に請求分ごとの期間フォルダが作られます。
+- n8n の **Credentials → New → Google Drive OAuth2 API** を登録（このワークフローでは `Google Drive` という名前で参照）
+- ※ 共有ドライブ（Shared Drive）配下の場合もそのまま動作します（API 呼び出しに `supportsAllDrives` を付与済み）
 
 ### 4. Google Sheets（台帳 `merge_log`）
 STEP 3 のスプレッドシートに `merge_log` シートを追加し、1行目に以下のヘッダーを作成:
 ```
-timestamp | invoice_name | filename | drive_link | channel | message_ts
+timestamp | invoice_name | filename | folder | drive_link | channel | message_ts
 ```
 
 ## インポート手順
@@ -105,8 +111,8 @@ timestamp | invoice_name | filename | drive_link | channel | message_ts
    | `REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID` | Slack Bot Token の Header Auth credential |
    | `REPLACE_WITH_SLACK_BOT_TOKEN` | Bot User OAuth Token（`xoxb-...`）※「Build CloudConvert Job」ノードの Code 内。CloudConvert が Slack の非公開ファイルURLを取得するために使用 |
    | `REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID` | CloudConvert の Header Auth credential |
-   | `REPLACE_WITH_DRIVE_FOLDER_ID` | 梅本様共有フォルダの Drive フォルダ ID |
-   | `REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID` | Google Drive OAuth2 credential |
+   | `REPLACE_WITH_DRIVE_PARENT_FOLDER_ID` | 梅本様共有フォルダ（親）の Drive フォルダ ID。「Find Period Folder」と「Create Period Folder」の2ノードに記載（検索クエリと作成時の `parents`）。この配下に期間フォルダを作成・格納します |
+   | `REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID` | Google Drive OAuth2 credential（Find/Create/Upload の3ノード） |
    | `REPLACE_WITH_GOOGLE_SHEET_ID` | 台帳スプレッドシートの ID |
    | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | Google Sheets OAuth2 credential |
 3. 右上の **Active** を ON
@@ -124,9 +130,13 @@ timestamp | invoice_name | filename | drive_link | channel | message_ts
 | Files found? | 請求書・受付書が揃っているか判定（欠けていれば差し戻し通知） |
 | CloudConvert: Create Job / Wait | 画像のPDF化 + 結合ジョブを実行し完了を待機 |
 | Get Export URL | 結合済みPDFのダウンロードURLを取得 |
+| Find Period Folder | 親フォルダ配下に期間フォルダ（例 `★2026.3.25請求分　長谷川光`）が存在するか Drive を検索 |
+| Period folder exists? | 既存フォルダの有無で分岐 |
+| Create Period Folder | 無ければ親フォルダ配下に期間フォルダを新規作成 |
+| Resolve Folder Id | 既存/新規どちらでも格納先フォルダ ID を確定 |
 | Download Merged PDF | 結合PDFをバイナリで取得 |
-| Upload to Drive | 梅本様共有フォルダへ格納 |
-| Append merge_log | 台帳（請求書名・ファイル名・Driveリンク）に記録 |
+| Upload to Drive | 確定した期間フォルダへ格納 |
+| Append merge_log | 台帳（請求書名・ファイル名・フォルダ・Driveリンク）に記録 |
 | Notify Thread (done) / Add Done Reaction | スレッドに完了報告＋✅ で処理済みを可視化 |
 | Notify Missing Files | 請求書/受付書が不足している場合にスレッドへ差し戻し |
 
@@ -136,6 +146,24 @@ timestamp | invoice_name | filename | drive_link | channel | message_ts
 - 受付書が画像（スクショ）でも PDF でも、いずれも結合対象として処理します（画像は自動でPDF化）。
 - **分割払い等で複数の受付書**がある場合も対応済みです。スレッド内の受付書（画像/PDF）を**全件、Slack投稿順（時系列＝アップロード日時 `created` の昇順）で**請求書の後ろに結合します（請求書 → 受付書1 → 受付書2 …）。1スレッドに受付書を複数返信しておけば、まとめて1つのPDFになります。
 - 重複処理防止のため、処理済みには `:white_check_mark:` が付きます。トリガー絵文字とは別の絵文字にしてあるためループしません。
+
+## 期間フォルダ名の決まり方（Slack 投稿本文から抽出）
+
+格納先の期間フォルダ名は、**請求書振込依頼の親メッセージ本文**から自動で決まります。判定は次の優先順位です（「Build CloudConvert Job」ノードの Code 内）。
+
+1. **明示指定が最優先**: 本文に `保存先:` / `格納先:` / `フォルダ:` の行があれば、その値をそのままフォルダ名に使用
+   ```
+   保存先: ★2026.3.25請求分　長谷川光
+   ```
+   → 一番確実。梅本様の既存フォルダ名と完全一致させたい場合はこの書式を推奨。
+2. **日付＋請求先名から自動生成**: 上記が無い場合、本文中の日付（`2026.3.25` / `2026/3/25` / `2026年3月25日`）と、`請求先:` / `宛名:` / `氏名:` / `名前:` の値から `★2026.3.25請求分　長谷川光` を組み立て（先頭記号は Code 内 `FOLDER_PREFIX` で変更可。既定 `★`）
+   ```
+   請求日: 2026.3.25
+   請求先: 長谷川光
+   ```
+3. **フォールバック**: いずれも取れない場合は取りこぼし防止として処理月の `★2026.6請求分_未分類` に格納（後から手動で正しいフォルダへ移動可能）
+
+> 既存の「⭐️★2026.3.25請求分　長谷川光」のように先頭が `⭐️★` などの場合は、運用1（`保存先:` 行で明示）にするか、`FOLDER_PREFIX` をその記号に合わせてください。フォルダ名は親フォルダ配下で**完全一致**検索されるため、表記ゆれ（全角/半角スペース・記号）にご注意ください。
 
 ---
 
