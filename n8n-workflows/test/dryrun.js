@@ -16,7 +16,7 @@ function codeOf(name) {
 }
 
 // --- n8n ランタイムの最小エミュレータ ---
-const store = {}; // ノード名 -> 出力 json
+const store = {};
 function runNode(name, inputJson) {
   const code = codeOf(name);
   const $input = { first: () => ({ json: inputJson }), all: () => [{ json: inputJson }] };
@@ -35,16 +35,8 @@ function check(label, cond, extra) {
 
 // ===== 入力データ（実物の file-bot 投稿 + 受付書2枚） =====
 const filebotPost = [
-  'file-bot', '2026.5.29', '\u{1F4B0}【振込依頼】\u{1F4B0}',
-  'お振込のご対応の程、お願い致します！\u{1F647}', '\u{1F4CB}【入力項目】',
-  '\u{1F3E2} 取引先名', ' 有限会社川上産業',
-  '\u{1F4B4} 請求金額', ' 13,000円',
-  '\u{1F4C5} 支払期日', '  2026-06-05',
-  '⏰ 処理希望日', '  2026-06-05',
-  '\u{1F3E6} 常陽銀行/大洗支店/普通', ' 口座番号：1335208',
-  '✍️ 振込依頼人名', ' 株式会社Martial Arts',
-  '\u{1F4DD} 案件名', 'ひたちなか市堀口物件　廃棄物収集運搬処理代（草木）',
-  '\u{1F464} 担当者', '小久保亮子',
+  'file-bot', '2026.5.29', '\u{1F3E2} 取引先名', ' 有限会社川上産業',
+  '\u{1F4C5} 支払期日', '  2026-06-05', '\u{1F4DD} 案件名', 'ひたちなか市堀口物件　廃棄物収集運搬処理代（草木）',
 ].join('\n');
 
 const repliesResponse = {
@@ -53,72 +45,72 @@ const repliesResponse = {
     { ts: '1716800000.000100', text: filebotPost, files: [
       { filetype: 'pdf', mimetype: 'application/pdf', url_private_download: 'https://files.slack.com/inv.pdf', title: '請求書_川上産業.pdf', created: 1716800000 },
     ] },
-    { ts: '1716800100.000200', text: '振込受付書①', files: [
-      { filetype: 'png', mimetype: 'image/png', url_private_download: 'https://files.slack.com/r1.png', title: '受付書①.png', created: 1716800100 },
+    { ts: '1716800100.000200', text: '受付書1', files: [
+      { filetype: 'png', mimetype: 'image/png', url_private_download: 'https://files.slack.com/r1.png', title: '受付書1.png', created: 1716800100 },
     ] },
-    { ts: '1716800200.000300', text: '振込受付書②（分割）', files: [
-      { filetype: 'png', mimetype: 'image/png', url_private_download: 'https://files.slack.com/r2.png', title: '受付書②.png', created: 1716800200 },
+    { ts: '1716800200.000300', text: '受付書2', files: [
+      { filetype: 'png', mimetype: 'image/png', url_private_download: 'https://files.slack.com/r2.png', title: '受付書2.png', created: 1716800200 },
     ] },
   ],
 };
 
-console.log('=== 1) Parse Slack Event（reaction_added 受信） ===');
+console.log('=== 1) Parse Slack Event ===');
 const parsed = runNode('Parse Slack Event', { body: { event: {
   type: 'reaction_added', reaction: 'furikomi_done', user: 'U_CEO',
   item: { type: 'message', channel: 'C_KEIRI', ts: '1716800000.000100' },
 } } });
-check('対象リアクションとして後続へ流れる (skip=false)', parsed.skip === false, JSON.stringify(parsed));
-check('channel / message_ts を抽出', parsed.channel === 'C_KEIRI' && parsed.message_ts === '1716800000.000100');
-
-console.log('\n=== 1b) 無関係なリアクションは無視されるか ===');
-const ignored = runNode('Parse Slack Event', { body: { event: {
-  type: 'reaction_added', reaction: 'eyes', item: { type: 'message', channel: 'C', ts: '1' },
-} } });
+check('対象リアクションで後続へ (skip=false)', parsed.skip === false, JSON.stringify(parsed));
+check('channel / message_ts 抽出', parsed.channel === 'C_KEIRI' && parsed.message_ts === '1716800000.000100');
+const ignored = runNode('Parse Slack Event', { body: { event: { type: 'reaction_added', reaction: 'eyes', item: { type: 'message', channel: 'C', ts: '1' } } } });
 check('別の絵文字は skip=true', ignored.skip === true);
-// store を本筋の値へ戻す
 store['Parse Slack Event'] = parsed;
 
-console.log('\n=== 2) Build CloudConvert Job（請求書/受付書の特定・命名・フォルダ名・ジョブ生成） ===');
+console.log('\n=== 2) Build CloudConvert Job ===');
 const built = runNode('Build CloudConvert Job', repliesResponse);
 check('エラーなし', built.error === false, built.reason);
-check('受付書を2枚とも検出 (receipt_count=2)', built.receipt_count === 2, String(built.receipt_count));
-check('期間フォルダ名 = ⭐️★2026.6.5請求分　有限会社川上産業',
-  built.period_folder === '⭐️★2026.6.5請求分　有限会社川上産業', built.period_folder);
-check('結合ファイル名が <YYYYMMDD>_<請求書名>_振込受付書セット.pdf 形式',
-  /^\d{8}_.+_振込受付書セット\.pdf$/.test(built.filename), built.filename);
+check('受付書2枚を検出', built.receipt_count === 2, String(built.receipt_count));
+check('ファイル名形式 <YYYYMMDD>_..._振込受付書セット.pdf', /^\d{8}_.+_振込受付書セット\.pdf$/.test(built.filename), built.filename);
 const tasks = built.ccJob.tasks;
-check('CloudConvert: 請求書インポート + 受付書2枚の画像PDF化タスクを生成',
-  !!tasks['import-invoice'] && !!tasks['convert-receipt-0'] && !!tasks['convert-receipt-1']);
-check('結合順 = 請求書 → 受付書① → 受付書②（時系列）',
+check('結合順 = 請求書 → 受付書1 → 受付書2（時系列）',
   JSON.stringify(tasks['merge'].input) === JSON.stringify(['import-invoice', 'convert-receipt-0', 'convert-receipt-1']),
   JSON.stringify(tasks['merge'].input));
-check('Slackの非公開URLを Authorization 付きで取得する設定',
-  tasks['import-invoice'].headers.Authorization === 'Bearer xoxb-TEST-TOKEN');
-console.log('   生成ファイル名: ' + built.filename);
-console.log('   期間フォルダ : ' + built.period_folder);
-
-console.log('\n=== 2b) 受付書が無い場合は差し戻し ===');
+check('Slack非公開URLを Authorization 付きで取得', tasks['import-invoice'].headers.Authorization === 'Bearer xoxb-TEST-TOKEN');
 const noReceipt = runNode('Build CloudConvert Job', { ok: true, messages: [repliesResponse.messages[0]] });
 check('受付書ゼロ件で error=missing-file', noReceipt.error === true && noReceipt.reason === 'missing-file');
-store['Build CloudConvert Job'] = built; // 本筋へ戻す
+store['Build CloudConvert Job'] = built;
+console.log('   生成ファイル名: ' + built.filename);
 
-console.log('\n=== 3) Get Export URL（CloudConvert 完了レスポンスから結合PDFのURL取得） ===');
+console.log('\n=== 3) Get Export URL ===');
 const exportRes = runNode('Get Export URL', { data: { status: 'finished', tasks: [
-  { name: 'merge', operation: 'merge', status: 'finished' },
   { name: 'export', operation: 'export/url', status: 'finished', result: { files: [
-    { filename: built.filename, url: 'https://storage.cloudconvert.com/merged-result.pdf' },
+    { filename: built.filename, url: 'https://storage.cloudconvert.com/merged.pdf' },
   ] } },
 ] } });
-check('ダウンロードURLを取得', exportRes.download_url === 'https://storage.cloudconvert.com/merged-result.pdf');
-check('ファイル名/チャンネル/ts を引き継ぎ', exportRes.filename === built.filename && exportRes.channel === 'C_KEIRI');
+check('ダウンロードURL取得', exportRes.download_url === 'https://storage.cloudconvert.com/merged.pdf');
 store['Get Export URL'] = exportRes;
 
-console.log('\n=== 4) Resolve Folder Id（既存フォルダ有/無の両ケース） ===');
-const resolvedExisting = runNode('Resolve Folder Id', { files: [{ id: 'FOLDER_EXIST_123', name: built.period_folder }] });
-check('既存フォルダあり → そのIDを採用', resolvedExisting.folderId === 'FOLDER_EXIST_123');
-const resolvedCreated = runNode('Resolve Folder Id', { id: 'FOLDER_NEW_456' });
-check('新規作成 → 作成IDを採用', resolvedCreated.folderId === 'FOLDER_NEW_456');
-check('格納先に period_folder を引き継ぎ', resolvedCreated.period_folder === built.period_folder);
+console.log('\n=== 4) Pick Latest 請求分（実在フォルダ一覧から最新を選定） ===');
+// 実際に Drive から取得した請求分フォルダ群を再現
+const realFolders = { files: [
+  { id: 'f_2026_2_25', name: '★2026.2.25請求分', createdTime: '2026-02-20T00:00:00Z' },
+  { id: 'f_2026_5_3a', name: '★2026.5.3請求分', createdTime: '2026-05-01T09:00:00Z' },
+  { id: 'f_2026_5_3b', name: '★2026.5.3請求分', createdTime: '2026-05-02T09:00:00Z' },
+  { id: 'f_2026_3_25_name', name: '⭐️★2026.3.25請求分　長谷川光', createdTime: '2026-03-20T00:00:00Z' },
+  { id: 'f_2026_3_25', name: '★2026.3.25請求分', createdTime: '2026-03-20T00:00:00Z' },
+  { id: 'f_2025_12_25', name: '★2025.12.25請求分', createdTime: '2025-12-20T00:00:00Z' },
+] };
+const picked = runNode('Pick Latest 請求分', realFolders);
+check('最新 = ★2026.5.3請求分（日付最大）', picked.latestFolderName === '★2026.5.3請求分', picked.latestFolderName);
+check('同名重複は createdTime が新しい方を採用 (f_2026_5_3b)', picked.latestFolderId === 'f_2026_5_3b', picked.latestFolderId);
+check('download_url/filename を引き継ぎ', picked.download_url === exportRes.download_url && picked.filename === built.filename);
+store['Pick Latest 請求分'] = picked;
+
+console.log('\n=== 5) Resolve Target Folder（4.支払い サブフォルダ） ===');
+const resolved = runNode('Resolve Target Folder', { files: [{ id: 'sub_4_pay', name: '4.支払いの請求書全て（振込、引き落とし）' }] });
+check('サブフォルダ「4.支払い…」を格納先に採用', resolved.folderId === 'sub_4_pay', resolved.folderId);
+check('格納先パス = 月フォルダ / 4.支払い…', resolved.folderPath === '★2026.5.3請求分 / 4.支払いの請求書全て（振込、引き落とし）', resolved.folderPath);
+const resolvedNoSub = runNode('Resolve Target Folder', { files: [] });
+check('サブフォルダが無ければ月フォルダ直下にフォールバック', resolvedNoSub.folderId === 'f_2026_5_3b', resolvedNoSub.folderId);
 
 console.log('\n========================================');
 console.log(`結果: ${pass} passed / ${fail} failed`);
