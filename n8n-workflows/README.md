@@ -39,7 +39,7 @@
 
 - **トリガー**: 親メッセージへの特定絵文字リアクション（`REPLACE_WITH_TRIGGER_EMOJI`、例: `furikomi_done`）
 - **結合エンジン**: CloudConvert（画像のPDF化と複数PDFの結合を1ジョブで実行）
-- **保存先**: 梅本様共有フォルダ（Google Drive、親フォルダ `REPLACE_WITH_DRIVE_PARENT_FOLDER_ID`）配下の**請求分ごとの期間フォルダ**（例 `⭐️★2026.6.5請求分　有限会社川上産業`）へ自動振り分け（無ければ自動作成）
+- **保存先**: 梅本様共有の **`ma_payment` 共有ドライブ** 内、**最新の `★…請求分` 月次フォルダ**の中の **`4.支払いの請求書全て（振込、引き落とし）`** サブフォルダへ自動格納（サブフォルダが無い場合は月フォルダ直下にフォールバック）
 - **漏れ防止**: 完了後に親メッセージへ `:white_check_mark:` を自動付与＋`merge_log` シートに台帳記録
 - **まとめ処理にも対応**: 週次/月次でまとめてリアクションを付けていけば、その分だけ順次処理されます
 
@@ -55,13 +55,12 @@ Slack Events Webhook → Parse Slack Event ─┬→ Ack Slack 200 (即時応答
                                                             └(OK)→ CloudConvert: Create Job
                                                                    → CloudConvert: Wait
                                                                    → Get Export URL
+                                                                   → List 請求分 Folders（共有ドライブ）
+                                                                   → Pick Latest 請求分（最新の月フォルダ選定）
+                                                                   → Find 支払い Subfolder（4.支払い…）
+                                                                   → Resolve Target Folder（格納先ID確定）
                                                                    → Download Merged PDF
-                                                                   → Find Period Folder
-                                                                   → Period folder exists?
-                                                                      ├(無)→ Create Period Folder ─┐
-                                                                      └(有)──────────────────────┤
-                                                                   → Resolve Folder Id ←──────────┘
-                                                                   → Upload to Drive（期間フォルダへ）
+                                                                   → Upload to Drive（4.支払い… へ）
                                                                    → Append merge_log
                                                                    → Notify Thread (done)
                                                                    → Add Done Reaction
@@ -90,10 +89,12 @@ Slack Events Webhook → Parse Slack Event ─┬→ Ack Slack 200 (即時応答
 
 n8n の **Credentials → New → Header Auth** をもう1つ作成し、`Name = Authorization` / `Value = Bearer xoxb-...`（Bot User OAuth Token）を登録（このワークフローでは `Slack Bot Token` という名前で参照）。
 
-### 3. Google Drive
-- 梅本様共有フォルダ（**親フォルダ**）の **フォルダ ID** を控える（URL `.../folders/<FOLDER_ID>`）。この配下に請求分ごとの期間フォルダが作られます。
-- n8n の **Credentials → New → Google Drive OAuth2 API** を登録（このワークフローでは `Google Drive` という名前で参照）
-- ※ 共有ドライブ（Shared Drive）配下の場合もそのまま動作します（API 呼び出しに `supportsAllDrives` を付与済み）
+### 3. Google Drive（共有ドライブ `ma_payment`）
+- 格納先は **`ma_payment` 共有ドライブ**内の `★…請求分` 月次フォルダ群です。次の ID は調査済みで JSON に直接埋め込まれています（変わった場合のみ差し替え）:
+  - 共有ドライブ ID（`driveId`）: `0AM6Ft-LAGZvNUk9PVA`（`ma_payment`）— `List 請求分 Folders` / `Find 支払い Subfolder` / `Upload to Drive` の各ノード
+  - `★…請求分` フォルダの親フォルダ ID: `16_5uX0SptbHkSwpC9r-AmbnyBTX9eg44` — `List 請求分 Folders` の検索クエリ `q`
+- n8n の **Credentials → New → Google Drive OAuth2 API** を登録（このワークフローでは `Google Drive` という名前で参照）。**共有ドライブ `ma_payment` に書き込める Google アカウント**で認可してください。
+- ※ 月次フォルダ（`★YYYY.M.25請求分`）と中の `4.支払い…` サブフォルダは**人手で用意されている前提**です。ワークフローは新規作成せず、既存の最新フォルダを探して格納します。
 
 ### 4. Google Sheets（台帳 `merge_log`）
 STEP 3 のスプレッドシートに `merge_log` シートを追加し、1行目に以下のヘッダーを作成:
@@ -111,8 +112,7 @@ timestamp | invoice_name | filename | folder | drive_link | channel | message_ts
    | `REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID` | Slack Bot Token の Header Auth credential |
    | `REPLACE_WITH_SLACK_BOT_TOKEN` | Bot User OAuth Token（`xoxb-...`）※「Build CloudConvert Job」ノードの Code 内。CloudConvert が Slack の非公開ファイルURLを取得するために使用 |
    | `REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID` | CloudConvert の Header Auth credential |
-   | `REPLACE_WITH_DRIVE_PARENT_FOLDER_ID` | 梅本様共有フォルダ（親）の Drive フォルダ ID。「Find Period Folder」と「Create Period Folder」の2ノードに記載（検索クエリと作成時の `parents`）。この配下に期間フォルダを作成・格納します |
-   | `REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID` | Google Drive OAuth2 credential（Find/Create/Upload の3ノード） |
+   | `REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID` | Google Drive OAuth2 credential（`List 請求分 Folders` / `Find 支払い Subfolder` / `Upload to Drive` の3ノード。`ma_payment` 共有ドライブに書き込める権限で認可） |
    | `REPLACE_WITH_GOOGLE_SHEET_ID` | 台帳スプレッドシートの ID |
    | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | Google Sheets OAuth2 credential |
 3. 右上の **Active** を ON
@@ -130,12 +130,12 @@ timestamp | invoice_name | filename | folder | drive_link | channel | message_ts
 | Files found? | 請求書・受付書が揃っているか判定（欠けていれば差し戻し通知） |
 | CloudConvert: Create Job / Wait | 画像のPDF化 + 結合ジョブを実行し完了を待機 |
 | Get Export URL | 結合済みPDFのダウンロードURLを取得 |
-| Find Period Folder | 親フォルダ配下に期間フォルダ（例 `⭐️★2026.6.5請求分　有限会社川上産業`）が存在するか Drive を検索 |
-| Period folder exists? | 既存フォルダの有無で分岐 |
-| Create Period Folder | 無ければ親フォルダ配下に期間フォルダを新規作成 |
-| Resolve Folder Id | 既存/新規どちらでも格納先フォルダ ID を確定 |
+| List 請求分 Folders | `ma_payment` 共有ドライブの親フォルダ配下にある `★…請求分` 月次フォルダを一覧取得 |
+| Pick Latest 請求分 | フォルダ名の日付（`YYYY.M.D`）が最大のものを「最新」として選定（同名重複は `createdTime` が新しい方） |
+| Find 支払い Subfolder | 選定した月フォルダ内の `4.支払いの請求書全て（振込、引き落とし）` サブフォルダを検索 |
+| Resolve Target Folder | 格納先フォルダ ID を確定（サブフォルダが無ければ月フォルダ直下にフォールバック） |
 | Download Merged PDF | 結合PDFをバイナリで取得 |
-| Upload to Drive | 確定した期間フォルダへ格納 |
+| Upload to Drive | 確定した格納先（`ma_payment` 共有ドライブ内）へ格納 |
 | Append merge_log | 台帳（請求書名・ファイル名・フォルダ・Driveリンク）に記録 |
 | Notify Thread (done) / Add Done Reaction | スレッドに完了報告＋✅ で処理済みを可視化 |
 | Notify Missing Files | 請求書/受付書が不足している場合にスレッドへ差し戻し |
@@ -147,30 +147,33 @@ timestamp | invoice_name | filename | folder | drive_link | channel | message_ts
 - **分割払い等で複数の受付書**がある場合も対応済みです。スレッド内の受付書（画像/PDF）を**全件、Slack投稿順（時系列＝アップロード日時 `created` の昇順）で**請求書の後ろに結合します（請求書 → 受付書1 → 受付書2 …）。1スレッドに受付書を複数返信しておけば、まとめて1つのPDFになります。
 - 重複処理防止のため、処理済みには `:white_check_mark:` が付きます。トリガー絵文字とは別の絵文字にしてあるためループしません。
 
-## 期間フォルダ名の決まり方（Slack 投稿本文から抽出）
+## 格納先（請求分フォルダ）の決まり方
 
-格納先の期間フォルダ名は、**請求書振込依頼の親メッセージ本文**（file-bot が振込依頼フォームから生成する定型投稿）から自動で決まります。判定は次の優先順位です（「Build CloudConvert Job」ノードの Code 内）。
+実際の Drive 構造（`ma_payment` 共有ドライブ）に合わせて、**フォルダは自動作成せず・既存の最新フォルダへ格納**します。
 
-1. **明示指定が最優先**: 本文に `保存先:` / `格納先:` / `フォルダ:` の行があれば、その値をそのままフォルダ名に使用
-   ```
-   保存先: ⭐️★2026.6.5請求分　有限会社川上産業
-   ```
-   → 一番確実。梅本様の既存フォルダ名と完全一致させたい場合はこの書式を推奨。
-2. **file-bot 定型から自動生成**（通常はこれ）: `📅 支払期日`（例 `2026-06-05` → `2026.6.5`）と、`🏢 取引先名` ラベルの次行の値から組み立て。先頭記号は Code 内 `FOLDER_PREFIX`（既定 `⭐️★`）。
-   ```
-   📅 支払期日
-     2026-06-05            ← この日付を 2026.6.5 に変換して使用
-   …
-   🏢 取引先名
-    有限会社川上産業       ← この取引先名を使用
-   ```
-   → 生成例: `⭐️★2026.6.5請求分　有限会社川上産業`
-3. **汎用フォールバック**: 上記で取れない場合、任意形式の日付（`2026/6/5` / `2026年6月5日` 等）＋ `請求先:` / `宛名:` / `氏名:` から生成
-4. **取りこぼし防止**: いずれも取れない場合は処理月の `⭐️★2026.6請求分_未分類` に格納（後から手動で正しいフォルダへ移動可能）
+```
+ma_payment（共有ドライブ）
+└─ 親フォルダ 16_5uX0SptbHkSwpC9r-AmbnyBTX9eg44
+   ├─ ★2026.3.25請求分
+   │    ├─ 1.預金通帳
+   │    ├─ 2.不動産売買契約書（AB間契約書、BC間契約書）
+   │    ├─ 3.リフォーム、新築等工事売上の請求書
+   │    ├─ 4.支払いの請求書全て（振込、引き落とし）  ← ここへ格納
+   │    └─ 5.その他資料
+   ├─ ★2026.5.3請求分
+   └─ …（毎月の月次フォルダ）
+```
 
-> **日付の基準**: フォルダの「請求分」日付には **📅 支払期日** を使用します（投稿日や処理希望日ではありません）。基準を変えたい場合は「Build CloudConvert Job」ノードの Code で `valueAfterLabel(/支払期日/)` を `/処理希望日/` 等に差し替えるだけです。
+1. `List 請求分 Folders` … 親フォルダ配下の `★…請求分` 月次フォルダを一覧
+2. `Pick Latest 請求分` … フォルダ名の日付（`YYYY.M.D`）が**最大のもの**を「最新」として選定（同名が複数ある場合は `createdTime` が新しい方）
+3. `Find 支払い Subfolder` … その月フォルダ内の `4.支払いの請求書全て（振込、引き落とし）` を検索（先頭が `4.支払` で前方一致）
+4. `Upload to Drive` … 見つかった `4.支払い…` サブフォルダへ格納（無ければ月フォルダ直下にフォールバック）
+
+> **運用上の前提**: 月次フォルダ（`★YYYY.M.25請求分` 等）と中の `4.支払い…` サブフォルダは、**人手で用意されている**ことが前提です。新しい月に入ったらフォルダを先に作成しておけば、その月の最新フォルダへ自動で入ります。
 >
-> フォルダ名は親フォルダ配下で**完全一致**検索されるため、表記ゆれ（全角/半角スペース・記号 `⭐️★`）にご注意ください。既存フォルダと記号が違う場合は `FOLDER_PREFIX` を合わせるか、`保存先:` 行で明示してください。
+> **注意（重複フォルダ）**: 同名の `★…請求分` フォルダが複数あると「最新」判定が曖昧になります（現状 `★2026.5.3請求分` が2件存在）。1期間1フォルダの運用を推奨します。
+>
+> **月の選定を変えたい場合**: 「最新」ではなく「支払期日の月」「処理日の月」「投稿で明示」等に変えたいときは、`List 請求分 Folders` の `q` と `Pick Latest 請求分` の選定ロジックを調整します（ご相談ください）。
 
 ---
 
