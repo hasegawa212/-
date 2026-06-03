@@ -11,6 +11,131 @@
 | `slack-modal-trigger-apo.json` | `/apo` → アポ追加/キャンセル モーダル表示 |
 | `slack-modal-trigger-feedback.json` | `/feedback` → 顧客フィードバック モーダル表示 |
 | `slack-modal-submit-handler.json` | 3 つのモーダル送信を一括処理（Sheets append + Slack 通知） |
+| `invoice-receipt-pdf-merge.json` | Slack リアクション → 請求書PDF + 振込受付書を1つのPDFに結合 → Google Drive 格納 |
+
+---
+
+# 請求書 × 振込受付書 PDF 結合ワークフロー（`invoice-receipt-pdf-merge.json`）
+
+経理スレッドで **請求書振込依頼の投稿（親メッセージに請求書PDF）** に対し、振込完了後に
+**振込受付書（スクリーンショット/PDF）をスレッド返信** し、親メッセージに所定の絵文字リアクションを
+付けると、請求書と受付書を **1つのPDFに自動結合 → 命名 → 梅本様共有フォルダ（Google Drive）へ格納**
+します。税理士が「どの請求書に対する支払いか」を1ファイルで確認できる状態を、手作業ゼロで実現します。
+
+## 運用イメージ
+
+```
+[請求書振込依頼を投稿（親メッセージに 請求書PDF を添付）]
+        │
+        ▼  …振込完了…
+[CEO がそのスレッドに 振込受付書（スクショ/PDF）を返信]
+        │
+        ▼  親メッセージに :振込完了: リアクションを付ける（ワンクリック）
+[n8n ワークフロー]
+  Webhook(reaction_added) → スレッド取得 → 請求書/受付書を特定
+        → CloudConvert(画像→PDF化 + 結合) → Google Drive へ格納
+        → merge_log に記録 → スレッドに完了報告 + ✅ リアクション
+```
+
+- **トリガー**: 親メッセージへの特定絵文字リアクション（`REPLACE_WITH_TRIGGER_EMOJI`、例: `furikomi_done`）
+- **結合エンジン**: CloudConvert（画像のPDF化と複数PDFの結合を1ジョブで実行）
+- **保存先**: 梅本様共有フォルダ（Google Drive、`REPLACE_WITH_DRIVE_FOLDER_ID`）
+- **漏れ防止**: 完了後に親メッセージへ `:white_check_mark:` を自動付与＋`merge_log` シートに台帳記録
+- **まとめ処理にも対応**: 週次/月次でまとめてリアクションを付けていけば、その分だけ順次処理されます
+
+## フロー図（ノード）
+
+```
+Slack Events Webhook → Parse Slack Event ─┬→ Ack Slack 200 (即時応答)
+                                          └→ Process reaction?
+                                               └(対象)→ Get Thread Replies
+                                                         → Build CloudConvert Job
+                                                         → Files found?
+                                                            ├(NG)→ Notify Missing Files
+                                                            └(OK)→ CloudConvert: Create Job
+                                                                   → CloudConvert: Wait
+                                                                   → Get Export URL
+                                                                   → Download Merged PDF
+                                                                   → Upload to Drive
+                                                                   → Append merge_log
+                                                                   → Notify Thread (done)
+                                                                   → Add Done Reaction
+```
+
+## 事前準備
+
+### 1. CloudConvert
+1. [cloudconvert.com](https://cloudconvert.com/) でアカウント作成 → **API Key** を発行
+2. n8n の **Credentials → New → Header Auth** を作成し、`Name = Authorization` / `Value = Bearer <CloudConvert API Key>` を登録（このワークフローでは `CloudConvert` という名前で参照）
+
+> ⚠️ CloudConvert は外部サービスのため、結合のために**請求書PDFと受付書が一時的に CloudConvert へ送信**されます（書類取り扱いの観点で承認済みの方式）。社外秘運用が必要になった場合は、自前ホストの Stirling-PDF 等への差し替えも可能です。
+
+### 2. Slack App
+**Bot Token Scopes**（OAuth & Permissions）:
+- `reactions:read` — リアクションイベント受信（必須）
+- `channels:history` / `groups:history` — スレッド本文・添付ファイル取得（チャンネル種別に応じて）
+- `files:read` — 添付ファイル（請求書/受付書）の取得
+- `chat:write` — スレッドへの完了報告
+- `reactions:write` — 完了の ✅ 付与
+
+**Event Subscriptions**:
+1. **Enable Events** を On
+2. **Request URL** に `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-invoice-merge` を設定（保存時に URL 検証ハンドシェイクが走り、ワークフローが応答します）
+3. **Subscribe to bot events** に `reaction_added` を追加 → **Reinstall to Workspace**
+
+n8n の **Credentials → New → Header Auth** をもう1つ作成し、`Name = Authorization` / `Value = Bearer xoxb-...`（Bot User OAuth Token）を登録（このワークフローでは `Slack Bot Token` という名前で参照）。
+
+### 3. Google Drive
+- 梅本様共有フォルダの **フォルダ ID** を控える（URL `.../folders/<FOLDER_ID>`）
+- n8n の **Credentials → New → Google Drive OAuth2 API** を登録
+
+### 4. Google Sheets（台帳 `merge_log`）
+STEP 3 のスプレッドシートに `merge_log` シートを追加し、1行目に以下のヘッダーを作成:
+```
+timestamp | invoice_name | filename | drive_link | channel | message_ts
+```
+
+## インポート手順
+
+1. n8n → **Workflows → Import from File** → `invoice-receipt-pdf-merge.json`
+2. 各 `REPLACE_WITH_*` を差し替え:
+   | プレースホルダ | 入れる値 |
+   | --- | --- |
+   | `REPLACE_WITH_TRIGGER_EMOJI` | トリガーにする絵文字名（`:` なし。例 `furikomi_done`） |
+   | `REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID` | Slack Bot Token の Header Auth credential |
+   | `REPLACE_WITH_SLACK_BOT_TOKEN` | Bot User OAuth Token（`xoxb-...`）※「Build CloudConvert Job」ノードの Code 内。CloudConvert が Slack の非公開ファイルURLを取得するために使用 |
+   | `REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID` | CloudConvert の Header Auth credential |
+   | `REPLACE_WITH_DRIVE_FOLDER_ID` | 梅本様共有フォルダの Drive フォルダ ID |
+   | `REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID` | Google Drive OAuth2 credential |
+   | `REPLACE_WITH_GOOGLE_SHEET_ID` | 台帳スプレッドシートの ID |
+   | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | Google Sheets OAuth2 credential |
+3. 右上の **Active** を ON
+
+## ノード詳細
+
+| ノード | 役割 |
+| --- | --- |
+| Slack Events Webhook | `reaction_added` イベント / URL 検証を受信 |
+| Parse Slack Event | 検証ハンドシェイク応答・対象絵文字判定・親メッセージ ts 抽出 |
+| Ack Slack 200 | Slack へ 3 秒以内に即時 200 応答（本処理は別ブランチで継続） |
+| Process reaction? | 対象リアクションのみ後続へ |
+| Get Thread Replies | `conversations.replies` でスレッド全体を取得 |
+| Build CloudConvert Job | 親=請求書PDF / 返信=受付書 を特定し、命名 + CloudConvert ジョブ定義を生成 |
+| Files found? | 請求書・受付書が揃っているか判定（欠けていれば差し戻し通知） |
+| CloudConvert: Create Job / Wait | 画像のPDF化 + 結合ジョブを実行し完了を待機 |
+| Get Export URL | 結合済みPDFのダウンロードURLを取得 |
+| Download Merged PDF | 結合PDFをバイナリで取得 |
+| Upload to Drive | 梅本様共有フォルダへ格納 |
+| Append merge_log | 台帳（請求書名・ファイル名・Driveリンク）に記録 |
+| Notify Thread (done) / Add Done Reaction | スレッドに完了報告＋✅ で処理済みを可視化 |
+| Notify Missing Files | 請求書/受付書が不足している場合にスレッドへ差し戻し |
+
+## 運用上の注意
+
+- **リアクションは「親メッセージ（請求書PDF投稿）」に付ける**こと。受付書は同じスレッドに返信しておく必要があります。
+- 受付書が画像（スクショ）でも PDF でも、いずれも結合対象として処理します（画像は自動でPDF化）。
+- 同じ親に複数の受付書がある場合は、現状 **スレッド内で最初に見つかった1枚** を結合します（分割払い等で複数結合したい場合は拡張で対応可能）。
+- 重複処理防止のため、処理済みには `:white_check_mark:` が付きます。トリガー絵文字とは別の絵文字にしてあるためループしません。
 
 ---
 
