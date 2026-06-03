@@ -81,7 +81,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const res = $input.first().json;\nif (!res.ok) {\n  return [{ json: { error: true, reason: 'slack-api:' + (res.error || 'unknown'), channel: $('Parse Slack Event').item.json.channel, message_ts: $('Parse Slack Event').item.json.message_ts } }];\n}\nconst msgs = res.messages || [];\nconst parent = msgs[0] || {};\n// 親メッセージ（請求書振込依頼）の PDF を請求書とみなす\nlet invoice = null;\nfor (const f of (parent.files || [])) {\n  const t = (f.filetype || '').toLowerCase();\n  if (t === 'pdf' || (f.mimetype || '') === 'application/pdf') { invoice = f; break; }\n}\n// スレッド返信の画像/PDF を「振込受付書」として全件収集（分割払い等で複数枚に対応）\nconst receipts = [];\nfor (let i = 1; i < msgs.length; i++) {\n  for (const f of (msgs[i].files || [])) {\n    const t = (f.filetype || '').toLowerCase();\n    const m = (f.mimetype || '');\n    if (m.indexOf('image/') === 0 || ['png','jpg','jpeg','heic','gif','pdf'].indexOf(t) >= 0) { receipts.push(f); }\n  }\n}\n// 時系列（Slack 投稿順）を厳密化: ファイルのアップロード日時 created で昇順ソート\nreceipts.sort((a, b) => (a.created || 0) - (b.created || 0));\nconst channel = $('Parse Slack Event').item.json.channel;\nconst message_ts = $('Parse Slack Event').item.json.message_ts;\nif (!invoice || receipts.length === 0) {\n  return [{ json: { error: true, reason: 'missing-file', hasInvoice: !!invoice, receiptCount: receipts.length, channel, message_ts } }];\n}\n// ファイル名: YYYYMMDD_<請求書名>_振込受付書セット.pdf （JST）\nconst now = new Date(Date.now() + 9 * 3600 * 1000);\nconst ymd = now.toISOString().slice(0,10).split('-').join('');\nlet base = (invoice.title || invoice.name || 'invoice').replace(/\\.pdf$/i,'');\nfor (const ch of ['/','\\\\',':','*','?','<','>','|']) { base = base.split(ch).join('_'); }\nbase = base.slice(0,80);\nconst filename = ymd + '_' + base + '_振込受付書セット.pdf';\n// CloudConvert は Slack の非公開 URL を Authorization ヘッダ付きで取得する\nconst SLACK_AUTH = 'Bearer REPLACE_WITH_SLACK_BOT_TOKEN';\nconst tasks = {\n  'import-invoice': { operation: 'import/url', url: invoice.url_private_download, headers: { Authorization: SLACK_AUTH } }\n};\n// 請求書を先頭に、受付書をスレッド投稿順で結合（画像は都度PDF化）\nconst mergeInputs = ['import-invoice'];\nreceipts.forEach((r, idx) => {\n  const importName = 'import-receipt-' + idx;\n  tasks[importName] = { operation: 'import/url', url: r.url_private_download, headers: { Authorization: SLACK_AUTH } };\n  const isPdf = ((r.filetype || '').toLowerCase() === 'pdf') || ((r.mimetype || '') === 'application/pdf');\n  if (isPdf) {\n    mergeInputs.push(importName);\n  } else {\n    const convName = 'convert-receipt-' + idx;\n    tasks[convName] = { operation: 'convert', input: importName, output_format: 'pdf' };\n    mergeInputs.push(convName);\n  }\n});\ntasks['merge'] = { operation: 'merge', input: mergeInputs, output_format: 'pdf', filename: filename };\ntasks['export'] = { operation: 'export/url', input: 'merge', inline: false, archive_multiple_files: false };\nreturn [{ json: { error: false, filename, channel, message_ts, invoice_name: invoice.title || invoice.name, receipt_count: receipts.length, ccJob: { tasks } } }];"
+        "jsCode": "const res = $input.first().json;\nif (!res.ok) {\n  return [{ json: { error: true, reason: 'slack-api:' + (res.error || 'unknown'), channel: $('Parse Slack Event').item.json.channel, message_ts: $('Parse Slack Event').item.json.message_ts } }];\n}\nconst msgs = res.messages || [];\nconst parent = msgs[0] || {};\n// 親メッセージ（請求書振込依頼）の PDF を請求書とみなす\nlet invoice = null;\nfor (const f of (parent.files || [])) {\n  const t = (f.filetype || '').toLowerCase();\n  if (t === 'pdf' || (f.mimetype || '') === 'application/pdf') { invoice = f; break; }\n}\n// スレッド返信の画像/PDF を「振込受付書」として全件収集（分割払い等で複数枚に対応）\nconst receipts = [];\nfor (let i = 1; i < msgs.length; i++) {\n  for (const f of (msgs[i].files || [])) {\n    const t = (f.filetype || '').toLowerCase();\n    const m = (f.mimetype || '');\n    if (m.indexOf('image/') === 0 || ['png','jpg','jpeg','heic','gif','pdf'].indexOf(t) >= 0) { receipts.push(f); }\n  }\n}\n// 時系列（Slack 投稿順）を厳密化: ファイルのアップロード日時 created で昇順ソート\nreceipts.sort((a, b) => (a.created || 0) - (b.created || 0));\nconst channel = $('Parse Slack Event').item.json.channel;\nconst message_ts = $('Parse Slack Event').item.json.message_ts;\nif (!invoice || receipts.length === 0) {\n  return [{ json: { error: true, reason: 'missing-file', hasInvoice: !!invoice, receiptCount: receipts.length, channel, message_ts } }];\n}\n// ファイル名: YYYYMMDD_<請求書名>_振込受付書セット.pdf （JST）\nconst now = new Date(Date.now() + 9 * 3600 * 1000);\nconst ymd = now.toISOString().slice(0,10).split('-').join('');\nlet base = (invoice.title || invoice.name || 'invoice').replace(/\\.pdf$/i,'');\nfor (const ch of ['/','\\\\',':','*','?','<','>','|']) { base = base.split(ch).join('_'); }\nbase = base.slice(0,80);\nconst filename = ymd + '_' + base + '_振込受付書セット.pdf';\n// CloudConvert は Slack の非公開 URL を Authorization ヘッダ付きで取得する\nconst SLACK_AUTH = 'Bearer REPLACE_WITH_SLACK_BOT_TOKEN';\nconst tasks = {\n  'import-invoice': { operation: 'import/url', url: invoice.url_private_download, headers: { Authorization: SLACK_AUTH } }\n};\n// 請求書を先頭に、受付書をスレッド投稿順で結合（画像は都度PDF化）\nconst mergeInputs = ['import-invoice'];\nreceipts.forEach((r, idx) => {\n  const importName = 'import-receipt-' + idx;\n  tasks[importName] = { operation: 'import/url', url: r.url_private_download, headers: { Authorization: SLACK_AUTH } };\n  const isPdf = ((r.filetype || '').toLowerCase() === 'pdf') || ((r.mimetype || '') === 'application/pdf');\n  if (isPdf) {\n    mergeInputs.push(importName);\n  } else {\n    const convName = 'convert-receipt-' + idx;\n    tasks[convName] = { operation: 'convert', input: importName, output_format: 'pdf' };\n    mergeInputs.push(convName);\n  }\n});\ntasks['merge'] = { operation: 'merge', input: mergeInputs, output_format: 'pdf', filename: filename };\ntasks['export'] = { operation: 'export/url', input: 'merge', inline: false, archive_multiple_files: false };\n// 期間フォルダ名を Slack 投稿本文（親メッセージ）から決定\nconst ptext = (parent.text || '');\nconst lines = ptext.split('\\n');\nconst FOLDER_PREFIX = '⭐️★';\n// ラベル行（例「🏢 取引先名」）の次の非空行の値を返す\nfunction valueAfterLabel(re) {\n  for (let i = 0; i < lines.length; i++) {\n    if (re.test(lines[i])) {\n      for (let k = i + 1; k < lines.length; k++) {\n        const v = lines[k].trim();\n        if (v) return v;\n      }\n    }\n  }\n  return '';\n}\nlet periodFolder = '';\nconst mExp = ptext.match(/(?:保存先|格納先|フォルダ)\\s*[:：]\\s*([^\\n]+)/);\nif (mExp) {\n  // 1) 「保存先: ⭐️★2026.5.29請求分　有限会社川上産業」等の明示指定を最優先\n  periodFolder = mExp[1].trim();\n}\nif (!periodFolder) {\n  // 2) file-bot 定型: 📅支払期日 + 🏢取引先名 から生成（例 2026-06-05 → 2026.6.5）\n  let dateStr = '';\n  const due = valueAfterLabel(/支払期日/);\n  const dm = (due || '').match(/(\\d{4})\\D+(\\d{1,2})\\D+(\\d{1,2})/);\n  if (dm) { dateStr = dm[1] + '.' + parseInt(dm[2], 10) + '.' + parseInt(dm[3], 10); }\n  const torihiki = valueAfterLabel(/取引先/);\n  if (dateStr && torihiki) { periodFolder = FOLDER_PREFIX + dateStr + '請求分　' + torihiki; }\n}\nif (!periodFolder) {\n  // 3) 汎用フォールバック: 任意形式の日付 + 請求先/宛名\n  let dateStr = '';\n  const md = ptext.match(/(\\d{4})\\s*[年.\\/\\-]\\s*(\\d{1,2})\\s*[月.\\/\\-]\\s*(\\d{1,2})/);\n  if (md) { dateStr = md[1] + '.' + parseInt(md[2], 10) + '.' + parseInt(md[3], 10); }\n  let nm = valueAfterLabel(/(?:請求先|宛名|氏名|お名前)/);\n  if (!nm) { const mn = ptext.match(/(?:請求先|宛名|氏名|名前|お名前)\\s*[:：]\\s*([^\\n]+)/); if (mn) nm = mn[1].trim(); }\n  nm = nm.replace(/[\\s　]*(様|さん|御中)$/, '');\n  if (dateStr) { periodFolder = FOLDER_PREFIX + dateStr + '請求分' + (nm ? '　' + nm : ''); }\n}\nif (!periodFolder) {\n  // 4) 取りこぼし防止: 処理月の未分類フォルダ\n  periodFolder = FOLDER_PREFIX + now.getUTCFullYear() + '.' + (now.getUTCMonth() + 1) + '請求分_未分類';\n}\nreturn [{ json: { error: false, filename, channel, message_ts, invoice_name: invoice.title || invoice.name, receipt_count: receipts.length, period_folder: periodFolder, ccJob: { tasks } } }];"
       },
       "id": "merge-06-build",
       "name": "Build CloudConvert Job",
@@ -155,6 +155,86 @@
     },
     {
       "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "=name = '{{ $('Build CloudConvert Job').item.json.period_folder }}' and 'REPLACE_WITH_DRIVE_PARENT_FOLDER_ID' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false" },
+            { "name": "fields", "value": "files(id,name)" },
+            { "name": "supportsAllDrives", "value": "true" },
+            { "name": "includeItemsFromAllDrives", "value": "true" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-17-find-folder",
+      "name": "Find Period Folder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, 360],
+      "credentials": {
+        "googleDriveOAuth2Api": { "id": "REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID", "name": "Google Drive" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ ($json.files || []).length }}", "rightValue": 0, "operator": { "type": "number", "operation": "gt" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "merge-18-folder-exists",
+      "name": "Period folder exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2340, 360]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "supportsAllDrives", "value": "true" },
+            { "name": "fields", "value": "id,name" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { name: $('Build CloudConvert Job').item.json.period_folder, mimeType: 'application/vnd.google-apps.folder', parents: ['REPLACE_WITH_DRIVE_PARENT_FOLDER_ID'] } }}",
+        "options": {}
+      },
+      "id": "merge-19-create-folder",
+      "name": "Create Period Folder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2340, 520],
+      "credentials": {
+        "googleDriveOAuth2Api": { "id": "REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID", "name": "Google Drive" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $input.first().json;\n// 既存フォルダ検索結果 or 新規作成結果のどちらでも id を拾う\nconst folderId = (j.files && j.files[0] && j.files[0].id) || j.id;\nconst src = $('Get Export URL').item.json;\nreturn [{ json: { folderId, download_url: src.download_url, filename: src.filename, channel: src.channel, message_ts: src.message_ts, invoice_name: src.invoice_name, period_folder: $('Build CloudConvert Job').item.json.period_folder } }];"
+      },
+      "id": "merge-20-resolve-folder",
+      "name": "Resolve Folder Id",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2560, 440]
+    },
+    {
+      "parameters": {
         "method": "GET",
         "url": "={{ $json.download_url }}",
         "options": {
@@ -173,7 +253,7 @@
         "inputDataFieldName": "data",
         "name": "={{ $('Get Export URL').item.json.filename }}",
         "driveId": { "__rl": true, "mode": "list", "value": "My Drive" },
-        "folderId": { "__rl": true, "mode": "id", "value": "REPLACE_WITH_DRIVE_FOLDER_ID" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Resolve Folder Id').item.json.folderId }}" },
         "options": {}
       },
       "id": "merge-12-drive",
@@ -196,6 +276,7 @@
             "timestamp": "={{ $now.toISO() }}",
             "invoice_name": "={{ $('Get Export URL').item.json.invoice_name }}",
             "filename": "={{ $('Get Export URL').item.json.filename }}",
+            "folder": "={{ $('Resolve Folder Id').item.json.period_folder }}",
             "drive_link": "={{ $('Upload to Drive').item.json.webViewLink }}",
             "channel": "={{ $('Get Export URL').item.json.channel }}",
             "message_ts": "={{ $('Get Export URL').item.json.message_ts }}"
@@ -205,6 +286,7 @@
             { "id": "timestamp", "displayName": "timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
             { "id": "invoice_name", "displayName": "invoice_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
             { "id": "filename", "displayName": "filename", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "folder", "displayName": "folder", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
             { "id": "drive_link", "displayName": "drive_link", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
             { "id": "channel", "displayName": "channel", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
             { "id": "message_ts", "displayName": "message_ts", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
@@ -229,7 +311,7 @@
         "url": "https://slack.com/api/chat.postMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { channel: $('Get Export URL').item.json.channel, thread_ts: $('Get Export URL').item.json.message_ts, text: ':white_check_mark: 請求書と振込受付書を1つのPDFに結合し、梅本様共有フォルダへ格納しました。\\n*ファイル名:* ' + $('Get Export URL').item.json.filename + '\\n*保存先:* ' + ($('Upload to Drive').item.json.webViewLink || '(Google Drive)') } }}",
+        "jsonBody": "={{ { channel: $('Get Export URL').item.json.channel, thread_ts: $('Get Export URL').item.json.message_ts, text: ':white_check_mark: 請求書と振込受付書を1つのPDFに結合し、梅本様共有フォルダへ格納しました。\\n*ファイル名:* ' + $('Get Export URL').item.json.filename + '\\n*フォルダ:* ' + $('Resolve Folder Id').item.json.period_folder + '\\n*保存先:* ' + ($('Upload to Drive').item.json.webViewLink || '(Google Drive)') } }}",
         "options": {}
       },
       "id": "merge-14-notify",
@@ -300,7 +382,14 @@
     ] },
     "CloudConvert: Create Job": { "main": [[{ "node": "CloudConvert: Wait", "type": "main", "index": 0 }]] },
     "CloudConvert: Wait": { "main": [[{ "node": "Get Export URL", "type": "main", "index": 0 }]] },
-    "Get Export URL": { "main": [[{ "node": "Download Merged PDF", "type": "main", "index": 0 }]] },
+    "Get Export URL": { "main": [[{ "node": "Find Period Folder", "type": "main", "index": 0 }]] },
+    "Find Period Folder": { "main": [[{ "node": "Period folder exists?", "type": "main", "index": 0 }]] },
+    "Period folder exists?": { "main": [
+      [{ "node": "Resolve Folder Id", "type": "main", "index": 0 }],
+      [{ "node": "Create Period Folder", "type": "main", "index": 0 }]
+    ] },
+    "Create Period Folder": { "main": [[{ "node": "Resolve Folder Id", "type": "main", "index": 0 }]] },
+    "Resolve Folder Id": { "main": [[{ "node": "Download Merged PDF", "type": "main", "index": 0 }]] },
     "Download Merged PDF": { "main": [[{ "node": "Upload to Drive", "type": "main", "index": 0 }]] },
     "Upload to Drive": { "main": [[{ "node": "Append merge_log", "type": "main", "index": 0 }]] },
     "Append merge_log": { "main": [[{ "node": "Notify Thread (done)", "type": "main", "index": 0 }]] },
