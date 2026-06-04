@@ -113,9 +113,21 @@ n8n の **Credentials** で以下 2 つを作成（または既存を使用）:
 | --- | --- |
 | `REPLACE_WITH_SLACK_BOT_TOKEN` | Slack App の Bot User OAuth Token (`xoxb-...`) |
 | `REPLACE_WITH_SLACK_CREDENTIAL_ID` | 上で作った Slack OAuth2 credential |
-| `REPLACE_WITH_SLACK_CHANNEL_ID` | 通知先チャンネル ID（チャンネル右クリック → リンクをコピー → 末尾） |
+| `REPLACE_WITH_SLACK_CHANNEL_ID` | 通知先チャンネル ID（下記「通知先チャンネル」参照） |
 | `REPLACE_WITH_GOOGLE_SHEET_ID` | STEP 3-3 で控えた Sheet ID |
 | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | 上で作った Google Sheets credential |
+
+### 4-3-1. 通知先チャンネル（Claude が作成済み）
+
+各ワークフローの Slack 通知ノードに以下の Channel ID を入れてください。
+
+| 用途 | チャンネル名 | Channel ID |
+| --- | --- | --- |
+| 日報通知 (`slack-modal-submit-handler.json` の daily 分岐) | `#martial-arts-daily-report` | `C0B7T9Z4J1Z` |
+| アポ通知 (apo 分岐) | `#martial-arts-apo-log` | `C0B7RRM138X` |
+| フィードバック通知 (feedback 分岐) | `#martial-arts-feedback` | `C0B8G0E3CR2` |
+
+Bot が `chat:write.public` を持っていれば招待不要で投稿可能。持たない場合は各チャンネルで `/invite @<bot 名>` を実行してください。
 
 ### 4-4. Slack Bot Token のスコープ確認
 
