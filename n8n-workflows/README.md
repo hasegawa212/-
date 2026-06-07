@@ -210,9 +210,10 @@ ma_payment（共有ドライブ）
 4 つの JSON を全てインポートし、各 `REPLACE_WITH_*` を実値に置換:
 - `REPLACE_WITH_SLACK_BOT_TOKEN` → Slack Bot User OAuth Token (`xoxb-...`)
 - `REPLACE_WITH_SLACK_CREDENTIAL_ID` → n8n Slack credential
-- `REPLACE_WITH_SLACK_CHANNEL_ID` → 通知先チャンネル ID
 - `REPLACE_WITH_GOOGLE_SHEET_ID` → スプレッドシート ID
 - `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` → n8n Google Sheets credential
+
+> 通知先チャンネルは `slack-modal-submit-handler.json` の `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で `callback_id` ごとに固定振分（Slack ノードは `{{ $json.notify_channel }}` で参照）。差し替え対象なし。詳細は `SETUP.md` §4-3-1。
 
 ### 2. Slack App 設定
 
