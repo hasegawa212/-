@@ -1,0 +1,104 @@
+import type { Structure } from "./types";
+
+// ───────────────────────── 不動産データ ─────────────────────────
+
+/**
+ * 茨城県 主要市町村の住宅地 推定地価（円/㎡）。
+ * 国土交通省「地価公示」の住宅地平均水準をもとにした概算値で、
+ * 厳密な鑑定額ではなく相場感をつかむための基準単価として用いる。
+ */
+export const CITY_LAND_PRICE: Record<string, number> = {
+  つくば市: 95000,
+  守谷市: 88000,
+  水戸市: 72000,
+  取手市: 65000,
+  牛久市: 62000,
+  土浦市: 60000,
+  ひたちなか市: 55000,
+  つくばみらい市: 52000,
+  古河市: 50000,
+  龍ケ崎市: 48000,
+  日立市: 45000,
+  石岡市: 40000,
+  笠間市: 38000,
+  "その他（茨城県）": 35000,
+};
+
+export const CITY_OPTIONS = Object.keys(CITY_LAND_PRICE);
+
+/**
+ * 構造別の再調達価格（円/㎡）と法定耐用年数。
+ * 再調達単価は新築工事費の目安、耐用年数は減価償却資産の耐用年数に準拠。
+ */
+export const STRUCTURE_SPEC: Record<
+  Structure,
+  { rebuildUnit: number; usefulLife: number; label: string }
+> = {
+  wood: { rebuildUnit: 180000, usefulLife: 22, label: "木造" },
+  steel: { rebuildUnit: 215000, usefulLife: 34, label: "鉄骨造" },
+  rc: { rebuildUnit: 250000, usefulLife: 47, label: "RC（鉄筋コンクリート造）" },
+};
+
+/**
+ * マンション専有部分の相場単価（円/㎡）を、エリア地価から推計する倍率。
+ * 区分所有は土地持分＋建物が一体で取引されるため、土地㎡単価より高くなる。
+ */
+export const APARTMENT_UNIT_MULTIPLIER = 2.4;
+
+// ───────────────────────── 自動車データ ─────────────────────────
+
+/** 代表的な車種の新車時価格（円・概算）。手入力の補助に使う。 */
+export const CAR_MODELS: { maker: string; model: string; newPrice: number }[] = [
+  { maker: "トヨタ", model: "プリウス", newPrice: 2750000 },
+  { maker: "トヨタ", model: "アクア", newPrice: 2200000 },
+  { maker: "トヨタ", model: "ヤリス", newPrice: 2000000 },
+  { maker: "トヨタ", model: "カローラ", newPrice: 2300000 },
+  { maker: "トヨタ", model: "アルファード", newPrice: 5400000 },
+  { maker: "レクサス", model: "RX", newPrice: 6600000 },
+  { maker: "ホンダ", model: "N-BOX", newPrice: 1700000 },
+  { maker: "ホンダ", model: "フィット", newPrice: 1900000 },
+  { maker: "ホンダ", model: "フリード", newPrice: 2600000 },
+  { maker: "日産", model: "ノート", newPrice: 2200000 },
+  { maker: "日産", model: "セレナ", newPrice: 3000000 },
+  { maker: "スズキ", model: "スペーシア", newPrice: 1600000 },
+  { maker: "ダイハツ", model: "タント", newPrice: 1650000 },
+  { maker: "マツダ", model: "CX-5", newPrice: 3000000 },
+  { maker: "スバル", model: "フォレスター", newPrice: 3100000 },
+];
+
+/** メーカー別のリセールバリュー補正。人気・流通量・耐久性の傾向を反映。 */
+export const MAKER_FACTOR: Record<string, number> = {
+  トヨタ: 1.08,
+  レクサス: 1.1,
+  ホンダ: 1.03,
+  スバル: 1.02,
+  スズキ: 1.0,
+  ダイハツ: 0.99,
+  日産: 0.97,
+  マツダ: 0.96,
+  三菱: 0.92,
+  輸入車: 0.9,
+  その他: 1.0,
+};
+
+export const MAKER_OPTIONS = Object.keys(MAKER_FACTOR);
+
+/**
+ * 年式（経過年数）ごとの残価率カーブ。
+ * 中古車市場の一般的な下落傾向を [経過年, 残価率] で定義し、
+ * 中間の年数は線形補間する。
+ */
+export const AGE_RESIDUAL_CURVE: [number, number][] = [
+  [0, 1.0],
+  [1, 0.8],
+  [2, 0.68],
+  [3, 0.58],
+  [4, 0.5],
+  [5, 0.43],
+  [6, 0.37],
+  [7, 0.31],
+  [8, 0.26],
+  [10, 0.17],
+  [13, 0.09],
+  [20, 0.04],
+];
