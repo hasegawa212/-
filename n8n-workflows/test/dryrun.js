@@ -5,7 +5,7 @@ const wf = require(path.join(__dirname, '..', 'invoice-receipt-pdf-merge.json'))
 
 // --- 配置済みインスタンスを模して REPLACE_WITH_* を実値へ置換 ---
 const SUBST = {
-  REPLACE_WITH_TRIGGER_EMOJI: 'furikomi_done',
+  REPLACE_WITH_TRIGGER_EMOJI: 'moneybag',
   REPLACE_WITH_SLACK_BOT_TOKEN: 'xoxb-TEST-TOKEN',
 };
 function codeOf(name) {
@@ -56,7 +56,7 @@ const repliesResponse = {
 
 console.log('=== 1) Parse Slack Event ===');
 const parsed = runNode('Parse Slack Event', { body: { event: {
-  type: 'reaction_added', reaction: 'furikomi_done', user: 'U_CEO',
+  type: 'reaction_added', reaction: 'moneybag', user: 'U_CEO',
   item: { type: 'message', channel: 'C_KEIRI', ts: '1716800000.000100' },
 } } });
 check('対象リアクションで後続へ (skip=false)', parsed.skip === false, JSON.stringify(parsed));

@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n// Slack Events API の URL 検証ハンドシェイク\nif (body.type === 'url_verification') {\n  return [{ json: { isChallenge: true, challenge: body.challenge, skip: true } }];\n}\nconst TARGET = 'furikomi_done'; // トリガー絵文字（:なし）。振込完了 にする場合はここを変更\nconst ev = body.event || {};\nif (ev.type !== 'reaction_added' || ev.reaction !== TARGET) {\n  return [{ json: { skip: true, reason: 'not-target-reaction' } }];\n}\nif (!ev.item || ev.item.type !== 'message') {\n  return [{ json: { skip: true, reason: 'not-message-item' } }];\n}\nreturn [{ json: { skip: false, isChallenge: false, channel: ev.item.channel, message_ts: ev.item.ts, reactor: ev.user } }];"
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n// Slack Events API の URL 検証ハンドシェイク\nif (body.type === 'url_verification') {\n  return [{ json: { isChallenge: true, challenge: body.challenge, skip: true } }];\n}\nconst TARGET = 'moneybag'; // トリガー絵文字（:なし）。標準絵文字 💰 のため登録不要。変更する場合はここを書き換え\nconst ev = body.event || {};\nif (ev.type !== 'reaction_added' || ev.reaction !== TARGET) {\n  return [{ json: { skip: true, reason: 'not-target-reaction' } }];\n}\nif (!ev.item || ev.item.type !== 'message') {\n  return [{ json: { skip: true, reason: 'not-message-item' } }];\n}\nreturn [{ json: { skip: false, isChallenge: false, channel: ev.item.channel, message_ts: ev.item.ts, reactor: ev.user } }];"
       },
       "id": "merge-02-parse",
       "name": "Parse Slack Event",

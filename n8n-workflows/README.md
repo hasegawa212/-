@@ -37,7 +37,7 @@
         → merge_log に記録 → スレッドに完了報告 + ✅ リアクション
 ```
 
-- **トリガー**: 親メッセージへの特定絵文字リアクション（`REPLACE_WITH_TRIGGER_EMOJI`、例: `furikomi_done`）
+- **トリガー**: 親メッセージへの特定絵文字リアクション（`REPLACE_WITH_TRIGGER_EMOJI`、既定: `moneybag` = 💰。標準絵文字なのでワークスペースへの絵文字登録は不要）
 - **結合エンジン**: CloudConvert（画像のPDF化と複数PDFの結合を1ジョブで実行）
 - **保存先**: 梅本様共有の **`ma_payment` 共有ドライブ** 内、**最新の `★…請求分` 月次フォルダ**の中の **`4.支払いの請求書全て（振込、引き落とし）`** サブフォルダへ自動格納（サブフォルダが無い場合は月フォルダ直下にフォールバック）
 - **漏れ防止**: 完了後に親メッセージへ `:white_check_mark:` を自動付与＋`merge_log` シートに台帳記録
@@ -108,7 +108,7 @@ timestamp | invoice_name | filename | folder | drive_link | channel | message_ts
 2. 各 `REPLACE_WITH_*` を差し替え:
    | プレースホルダ | 入れる値 |
    | --- | --- |
-   | `REPLACE_WITH_TRIGGER_EMOJI` | トリガーにする絵文字名（`:` なし。例 `furikomi_done`） |
+   | `REPLACE_WITH_TRIGGER_EMOJI` | トリガーにする絵文字名（`:` なし。既定 `moneybag` = 💰。標準絵文字なので登録不要） |
    | `REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID` | Slack Bot Token の Header Auth credential |
    | `REPLACE_WITH_SLACK_BOT_TOKEN` | Bot User OAuth Token（`xoxb-...`）※「Build CloudConvert Job」ノードの Code 内。CloudConvert が Slack の非公開ファイルURLを取得するために使用 |
    | `REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID` | CloudConvert の Header Auth credential |

@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n// Slack Events API の URL 検証ハンドシェイク\nif (body.type === 'url_verification') {\n  return [{ json: { isChallenge: true, challenge: body.challenge, skip: true } }];\n}\nconst TARGET = 'REPLACE_WITH_TRIGGER_EMOJI'; // 例: furikomi_done / 振込完了\nconst ev = body.event || {};\nif (ev.type !== 'reaction_added' || ev.reaction !== TARGET) {\n  return [{ json: { skip: true, reason: 'not-target-reaction' } }];\n}\nif (!ev.item || ev.item.type !== 'message') {\n  return [{ json: { skip: true, reason: 'not-message-item' } }];\n}\nreturn [{ json: { skip: false, isChallenge: false, channel: ev.item.channel, message_ts: ev.item.ts, reactor: ev.user } }];"
+        "jsCode": "const body = $input.first().json.body ?? $input.first().json;\n// Slack Events API の URL 検証ハンドシェイク\nif (body.type === 'url_verification') {\n  return [{ json: { isChallenge: true, challenge: body.challenge, skip: true } }];\n}\nconst TARGET = 'REPLACE_WITH_TRIGGER_EMOJI'; // 例: moneybag(💰 標準・登録不要) / furikomi_done(要登録)\nconst ev = body.event || {};\nif (ev.type !== 'reaction_added' || ev.reaction !== TARGET) {\n  return [{ json: { skip: true, reason: 'not-target-reaction' } }];\n}\nif (!ev.item || ev.item.type !== 'message') {\n  return [{ json: { skip: true, reason: 'not-message-item' } }];\n}\nreturn [{ json: { skip: false, isChallenge: false, channel: ev.item.channel, message_ts: ev.item.ts, reactor: ev.user } }];"
       },
       "id": "merge-02-parse",
       "name": "Parse Slack Event",
