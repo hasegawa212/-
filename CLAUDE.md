@@ -11,6 +11,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── admin-dashboard/          # Standalone Vite + React + TS admin dashboard (wouter, mock data, JP UI)
 ├── claude-clone/             # Vanilla-JS chat UI + Express proxy to Anthropic API
 ├── n8n-workflows/            # n8n workflow JSON exports (no code to run)
+├── appraisal-app/            # Vite + React + TS appraisal simulator (real estate & car, tested valuation engine, JP UI)
 ├── ultimate-ai-agent/        # Full-stack TS monorepo (React + Express + tRPC + SQLite)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
@@ -18,6 +19,14 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 When the user's request is scoped to one subproject, `cd` into it and follow that subproject's conventions — do not assume tooling from one subproject applies to another (e.g. `claude-clone` is plain JS with no build step; `ultimate-ai-agent` is TypeScript strict mode with Drizzle/tRPC).
 
 ## Subprojects
+
+### `appraisal-app/` — 本物査定アプリ (real estate & car appraisal simulator)
+Independent Vite + React 18 + TypeScript (strict) app, no backend / no API key. Computes **concrete appraisal estimates from a transparent valuation engine** (not mock numbers) and renders the calculation breakdown. UI copy is Japanese; the price dataset is Ibaraki-focused.
+
+- `cd appraisal-app && npm install && npm run dev` → http://localhost:5175
+- `npm run build` (Vite → `dist/`), `npm run typecheck` (`tsc --noEmit`), `npm run test` (**Vitest** — the only subproject with tests).
+- The valuation engine lives in `src/lib/valuation/` as pure functions, decoupled from the UI: `realEstate.ts` (land × area × 駅補正 + building × 再調達単価 × 残存率), `car.ts` (新車価格 × 年式残価率 × 走行距離 × メーカー補正 …), with all coefficients/tables in `data.ts` and assertions in `valuation.test.ts`. Add cities to `CITY_LAND_PRICE` or models to `CAR_MODELS` in `data.ts` — no logic change needed.
+- UI is Tailwind + small local primitives (`src/components/ui/`); single page (`src/pages/Home.tsx`) toggling 不動産/車 forms. Estimates are 概算 only (disclaimer shown).
 
 ### `admin-dashboard/` — Standalone admin dashboard
 Independent Vite + React 18 + TypeScript (strict) app whose root is `src/App.tsx` (the structure: `ErrorBoundary` → `ThemeProvider` → `AdminAuthProvider` → `TooltipProvider` → wouter `Router`). Routing is **wouter** (not react-router), UI is Tailwind + shadcn-style primitives (`sonner` toaster, Radix `tooltip`, `button`, `card`). No backend — all dashboard data is mock, and auth is a client-only demo gate (`admin@example.com` / `admin`). All UI copy is Japanese.
