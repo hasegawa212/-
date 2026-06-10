@@ -3,6 +3,7 @@ import { appraiseRealEstate, walkFactor, buildingResidualRate } from "./realEsta
 import { appraiseCar, ageResidualRate, mileageFactor } from "./car";
 import { estimateMonthlyRent, WARD_RENT_PER_SQM, WARD_RENT_AVERAGE } from "./wardRents";
 import { evaluateInvestment } from "./investment";
+import { parseBatchText, appraiseBatch, resolveCity, resolveStructure, parsePrice, judge } from "./batch";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -243,5 +244,56 @@ describe("投資区分: 利回り評価", () => {
     const r = evaluateInvestment({ ...base, monthlyRent: undefined });
     expect(r.rentSource).toBe("estimated");
     expect(r.monthlyRent).toBe(WARD_RENT_PER_SQM["港区"] * 25);
+  });
+});
+
+describe("一括査定（マイソク方式）", () => {
+  it("価格文字列を円に正規化する", () => {
+    expect(parsePrice("2080")).toBe(20800000);
+    expect(parsePrice("2,080万")).toBe(20800000);
+    expect(parsePrice("20800000")).toBe(20800000);
+    expect(parsePrice("3330万円")).toBe(33300000);
+  });
+
+  it("所在地を市区町村キーへ解決する", () => {
+    expect(resolveCity("水戸市浜田町1丁目")).toBe("水戸市");
+    expect(resolveCity("川崎市麻生区高石")).toBe("横浜市・川崎市");
+    expect(resolveCity("東京都港区芝")).toBe("東京23区（その他）");
+    expect(resolveCity("どこか不明な町")).toBe("その他（茨城県）");
+  });
+
+  it("構造文字列を解決する", () => {
+    expect(resolveStructure("木造")).toBe("wood");
+    expect(resolveStructure("鉄骨造")).toBe("steel");
+    expect(resolveStructure("RC")).toBe("rc");
+  });
+
+  it("乖離率から判定する", () => {
+    expect(judge(-20)).toBe("undervalued");
+    expect(judge(0)).toBe("fair");
+    expect(judge(30)).toBe("overvalued");
+  });
+
+  it("TSVをパースして一括査定する", () => {
+    const text = [
+      "名称\t所在地\t土地面積\t建物面積\t築年数\t構造\t駅徒歩\t価格",
+      "A邸\t水戸市浜田町\t160\t110\t12\t木造\t10\t3330万",
+      "B邸\tひたちなか市佐和\t180\t100\t18\t木造\t15\t2390万",
+    ].join("\n");
+    const { rows, errors } = parseBatchText(text);
+    expect(errors).toHaveLength(0);
+    expect(rows).toHaveLength(2); // 見出し行はスキップ
+    const results = appraiseBatch(rows);
+    expect(results).toHaveLength(2);
+    expect(results[0].name).toBe("A邸");
+    expect(results[0].city).toBe("水戸市");
+    expect(results[0].estimate).toBeGreaterThan(0);
+    expect(["undervalued", "fair", "overvalued"]).toContain(results[0].verdict);
+  });
+
+  it("列数不足の行はエラーに記録する", () => {
+    const { rows, errors } = parseBatchText("不完全な行\t水戸市\t160");
+    expect(rows).toHaveLength(0);
+    expect(errors).toHaveLength(1);
   });
 });
