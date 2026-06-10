@@ -1,25 +1,36 @@
 import { useState } from "react";
-import { Home as HomeIcon, Car, TrendingUp } from "lucide-react";
+import { Home as HomeIcon, Car, TrendingUp, FileText } from "lucide-react";
 import { RealEstateForm } from "@/components/RealEstateForm";
 import { CarForm } from "@/components/CarForm";
 import { ResultPanel } from "@/components/ResultPanel";
 import { MarketReference } from "@/components/MarketReference";
 import { InvestmentForm } from "@/components/InvestmentForm";
 import { InvestmentResultPanel } from "@/components/InvestmentResultPanel";
+import { BatchForm } from "@/components/BatchForm";
+import { BatchResultPanel } from "@/components/BatchResultPanel";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import type { AppraisalResult, InvestmentResult } from "@/lib/valuation";
+import type { AppraisalResult, InvestmentResult, BatchResultRow } from "@/lib/valuation";
 
-type Tab = "realEstate" | "car" | "invest";
+type Tab = "realEstate" | "car" | "invest" | "batch";
 
 export function Home() {
   const [tab, setTab] = useState<Tab>("realEstate");
   const [result, setResult] = useState<AppraisalResult | null>(null);
   const [invResult, setInvResult] = useState<InvestmentResult | null>(null);
+  const [batchRows, setBatchRows] = useState<BatchResultRow[] | null>(null);
+  const [batchErrors, setBatchErrors] = useState<string[]>([]);
 
   function switchTab(next: Tab) {
     setTab(next);
     setResult(null);
     setInvResult(null);
+    setBatchRows(null);
+    setBatchErrors([]);
+  }
+
+  function handleBatch(rows: BatchResultRow[], errors: string[]) {
+    setBatchRows(rows);
+    setBatchErrors(errors);
   }
 
   return (
@@ -43,6 +54,7 @@ export function Home() {
               { value: "realEstate", label: "🏠 不動産査定" },
               { value: "car", label: "🚗 車査定" },
               { value: "invest", label: "📈 投資利回り" },
+              { value: "batch", label: "📋 一括査定" },
             ]}
             value={tab}
             onChange={(v) => switchTab(v as Tab)}
@@ -52,27 +64,40 @@ export function Home() {
               <HomeIcon className="h-4 w-4" />
             ) : tab === "car" ? (
               <Car className="h-4 w-4" />
-            ) : (
+            ) : tab === "invest" ? (
               <TrendingUp className="h-4 w-4" />
+            ) : (
+              <FileText className="h-4 w-4" />
             )}
-            {tab === "invest" ? "東京23区の賃料相場と連携" : "その場で概算額を算出"}
+            {tab === "invest"
+              ? "東京23区の賃料相場と連携"
+              : tab === "batch"
+                ? "マイソク貼り付けで一括査定"
+                : "その場で概算額を算出"}
           </span>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            {tab === "realEstate" && <RealEstateForm onResult={setResult} />}
-            {tab === "car" && <CarForm onResult={setResult} />}
-            {tab === "invest" && <InvestmentForm onResult={setInvResult} />}
+        {tab === "batch" ? (
+          <div className="space-y-6">
+            <BatchForm onResult={handleBatch} />
+            <BatchResultPanel rows={batchRows} errors={batchErrors} />
           </div>
-          <div>
-            {tab === "invest" ? (
-              <InvestmentResultPanel result={invResult} />
-            ) : (
-              <ResultPanel result={result} title={tab === "realEstate" ? "不動産" : "お車"} />
-            )}
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div>
+              {tab === "realEstate" && <RealEstateForm onResult={setResult} />}
+              {tab === "car" && <CarForm onResult={setResult} />}
+              {tab === "invest" && <InvestmentForm onResult={setInvResult} />}
+            </div>
+            <div>
+              {tab === "invest" ? (
+                <InvestmentResultPanel result={invResult} />
+              ) : (
+                <ResultPanel result={result} title={tab === "realEstate" ? "不動産" : "お車"} />
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {tab === "realEstate" && (
           <div className="mt-6">
