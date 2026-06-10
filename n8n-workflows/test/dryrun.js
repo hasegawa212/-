@@ -80,6 +80,10 @@ check('結合順 = 請求書 → 受付書1 → 受付書2（時系列）',
   JSON.stringify(tasks['merge'].input) === JSON.stringify(['import-invoice', 'convert-receipt-0', 'convert-receipt-1']),
   JSON.stringify(tasks['merge'].input));
 check('Slack非公開URLを Authorization 付きで取得', tasks['import-invoice'].headers.Authorization === 'Bearer xoxb-TEST-TOKEN');
+check('受付書画像はA4ページに正規化（page_size=A4 / fit=max）でサイズ統一',
+  tasks['convert-receipt-0'].page_size === 'A4' && tasks['convert-receipt-0'].fit === 'max'
+  && tasks['convert-receipt-1'].page_size === 'A4',
+  JSON.stringify({ a: tasks['convert-receipt-0'], b: tasks['convert-receipt-1'] }));
 const noReceipt = runNode('Build CloudConvert Job', { ok: true, messages: [repliesResponse.messages[0]] });
 check('受付書ゼロ件で error=missing-file', noReceipt.error === true && noReceipt.reason === 'missing-file');
 store['Build CloudConvert Job'] = built;
