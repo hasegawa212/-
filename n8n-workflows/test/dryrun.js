@@ -63,6 +63,11 @@ check('対象リアクションで後続へ (skip=false)', parsed.skip === false
 check('channel / message_ts 抽出', parsed.channel === 'C_KEIRI' && parsed.message_ts === '1716800000.000100');
 const ignored = runNode('Parse Slack Event', { body: { event: { type: 'reaction_added', reaction: 'eyes', item: { type: 'message', channel: 'C', ts: '1' } } } });
 check('別の絵文字は skip=true', ignored.skip === true);
+const retry = runNode('Parse Slack Event', { headers: { 'x-slack-retry-num': '1' }, body: { event: {
+  type: 'reaction_added', reaction: 'moneybag', user: 'U_CEO',
+  item: { type: 'message', channel: 'C_KEIRI', ts: '1716800000.000100' },
+} } });
+check('Slackリトライ(X-Slack-Retry-Num)は skip=true で無視（重複格納防止）', retry.skip === true && retry.reason === 'slack-retry', JSON.stringify(retry));
 store['Parse Slack Event'] = parsed;
 
 console.log('\n=== 2) Build CloudConvert Job ===');
