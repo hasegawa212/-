@@ -1,6 +1,6 @@
 # Slack Modal Workflows セットアップ Runbook
 
-> 対象: `/daily` `/apo` `/feedback` の n8n + Slack + Sheets 連携を本番稼働させる
+> 対象: `/daily` `/apo` `/feedback` `/meeting` の n8n + Slack + Sheets 連携を本番稼働させる
 > 想定所要時間: 約 30〜45 分
 > 担当: ボス（手動操作）/ Claude（MCP 経由で実行可能な箇所）
 
@@ -8,10 +8,10 @@
 
 ## チェックリスト全体
 
-- [ ] **STEP 1**: Slack App にスラッシュコマンド 3 件登録（完了済み? 要確認）
+- [ ] **STEP 1**: Slack App にスラッシュコマンド 4 件登録（完了済み? 要確認）
 - [ ] **STEP 2**: Slack App の Interactivity & Shortcuts URL を設定
-- [ ] **STEP 3**: Google Sheets に 3 シート + ヘッダーを作成
-- [ ] **STEP 4**: n8n に 4 ワークフローをインポート + 認証情報を差し替え
+- [ ] **STEP 3**: Google Sheets に 4 シート + ヘッダーを作成
+- [ ] **STEP 4**: n8n に 5 ワークフローをインポート + 認証情報を差し替え
 - [ ] **STEP 5**: 各ワークフローを Active に切り替え
 - [ ] **STEP 6**: 動作確認（`/daily` → 行追加 + 通知）
 
@@ -19,13 +19,14 @@
 
 ## STEP 1: Slack Slash Commands（再掲）
 
-api.slack.com → 該当 App → **Slash Commands** → Create New Command を 3 回。
+api.slack.com → 該当 App → **Slash Commands** → Create New Command を 4 回。
 
 | Command | Request URL | Short Description |
 | --- | --- | --- |
 | `/daily` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-daily` | 日報を報告する |
 | `/apo` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-apo` | アポ追加/キャンセル |
 | `/feedback` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-feedback` | 顧客フィードバック |
+| `/meeting` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-meeting` | 会議の確認事項（必須3つ）を記録 |
 
 ---
 
@@ -52,7 +53,7 @@ api.slack.com → 該当 App → **Slash Commands** → Create New Command を 3
 
 権限: 営業 + 経営層のみ（顧客匿名コード前提だが念のため制限）
 
-### 3-2. 3 つのシート + ヘッダーを作成
+### 3-2. 4 つのシート + ヘッダーを作成
 
 #### `daily_reports`
 | timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id | report_date | call_count | apo_count | meeting_count | contract_count | highlights | tomorrow_plan | blockers |
@@ -62,6 +63,9 @@ api.slack.com → 該当 App → **Slash Commands** → Create New Command を 3
 
 #### `feedback_log`
 | timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id | deal_code | customer_code | feedback_type | rating | content | action_needed |
+
+#### `meeting_checklist`
+| timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id | notify_channel | meeting_title | meeting_date | attendees | check_1 | check_2 | check_3 | owner |
 
 **重要**: n8n の Google Sheets ノードが `autoMapInputData` モードで動くため、**ヘッダー名は完全一致が必須**です。コピペ推奨。
 
@@ -121,13 +125,16 @@ n8n の **Credentials** で以下 2 つを作成（または既存を使用）:
 
 ### 4-3-1. 通知先チャンネル（Claude が作成済み）
 
-`Notify Slack Channel` ノードは 1 個ですが、`callback_id` で 3 チャンネルに振分します。マッピングは `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で定義（手で書き換える場合はこの表と Code 両方を更新）。
+`Notify Slack Channel` ノードは 1 個ですが、`callback_id` で 4 チャンネルに振分します。マッピングは `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で定義（手で書き換える場合はこの表と Code 両方を更新）。
 
 | `callback_id` | チャンネル名 | Channel ID |
 | --- | --- | --- |
 | `daily_report` | `#martial-arts-daily-report` | `C0B7T9Z4J1Z` |
 | `apo_action` | `#martial-arts-apo-log` | `C0B7RRM138X` |
 | `customer_feedback` | `#martial-arts-feedback` | `C0B8G0E3CR2` |
+| `meeting_check` | `#martial-arts-meeting-checklist` | `REPLACE_WITH_MEETING_CHANNEL_ID` ⚠️未設定 |
+
+> ⚠️ `meeting_check` のみ Channel ID がプレースホルダです。会議の確認事項を共有したいチャンネルを作成（例: `#martial-arts-meeting-checklist`）し、その Channel ID を `Parse + Normalize` ノードの `NOTIFY_CHANNEL.meeting_check` に設定してください。
 
 Bot が `chat:write.public` を持っていれば招待不要で投稿可能。持たない場合は各チャンネルで `/invite @<bot 名>` を実行してください。
 
@@ -151,6 +158,7 @@ api.slack.com → 該当 App → **OAuth & Permissions** → **Bot Token Scopes*
 - [ ] Slack /daily → Open Daily Report Modal
 - [ ] Slack /apo → Open Apo Add/Cancel Modal
 - [ ] Slack /feedback → Open Customer Feedback Modal
+- [ ] Slack /meeting → Open Meeting Checklist Modal
 - [ ] Slack Modal Submit → Sheets + Channel Notify
 
 ---
@@ -175,7 +183,10 @@ Slack で:
 ```
 /apo
 /feedback
+/meeting
 ```
+
+`/meeting` は確認事項①〜③が**必須入力**なので、3つ全て埋めないと Slack 側で送信できません（これで「会議では必ず3つ」のルールがフォームで強制されます）。送信すると `meeting_checklist` シートに1行追加され、`meeting_check` の通知先チャンネルに共有されます。
 
 ### 6-3. うまく動かない時のチェックポイント
 
