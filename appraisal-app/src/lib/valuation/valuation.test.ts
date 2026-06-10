@@ -93,6 +93,22 @@ describe("不動産: 査定", () => {
     expect(r.estimate).toBeLessThan(100000000);
   });
 
+  it("栃木県の物件も査定できる（宇都宮市は県内で最も高い）", () => {
+    const base = {
+      propertyType: "land" as const,
+      landArea: 150,
+      buildingArea: 0,
+      buildAge: 0,
+      structure: "wood" as const,
+      walkMinutes: 10,
+    };
+    const utsunomiya = appraiseRealEstate({ ...base, city: "宇都宮市" });
+    const other = appraiseRealEstate({ ...base, city: "その他（栃木県）" });
+    // 150 × 58,000 × 1.0 = 8,700,000
+    expect(utsunomiya.estimate).toBe(8700000);
+    expect(utsunomiya.estimate).toBeGreaterThan(other.estimate);
+  });
+
   it("未知の市区町村は『その他』単価にフォールバックする", () => {
     const r = appraiseRealEstate({
       propertyType: "land",
