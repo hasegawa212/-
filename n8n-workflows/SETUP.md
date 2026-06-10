@@ -113,9 +113,23 @@ n8n の **Credentials** で以下 2 つを作成（または既存を使用）:
 | --- | --- |
 | `REPLACE_WITH_SLACK_BOT_TOKEN` | Slack App の Bot User OAuth Token (`xoxb-...`) |
 | `REPLACE_WITH_SLACK_CREDENTIAL_ID` | 上で作った Slack OAuth2 credential |
-| `REPLACE_WITH_SLACK_CHANNEL_ID` | 通知先チャンネル ID（チャンネル右クリック → リンクをコピー → 末尾） |
 | `REPLACE_WITH_GOOGLE_SHEET_ID` | STEP 3-3 で控えた Sheet ID |
 | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | 上で作った Google Sheets credential |
+
+> ℹ️ `REPLACE_WITH_SLACK_CHANNEL_ID` は **不要になりました**。
+> `slack-modal-submit-handler.json` の `Notify Slack Channel` ノードは式 `{{ $json.notify_channel }}` でチャンネルを動的解決し、ID は `Parse + Normalize` ノードの `NOTIFY_CHANNEL` 定数（callback_id ごとに固定振分）から供給されます。チャンネルを変えたい場合は下記 4-3-1 の表と Code ノード両方を更新してください。
+
+### 4-3-1. 通知先チャンネル（Claude が作成済み）
+
+`Notify Slack Channel` ノードは 1 個ですが、`callback_id` で 3 チャンネルに振分します。マッピングは `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で定義（手で書き換える場合はこの表と Code 両方を更新）。
+
+| `callback_id` | チャンネル名 | Channel ID |
+| --- | --- | --- |
+| `daily_report` | `#martial-arts-daily-report` | `C0B7T9Z4J1Z` |
+| `apo_action` | `#martial-arts-apo-log` | `C0B7RRM138X` |
+| `customer_feedback` | `#martial-arts-feedback` | `C0B8G0E3CR2` |
+
+Bot が `chat:write.public` を持っていれば招待不要で投稿可能。持たない場合は各チャンネルで `/invite @<bot 名>` を実行してください。
 
 ### 4-4. Slack Bot Token のスコープ確認
 
