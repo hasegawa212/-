@@ -682,13 +682,7 @@
             "index": 0
           }
         ],
-        [
-          {
-            "node": "Notify Missing Files",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "CloudConvert: Create Job": {
