@@ -216,9 +216,8 @@ ma_payment（共有ドライブ）
 - `REPLACE_WITH_SLACK_CREDENTIAL_ID` → n8n Slack credential
 - `REPLACE_WITH_GOOGLE_SHEET_ID` → スプレッドシート ID
 - `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` → n8n Google Sheets credential
-- `REPLACE_WITH_MEETING_CHANNEL_ID` → `/meeting` 通知先チャンネル ID（`slack-modal-submit-handler.json` の `NOTIFY_CHANNEL.meeting_check`）
 
-> 通知先チャンネルは `slack-modal-submit-handler.json` の `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で `callback_id` ごとに固定振分（Slack ノードは `{{ $json.notify_channel }}` で参照）。`meeting_check` のみプレースホルダなので Channel ID を実値に置換する。詳細は `SETUP.md` §4-3-1。
+> 通知先チャンネルは `slack-modal-submit-handler.json` の `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で `callback_id` ごとに固定振分（Slack ノードは `{{ $json.notify_channel }}` で参照）。4 チャンネルとも設定済み（`meeting_check` = `#martial-arts-meeting-checklist` / `C0B9RAHM13K`）。差し替え対象なし。詳細は `SETUP.md` §4-3-1。
 
 ### 2. Slack App 設定
 
