@@ -132,9 +132,9 @@ n8n の **Credentials** で以下 2 つを作成（または既存を使用）:
 | `daily_report` | `#martial-arts-daily-report` | `C0B7T9Z4J1Z` |
 | `apo_action` | `#martial-arts-apo-log` | `C0B7RRM138X` |
 | `customer_feedback` | `#martial-arts-feedback` | `C0B8G0E3CR2` |
-| `meeting_check` | `#martial-arts-meeting-checklist` | `REPLACE_WITH_MEETING_CHANNEL_ID` ⚠️未設定 |
+| `meeting_check` | `#martial-arts-meeting-checklist` | `C0B9RAHM13K` |
 
-> ⚠️ `meeting_check` のみ Channel ID がプレースホルダです。会議の確認事項を共有したいチャンネルを作成（例: `#martial-arts-meeting-checklist`）し、その Channel ID を `Parse + Normalize` ノードの `NOTIFY_CHANNEL.meeting_check` に設定してください。
+> ✅ `meeting_check` のチャンネル `#martial-arts-meeting-checklist`（ID `C0B9RAHM13K`）は作成・設定済みです。別チャンネルに変えたい場合のみ `Parse + Normalize` ノードの `NOTIFY_CHANNEL.meeting_check` を更新してください。
 
 Bot が `chat:write.public` を持っていれば招待不要で投稿可能。持たない場合は各チャンネルで `/invite @<bot 名>` を実行してください。
 
