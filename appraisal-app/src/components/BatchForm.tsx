@@ -1,12 +1,20 @@
 import { useState } from "react";
 import { Calculator, FileText } from "lucide-react";
-import { parseBatchText, appraiseBatch, type BatchResultRow } from "@/lib/valuation";
+import {
+  parseBatchText,
+  parseMyosoku,
+  appraiseBatch,
+  type BatchResultRow,
+} from "@/lib/valuation";
+import { SegmentedControl } from "./ui/SegmentedControl";
 
 interface Props {
   onResult: (rows: BatchResultRow[], errors: string[]) => void;
 }
 
-const SAMPLE = [
+type InputFormat = "table" | "myosoku";
+
+const SAMPLE_TABLE = [
   "名称\t所在地\t土地面積\t建物面積\t築年数\t構造\t駅徒歩\t価格",
   "A邸\t水戸市浜田町1丁目\t160\t110\t12\t木造\t10\t3330万",
   "B邸\tひたちなか市佐和\t180\t100\t18\t木造\t15\t2390万",
@@ -14,52 +22,102 @@ const SAMPLE = [
   "Dマンション\t川崎市麻生区\t0\t70\t20\tRC\t6\t4190万",
 ].join("\n");
 
+const SAMPLE_MYOSOKU = [
+  "物件名：水戸ハウスA",
+  "所在地：茨城県水戸市浜田町1丁目2-3",
+  "価格：3,330万円",
+  "土地面積：160.25㎡（48.5坪）",
+  "建物面積：110.5㎡",
+  "築年月：2012年3月",
+  "構造：木造2階建",
+  "交通：JR常磐線 水戸駅 徒歩10分",
+  "",
+  "物件名：麻生レジデンス",
+  "所在地：神奈川県川崎市麻生区高石4丁目",
+  "価格：4,190万円",
+  "土地面積：0㎡",
+  "専有面積：70.2㎡",
+  "築年月：平成17年6月",
+  "構造：RC造",
+  "交通：小田急線 新百合ヶ丘駅 徒歩6分",
+].join("\n");
+
 export function BatchForm({ onResult }: Props) {
+  const [format, setFormat] = useState<InputFormat>("table");
   const [text, setText] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const { rows, errors } = parseBatchText(text);
+    const { rows, errors } = format === "myosoku" ? parseMyosoku(text) : parseBatchText(text);
     onResult(appraiseBatch(rows), errors);
+  }
+
+  function insertSample() {
+    setText(format === "myosoku" ? SAMPLE_MYOSOKU : SAMPLE_TABLE);
+  }
+
+  function changeFormat(next: InputFormat) {
+    setFormat(next);
+    setText("");
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <FileText className="h-4 w-4 text-brand-600" />
-          マイソク情報を貼り付け（1行1物件・タブ/カンマ区切り）
+          マイソク情報を貼り付け
         </div>
-        <button
-          type="button"
-          onClick={() => setText(SAMPLE)}
-          className="text-xs font-medium text-brand-600 hover:underline"
-        >
-          サンプルを挿入
-        </button>
+        <SegmentedControl
+          options={[
+            { value: "table", label: "表形式" },
+            { value: "myosoku", label: "マイソク本文" },
+          ]}
+          value={format}
+          onChange={(v) => changeFormat(v as InputFormat)}
+        />
       </div>
 
-      <p className="text-xs text-slate-400">
-        列順：<code>名称, 所在地, 土地面積(㎡), 建物面積(㎡), 築年数, 構造, 駅徒歩(分), 価格</code>
-        <br />
-        ※ 建物面積0は土地として査定。価格は「2080」「2,080万」どちらでも可。構造は木造/鉄骨/RC。
-      </p>
+      {format === "table" ? (
+        <p className="text-xs text-slate-400">
+          1行1物件・タブ/カンマ区切り。列順：
+          <code>名称, 所在地, 土地面積(㎡), 建物面積(㎡), 築年数, 構造, 駅徒歩(分), 価格</code>
+          <br />
+          ※ 建物面積0は土地として査定。価格は「2080」「2,080万」どちらでも可。
+        </p>
+      ) : (
+        <p className="text-xs text-slate-400">
+          マイソク本文を貼り付け。<b>空行で物件を区切り</b>、各物件は「所在地：」「価格：」「土地面積：」
+          「建物面積：」「築年月：」「構造：」「交通：」などのラベル行を自動抽出します。
+          <br />
+          ※ 坪/㎡・億/万・和暦（平成・令和）・徒歩◯分などの表記ゆれに対応。
+        </p>
+      )}
 
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        rows={10}
-        placeholder="A邸　水戸市浜田町1丁目　160　110　12　木造　10　3330万 …"
+        rows={format === "myosoku" ? 14 : 10}
+        placeholder={format === "myosoku" ? "所在地：◯◯市…\n価格：3,330万円\n土地面積：160㎡ …" : "A邸　水戸市…　160　110　12　木造　10　3330万 …"}
         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
 
-      <button
-        type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
-      >
-        <Calculator className="h-4 w-4" />
-        一括査定する
-      </button>
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={insertSample}
+          className="text-xs font-medium text-brand-600 hover:underline"
+        >
+          サンプルを挿入
+        </button>
+        <button
+          type="submit"
+          className="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+        >
+          <Calculator className="h-4 w-4" />
+          一括査定する
+        </button>
+      </div>
     </form>
   );
 }

@@ -3,7 +3,7 @@ import { appraiseRealEstate, walkFactor, buildingResidualRate } from "./realEsta
 import { appraiseCar, ageResidualRate, mileageFactor } from "./car";
 import { estimateMonthlyRent, WARD_RENT_PER_SQM, WARD_RENT_AVERAGE } from "./wardRents";
 import { evaluateInvestment } from "./investment";
-import { parseBatchText, appraiseBatch, resolveCity, resolveStructure, parsePrice, judge } from "./batch";
+import { parseBatchText, parseMyosoku, appraiseBatch, resolveCity, resolveStructure, parsePrice, parseArea, parseBuildAge, parseWalkMinutes, judge } from "./batch";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -293,6 +293,78 @@ describe("一括査定（マイソク方式）", () => {
 
   it("列数不足の行はエラーに記録する", () => {
     const { rows, errors } = parseBatchText("不完全な行\t水戸市\t160");
+    expect(rows).toHaveLength(0);
+    expect(errors).toHaveLength(1);
+  });
+});
+
+describe("マイソク本文パーサ（表記ゆれ）", () => {
+  it("価格は万・億表記を円に正規化する", () => {
+    expect(parsePrice("3,330万円")).toBe(33300000);
+    expect(parsePrice("1億2,000万円")).toBe(120000000);
+    expect(parsePrice("1.2億")).toBe(120000000);
+  });
+
+  it("面積は㎡・坪を㎡に正規化する", () => {
+    expect(parseArea("160.25㎡")).toBe(160.25);
+    expect(parseArea("70m²")).toBe(70);
+    expect(parseArea("48.5坪")).toBeCloseTo(160.33, 1);
+  });
+
+  it("築年は築X年・西暦・和暦から経過年数を出す", () => {
+    expect(parseBuildAge("築12年", 2026)).toBe(12);
+    expect(parseBuildAge("2012年3月", 2026)).toBe(14);
+    expect(parseBuildAge("平成17年6月", 2026)).toBe(21); // 平成17=2005
+    expect(parseBuildAge("新築", 2026)).toBe(0);
+  });
+
+  it("交通文字列から徒歩分を抽出する", () => {
+    expect(parseWalkMinutes("JR常磐線 水戸駅 徒歩10分")).toBe(10);
+    expect(parseWalkMinutes("バス乗車15分 バス停より徒歩3分")).toBe(3);
+    expect(parseWalkMinutes("バスのみ")).toBe(0);
+  });
+
+  it("ラベル付きマイソク本文（空行区切り）を複数物件としてパースする", () => {
+    const text = [
+      "物件名：水戸ハウスA",
+      "所在地：茨城県水戸市浜田町1丁目2-3",
+      "価格：3,330万円",
+      "土地面積：160.25㎡（48.5坪）",
+      "建物面積：110.5㎡",
+      "築年月：2012年3月",
+      "構造：木造2階建",
+      "交通：JR常磐線 水戸駅 徒歩10分",
+      "",
+      "物件名：麻生レジデンス",
+      "所在地：神奈川県川崎市麻生区高石4丁目",
+      "価格：4,190万円",
+      "専有面積：70.2㎡",
+      "築年月：平成17年6月",
+      "構造：RC造",
+      "交通：小田急線 新百合ヶ丘駅 徒歩6分",
+    ].join("\n");
+    const { rows, errors } = parseMyosoku(text, 2026);
+    expect(errors).toHaveLength(0);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      name: "水戸ハウスA",
+      landArea: 160.25,
+      buildingArea: 110.5,
+      buildAge: 14,
+      structure: "wood",
+      walkMinutes: 10,
+      askingPrice: 33300000,
+    });
+    expect(rows[1].structure).toBe("rc");
+    expect(rows[1].buildingArea).toBe(70.2);
+
+    const results = appraiseBatch(rows);
+    expect(results[0].city).toBe("水戸市");
+    expect(results[1].city).toBe("横浜市・川崎市");
+  });
+
+  it("所在地も価格も無いブロックはエラーに記録する", () => {
+    const { rows, errors } = parseMyosoku("構造：木造\n交通：徒歩5分");
     expect(rows).toHaveLength(0);
     expect(errors).toHaveLength(1);
   });
