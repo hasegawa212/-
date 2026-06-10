@@ -91,7 +91,7 @@ export function appraiseRealEstate(input: RealEstateInput): AppraisalResult {
   const low = roundToMan(estimate * 0.92);
   const high = roundToMan(estimate * 1.08);
 
-  notes.push("地価は茨城県の市町村平均をもとにした概算で、実際の査定額は現地調査により変動します。");
+  notes.push("地価は各エリアの公開地価水準をもとにした概算で、実際の査定額は現地調査により変動します。");
 
   return { estimate, low, high, breakdown, notes };
 }

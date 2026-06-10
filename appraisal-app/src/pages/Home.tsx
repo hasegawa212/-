@@ -3,6 +3,7 @@ import { Home as HomeIcon, Car } from "lucide-react";
 import { RealEstateForm } from "@/components/RealEstateForm";
 import { CarForm } from "@/components/CarForm";
 import { ResultPanel } from "@/components/ResultPanel";
+import { MarketReference } from "@/components/MarketReference";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { AppraisalResult } from "@/lib/valuation";
 
@@ -59,6 +60,12 @@ export function Home() {
             <ResultPanel result={result} title={tab === "realEstate" ? "不動産" : "お車"} />
           </div>
         </div>
+
+        {tab === "realEstate" && (
+          <div className="mt-6">
+            <MarketReference estimate={result?.estimate ?? null} />
+          </div>
+        )}
 
         <p className="mt-8 text-center text-xs text-slate-400">
           ※ 本アプリの査定額は公開データに基づく概算シミュレーションであり、実際の売買・買取価格を保証するものではありません。

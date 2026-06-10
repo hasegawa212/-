@@ -64,6 +64,51 @@ describe("不動産: 査定", () => {
     expect(old.estimate).toBeLessThan(fresh.estimate);
   });
 
+  it("首都圏エリアは茨城県より高く査定される", () => {
+    const base = {
+      propertyType: "apartment" as const,
+      landArea: 0,
+      buildingArea: 70,
+      buildAge: 15,
+      structure: "rc" as const,
+      walkMinutes: 8,
+    };
+    const ibaraki = appraiseRealEstate({ ...base, city: "水戸市" });
+    const tokyo = appraiseRealEstate({ ...base, city: "東京23区（都心部）" });
+    expect(tokyo.estimate).toBeGreaterThan(ibaraki.estimate);
+  });
+
+  it("東京23区の中古マンションは相場（数千万円台）に収まる", () => {
+    const r = appraiseRealEstate({
+      propertyType: "apartment",
+      city: "東京23区（その他）",
+      landArea: 0,
+      buildingArea: 70,
+      buildAge: 15,
+      structure: "rc",
+      walkMinutes: 8,
+    });
+    // 70 × (600,000×2.4) × 残存率(1-15/47≈0.681) × 駅補正1.08
+    expect(r.estimate).toBeGreaterThan(50000000);
+    expect(r.estimate).toBeLessThan(100000000);
+  });
+
+  it("栃木県の物件も査定できる（宇都宮市は県内で最も高い）", () => {
+    const base = {
+      propertyType: "land" as const,
+      landArea: 150,
+      buildingArea: 0,
+      buildAge: 0,
+      structure: "wood" as const,
+      walkMinutes: 10,
+    };
+    const utsunomiya = appraiseRealEstate({ ...base, city: "宇都宮市" });
+    const other = appraiseRealEstate({ ...base, city: "その他（栃木県）" });
+    // 150 × 58,000 × 1.0 = 8,700,000
+    expect(utsunomiya.estimate).toBe(8700000);
+    expect(utsunomiya.estimate).toBeGreaterThan(other.estimate);
+  });
+
   it("未知の市区町村は『その他』単価にフォールバックする", () => {
     const r = appraiseRealEstate({
       propertyType: "land",
