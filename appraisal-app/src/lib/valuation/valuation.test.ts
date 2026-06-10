@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { appraiseRealEstate, walkFactor, buildingResidualRate } from "./realEstate";
 import { appraiseCar, ageResidualRate, mileageFactor } from "./car";
+import { estimateMonthlyRent, WARD_RENT_PER_SQM, WARD_RENT_AVERAGE } from "./wardRents";
+import { evaluateInvestment } from "./investment";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -184,5 +186,62 @@ describe("自動車: 査定", () => {
       inspectionMonthsLeft: 0,
     });
     expect(r.estimate).toBeGreaterThanOrEqual(Math.round((base.newPrice * 0.03) / 10000) * 10000);
+  });
+});
+
+describe("東京23区 賃料（SUUMO連携データ）", () => {
+  it("都心区は周辺区より㎡賃料が高い", () => {
+    expect(WARD_RENT_PER_SQM["港区"]).toBeGreaterThan(WARD_RENT_PER_SQM["足立区"]);
+  });
+
+  it("想定月額家賃は ㎡賃料 × 面積 で算出される", () => {
+    expect(estimateMonthlyRent("港区", 30)).toBe(WARD_RENT_PER_SQM["港区"] * 30);
+  });
+
+  it("未対応エリアは23区平均にフォールバックする", () => {
+    expect(estimateMonthlyRent("該当しない区", 25)).toBe(WARD_RENT_AVERAGE * 25);
+  });
+});
+
+describe("投資区分: 利回り評価", () => {
+  const base = {
+    price: 25800000,
+    ward: "港区",
+    areaSqm: 25,
+    monthlyRent: 72200,
+    monthlyCost: 12000,
+    monthlyLoan: 90000,
+  };
+
+  it("表面利回り = 年間家賃 / 価格", () => {
+    const r = evaluateInvestment(base);
+    expect(r.grossYield).toBeCloseTo((72200 * 12) / 25800000 * 100, 4);
+    expect(r.rentSource).toBe("input");
+  });
+
+  it("都心の低利回り・赤字物件は『要注意』判定", () => {
+    const r = evaluateInvestment(base);
+    expect(r.monthlyCashflow).toBeLessThan(0);
+    expect(r.rating).toBe("poor");
+  });
+
+  it("高利回り・黒字の地方型は『良好』判定", () => {
+    const r = evaluateInvestment({
+      price: 4500000,
+      ward: "足立区",
+      areaSqm: 30,
+      monthlyRent: 28300,
+      monthlyCost: 5000,
+      monthlyLoan: 0,
+    });
+    expect(r.grossYield).toBeGreaterThan(5);
+    expect(r.monthlyCashflow).toBeGreaterThan(0);
+    expect(r.rating).toBe("good");
+  });
+
+  it("家賃未入力ならエリア相場から推定する", () => {
+    const r = evaluateInvestment({ ...base, monthlyRent: undefined });
+    expect(r.rentSource).toBe("estimated");
+    expect(r.monthlyRent).toBe(WARD_RENT_PER_SQM["港区"] * 25);
   });
 });
