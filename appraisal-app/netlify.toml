@@ -1,0 +1,13 @@
+# Netlify 設定（appraisal-app）
+# Netlify CLI をこのディレクトリ（appraisal-app）から実行する前提。
+# リポジトリ連携で root から運用する場合は base = "appraisal-app" を指定する。
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# SPA: 未知のパスは index.html へフォールバック
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
