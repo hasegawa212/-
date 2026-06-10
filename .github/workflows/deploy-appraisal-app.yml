@@ -17,9 +17,6 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'e6431469-8bb5-4d42-8db1-c370eebd5d04' }}
     defaults:
       run:
         working-directory: appraisal-app
@@ -54,11 +51,11 @@ jobs:
             echo "::warning::NETLIFY_AUTH_TOKEN is not configured; skipping Netlify deploy."
             echo "configured=false" >> "$GITHUB_OUTPUT"
           fi
+
       - name: Deploy to Netlify
         if: steps.netlify-auth.outputs.configured == 'true'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'e6431469-8bb5-4d42-8db1-c370eebd5d04' }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'e6431469-8bb5-4d42-8db1-c370eebd5d04' }}
         run: |
           npx --yes netlify-cli@17 deploy \
