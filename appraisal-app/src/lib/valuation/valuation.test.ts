@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { appraiseRealEstate, walkFactor, buildingResidualRate } from "./realEstate";
 import { appraiseCar, ageResidualRate, mileageFactor } from "./car";
+import { estimateMonthlyRent, WARD_RENT_PER_SQM, WARD_RENT_AVERAGE } from "./wardRents";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -184,5 +185,19 @@ describe("自動車: 査定", () => {
       inspectionMonthsLeft: 0,
     });
     expect(r.estimate).toBeGreaterThanOrEqual(Math.round((base.newPrice * 0.03) / 10000) * 10000);
+  });
+});
+
+describe("東京23区 賃料（SUUMO連携データ）", () => {
+  it("都心区は周辺区より㎡賃料が高い", () => {
+    expect(WARD_RENT_PER_SQM["港区"]).toBeGreaterThan(WARD_RENT_PER_SQM["足立区"]);
+  });
+
+  it("想定月額家賃は ㎡賃料 × 面積 で算出される", () => {
+    expect(estimateMonthlyRent("港区", 30)).toBe(WARD_RENT_PER_SQM["港区"] * 30);
+  });
+
+  it("未対応エリアは23区平均にフォールバックする", () => {
+    expect(estimateMonthlyRent("該当しない区", 25)).toBe(WARD_RENT_AVERAGE * 25);
   });
 });
