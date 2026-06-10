@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Calculator } from "lucide-react";
 import {
   appraiseRealEstate,
+  AREA_GROUPS,
   CITY_OPTIONS,
   STRUCTURE_SPEC,
   type AppraisalResult,
@@ -54,12 +55,16 @@ export function RealEstateForm({ onResult }: Props) {
         <SegmentedControl options={PROPERTY_OPTIONS} value={propertyType} onChange={setPropertyType} />
       </Field>
 
-      <Field label="所在地（茨城県）" htmlFor="re-city">
+      <Field label="所在地（茨城県・首都圏）" htmlFor="re-city">
         <Select id="re-city" value={city} onChange={(e) => setCity(e.target.value)}>
-          {CITY_OPTIONS.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
+          {AREA_GROUPS.map((g) => (
+            <optgroup key={g.region} label={g.region}>
+              {g.cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </Select>
       </Field>
