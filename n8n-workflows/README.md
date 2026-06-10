@@ -10,7 +10,8 @@
 | `slack-modal-trigger-daily.json` | `/daily` → 日報モーダル表示 |
 | `slack-modal-trigger-apo.json` | `/apo` → アポ追加/キャンセル モーダル表示 |
 | `slack-modal-trigger-feedback.json` | `/feedback` → 顧客フィードバック モーダル表示 |
-| `slack-modal-submit-handler.json` | 3 つのモーダル送信を一括処理（Sheets append + Slack 通知） |
+| `slack-modal-trigger-meeting.json` | `/meeting` → 会議の確認事項（必須3つ）モーダル表示 |
+| `slack-modal-submit-handler.json` | 4 つのモーダル送信を一括処理（Sheets append + Slack 通知） |
 | `invoice-receipt-pdf-merge.json` | Slack リアクション → 請求書PDF + 振込受付書を1つのPDFに結合 → Google Drive 格納 |
 
 ---
@@ -179,13 +180,15 @@ ma_payment（共有ドライブ）
 
 # Slack Modal Workflows（業務フォーム連携）
 
-`/daily` `/apo` `/feedback` の 3 スラッシュコマンドからモーダルを開き、送信内容を Google Sheets に蓄積 + Slack チャンネルに通知。
+`/daily` `/apo` `/feedback` `/meeting` の 4 スラッシュコマンドからモーダルを開き、送信内容を Google Sheets に蓄積 + Slack チャンネルに通知。
+
+> **会議の「必ず3つの質問・確認事項」ルールの共有・管理は `/meeting` を使う。** 会議終了時に `/meeting` を打つと確認事項①〜③（必須入力）のモーダルが開き、送信すると `meeting_checklist` シートに1行追記され、`#martial-arts-meeting-checklist` 等のチャンネルへ自動共有される。3つ揃わないと Slack 側で送信できないため、ルールがフォームで強制される。
 
 ## フロー全体図
 
 ```
 [Slack User]
-    │ /daily, /apo, /feedback
+    │ /daily, /apo, /feedback, /meeting
     ▼
 [Trigger Workflow]                          ┌──────────────┐
   Webhook → Extract → views.open → Respond  │ Slack Modal  │
@@ -198,7 +201,8 @@ ma_payment（共有ドライブ）
                                   Switch
                                   ├─ daily_report      → Sheets: daily_reports
                                   ├─ apo_action        → Sheets: apo_log
-                                  └─ customer_feedback → Sheets: feedback_log
+                                  ├─ customer_feedback → Sheets: feedback_log
+                                  └─ meeting_check     → Sheets: meeting_checklist
                                        ↓
                                   Slack Channel Notify
 ```
@@ -207,13 +211,14 @@ ma_payment（共有ドライブ）
 
 ### 1. n8n でワークフローをインポート
 
-4 つの JSON を全てインポートし、各 `REPLACE_WITH_*` を実値に置換:
+5 つの JSON を全てインポートし、各 `REPLACE_WITH_*` を実値に置換:
 - `REPLACE_WITH_SLACK_BOT_TOKEN` → Slack Bot User OAuth Token (`xoxb-...`)
 - `REPLACE_WITH_SLACK_CREDENTIAL_ID` → n8n Slack credential
 - `REPLACE_WITH_GOOGLE_SHEET_ID` → スプレッドシート ID
 - `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` → n8n Google Sheets credential
+- `REPLACE_WITH_MEETING_CHANNEL_ID` → `/meeting` 通知先チャンネル ID（`slack-modal-submit-handler.json` の `NOTIFY_CHANNEL.meeting_check`）
 
-> 通知先チャンネルは `slack-modal-submit-handler.json` の `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で `callback_id` ごとに固定振分（Slack ノードは `{{ $json.notify_channel }}` で参照）。差し替え対象なし。詳細は `SETUP.md` §4-3-1。
+> 通知先チャンネルは `slack-modal-submit-handler.json` の `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で `callback_id` ごとに固定振分（Slack ノードは `{{ $json.notify_channel }}` で参照）。`meeting_check` のみプレースホルダなので Channel ID を実値に置換する。詳細は `SETUP.md` §4-3-1。
 
 ### 2. Slack App 設定
 
@@ -223,6 +228,7 @@ ma_payment（共有ドライブ）
 | `/daily` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-daily` |
 | `/apo` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-apo` |
 | `/feedback` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-feedback` |
+| `/meeting` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-meeting` |
 
 **Interactivity & Shortcuts**（Request URL）:
 ```
@@ -236,7 +242,7 @@ https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-submit
 
 ### 3. Google Sheets 準備
 
-スプレッドシートに 3 つのシートを作成:
+スプレッドシートに 4 つのシートを作成:
 
 **`daily_reports`**
 ```
@@ -255,6 +261,13 @@ action_type | customer_code | deal_code | apo_datetime | reason
 ```
 timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id |
 deal_code | customer_code | feedback_type | rating | content | action_needed
+```
+
+**`meeting_checklist`**
+```
+timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id |
+notify_channel | meeting_title | meeting_date | attendees |
+check_1 | check_2 | check_3 | owner
 ```
 
 各ワークフローの Google Sheets ノードは `autoMapInputData` モードのため、
