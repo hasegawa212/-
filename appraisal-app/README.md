@@ -6,6 +6,10 @@
 
 Vite + React 18 + TypeScript（strict）製の独立したサブプロジェクトで、バックエンド・APIキーは不要です。
 
+## 公開URL
+
+本番サイト（Netlify・`main` への push で自動デプロイ）: **https://ma-appraisal.netlify.app**
+
 ## セットアップ
 
 ```bash
