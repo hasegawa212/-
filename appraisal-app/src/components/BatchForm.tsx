@@ -62,7 +62,7 @@ export function BatchForm({ onResult }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-brand-200/60 bg-white p-6 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <FileText className="h-4 w-4 text-brand-600" />
@@ -112,7 +112,7 @@ export function BatchForm({ onResult }: Props) {
         </button>
         <button
           type="submit"
-          className="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+          className="flex items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-brand-600 to-brand-700 px-5 py-2.5 text-sm font-semibold text-cream shadow-luxe ring-1 ring-gold-400/30 transition hover:from-brand-700 hover:to-brand-800"
         >
           <Calculator className="h-4 w-4" />
           一括査定する
