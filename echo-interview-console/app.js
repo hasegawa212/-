@@ -188,22 +188,18 @@ async function saveToSheet() {
   saveBtn.disabled = true;
   saveBtn.textContent = '保存中…';
   try {
-    // text/plain にして CORS プリフライトを回避（Apps Script の定番）
-    const res = await fetch(endpoint, {
+    // Apps Script への書き込みは no-cors で送る（ブラウザ→GASの定番。
+    // クロスオリジンの応答は読めない＝不透明だが、doPost は実行されシートに書かれる）。
+    // text/plain でプリフライトも回避。
+    await fetch(endpoint, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (data.ok) {
-      toast(`保存しました（${data.sheet} ${data.row}行目 / ${data.written}項目）`);
-    } else {
-      toast('保存に失敗：' + (data.error || '不明なエラー'), true);
-    }
+    toast(`シートに送信しました（${$('#sheet-select').value}）。反映をご確認ください`);
   } catch (err) {
-    // 応答を読めない場合（CORS等）でも書き込み自体は通っていることが多い。
-    // 403/権限系は公開範囲の設定ミスの可能性が高い旨を案内する。
-    toast('応答を確認できませんでした。シートに反映されたか確認してください（403の場合はウェブアプリの公開範囲を「全員」に）', true);
+    toast('送信に失敗しました：' + err.message, true);
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = '💾 シートに保存';
@@ -225,6 +221,7 @@ async function sendToN8n() {
   try {
     await fetch(url, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ text, sheet: $('#sheet-select').value }),
     });
