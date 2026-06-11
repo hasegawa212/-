@@ -13,6 +13,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── n8n-workflows/            # n8n workflow JSON exports (no code to run)
 ├── appraisal-app/            # Vite + React + TS appraisal simulator (real estate & car, tested valuation engine, JP UI)
 ├── ultimate-ai-agent/        # Full-stack TS monorepo (React + Express + tRPC + SQLite)
+├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
 
@@ -58,6 +59,15 @@ Quick reference (full detail in the subproject's CLAUDE.md):
 - `npm run dev` runs server (port 3000, tsx watch) and client (Vite, port 5173) concurrently
 - `npm run db:push` to apply `drizzle/schema.ts` changes; integer-stored temperatures are converted to floats at the API layer
 - Strict TS, Zod at boundaries, ES Modules, `gpt-4o-mini` as default model. No linter or tests configured.
+
+### `slack-bulk-messaging/` — 個別DM一斉送信CLI
+Zero-dependency Node ES Modules CLI (`send.js`, Node 18+ global `fetch` only) that sends **individual 1:1 Slack DMs** to every recipient in a list — not a group DM — so each person feels personally addressed. Recipients are given by CSV with either an `email` column (resolved via `users.lookupByEmail`) or a `slack_id` column (`slack_id` wins if both present); other columns feed `{{column}}` template substitution in the message body. Flow per recipient: resolve user ID → `conversations.open` → `chat.postMessage`, with 1s default `--delay`, automatic 429 retry, and a per-run `send-log-*.csv`.
+
+- `cd slack-bulk-messaging && cp .env.example .env` (set `SLACK_BOT_TOKEN`, `xoxb-...`)
+- Always preview first: `node send.js -r recipients.csv -m message.txt --dry-run` (with no token, email recipients show a `email:...` placeholder and no network call is made)
+- Send for real: `node send.js -r recipients.csv -m message.txt [--delay 1500]`
+- No build/test/lint. Required Bot scopes: `chat:write`, `im:write`, and `users:read.email` for email recipients.
+- `.gitignore` excludes `recipients.csv` / `message.txt` / `send-log-*.csv` (PII) — only `*.example.*` files are tracked. See `slack-bulk-messaging/README.md` (Japanese) for the full setup.
 
 ### `n8n-workflows/` — n8n workflow exports
 Contains `telegram-to-sheets-slack.json`, an importable n8n workflow (Telegram trigger → Google Sheets append → Slack notify → Telegram ack). Not executable code — it is imported via the n8n UI. Before reuse, the consumer must replace placeholders in the JSON: `REPLACE_WITH_TELEGRAM_CREDENTIAL_ID`, `REPLACE_WITH_GOOGLE_SHEET_ID`, `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID`, `REPLACE_WITH_SLACK_CHANNEL_ID`, `REPLACE_WITH_SLACK_CREDENTIAL_ID`. Setup details and Google Sheets header schema (`timestamp | chat_id | chat_title | user_id | username | text | message_id`) are in `n8n-workflows/README.md` (Japanese).
