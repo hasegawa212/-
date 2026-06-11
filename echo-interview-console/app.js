@@ -178,6 +178,7 @@ async function saveToSheet() {
     sheet: $('#sheet-select').value,
     cells: collectByCol(),
     viewUrl: SESSION ? `${location.origin}${location.pathname}?session=${encodeURIComponent(SESSION)}` : VIEW_URL,
+    postSlack: $('#post-slack').checked,
   };
 
   const saveBtn = $('#save-btn');

@@ -63,6 +63,30 @@ python3 -m http.server 5180
 | 既存ヒアリングシート | A〜BA（53 列）に 1 項目=1 列 |
 | 専用列なし（質的項目） | エリア理由 / 絶対条件 / 希望条件 / 将来像 → 備考(AY) に畳み込み |
 
+## 自動化（apps-script/Automation.gs）
+
+`Code.gs` と同じ Apps Script プロジェクトに `Automation.gs` を追加すると、4つの自動化が使えます。
+プロジェクトの「スクリプト プロパティ」に必要なキーを設定してください。
+
+| プロパティ | 用途 |
+| --- | --- |
+| `SLACK_WEBHOOK_URL` | #1/#4 Slack Incoming Webhook |
+| `ANTHROPIC_API_KEY` | #3 Claude API キー |
+| `ANTHROPIC_MODEL` | 省略時 `claude-opus-4-8`（コスト優先なら `claude-haiku-4-5` 等） |
+
+- **#1 Slackサマリー → シート自動転記**：Slackの「反響顧客ヒアリングサマリー」本文を
+  `doPost`（`{"action":"importSummary","text":"...","sheet":"ヒアリングシート①"}`）へPOSTすると、
+  53列を解析してシートに追記。Slack Events API や n8n の Slackトリガーから本Web AppへPOSTして連携します。
+- **#2 反響フォーム → ヒアリング下書き自動作成**：`importInquiriesToDrafts()` が反響管理シートの
+  新規行を検知し、氏名・連絡先・流入元・希望エリア等を入れた下書き行をヒアリングシートへ追記
+  （取り込み済みはマーカーで二重防止）。**時間主導トリガー**（例：5分おき）に登録、または
+  シート上部メニュー「反響自動化 → 反響→ヒアリング下書きを同期」から手動実行。
+- **#3 Zoom録画 → AI要約 → シート自動入力**：`doPost`
+  （`{"action":"extractTranscript","transcript":"...","sheet":"..."}`）へ文字起こしを送ると、
+  Claude（`claude-opus-4-8`）が53列に構造化してシートへ追記。Zoom録画の文字起こしをn8n等で渡します。
+- **#4 コンソール保存時にSlackも同時投稿**：コンソールの「保存時にSlackへも投稿」にチェックして保存すると、
+  シート反映と同時にSlackへサマリーを投稿（`SLACK_WEBHOOK_URL` 設定時）。
+
 ## メモ
 
 - ビルド・テスト・Lint はありません（リポジトリの他サブプロジェクトと独立）。

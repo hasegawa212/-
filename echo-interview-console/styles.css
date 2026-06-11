@@ -73,9 +73,10 @@ main { max-width: 960px; margin: 0 auto; padding: 20px; }
 
 /* actions */
 .actions {
-  position: sticky; bottom: 0; display: flex; gap: 12px; justify-content: flex-end;
+  position: sticky; bottom: 0; display: flex; gap: 12px; align-items: center; justify-content: flex-end;
   padding: 14px 0; background: linear-gradient(to top, var(--bg) 70%, transparent);
 }
+.slack-toggle { margin-right: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 button { cursor: pointer; font-family: inherit; font-size: 14px; border-radius: 8px; }
 button.primary {
   background: var(--fire); color: #fff; border: none; padding: 10px 22px; font-weight: 700;

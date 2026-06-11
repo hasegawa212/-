@@ -96,14 +96,35 @@ function doGet(e) {
   }
 }
 
-/** 面談データを書き込む。body = { sheet, cells:{col:value}, viewUrl } */
+/**
+ * 受け口。body.action で分岐：
+ *   (既定/"save")        … { sheet, cells:{col:value}, viewUrl, postSlack? } を1行書き込み
+ *   "importSummary"      … { text, sheet } Slackサマリーを解析して1行書き込み（自動化#1）
+ *   "extractTranscript"  … { transcript, sheet } 文字起こしをClaudeで構造化して1行（自動化#3）
+ */
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  lock.waitLock(20000);
+  lock.waitLock(30000);
   try {
     var body = JSON.parse(e.postData.contents);
-    var book = getBook_();
     var sheetName = body.sheet || DEFAULT_SHEET;
+
+    // 自動化#1：Slackサマリー → シート
+    if (body.action === 'importSummary') {
+      var sh = getBook_().getSheetByName(sheetName);
+      if (!sh) return jsonOut_({ ok: false, error: 'シートが見つかりません: ' + sheetName });
+      var parsed = parseSummary_(String(body.text || ''));
+      var r1 = writeRowToSheet_(sh, parsed, body.viewUrl || '');
+      return jsonOut_({ ok: true, sheet: sheetName, row: r1, written: Object.keys(parsed).length });
+    }
+
+    // 自動化#3：文字起こし → Claude → シート
+    if (body.action === 'extractTranscript') {
+      return jsonOut_(extractTranscript_(String(body.transcript || ''), sheetName));
+    }
+
+    // 既定：コンソール保存
+    var book = getBook_();
     var sheet = book.getSheetByName(sheetName);
     if (!sheet) return jsonOut_({ ok: false, error: 'シートが見つかりません: ' + sheetName });
 
@@ -122,6 +143,10 @@ function doPost(e) {
       sheet.getRange(row, colToIndex_(col)).setValue(val);
       written++;
     }
+
+    // 自動化#4：保存と同時に Slack へサマリー投稿（postSlack:true かつ Webhook設定時）
+    if (body.postSlack) postSlackSummary_(cells);
+
     return jsonOut_({ ok: true, sheet: sheetName, row: row, written: written });
   } catch (err) {
     return jsonOut_({ ok: false, error: String(err) });
