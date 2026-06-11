@@ -14,6 +14,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── appraisal-app/            # Vite + React + TS appraisal simulator (real estate & car, tested valuation engine, JP UI)
 ├── ultimate-ai-agent/        # Full-stack TS monorepo (React + Express + tRPC + SQLite)
 ├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
+├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
 
@@ -68,6 +69,14 @@ Zero-dependency Node ES Modules CLI (`send.js`, Node 18+ global `fetch` only) th
 - Send for real: `node send.js -r recipients.csv -m message.txt [--delay 1500]`
 - No build/test/lint. Required Bot scopes: `chat:write`, `im:write`, and `users:read.email` for email recipients.
 - `.gitignore` excludes `recipients.csv` / `message.txt` / `send-log-*.csv` (PII) — only `*.example.*` files are tracked. See `slack-bulk-messaging/README.md` (Japanese) for the full setup.
+
+### `echo-interview-console/` — 反響面談コンソール (hearing console → ヒアリングシート)
+Zero-dependency vanilla-JS console (ES Modules, no build step — like `claude-clone`) used during 反響/online 面談 for 株式会社 Martial Arts. Operators fill the hearing form and on save it writes **one row covering every field (the existing 53 columns A–BA)** into a `ヒアリングシート①/②/③` tab of the Google Sheet `⭐️反響管理シート（martialhp連動）`. Solves the "ちゃんと反映されない" gap where the deployed Replit console only populated a few of the sheet's 53 columns.
+
+- Run: `cd echo-interview-console && python3 -m http.server 5180` → http://localhost:5180 (no install/build).
+- **`fields.js` is the single source of truth** mapping each input ↔ sheet column (`col`). The 7 form sections mirror the Slack 「反響顧客ヒアリングサマリー」 headings. The sheet is fixed at 53 columns (A–BA, headers on row 25), so the 4 qualitative fields with no dedicated column (エリア理由/絶対条件/希望条件/将来像) carry a `mergeInto: 'AY'` instead and are folded into 備考(AY) as `【ラベル】値` at save time — the sheet is never structurally widened.
+- Writes go through `apps-script/Code.gs` (Google Apps Script Web App, `doPost`): it ensures the row-25 headers, finds the next empty data row (≥26, keyed on お客様名/E), and writes each value by column letter; `保存日時`(AZ) + `閲覧URL`(BA) are auto-set. The browser POSTs as `text/plain` to avoid CORS preflight. The Web App URL is configured in the console's ⚙︎ 設定 (stored in localStorage).
+- If you change `FIELDS`, also update `HEADERS` in `Code.gs` and the spreadsheet's row-25 headers. No tests/lint/build. See `echo-interview-console/README.md` (Japanese) for deploy steps.
 
 ### `n8n-workflows/` — n8n workflow exports
 Contains `telegram-to-sheets-slack.json`, an importable n8n workflow (Telegram trigger → Google Sheets append → Slack notify → Telegram ack). Not executable code — it is imported via the n8n UI. Before reuse, the consumer must replace placeholders in the JSON: `REPLACE_WITH_TELEGRAM_CREDENTIAL_ID`, `REPLACE_WITH_GOOGLE_SHEET_ID`, `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID`, `REPLACE_WITH_SLACK_CHANNEL_ID`, `REPLACE_WITH_SLACK_CREDENTIAL_ID`. Setup details and Google Sheets header schema (`timestamp | chat_id | chat_title | user_id | username | text | message_id`) are in `n8n-workflows/README.md` (Japanese).
