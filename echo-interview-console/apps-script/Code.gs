@@ -150,9 +150,13 @@ function doPost(e) {
       sheet.getRange(row, colToIndex_(col)).setValue(val);
       written++;
     }
+    SpreadsheetApp.flush(); // 書き込みを確実に確定（後続でエラーが出ても保存は残す）
 
     // 自動化#4：保存と同時に Slack へサマリー投稿（postSlack:true かつ Webhook設定時）
-    if (body.postSlack) postSlackSummary_(cells);
+    // Automation.gs 未追加でも保存が巻き戻らないよう try/catch で隔離する
+    if (body.postSlack) {
+      try { postSlackSummary_(cells); } catch (slackErr) { /* 保存は成功扱い */ }
+    }
 
     return jsonOut_({ ok: true, sheet: sheetName, row: row, written: written });
   } catch (err) {
