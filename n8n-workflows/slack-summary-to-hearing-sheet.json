@@ -1,0 +1,94 @@
+{
+  "name": "Slack反響サマリー → ヒアリングシート転記",
+  "nodes": [
+    {
+      "parameters": {
+        "trigger": ["message"],
+        "channelId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Slack Trigger（反響チャンネル）",
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "slack-hearing-summary",
+      "credentials": {
+        "slackApi": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "Slack API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.text || $json.event?.text || $json.message?.text || '' }}",
+              "rightValue": "反響顧客ヒアリングサマリー",
+              "operator": { "type": "string", "operation": "contains" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "サマリー投稿のみ通す",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "REPLACE_WITH_APPS_SCRIPT_WEBAPP_URL",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'importSummary', sheet: 'ヒアリングシート①', text: ($json.text || $json.event?.text || $json.message?.text || '') }) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Apps Scriptへ転記",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 220]
+    },
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "対象外（無視）",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [800, 400]
+    }
+  ],
+  "connections": {
+    "Slack Trigger（反響チャンネル）": {
+      "main": [[{ "node": "サマリー投稿のみ通す", "type": "main", "index": 0 }]]
+    },
+    "サマリー投稿のみ通す": {
+      "main": [
+        [{ "node": "Apps Scriptへ転記", "type": "main", "index": 0 }],
+        [{ "node": "対象外（無視）", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "description": "Slackの反響チャンネルに投稿される『反響顧客ヒアリングサマリー』を検知し、本文をApps Script Web App(action:importSummary)へPOSTしてヒアリングシートへ53列で転記する。"
+  }
+}
