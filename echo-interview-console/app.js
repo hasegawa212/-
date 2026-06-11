@@ -2,6 +2,7 @@
 import { FIELDS, GROUPS } from './fields.js';
 
 const LS_ENDPOINT = 'eic.endpoint';
+const LS_N8N = 'eic.n8n';
 const LS_SHEET = 'eic.sheet';
 const draftKey = (s) => `eic.draft.${s || 'default'}`;
 
@@ -205,14 +206,43 @@ async function saveToSheet() {
   }
 }
 
+// ── n8n へサマリーを直送（option A）─────────────────────────────
+async function sendToN8n() {
+  const url = localStorage.getItem(LS_N8N) || '';
+  if (!url) {
+    toast('先に「⚙︎ 設定」で n8n Webhook URL を登録してください', true);
+    openSettings();
+    return;
+  }
+  const text = $('#summary-text').textContent || buildSummary();
+  const btn = $('#send-n8n');
+  btn.disabled = true;
+  btn.textContent = '送信中…';
+  try {
+    await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ text, sheet: $('#sheet-select').value }),
+    });
+    toast('n8nへ送信しました');
+  } catch (err) {
+    toast('n8n送信エラー：' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'n8nへ送信';
+  }
+}
+
 // ── 設定モーダル ───────────────────────────────────────────────
 function openSettings() {
   $('#endpoint-input').value = localStorage.getItem(LS_ENDPOINT) || '';
+  $('#n8n-input').value = localStorage.getItem(LS_N8N) || '';
   $('#settings-modal').classList.remove('hidden');
 }
 function closeSettings() { $('#settings-modal').classList.add('hidden'); }
 function saveSettings() {
   localStorage.setItem(LS_ENDPOINT, $('#endpoint-input').value.trim());
+  localStorage.setItem(LS_N8N, $('#n8n-input').value.trim());
   closeSettings();
   toast('設定を保存しました');
 }
@@ -254,6 +284,7 @@ function init() {
     $('#summary-text').textContent = buildSummary();
     $('#summary-panel').classList.remove('hidden');
   });
+  $('#send-n8n').addEventListener('click', sendToN8n);
   $('#copy-summary').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText($('#summary-text').textContent); toast('コピーしました'); }
     catch { toast('コピーに失敗しました', true); }

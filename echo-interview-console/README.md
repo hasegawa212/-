@@ -74,12 +74,16 @@ python3 -m http.server 5180
 | `ANTHROPIC_API_KEY` | #3 Claude API キー |
 | `ANTHROPIC_MODEL` | 省略時 `claude-opus-4-8`（コスト優先なら `claude-haiku-4-5` 等） |
 
-- **#1 Slackサマリー → シート自動転記**：Slackの「反響顧客ヒアリングサマリー」本文を
-  `doPost`（`{"action":"importSummary","text":"...","sheet":"ヒアリングシート①"}`）へPOSTすると、
-  53列を解析してシートに追記。**n8nワークフロー** `n8n-workflows/slack-summary-to-hearing-sheet.json`
-  を使うのが推奨です（Slackトリガー→サマリー判定→本Web AppへPOST）。インポート後、
-  `REPLACE_WITH_SLACK_CHANNEL_ID`（反響チャンネル）/ `REPLACE_WITH_SLACK_CREDENTIAL_ID` /
-  `REPLACE_WITH_APPS_SCRIPT_WEBAPP_URL`（デプロイURL）を差し替えて有効化してください。
+- **#1 サマリー → シート自動転記（直送方式）**：サマリー本文をn8n Webhookへ
+  `{"text":"<サマリー本文>","sheet":"ヒアリングシート①"}` で直接POSTすると、n8nが
+  Apps Script Web App（`action:importSummary`）へ渡し、53列を解析してシートに追記します。
+  Slackイベントに依存しないので確実です。
+  - n8nワークフロー：`n8n-workflows/slack-summary-to-hearing-sheet.json`（Webhookノード受け）。
+    インポート後 `REPLACE_WITH_APPS_SCRIPT_WEBAPP_URL` を差し替えてActiveに。
+    本番URL例：`https://<your>.app.n8n.cloud/webhook/slack-hearing-summary`
+  - 送信元：本コンソールの「📝 サマリー生成 → n8nへ送信」ボタン（⚙︎設定でn8n URLを登録）。
+    Replit版など外部の投稿元からは、同じURLへ `{text, sheet}` をPOSTすればOK。
+  - Apps Scriptへ直接POSTしてもOK：`{"action":"importSummary","text":"...","sheet":"ヒアリングシート①"}`。
 - **#2 反響フォーム → ヒアリング下書き自動作成**：`importInquiriesToDrafts()` が反響管理シートの
   新規行を検知し、氏名・連絡先・流入元・希望エリア等を入れた下書き行をヒアリングシートへ追記
   （取り込み済みはマーカーで二重防止）。**時間主導トリガー**（例：5分おき）に登録、または
