@@ -201,7 +201,9 @@ async function saveToSheet() {
       toast('保存に失敗：' + (data.error || '不明なエラー'), true);
     }
   } catch (err) {
-    toast('通信エラー：' + err.message, true);
+    // 応答を読めない場合（CORS等）でも書き込み自体は通っていることが多い。
+    // 403/権限系は公開範囲の設定ミスの可能性が高い旨を案内する。
+    toast('応答を確認できませんでした。シートに反映されたか確認してください（403の場合はウェブアプリの公開範囲を「全員」に）', true);
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = '💾 シートに保存';
