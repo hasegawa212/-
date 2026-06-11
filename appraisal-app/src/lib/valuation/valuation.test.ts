@@ -6,7 +6,7 @@ import { evaluateInvestment } from "./investment";
 import { parseBatchText, parseMyosoku, appraiseBatch, resolveCity, resolveStructure, parsePrice, parseArea, parseBuildAge, parseWalkMinutes, judge } from "./batch";
 import { appraiseHybrid, appraiseByComparables } from "./comparables";
 import { capRateForWard } from "./investment";
-import { runBacktest, ACTUAL_SAMPLES } from "./backtest";
+import { runBacktest, optimizeCompWeight, ACTUAL_SAMPLES } from "./backtest";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -454,5 +454,28 @@ describe("精度向上 v2", () => {
     expect(report.rows).toHaveLength(ACTUAL_SAMPLES.length);
     // 参考: コンソールに精度サマリを出力
     console.log(`[backtest] n=${report.n} MAPE=${report.mape.toFixed(1)}% ±15%命中=${report.within15.toFixed(0)}%`);
+  });
+});
+
+describe("ブレンド比率の最適化", () => {
+  it("MAPEを最小化する事例比較の重みを探索する（既定0.55以下のMAPE）", () => {
+    const opt = optimizeCompWeight(ACTUAL_SAMPLES);
+    expect(opt.bestWeight).toBeGreaterThanOrEqual(0);
+    expect(opt.bestWeight).toBeLessThanOrEqual(1);
+    // 探索した最適重みは、既定(0.55)以下のMAPEになるはず
+    expect(opt.bestMape).toBeLessThanOrEqual(opt.baselineMape + 1e-9);
+    console.log(`[blend] best weight=${opt.bestWeight} MAPE=${opt.bestMape.toFixed(1)}% (baseline 0.55 → ${opt.baselineMape.toFixed(1)}%)`);
+  });
+
+  it("compWeight=1 は事例比較のみ、0 は原価法のみに一致する", () => {
+    const input = {
+      propertyType: "house" as const, city: "水戸市", landArea: 170, buildingArea: 105,
+      buildAge: 12, structure: "wood" as const, walkMinutes: 12,
+    };
+    const compOnly = appraiseHybrid(input, undefined, 1).estimate;
+    const costOnly = appraiseHybrid(input, undefined, 0).estimate;
+    const comp = appraiseByComparables(input)!;
+    expect(compOnly).toBe(comp.estimate);
+    expect(costOnly).toBe(appraiseRealEstate(input).estimate);
   });
 });

@@ -33,9 +33,9 @@ export interface BacktestReport {
   rows: BacktestRow[];
 }
 
-export function runBacktest(samples: BacktestSample[]): BacktestReport {
+export function runBacktest(samples: BacktestSample[], compWeight = 0.55): BacktestReport {
   const rows: BacktestRow[] = samples.map((s, i) => {
-    const estimate = appraiseHybrid(s.input).estimate;
+    const estimate = appraiseHybrid(s.input, undefined, compWeight).estimate;
     const errorPct = s.actual > 0 ? (Math.abs(estimate - s.actual) / s.actual) * 100 : 0;
     return { label: s.label ?? `#${i + 1}`, actual: s.actual, estimate, errorPct };
   });
@@ -44,6 +44,36 @@ export function runBacktest(samples: BacktestSample[]): BacktestReport {
   const mae = n ? rows.reduce((a, r) => a + Math.abs(r.estimate - r.actual), 0) / n : 0;
   const within15 = n ? (rows.filter((r) => r.errorPct <= 15).length / n) * 100 : 0;
   return { n, mape, mae, within15, rows };
+}
+
+export interface BlendOptimization {
+  /** MAPE を最小化する事例比較の重み（0〜1） */
+  bestWeight: number;
+  /** 最適重みでの MAPE（%） */
+  bestMape: number;
+  /** 既定重み(0.55)での MAPE（%） */
+  baselineMape: number;
+}
+
+/**
+ * 事例比較の重み compWeight を 0〜1 でグリッド探索し、MAPE を最小化する値を返す。
+ * 実成約データを反映した後に実行すると、最適なブレンド比が分かる。
+ */
+export function optimizeCompWeight(
+  samples: BacktestSample[],
+  step = 0.05
+): BlendOptimization {
+  let bestWeight = 0.55;
+  let bestMape = Infinity;
+  for (let w = 0; w <= 1.0001; w += step) {
+    const weight = Math.round(w * 100) / 100;
+    const { mape } = runBacktest(samples, weight);
+    if (mape < bestMape) {
+      bestMape = mape;
+      bestWeight = weight;
+    }
+  }
+  return { bestWeight, bestMape, baselineMape: runBacktest(samples, 0.55).mape };
 }
 
 /** 例示用の実成約サンプル（実データは fetch_transactions.py で置換） */

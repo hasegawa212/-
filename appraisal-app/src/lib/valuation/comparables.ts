@@ -108,11 +108,13 @@ export function appraiseByComparables(
 
 /**
  * ハイブリッド査定：原価法と取引事例比較法をブレンドする。
- * 事例が十分にあれば「事例55%・原価45%」で重み付けし、無ければ原価法のみ。
+ * 事例が十分にあれば事例比較に `compWeight`（既定0.55）の重みを置き、無ければ原価法のみ。
+ * compWeight はバックテスト（backtest.ts の optimizeCompWeight）で最適化できる。
  */
 export function appraiseHybrid(
   input: RealEstateInput,
-  comps: TransactionComp[] = SAMPLE_COMPS
+  comps: TransactionComp[] = SAMPLE_COMPS,
+  compWeight = 0.55
 ): AppraisalResult {
   const cost = appraiseRealEstate(input);
   const comp = appraiseByComparables(input, comps);
@@ -124,7 +126,8 @@ export function appraiseHybrid(
     return cost;
   }
 
-  const blended = Math.round((comp.estimate * 0.55 + cost.estimate * 0.45) / 10000) * 10000;
+  const w = Math.min(1, Math.max(0, compWeight));
+  const blended = Math.round((comp.estimate * w + cost.estimate * (1 - w)) / 10000) * 10000;
   const low = Math.round((blended * 0.9) / 10000) * 10000;
   const high = Math.round((blended * 1.1) / 10000) * 10000;
 
@@ -136,7 +139,7 @@ export function appraiseHybrid(
     notes: [
       ...cost.notes,
       `取引事例比較法（成約${comp.n}件・補正後㎡単価中央値 ${Math.round(comp.unitMedian).toLocaleString()}円）では ${formatYen(comp.estimate)} と算定。`,
-      `原価法 ${formatYen(cost.estimate)} とブレンド（事例55%・原価45%）し、最終査定額 ${formatYen(blended)} としています。`,
+      `原価法 ${formatYen(cost.estimate)} とブレンド（事例${Math.round(w * 100)}%・原価${Math.round((1 - w) * 100)}%）し、最終査定額 ${formatYen(blended)} としています。`,
     ],
   };
 }
