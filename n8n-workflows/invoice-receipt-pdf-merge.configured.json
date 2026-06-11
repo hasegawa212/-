@@ -309,7 +309,7 @@
         "url": "https://slack.com/api/chat.postMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ { channel: $('Resolve Target Folder').item.json.channel, thread_ts: $('Resolve Target Folder').item.json.message_ts, text: ':white_check_mark: 請求書と振込受付書を1つのPDFに結合し、梅本様共有フォルダへ格納しました。\\n*ファイル名:* ' + $('Resolve Target Folder').item.json.filename + '\\n*格納先:* ' + $('Resolve Target Folder').item.json.folderPath + '\\n*リンク:* ' + ($('Upload to Drive').item.json.webViewLink || '(Google Drive)') } }}",
+        "jsonBody": "={{ { channel: $('Resolve Target Folder').item.json.channel, thread_ts: $('Resolve Target Folder').item.json.message_ts, text: ':white_check_mark: 請求書と振込受付書を1つのPDFに結合し、梅本様共有フォルダへ格納しました。\\n*ファイル名:* ' + $('Resolve Target Folder').item.json.filename + '\\n*格納先:* ' + $('Resolve Target Folder').item.json.folderPath + '\\n*リンク:* ' + ($('Upload to Drive').item.json.webViewLink || '(Google Drive)') + '\\n*実行:* <@' + $('Parse Slack Event').item.json.reactor + '>' } }}",
         "options": {}
       },
       "id": "merge-18-notify",
