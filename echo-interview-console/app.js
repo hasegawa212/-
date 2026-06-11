@@ -70,12 +70,22 @@ function collectByKey() {
   return out;
 }
 
-/** 保存ペイロード用に col→value へ変換 */
+/** 保存ペイロード用に col→value へ変換（専用列が無い項目は mergeInto 列へ「【ラベル】値」で追記） */
 function collectByCol() {
   const cells = {};
+  const merges = {}; // col -> ["【ラベル】値", ...]
   for (const f of FIELDS) {
     const v = getVal(f.key);
-    if (v !== '') cells[f.col] = v;
+    if (v === '') continue;
+    if (f.col) {
+      cells[f.col] = v;
+    } else if (f.mergeInto) {
+      (merges[f.mergeInto] ||= []).push(`【${f.label}】${v}`);
+    }
+  }
+  // 直接入力の値（例：備考）を先頭に、続けて merge 項目を改行連結
+  for (const col in merges) {
+    cells[col] = [cells[col], ...merges[col]].filter(Boolean).join('\n');
   }
   return cells;
 }

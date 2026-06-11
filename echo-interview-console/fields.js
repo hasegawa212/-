@@ -2,14 +2,15 @@
 // ヒアリングシート フィールド定義（唯一のソース・オブ・トゥルース）
 // -----------------------------------------------------------------------------
 // この配列が「コンソールの入力項目」と「スプレッドシートの列」を 1:1 で対応づける。
-// col   = ヒアリングシートのデータテーブル（25行目ヘッダ）の列。A〜BA は既存 53 列、
-//         BB〜BE は本コンソールで追加する 4 列（エリア理由 / 絶対条件 / 希望条件 / 将来像）。
-//         → Slack の「反響顧客ヒアリングサマリー」に出る項目を 1 つも取りこぼさないため。
+// col   = ヒアリングシートのデータテーブル（25行目ヘッダ）の列。既存 53 列（A〜BA）。
+// mergeInto = 専用列を持たない質的項目（エリア理由 / 絶対条件 / 希望条件 / 将来像）の
+//         書き込み先列。保存時に「【ラベル】値」の形でその列へ追記する。
+//         → シートの列を増やさずに Slack サマリーの全項目を取りこぼさないため。
 // key   = フォーム / 保存ペイロードで使う内部キー。
 // group = 画面のセクション。Slack サマリーの見出しと揃えてある（営業が迷わないように）。
 //
 // Apps Script 側は col 文字だけを見て書き込むため、列の意味の正は常にこのファイル。
-// ★列を増減・並べ替えしたら apps-script/Code.gs の HEADER と Google シート 25 行目も合わせる。
+// ★列を増減・並べ替えしたら apps-script/Code.gs の HEADERS と Google シート 25 行目も合わせる。
 // =============================================================================
 
 // 画面セクション（＝Slack サマリーの ■見出し と同じ並び）
@@ -78,7 +79,7 @@ export const FIELDS = [
 
   // ── 希望エリア・勤務 ──────────────────────────────────────────
   { col: 'AB', key: 'kibo_area',     label: '希望エリア',    group: '希望エリア・勤務', type: 'text', placeholder: '例）東西線か新宿線沿い' },
-  { col: 'BB', key: 'area_riyu',     label: 'エリア理由',    group: '希望エリア・勤務', type: 'text', placeholder: '例）日本橋へのアクセスを優先' },
+  { mergeInto: 'AY', key: 'area_riyu', label: 'エリア理由',  group: '希望エリア・勤務', type: 'text', placeholder: '例）日本橋へのアクセスを優先' },
   { col: 'R',  key: 'kinmuchi',      label: '勤務地',        group: '希望エリア・勤務', type: 'text', placeholder: '例）日本橋 / 固定は無し' },
   { col: 'AC', key: 'kyoyo_tsukin',  label: '許容通勤（分）', group: '希望エリア・勤務', type: 'number' },
   { col: 'AD', key: 'eki_toho',      label: '駅まで徒歩（分）', group: '希望エリア・勤務', type: 'number' },
@@ -89,15 +90,15 @@ export const FIELDS = [
   { col: 'AG', key: 'madori',        label: '間取り',        group: '物件条件', type: 'text', placeholder: '例）3LDKか2LDK' },
   { col: 'AH', key: 'kaisu',         label: '階数',          group: '物件条件', type: 'text', placeholder: '例）2階建' },
   { col: 'AI', key: 'chushajo',      label: '駐車場（台）',  group: '物件条件', type: 'number' },
-  { col: 'BC', key: 'zettai_joken',  label: '絶対条件',      group: '物件条件', type: 'textarea', placeholder: '例）駐車場・新築のみ' },
-  { col: 'BD', key: 'kibo_joken',    label: '希望条件',      group: '物件条件', type: 'textarea', placeholder: '例）庭・テラス・ペット可' },
+  { mergeInto: 'AY', key: 'zettai_joken', label: '絶対条件', group: '物件条件', type: 'textarea', placeholder: '例）駐車場・新築のみ' },
+  { mergeInto: 'AY', key: 'kibo_joken', label: '希望条件',   group: '物件条件', type: 'textarea', placeholder: '例）庭・テラス・ペット可' },
   { col: 'AJ', key: 'kinrin_shogyo', label: '近隣希望商業施設', group: '物件条件', type: 'text', placeholder: '例）スーパーが近くにあるといい' },
 
   // ── ライフプラン・本音 ────────────────────────────────────────
   { col: 'J',  key: 'kazoku',        label: '家族構成',      group: 'ライフプラン・本音', type: 'text', placeholder: '単身・配偶者・お子様（　歳）・親' },
   { col: 'AU', key: 'oyago_chiiki',  label: '親御様居住地域', group: 'ライフプラン・本音', type: 'text', placeholder: '例）大阪 / 同居予定なし' },
   { col: 'AW', key: 'douki',         label: '家を買う動機',  group: 'ライフプラン・本音', type: 'textarea' },
-  { col: 'BE', key: 'shorai_zo',     label: '将来像',        group: 'ライフプラン・本音', type: 'textarea', placeholder: '例）静かに暮らしたい' },
+  { mergeInto: 'AY', key: 'shorai_zo', label: '将来像',      group: 'ライフプラン・本音', type: 'textarea', placeholder: '例）静かに暮らしたい' },
   { col: 'AX', key: 'kenen',         label: '懸念・不安',    group: 'ライフプラン・本音', type: 'textarea' },
 
   // ── 次アクション ──────────────────────────────────────────────
@@ -112,11 +113,11 @@ export const FIELDS = [
   { col: 'BA', key: 'etsuran_url',   label: '閲覧URL',       group: '次アクション', type: 'text', system: true, help: 'セッションURL（自動）' },
 ];
 
-// ── 整合性チェック（列の重複が無いこと）─────────────────────────
-const _cols = FIELDS.map((f) => f.col);
+// ── 整合性チェック（専用列の重複が無いこと）─────────────────────
+const _cols = FIELDS.filter((f) => f.col).map((f) => f.col);
 if (new Set(_cols).size !== _cols.length) {
   throw new Error('FIELDS: 列(col)が重複しています');
 }
 
-/** col(列文字) → key の対応表 */
-export const COL_TO_KEY = Object.fromEntries(FIELDS.map((f) => [f.col, f.key]));
+/** col(列文字) → key の対応表（専用列を持つ項目のみ） */
+export const COL_TO_KEY = Object.fromEntries(FIELDS.filter((f) => f.col).map((f) => [f.col, f.key]));
