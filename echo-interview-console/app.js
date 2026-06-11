@@ -188,16 +188,20 @@ async function saveToSheet() {
   saveBtn.disabled = true;
   saveBtn.textContent = '保存中…';
   try {
-    // Apps Script への書き込みは no-cors で送る（ブラウザ→GASの定番。
-    // クロスオリジンの応答は読めない＝不透明だが、doPost は実行されシートに書かれる）。
-    // text/plain でプリフライトも回避。
-    await fetch(endpoint, {
+    // ブラウザ→GASの直POSTは302でGETに化け書き込まれないため、
+    // 同一オリジンの中継Function経由でサーバー側からGASへPOSTする。
+    // 同一オリジンなので応答(JSON)も読めて、本物の成否を表示できる。
+    const res = await fetch('/.netlify/functions/save', {
       method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: endpoint, payload }),
     });
-    toast(`シートに送信しました（${$('#sheet-select').value}）。反映をご確認ください`);
+    const data = await res.json();
+    if (data.ok) {
+      toast(`保存しました（${data.sheet || ''} ${data.row || ''}行目 / ${data.written || ''}項目）`);
+    } else {
+      toast('保存に失敗：' + (data.error || '不明なエラー'), true);
+    }
   } catch (err) {
     toast('送信に失敗しました：' + err.message, true);
   } finally {
