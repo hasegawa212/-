@@ -53,16 +53,19 @@ export function Home() {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white font-bold">
+      <header className="relative overflow-hidden bg-gradient-to-br from-brand-800 via-brand-700 to-brand-900 text-cream">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(600px 200px at 80% 0%, #c9a74e, transparent 60%)" }} />
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-gold-400/60 bg-brand-900/40 font-display text-2xl text-gold-300 shadow-luxe">
             査
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">本物査定アプリ</h1>
-            <p className="text-xs text-slate-400">不動産・自動車の査定＋投資利回り評価</p>
+            <p className="font-display text-[11px] uppercase tracking-widest2 text-gold-300">Premium Appraisal</p>
+            <h1 className="font-display text-2xl font-semibold tracking-wide text-cream">本物査定</h1>
+            <p className="mt-0.5 text-xs text-cream/60">不動産・自動車の査定 ＋ 投資利回り評価</p>
           </div>
         </div>
+        <div className="rule-gold" />
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
@@ -76,13 +79,13 @@ export function Home() {
             value={tab}
             onChange={(v) => switchTab(v as Tab)}
           />
-          <span className="hidden text-sm text-slate-400 sm:flex sm:items-center sm:gap-1.5">
+          <span className="hidden text-sm text-brand-400 sm:flex sm:items-center sm:gap-1.5">
             {tab === "realEstate" ? (
-              <HomeIcon className="h-4 w-4" />
+              <HomeIcon className="h-4 w-4 text-gold-500" />
             ) : tab === "car" ? (
-              <Car className="h-4 w-4" />
+              <Car className="h-4 w-4 text-gold-500" />
             ) : (
-              <TrendingUp className="h-4 w-4" />
+              <TrendingUp className="h-4 w-4 text-gold-500" />
             )}
             {hint}
           </span>
@@ -131,9 +134,12 @@ export function Home() {
           </>
         )}
 
-        <p className="mt-8 text-center text-xs text-slate-400">
-          ※ 本アプリの査定額・利回りは公開データに基づく概算シミュレーションであり、実際の売買・買取価格や投資成果を保証するものではありません。
-        </p>
+        <div className="mt-10">
+          <div className="rule-gold" />
+          <p className="mt-4 text-center text-xs leading-relaxed text-brand-400">
+            ※ 本アプリの査定額・利回りは公開データに基づく概算シミュレーションであり、実際の売買・買取価格や投資成果を保証するものではありません。
+          </p>
+        </div>
       </main>
     </div>
   );

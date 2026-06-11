@@ -18,9 +18,9 @@ interface Props {
 export function InvestmentResultPanel({ result }: Props) {
   if (!result) {
     return (
-      <div className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-        <TrendingUp className="mb-3 h-10 w-10 text-slate-300" />
-        <p className="text-sm text-slate-400">
+      <div className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-brand-200 bg-white/70 p-8 text-center">
+        <TrendingUp className="mb-3 h-10 w-10 text-gold-300" />
+        <p className="text-sm text-brand-400">
           条件を入力して「利回りを評価する」を押すと、
           <br />
           表面利回り・月次収支がここに表示されます。
@@ -40,7 +40,7 @@ export function InvestmentResultPanel({ result }: Props) {
             {meta.label}
           </span>
         </div>
-        <p className="mt-1 text-4xl font-bold tracking-tight">{result.grossYield.toFixed(2)}%</p>
+        <p className="mt-1 font-display text-[2.6rem] leading-none font-semibold tracking-tight">{result.grossYield.toFixed(2)}%</p>
         <div className="mt-2 flex gap-6 text-sm opacity-90">
           <span>実質利回り {result.netYield.toFixed(2)}%</span>
           <span>
