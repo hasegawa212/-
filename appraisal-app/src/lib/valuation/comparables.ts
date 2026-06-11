@@ -30,6 +30,8 @@ export interface TransactionComp {
 /** 概算サンプルの成約事例（実データは fetch_transactions.py で置換） */
 export const SAMPLE_COMPS: TransactionComp[] = [
   // 水戸市（戸建）
+  // ▼ 実成約（登記簿で築年確認済み）: 水戸市鯉淵町・2016新築・土地234.79/建物89.42・駅遠
+  { city: "水戸市", propertyType: "house", totalPrice: 22500000, landArea: 234.79, buildingArea: 89.42, buildAge: 6, walkMinutes: 25, tradeYear: 2022 },
   { city: "水戸市", propertyType: "house", totalPrice: 30500000, landArea: 170, buildingArea: 105, buildAge: 12, walkMinutes: 12, tradeYear: 2024 },
   { city: "水戸市", propertyType: "house", totalPrice: 27800000, landArea: 155, buildingArea: 98, buildAge: 18, walkMinutes: 15, tradeYear: 2023 },
   { city: "水戸市", propertyType: "house", totalPrice: 34000000, landArea: 200, buildingArea: 115, buildAge: 8, walkMinutes: 10, tradeYear: 2024 },
