@@ -136,7 +136,7 @@ function parseSummary_(text) {
   put('AD', pick(/徒歩([^\s分]+)分/));
   put('AE', pick(/徒歩[^\s分]+分\s+([^\s　\n]+)/));
 
-  put('AF', pick(/種別：([^\s　]+)/));
+  put('AF', pick(/(?<!ローン)種別：([^\s　]+)/));
   put('AG', pick(/間取り：([^\s　]+)/));
   put('AH', pick(/階数：([^\s　]+)/));
   put('AI', pick(/駐車：([^\s台]+)台?/));
