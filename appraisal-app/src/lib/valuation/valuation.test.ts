@@ -4,6 +4,9 @@ import { appraiseCar, ageResidualRate, mileageFactor } from "./car";
 import { estimateMonthlyRent, WARD_RENT_PER_SQM, WARD_RENT_AVERAGE } from "./wardRents";
 import { evaluateInvestment } from "./investment";
 import { parseBatchText, parseMyosoku, appraiseBatch, resolveCity, resolveStructure, parsePrice, parseArea, parseBuildAge, parseWalkMinutes, judge } from "./batch";
+import { appraiseHybrid, appraiseByComparables } from "./comparables";
+import { capRateForWard } from "./investment";
+import { runBacktest, ACTUAL_SAMPLES } from "./backtest";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -367,5 +370,89 @@ describe("マイソク本文パーサ（表記ゆれ）", () => {
     const { rows, errors } = parseMyosoku("構造：木造\n交通：徒歩5分");
     expect(rows).toHaveLength(0);
     expect(errors).toHaveLength(1);
+  });
+});
+
+describe("精度向上 v2", () => {
+  it("車種リセール補正：係数>1 は標準より高く査定される", () => {
+    const base = {
+      newPrice: 3000000, firstYear: 2021, currentYear: 2026, mileageKm: 50000,
+      maker: "トヨタ", repairHistory: false, inspectionMonthsLeft: 12,
+    };
+    const plain = appraiseCar({ ...base, resaleFactor: 1 });
+    const strong = appraiseCar({ ...base, resaleFactor: 1.15 });
+    expect(strong.estimate).toBeGreaterThan(plain.estimate);
+  });
+
+  it("リフォーム済み・上位グレードは建物価値を加点する", () => {
+    const base = {
+      propertyType: "house" as const, city: "水戸市", landArea: 150, buildingArea: 100,
+      buildAge: 10, structure: "wood" as const, walkMinutes: 10,
+    };
+    const plain = appraiseRealEstate(base);
+    const reno = appraiseRealEstate({ ...base, renovated: true });
+    const lux = appraiseRealEstate({ ...base, grade: "luxury" });
+    expect(reno.estimate).toBeGreaterThan(plain.estimate);
+    expect(lux.estimate).toBeGreaterThan(plain.estimate);
+  });
+
+  it("土地のみはリフォーム/グレード補正の影響を受けない", () => {
+    const base = {
+      propertyType: "land" as const, city: "水戸市", landArea: 150, buildingArea: 0,
+      buildAge: 0, structure: "wood" as const, walkMinutes: 10,
+    };
+    expect(appraiseRealEstate({ ...base, renovated: true, grade: "luxury" }).estimate).toBe(
+      appraiseRealEstate(base).estimate
+    );
+  });
+
+  it("収益還元法：都心区ほど還元利回りが低く、理論価格を返す", () => {
+    expect(capRateForWard("港区")).toBeLessThan(capRateForWard("足立区"));
+    expect(capRateForWard("水戸市")).toBeGreaterThan(capRateForWard("足立区"));
+    const r = evaluateInvestment({
+      price: 25800000, ward: "港区", areaSqm: 25, monthlyRent: 100000, monthlyCost: 12000, monthlyLoan: 0,
+    });
+    expect(r.capRate).toBe(3.8);
+    expect(r.incomePrice).toBeGreaterThan(0);
+  });
+
+  it("取引事例比較法：事例のあるエリアは結果を返し、無いエリアはnull", () => {
+    const mito = appraiseByComparables({
+      propertyType: "house", city: "水戸市", landArea: 170, buildingArea: 105,
+      buildAge: 12, structure: "wood", walkMinutes: 12,
+    });
+    expect(mito).not.toBeNull();
+    expect(mito!.n).toBeGreaterThanOrEqual(2);
+    const kasama = appraiseByComparables({
+      propertyType: "house", city: "笠間市", landArea: 170, buildingArea: 105,
+      buildAge: 12, structure: "wood", walkMinutes: 12,
+    });
+    expect(kasama).toBeNull();
+  });
+
+  it("ハイブリッド査定：事例ありはブレンド、事例なしは原価法と一致", () => {
+    const withComps = appraiseHybrid({
+      propertyType: "house", city: "水戸市", landArea: 170, buildingArea: 105,
+      buildAge: 12, structure: "wood", walkMinutes: 12,
+    });
+    expect(withComps.estimate).toBeGreaterThan(0);
+    expect(withComps.low).toBeLessThan(withComps.estimate);
+    expect(withComps.high).toBeGreaterThan(withComps.estimate);
+
+    const noComps = {
+      propertyType: "house" as const, city: "笠間市", landArea: 170, buildingArea: 105,
+      buildAge: 12, structure: "wood" as const, walkMinutes: 12,
+    };
+    expect(appraiseHybrid(noComps).estimate).toBe(appraiseRealEstate(noComps).estimate);
+  });
+
+  it("バックテスト：誤差指標を算出する", () => {
+    const report = runBacktest(ACTUAL_SAMPLES);
+    expect(report.n).toBe(ACTUAL_SAMPLES.length);
+    expect(Number.isFinite(report.mape)).toBe(true);
+    expect(report.mape).toBeLessThan(60);
+    expect(report.rows).toHaveLength(ACTUAL_SAMPLES.length);
+    // 参考: コンソールに精度サマリを出力
+    console.log(`[backtest] n=${report.n} MAPE=${report.mape.toFixed(1)}% ±15%命中=${report.within15.toFixed(0)}%`);
   });
 });

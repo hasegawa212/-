@@ -41,12 +41,18 @@ export function InvestmentResultPanel({ result }: Props) {
           </span>
         </div>
         <p className="mt-1 font-display text-[2.6rem] leading-none font-semibold tracking-tight">{result.grossYield.toFixed(2)}%</p>
-        <div className="mt-2 flex gap-6 text-sm opacity-90">
+        <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-sm opacity-90">
           <span>実質利回り {result.netYield.toFixed(2)}%</span>
           <span>
             月次収支 {result.monthlyCashflow >= 0 ? "+" : ""}
             {result.monthlyCashflow.toLocaleString()}円
           </span>
+          {result.incomePrice > 0 && (
+            <span>
+              収益還元価格 {(result.incomePrice / 10000).toLocaleString()}万円
+              <span className="opacity-60">（利回り{result.capRate}%）</span>
+            </span>
+          )}
         </div>
       </div>
 

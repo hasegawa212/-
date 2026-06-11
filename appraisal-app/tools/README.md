@@ -44,6 +44,27 @@ python build_ward_rents.py     # suumo_tokyo23.csv を読む
 > `wardRents.ts` には現在 **公開相場ベースのシード（概算）値** が入っています。
 > 上記スクリプトを実行すると実データで置き換わります。
 
+## 3. 実成約データの取得：`fetch_reinfolib.py`
+
+国土交通省「不動産情報ライブラリ」API から**実際の成約データ**を取得し、
+取引事例比較法（`comparables.ts` の `SAMPLE_COMPS`）と、エリア別㎡単価の較正
+（`data.ts` の `CITY_LAND_PRICE`）、バックテスト（`backtest.ts`）の元データにします。
+
+```bash
+# 利用登録して APIキー（サブスクリプションキー）を取得 → 環境変数に設定
+export REINFOLIB_API_KEY=xxxxx
+pip install requests
+python fetch_reinfolib.py --year 2024 --pref 08          # 茨城県
+python fetch_reinfolib.py --year 2024 --pref 13 --city 13101  # 東京都千代田区
+```
+
+- `reinfolib_comps.json` を出力し、`comparables.ts` に貼り付け可能な `TransactionComp[]` と、
+  エリア別㎡単価中央値（`CITY_LAND_PRICE` 較正の目安）を標準出力に表示します。
+- 都道府県コード例：茨城`08` 栃木`09` 埼玉`11` 千葉`12` 東京`13` 神奈川`14`。
+- 取得した事例を反映後、`npm run test` のバックテスト（MAPE/±15%命中率）で精度を確認できます。
+
+> この実行環境はネットワークが制限されており実行できない場合があります。ネット可の手元環境で実行してください。
+
 ## 注意（規約・マナー）
 
 機械的取得は提供元（SUUMO / リクルート）の利用規約・`robots.txt` の範囲で行ってください。
