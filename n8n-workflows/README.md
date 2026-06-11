@@ -352,3 +352,20 @@ Telegram Trigger → Normalize Message → Has Text?
 - **画像/ファイル対応**: `Has Text?` を条件分岐にして `photo` / `document` を Google Drive へアップロードするノードを追加
 - **コマンド処理**: `Normalize Message` の後に `Switch` ノードを置き `/start` 等を振り分け
 - **要約**: `Append to Google Sheets` の前に OpenAI/Claude ノードを挟んで要約を保存
+
+## 会議チェックリスト・フォーム（CLI不要のUIインポート版）
+
+`meeting-checklist-form.json` は、`scripts/import-meeting-form.mjs` が生成するのと同じ
+「会議フォーム → meeting_checklist シート追記 → Slack 通知」ワークフローを、**n8n の
+UI からインポートできる静的JSON**にしたものです（APIキー・CLI不要）。
+
+手順：
+1. n8n → Workflows → 右上「…」→ **Import from File** で `meeting-checklist-form.json` を読み込む
+2. 各ノードの認証情報（Google Sheets / Slack）を**自分のアカウントのものに選び直す**
+   （プレースホルダ `REPLACE_WITH_*` を実値に差し替え）
+   - Google Sheets: `REPLACE_WITH_GOOGLE_SHEET_ID`（`meeting_checklist` タブを持つシート）
+   - Slack: `REPLACE_WITH_SLACK_CHANNEL_ID`（通知先チャンネル）
+3. 右上トグルで **Active** にする
+4. フォームURL（`<n8n>/form/meeting-checklist-form`）を共有 → ①〜③必須なので3つ揃わないと送信不可
+
+フォーム項目：会議名・議題 / 開催日 / 参加者 / 確認事項①②③（必須）/ 担当・次アクション。
