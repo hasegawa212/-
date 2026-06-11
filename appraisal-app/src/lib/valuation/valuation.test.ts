@@ -479,3 +479,33 @@ describe("ブレンド比率の最適化", () => {
     expect(costOnly).toBe(appraiseRealEstate(input).estimate);
   });
 });
+
+describe("品質: 事例カバレッジ拡張", () => {
+  it("追加エリア（土浦/日立/さいたま/千葉/都心マンション）でも事例比較が効く", () => {
+    const houseCities = ["土浦市", "日立市", "さいたま市", "千葉市"];
+    for (const city of houseCities) {
+      const r = appraiseByComparables({
+        propertyType: "house", city, landArea: 160, buildingArea: 100,
+        buildAge: 14, structure: "wood", walkMinutes: 14,
+      });
+      expect(r, city).not.toBeNull();
+      expect(r!.n).toBeGreaterThanOrEqual(2);
+    }
+    const condo = appraiseByComparables({
+      propertyType: "apartment", city: "東京23区（都心部）", landArea: 0, buildingArea: 60,
+      buildAge: 12, structure: "rc", walkMinutes: 6,
+    });
+    expect(condo).not.toBeNull();
+  });
+
+  it("価格0の事例は比較対象から除外される", () => {
+    const r = appraiseByComparables(
+      { propertyType: "house", city: "X市", landArea: 150, buildingArea: 100, buildAge: 10, structure: "wood", walkMinutes: 10 },
+      [
+        { city: "X市", propertyType: "house", totalPrice: 0, landArea: 150, buildingArea: 100, buildAge: 10, walkMinutes: 10, tradeYear: 2024 },
+        { city: "X市", propertyType: "house", totalPrice: 30000000, landArea: 160, buildingArea: 100, buildAge: 10, walkMinutes: 10, tradeYear: 2024 },
+      ]
+    );
+    expect(r).toBeNull(); // 有効事例が1件→2件未満でnull
+  });
+});

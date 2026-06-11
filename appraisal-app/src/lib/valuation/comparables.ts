@@ -48,6 +48,24 @@ export const SAMPLE_COMPS: TransactionComp[] = [
   // 東京23区（その他）（マンション）
   { city: "東京23区（その他）", propertyType: "apartment", totalPrice: 62000000, landArea: 0, buildingArea: 68, buildAge: 14, walkMinutes: 7, tradeYear: 2024 },
   { city: "東京23区（その他）", propertyType: "apartment", totalPrice: 71000000, landArea: 0, buildingArea: 72, buildAge: 9, walkMinutes: 5, tradeYear: 2024 },
+  // 東京23区（都心部）（マンション）
+  { city: "東京23区（都心部）", propertyType: "apartment", totalPrice: 98000000, landArea: 0, buildingArea: 60, buildAge: 12, walkMinutes: 6, tradeYear: 2024 },
+  { city: "東京23区（都心部）", propertyType: "apartment", totalPrice: 88000000, landArea: 0, buildingArea: 55, buildAge: 16, walkMinutes: 5, tradeYear: 2023 },
+  // 横浜市・川崎市（マンション）
+  { city: "横浜市・川崎市", propertyType: "apartment", totalPrice: 42000000, landArea: 0, buildingArea: 68, buildAge: 14, walkMinutes: 8, tradeYear: 2024 },
+  { city: "横浜市・川崎市", propertyType: "apartment", totalPrice: 48000000, landArea: 0, buildingArea: 72, buildAge: 10, walkMinutes: 6, tradeYear: 2024 },
+  // 土浦市（戸建）
+  { city: "土浦市", propertyType: "house", totalPrice: 26000000, landArea: 175, buildingArea: 105, buildAge: 13, walkMinutes: 14, tradeYear: 2024 },
+  { city: "土浦市", propertyType: "house", totalPrice: 23000000, landArea: 160, buildingArea: 98, buildAge: 18, walkMinutes: 18, tradeYear: 2023 },
+  // 日立市（戸建）
+  { city: "日立市", propertyType: "house", totalPrice: 21000000, landArea: 200, buildingArea: 100, buildAge: 16, walkMinutes: 20, tradeYear: 2024 },
+  { city: "日立市", propertyType: "house", totalPrice: 19500000, landArea: 185, buildingArea: 95, buildAge: 20, walkMinutes: 22, tradeYear: 2023 },
+  // さいたま市（戸建）
+  { city: "さいたま市", propertyType: "house", totalPrice: 43000000, landArea: 125, buildingArea: 100, buildAge: 12, walkMinutes: 12, tradeYear: 2024 },
+  { city: "さいたま市", propertyType: "house", totalPrice: 39000000, landArea: 115, buildingArea: 95, buildAge: 16, walkMinutes: 14, tradeYear: 2023 },
+  // 千葉市（戸建）
+  { city: "千葉市", propertyType: "house", totalPrice: 34000000, landArea: 140, buildingArea: 102, buildAge: 14, walkMinutes: 13, tradeYear: 2024 },
+  { city: "千葉市", propertyType: "house", totalPrice: 30500000, landArea: 130, buildingArea: 96, buildAge: 18, walkMinutes: 16, tradeYear: 2023 },
 ];
 
 /** 築年による緩い価値逓減係数（事例比較の補正用・下限0.5） */
@@ -86,7 +104,11 @@ export function appraiseByComparables(
   if (subjectSize <= 0) return null;
 
   const matches = comps.filter(
-    (c) => c.city === input.city && c.propertyType === input.propertyType && sizeMetric(c) > 0
+    (c) =>
+      c.city === input.city &&
+      c.propertyType === input.propertyType &&
+      sizeMetric(c) > 0 &&
+      c.totalPrice > 0
   );
   if (matches.length < 2) return null;
 
