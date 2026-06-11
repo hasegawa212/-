@@ -42,8 +42,13 @@ export const SAMPLE_COMPS: TransactionComp[] = [
   { city: "ひたちなか市", propertyType: "house", totalPrice: 24500000, landArea: 180, buildingArea: 100, buildAge: 16, walkMinutes: 20, tradeYear: 2024 },
   { city: "ひたちなか市", propertyType: "house", totalPrice: 27000000, landArea: 190, buildingArea: 105, buildAge: 12, walkMinutes: 15, tradeYear: 2023 },
   // 宇都宮市（戸建）
+  // ▼ 実成約（重要事項説明書・登記）: 宇都宮市清原台5-14-27・2004新築(築22)・土地232.13/建物105.16(木造)・駅遠
+  { city: "宇都宮市", propertyType: "house", totalPrice: 27500000, landArea: 232.13, buildingArea: 105.16, buildAge: 22, walkMinutes: 25, tradeYear: 2025 },
   { city: "宇都宮市", propertyType: "house", totalPrice: 26500000, landArea: 185, buildingArea: 102, buildAge: 14, walkMinutes: 14, tradeYear: 2024 },
   { city: "宇都宮市", propertyType: "house", totalPrice: 29000000, landArea: 200, buildingArea: 108, buildAge: 9, walkMinutes: 12, tradeYear: 2023 },
+  // 牛久市（戸建）
+  // ▼ 実成約（重要事項説明書）: 牛久市南7-53-35・2006新築(築20)・土地331.87/建物104.43(軽量鉄骨)・駅遠
+  { city: "牛久市", propertyType: "house", totalPrice: 23000000, landArea: 331.87, buildingArea: 104.43, buildAge: 20, walkMinutes: 22, tradeYear: 2026 },
   // 横浜市・川崎市（戸建）
   { city: "横浜市・川崎市", propertyType: "house", totalPrice: 46000000, landArea: 135, buildingArea: 98, buildAge: 13, walkMinutes: 10, tradeYear: 2024 },
   { city: "横浜市・川崎市", propertyType: "house", totalPrice: 42000000, landArea: 120, buildingArea: 92, buildAge: 18, walkMinutes: 12, tradeYear: 2023 },
