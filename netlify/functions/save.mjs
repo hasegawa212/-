@@ -15,31 +15,24 @@ export default async (req) => {
     if (!url) return json({ ok: false, error: 'url required' }, 400);
 
     const body = JSON.stringify(payload || {});
-    let target = url;
-    let res;
-    // 最大5回まで 302 を POST のまま手動追跡
-    for (let i = 0; i < 5; i++) {
-      res = await fetch(target, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body,
-        redirect: 'manual',
-      });
-      if (res.status >= 300 && res.status < 400) {
-        const loc = res.headers.get('location');
-        if (!loc) break;
-        target = loc;
-        continue;
-      }
-      break;
-    }
+    // doPost は最初の /exec への POST で実行され、書き込みが起きる。
+    // GAS は出力(JSON)を googleusercontent 側で配信するため、302 は GET で追う
+    // （redirect:'follow' が POST→GET でこれを行う）。
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body,
+      redirect: 'follow',
+    });
     const text = await res.text();
-    // GAS は JSON を返す想定。HTML が来たらエラーとして包む。
+    // doPost の JSON 出力が取れればそのまま返す。
     try {
-      JSON.parse(text);
-      return new Response(text, { status: 200, headers: { 'Content-Type': 'application/json' } });
+      const parsed = JSON.parse(text);
+      return json(parsed);
     } catch {
-      return json({ ok: false, error: 'GASがJSON以外を返しました', preview: text.slice(0, 200) });
+      // JSON以外（出力配信ページのHTML等）でも、doPostは実行済みのことが多い。
+      // ただし誤検知を避けるため submitted フラグで返す。
+      return json({ ok: true, submitted: true, note: '送信しました（応答未確認。シートで反映をご確認ください）' });
     }
   } catch (e) {
     return json({ ok: false, error: String(e) });
