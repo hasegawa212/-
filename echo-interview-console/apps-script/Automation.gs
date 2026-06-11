@@ -68,6 +68,52 @@ function appendInquiry_(inq) {
   return { ok: true, row: sheet.getLastRow() };
 }
 
+// =============================================================================
+// #6 b-book予約確定メール → 反響管理シートにZoom情報を反映（doPost action:"addBooking"）
+//   booking: { name, email, datetime, zoomUrl, manageUrl, area }
+//   メール/氏名で該当行を探し、Zoom URL・次回の日時・zoom面談有=設定済 等を書く。
+//   該当が無ければ新規行を作って反映する。
+// =============================================================================
+function updateBooking_(b) {
+  b = b || {};
+  var sheet = getBook_().getSheetByName('反響管理シート（martialhp連動）');
+  if (!sheet) return { ok: false, error: '反響管理シートが見つかりません' };
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+
+  var targetRow = -1;
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    for (var r = 0; r < data.length; r++) {
+      var e = idx['メールアドレス'] != null ? String(data[r][idx['メールアドレス']]).trim() : '';
+      var n = idx['氏名'] != null ? String(data[r][idx['氏名']]).trim() : '';
+      if ((b.email && e && e === String(b.email).trim()) ||
+          (b.name && n && n && String(b.name).indexOf(n) >= 0)) {
+        targetRow = r + 2; break;
+      }
+    }
+  }
+
+  if (targetRow < 0) {
+    // 予約だけ先に来たケース：新規行を作る
+    var res = appendInquiry_({ name: b.name, email: b.email, area: b.area, note: 'b-book予約' });
+    targetRow = res.row || sheet.getLastRow();
+  }
+
+  var w = function (col, val) { if (idx[col] != null && val) sheet.getRange(targetRow, idx[col] + 1).setValue(val); };
+  w('Zoom URL', b.zoomUrl);
+  w('次回の日時', b.datetime);
+  w('zoom面談有', '設定済');
+  w('ステータス', 'アポ獲得');
+  w('次回アクション', '来場調整');
+  w('最終更新日', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd'));
+  return { ok: true, row: targetRow };
+}
+
+
 
 // シートメニュー（手動実行用）
 function onOpen() {

@@ -135,6 +135,11 @@ function doPost(e) {
       return jsonOut_(appendInquiry_(body.inquiry || {}));
     }
 
+    // 自動化#6：b-book予約確定 → 反響管理シートにZoom情報を反映
+    if (body.action === 'addBooking') {
+      return jsonOut_(updateBooking_(body.booking || {}));
+    }
+
     // 既定：コンソール保存
     var book = getBook_();
     var sheet = book.getSheetByName(sheetName);
