@@ -72,6 +72,11 @@
         <input id="n8n-input" type="url" placeholder="https://....app.n8n.cloud/webhook/slack-hearing-summary" />
         <small>「n8nへ送信」でサマリー本文をこのURLへPOSTします。</small>
       </label>
+      <label class="field">
+        <span>合言葉（SHARED_TOKEN・任意）</span>
+        <input id="token-input" type="text" placeholder="Apps Scriptに設定した場合のみ" />
+        <small>Apps Scriptに SHARED_TOKEN を設定したら、同じ値をここに入れてください。</small>
+      </label>
       <div class="modal-actions">
         <button id="settings-close" type="button" class="ghost">閉じる</button>
         <button id="settings-save" type="button" class="primary">保存</button>

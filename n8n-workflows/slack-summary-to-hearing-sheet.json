@@ -43,7 +43,7 @@
         "url": "REPLACE_WITH_APPS_SCRIPT_WEBAPP_URL",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ action: 'importSummary', sheet: ($json.body.sheet || 'ヒアリングシート①'), text: $json.body.text }) }}",
+        "jsonBody": "={{ JSON.stringify({ action: 'importSummary', token: 'REPLACE_WITH_SHARED_TOKEN', sheet: ($json.body.sheet || 'ヒアリングシート①'), text: $json.body.text }) }}",
         "options": {}
       },
       "id": "b1000000-0000-4000-8000-000000000003",

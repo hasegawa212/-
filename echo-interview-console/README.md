@@ -99,3 +99,16 @@ python3 -m http.server 5180
 - ビルド・テスト・Lint はありません（リポジトリの他サブプロジェクトと独立）。
 - 個人情報（顧客名・連絡先等）を含むため、入力内容を外部サービスへ貼り付けないこと。
 - CORS：保存は `text/plain` で POST し、Apps Script 側のプリフライトを回避しています。
+
+### 合言葉認証（任意・推奨）
+
+ウェブアプリは「全員」公開のため、URLを知る人は誰でも書き込めます。これを絞るには：
+
+1. Apps Script の **スクリプト プロパティ**に `SHARED_TOKEN`（任意の長い文字列）を追加。
+2. 以後、POST に `token` を含めないと `{"ok":false,"error":"unauthorized"}` で拒否されます。
+3. 同じ値を各送信元に設定：
+   - コンソール：⚙設定の「合言葉（SHARED_TOKEN）」欄
+   - n8nワークフロー：`REPLACE_WITH_SHARED_TOKEN` を差し替え
+   - 直接POSTする場合：本文に `"token":"<値>"` を追加
+
+`SHARED_TOKEN` を設定しなければ従来通り（認証なし）で動きます。

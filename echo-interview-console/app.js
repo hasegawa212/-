@@ -3,6 +3,7 @@ import { FIELDS, GROUPS } from './fields.js';
 
 const LS_ENDPOINT = 'eic.endpoint';
 const LS_N8N = 'eic.n8n';
+const LS_TOKEN = 'eic.token';
 const LS_SHEET = 'eic.sheet';
 const draftKey = (s) => `eic.draft.${s || 'default'}`;
 
@@ -180,6 +181,7 @@ async function saveToSheet() {
     cells: collectByCol(),
     viewUrl: SESSION ? `${location.origin}${location.pathname}?session=${encodeURIComponent(SESSION)}` : VIEW_URL,
     postSlack: $('#post-slack').checked,
+    token: localStorage.getItem(LS_TOKEN) || '',
   };
 
   const saveBtn = $('#save-btn');
@@ -237,12 +239,14 @@ async function sendToN8n() {
 function openSettings() {
   $('#endpoint-input').value = localStorage.getItem(LS_ENDPOINT) || '';
   $('#n8n-input').value = localStorage.getItem(LS_N8N) || '';
+  $('#token-input').value = localStorage.getItem(LS_TOKEN) || '';
   $('#settings-modal').classList.remove('hidden');
 }
 function closeSettings() { $('#settings-modal').classList.add('hidden'); }
 function saveSettings() {
   localStorage.setItem(LS_ENDPOINT, $('#endpoint-input').value.trim());
   localStorage.setItem(LS_N8N, $('#n8n-input').value.trim());
+  localStorage.setItem(LS_TOKEN, $('#token-input').value.trim());
   closeSettings();
   toast('設定を保存しました');
 }

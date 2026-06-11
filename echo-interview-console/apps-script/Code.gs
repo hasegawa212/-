@@ -107,6 +107,13 @@ function doPost(e) {
   lock.waitLock(30000);
   try {
     var body = JSON.parse(e.postData.contents);
+
+    // 合言葉認証：SHARED_TOKEN を設定している場合のみ必須（未設定なら従来通り誰でも可）
+    var required = PropertiesService.getScriptProperties().getProperty('SHARED_TOKEN');
+    if (required && String(body.token || '') !== required) {
+      return jsonOut_({ ok: false, error: 'unauthorized' });
+    }
+
     var sheetName = body.sheet || DEFAULT_SHEET;
 
     // 自動化#1：Slackサマリー → シート

@@ -73,3 +73,5 @@ send_to_hearing_sheet(summary_text)
   Apps Script 側の `parseSummary_()` がこの見出し構造を前提に53列へ振り分けます。
 - 送信先URLは環境変数（例 `N8N_HEARING_URL`）に逃がし、コードに直書きしないこと。
 - 失敗してもSlack投稿は止めない（上記は try/catch で握りつぶし）。
+- Apps Scriptに `SHARED_TOKEN` を設定した場合は、送るJSONに `"token": "<同じ値>"` を必ず含める
+  （n8n経由なら n8n の HTTP ノード側で付与済み。Apps Scriptへ直接送る場合は本文に追加）。
