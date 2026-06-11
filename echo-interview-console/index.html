@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>反響面談コンソール｜株式会社 Martial Arts</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="flame">🔥</span>
+      <div>
+        <h1>反響面談コンソール</h1>
+        <p class="sub">株式会社 Martial Arts ／ ヒアリングシート連動</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="session-chip" class="chip" title="セッション"></span>
+      <label class="sheet-select">
+        保存先
+        <select id="sheet-select">
+          <option value="ヒアリングシート①">ヒアリングシート①</option>
+          <option value="ヒアリングシート②">ヒアリングシート②</option>
+          <option value="ヒアリングシート③">ヒアリングシート③</option>
+        </select>
+      </label>
+      <button id="settings-btn" class="ghost" title="設定">⚙︎ 設定</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="lead">
+      面談中に伺った内容をそのまま入力してください。保存すると
+      <strong>ヒアリングシートの全項目（A〜BE列）に1行で反映</strong>されます。
+      入力は自動で一時保存されます。
+    </p>
+
+    <form id="hearing-form" autocomplete="off">
+      <!-- セクションは app.js が fields.js から自動生成 -->
+    </form>
+
+    <div class="actions">
+      <button id="summary-btn" type="button" class="ghost">📝 サマリー生成</button>
+      <button id="save-btn" type="button" class="primary">💾 シートに保存</button>
+    </div>
+
+    <section id="summary-panel" class="panel hidden">
+      <div class="panel-head">
+        <h2>反響顧客ヒアリングサマリー</h2>
+        <button id="copy-summary" type="button" class="ghost">コピー</button>
+      </div>
+      <pre id="summary-text"></pre>
+    </section>
+  </main>
+
+  <!-- 設定モーダル -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>設定</h2>
+      <label class="field">
+        <span>Apps Script ウェブアプリ URL</span>
+        <input id="endpoint-input" type="url" placeholder="https://script.google.com/macros/s/.../exec" />
+        <small>スプレッドシートに紐づけた Apps Script のデプロイURL。未設定だと保存できません。</small>
+      </label>
+      <div class="modal-actions">
+        <button id="settings-close" type="button" class="ghost">閉じる</button>
+        <button id="settings-save" type="button" class="primary">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
