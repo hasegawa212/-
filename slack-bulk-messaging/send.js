@@ -139,14 +139,17 @@ function renderTemplate(template, record) {
 const isSlackId = (s) => /^[UW][A-Z0-9]{6,}$/.test(s);
 
 // ---- Slack Web API 呼び出し ---------------------------------------------
+// すべて application/x-www-form-urlencoded で送る。chat.postMessage や
+// conversations.open はJSONも受け付けるが、users.lookupByEmail などの取得系は
+// フォーム形式しか受け付けず、JSONで送ると invalid_arguments になるため。
 async function slackApi(method, token, params) {
   const res = await fetch(`https://slack.com/api/${method}`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${token}`,
-      "Content-Type": "application/json; charset=utf-8",
+      "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
     },
-    body: JSON.stringify(params),
+    body: new URLSearchParams(params).toString(),
   });
   // レート制限なら少し待って1回だけ再試行
   if (res.status === 429) {
