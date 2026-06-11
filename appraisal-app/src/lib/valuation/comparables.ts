@@ -32,6 +32,8 @@ export const SAMPLE_COMPS: TransactionComp[] = [
   // 水戸市（戸建）
   // ▼ 実成約（登記簿で築年確認済み）: 水戸市鯉淵町・2016新築・土地234.79/建物89.42・駅遠
   { city: "水戸市", propertyType: "house", totalPrice: 22500000, landArea: 234.79, buildingArea: 89.42, buildAge: 6, walkMinutes: 25, tradeYear: 2022 },
+  // ▼ 実成約（重要事項説明書）: 水戸市藤が原3-12-5・2019新築(築7)・土地290.86/建物105.98(木造)・駅遠
+  { city: "水戸市", propertyType: "house", totalPrice: 28500000, landArea: 290.86, buildingArea: 105.98, buildAge: 7, walkMinutes: 25, tradeYear: 2026 },
   { city: "水戸市", propertyType: "house", totalPrice: 30500000, landArea: 170, buildingArea: 105, buildAge: 12, walkMinutes: 12, tradeYear: 2024 },
   { city: "水戸市", propertyType: "house", totalPrice: 27800000, landArea: 155, buildingArea: 98, buildAge: 18, walkMinutes: 15, tradeYear: 2023 },
   { city: "水戸市", propertyType: "house", totalPrice: 34000000, landArea: 200, buildingArea: 115, buildAge: 8, walkMinutes: 10, tradeYear: 2024 },
