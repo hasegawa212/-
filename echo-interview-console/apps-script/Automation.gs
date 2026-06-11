@@ -17,6 +17,58 @@
 
 function props_() { return PropertiesService.getScriptProperties(); }
 
+// =============================================================================
+// #5 反響メール/Slack → 反響管理シートへ自動追記（doPost action:"addInquiry"）
+//   n8n の Gmailトリガー等から { action:"addInquiry", inquiry:{...} } をPOSTする。
+//   inquiry: { name, tel, email, area, source, type, note, hopeDate, hopeTime, receivedAt }
+// =============================================================================
+function appendInquiry_(inq) {
+  inq = inq || {};
+  var sheet = getBook_().getSheetByName('反響管理シート（martialhp連動）');
+  if (!sheet) return { ok: false, error: '反響管理シートが見つかりません' };
+
+  // 重複防止：同じ電話 or メールが直近にあればスキップ
+  var lastRow = sheet.getLastRow();
+  var header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+  if (lastRow >= 2 && (inq.tel || inq.email)) {
+    var vals = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    for (var r = 0; r < vals.length; r++) {
+      var t = idx['電話番号'] != null ? String(vals[r][idx['電話番号']]) : '';
+      var e = idx['メールアドレス'] != null ? String(vals[r][idx['メールアドレス']]) : '';
+      if ((inq.tel && t && t === String(inq.tel)) || (inq.email && e && e === String(inq.email))) {
+        return { ok: true, skipped: true, reason: '重複（既に反響管理シートに存在）' };
+      }
+    }
+  }
+
+  var row = [];
+  for (var i = 0; i < header.length; i++) row.push('');
+  var set = function (name, val) { if (idx[name] != null && val != null && val !== '') row[idx[name]] = val; };
+  var now = new Date();
+  set('No.', sheet.getLastRow()); // ヘッダ1行ぶんを差し引いた通し番号
+  set('受信日時', inq.receivedAt || Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm'));
+  set('氏名', inq.name);
+  set('電話番号', inq.tel);
+  set('メールアドレス', inq.email);
+  set('問い合わせ種別', inq.type || '来場予約');
+  set('希望エリア・物件', inq.area);
+  set('流入元', inq.source || 'サイト予約フォーム');
+  set('担当', '未割当');
+  set('通電有無', '未架電');
+  set('ステータス', '新規');
+  set('次回アクション', 'Zoom調整');
+  var biko = [inq.note, inq.hopeDate ? '希望日:' + inq.hopeDate : '', inq.hopeTime ? '希望時間:' + inq.hopeTime : '']
+    .filter(function (x) { return x; }).join(' / ');
+  set('備考', biko);
+  set('最終更新日', Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd'));
+
+  sheet.appendRow(row);
+  return { ok: true, row: sheet.getLastRow() };
+}
+
+
 // シートメニュー（手動実行用）
 function onOpen() {
   SpreadsheetApp.getUi()

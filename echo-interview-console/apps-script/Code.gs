@@ -130,6 +130,11 @@ function doPost(e) {
       return jsonOut_(extractTranscript_(String(body.transcript || ''), sheetName));
     }
 
+    // 自動化#5：反響メール/Slack → 反響管理シートへ自動追記
+    if (body.action === 'addInquiry') {
+      return jsonOut_(appendInquiry_(body.inquiry || {}));
+    }
+
     // 既定：コンソール保存
     var book = getBook_();
     var sheet = book.getSheetByName(sheetName);
