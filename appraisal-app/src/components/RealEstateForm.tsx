@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Calculator } from "lucide-react";
 import {
-  appraiseRealEstate,
+  appraiseHybrid,
   AREA_GROUPS,
   CITY_OPTIONS,
   STRUCTURE_SPEC,
   type AppraisalResult,
+  type Grade,
   type PropertyType,
   type Structure,
 } from "@/lib/valuation";
@@ -22,6 +23,12 @@ const PROPERTY_OPTIONS: { value: PropertyType; label: string }[] = [
   { value: "land", label: "土地" },
 ];
 
+const GRADE_OPTIONS: { value: Grade; label: string }[] = [
+  { value: "standard", label: "標準" },
+  { value: "high", label: "上位グレード" },
+  { value: "luxury", label: "ハイグレード" },
+];
+
 export function RealEstateForm({ onResult }: Props) {
   const [propertyType, setPropertyType] = useState<PropertyType>("house");
   const [city, setCity] = useState(CITY_OPTIONS[0]);
@@ -30,6 +37,8 @@ export function RealEstateForm({ onResult }: Props) {
   const [buildAge, setBuildAge] = useState("10");
   const [structure, setStructure] = useState<Structure>("wood");
   const [walkMinutes, setWalkMinutes] = useState("10");
+  const [grade, setGrade] = useState<Grade>("standard");
+  const [renovated, setRenovated] = useState(false);
 
   const showLand = propertyType !== "apartment";
   const showBuilding = propertyType !== "land";
@@ -37,7 +46,7 @@ export function RealEstateForm({ onResult }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onResult(
-      appraiseRealEstate({
+      appraiseHybrid({
         propertyType,
         city,
         landArea: showLand ? Number(landArea) || 0 : 0,
@@ -45,6 +54,8 @@ export function RealEstateForm({ onResult }: Props) {
         buildAge: showBuilding ? Number(buildAge) || 0 : 0,
         structure,
         walkMinutes: Number(walkMinutes) || 0,
+        grade: showBuilding ? grade : undefined,
+        renovated: showBuilding ? renovated : false,
       })
     );
   }
@@ -132,6 +143,31 @@ export function RealEstateForm({ onResult }: Props) {
           onChange={(e) => setWalkMinutes(e.target.value)}
         />
       </Field>
+
+      {showBuilding && (
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="内装グレード" htmlFor="re-grade">
+            <Select id="re-grade" value={grade} onChange={(e) => setGrade(e.target.value as Grade)}>
+              {GRADE_OPTIONS.map((g) => (
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="リフォーム/リノベ">
+            <label className="flex h-[38px] items-center gap-2.5 text-sm text-brand-700">
+              <input
+                type="checkbox"
+                checked={renovated}
+                onChange={(e) => setRenovated(e.target.checked)}
+                className="h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-gold-400"
+              />
+              リフォーム/リノベ済み
+            </label>
+          </Field>
+        </div>
+      )}
 
       <button
         type="submit"

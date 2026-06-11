@@ -123,23 +123,27 @@ export const APARTMENT_UNIT_MULTIPLIER = 2.4;
 
 // ───────────────────────── 自動車データ ─────────────────────────
 
-/** 代表的な車種の新車時価格（円・概算）。手入力の補助に使う。 */
-export const CAR_MODELS: { maker: string; model: string; newPrice: number }[] = [
-  { maker: "トヨタ", model: "プリウス", newPrice: 2750000 },
-  { maker: "トヨタ", model: "アクア", newPrice: 2200000 },
-  { maker: "トヨタ", model: "ヤリス", newPrice: 2000000 },
-  { maker: "トヨタ", model: "カローラ", newPrice: 2300000 },
-  { maker: "トヨタ", model: "アルファード", newPrice: 5400000 },
-  { maker: "レクサス", model: "RX", newPrice: 6600000 },
-  { maker: "ホンダ", model: "N-BOX", newPrice: 1700000 },
-  { maker: "ホンダ", model: "フィット", newPrice: 1900000 },
-  { maker: "ホンダ", model: "フリード", newPrice: 2600000 },
-  { maker: "日産", model: "ノート", newPrice: 2200000 },
-  { maker: "日産", model: "セレナ", newPrice: 3000000 },
-  { maker: "スズキ", model: "スペーシア", newPrice: 1600000 },
-  { maker: "ダイハツ", model: "タント", newPrice: 1650000 },
-  { maker: "マツダ", model: "CX-5", newPrice: 3000000 },
-  { maker: "スバル", model: "フォレスター", newPrice: 3100000 },
+/**
+ * 代表的な車種の新車時価格（円・概算）と車種別リセール補正。
+ * resaleFactor は中古市場での値持ちの強さ（人気・球数）を表す係数で、
+ * メーカー補正に上乗せして個車種の残価を微調整する（1.0が標準）。
+ */
+export const CAR_MODELS: { maker: string; model: string; newPrice: number; resaleFactor: number }[] = [
+  { maker: "トヨタ", model: "プリウス", newPrice: 2750000, resaleFactor: 1.05 },
+  { maker: "トヨタ", model: "アクア", newPrice: 2200000, resaleFactor: 1.04 },
+  { maker: "トヨタ", model: "ヤリス", newPrice: 2000000, resaleFactor: 1.02 },
+  { maker: "トヨタ", model: "カローラ", newPrice: 2300000, resaleFactor: 1.0 },
+  { maker: "トヨタ", model: "アルファード", newPrice: 5400000, resaleFactor: 1.15 },
+  { maker: "レクサス", model: "RX", newPrice: 6600000, resaleFactor: 1.1 },
+  { maker: "ホンダ", model: "N-BOX", newPrice: 1700000, resaleFactor: 1.08 },
+  { maker: "ホンダ", model: "フィット", newPrice: 1900000, resaleFactor: 1.0 },
+  { maker: "ホンダ", model: "フリード", newPrice: 2600000, resaleFactor: 1.05 },
+  { maker: "日産", model: "ノート", newPrice: 2200000, resaleFactor: 0.98 },
+  { maker: "日産", model: "セレナ", newPrice: 3000000, resaleFactor: 1.02 },
+  { maker: "スズキ", model: "スペーシア", newPrice: 1600000, resaleFactor: 1.0 },
+  { maker: "ダイハツ", model: "タント", newPrice: 1650000, resaleFactor: 1.0 },
+  { maker: "マツダ", model: "CX-5", newPrice: 3000000, resaleFactor: 0.98 },
+  { maker: "スバル", model: "フォレスター", newPrice: 3100000, resaleFactor: 1.02 },
 ];
 
 /** メーカー別のリセールバリュー補正。人気・流通量・耐久性の傾向を反映。 */
