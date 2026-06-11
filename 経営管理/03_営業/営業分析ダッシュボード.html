@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>営業分析ダッシュボード｜商談・アポ スレッド分析（2026年4〜6月）</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --brand:#4f46e5; --brand2:#6366f1; --good:#16a34a; --warn:#d97706; --bad:#dc2626;
+    --a:#16a34a; --b:#65a30d; --c:#d97706; --d:#94a3b8; --e:#dc2626;
+    --soft:#f8fafc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    color:var(--ink);background:linear-gradient(180deg,#0f172a 0,#1e293b 320px,#eef2f7 320px,#eef2f7 100%);
+    -webkit-font-smoothing:antialiased;line-height:1.6}
+  .wrap{max-width:1120px;margin:0 auto;padding:28px 20px 60px}
+  header.hero{color:#fff;padding:14px 4px 26px}
+  .eyebrow{font-size:12px;letter-spacing:.18em;color:#a5b4fc;font-weight:700;text-transform:uppercase}
+  h1{font-size:30px;margin:6px 0 8px;font-weight:800;letter-spacing:.01em}
+  .sub{color:#cbd5e1;font-size:14px;max-width:760px}
+  .tag{display:inline-block;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+    color:#e2e8f0;font-size:11px;padding:3px 10px;border-radius:999px;margin:10px 6px 0 0}
+  .grid{display:grid;gap:16px}
+  .cards{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:820px){.cards{grid-template-columns:repeat(2,1fr)}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 18px 16px;
+    box-shadow:0 10px 30px -18px rgba(15,23,42,.35)}
+  .kpi .label{font-size:12px;color:var(--muted);font-weight:600}
+  .kpi .num{font-size:30px;font-weight:800;letter-spacing:-.02em;margin-top:4px}
+  .kpi .delta{font-size:12px;font-weight:700;margin-top:2px}
+  .up{color:var(--good)} .down{color:var(--bad)} .flat{color:var(--muted)}
+  section{margin-top:30px}
+  h2{font-size:18px;font-weight:800;margin:0 0 4px;display:flex;align-items:center;gap:9px}
+  h2 .dot{width:10px;height:10px;border-radius:3px;background:var(--brand)}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 14px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;
+    box-shadow:0 10px 30px -20px rgba(15,23,42,.3)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:820px){.two{grid-template-columns:1fr}}
+  /* funnel */
+  .funnel{display:flex;flex-direction:column;gap:8px}
+  .frow{display:flex;align-items:center;gap:12px}
+  .fbar{height:42px;border-radius:9px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 14px;color:#fff;font-weight:700;font-size:13px;min-width:120px;
+    background:linear-gradient(90deg,var(--brand),var(--brand2))}
+  .fmeta{font-size:12px;color:var(--muted);white-space:nowrap}
+  /* bars */
+  .bar-row{display:grid;grid-template-columns:84px 1fr 54px;align-items:center;gap:10px;margin:9px 0}
+  .bar-row .name{font-size:13px;font-weight:700}
+  .track{background:var(--soft);border-radius:8px;height:22px;overflow:hidden;border:1px solid var(--line)}
+  .fill{height:100%;border-radius:8px 0 0 8px;display:block}
+  .bar-row .val{font-size:13px;font-weight:800;text-align:right}
+  .legend{font-size:11px;color:var(--muted);margin-top:6px}
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:11px;color:var(--muted);font-weight:700;border-bottom:2px solid var(--line)}
+  tbody tr:hover{background:var(--soft)}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:800}
+  .pill.up{background:#dcfce7;color:#166534} .pill.down{background:#fee2e2;color:#991b1b}
+  .pill.mid{background:#fef3c7;color:#92400e}
+  .spark{font-weight:800}
+  .note{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5}
+  /* takeaways */
+  .takes{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:820px){.takes{grid-template-columns:1fr}}
+  .take{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--brand);
+    border-radius:12px;padding:14px 15px}
+  .take h3{margin:0 0 5px;font-size:14px}
+  .take p{margin:0;font-size:12.5px;color:#334155}
+  .foot{color:var(--muted);font-size:11px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+  .badge{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;background:#eef2ff;color:#4338ca}
+  @media print{body{background:#fff}.card,.panel,.take{box-shadow:none}header.hero{color:#0f172a}
+    .eyebrow{color:#4f46e5}.sub,.tag{color:#475569}.tag{border-color:#cbd5e1}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">Sales Thread Analysis</div>
+    <h1>営業分析ダッシュボード</h1>
+    <div class="sub">商談・アポ報告スレッド（#02_アポ報告／#03_商談報告／sales-analysis AIボット）を全件分析。対象 2026年4〜6月、有効商談 N=173・新規アポ実体 105件。「読めば営業トップになれる」を数字で裏付けた要約版です。</div>
+    <div>
+      <span class="tag">期間 2026/4/5–6/11</span>
+      <span class="tag">商談 N=173</span>
+      <span class="tag">新規アポ 105件</span>
+      <span class="tag">出所：社内Slack（個人情報マスキング）</span>
+    </div>
+  </header>
+
+  <!-- KPI -->
+  <div class="grid cards">
+    <div class="card kpi">
+      <div class="label">新規アポ実体数 / 月</div>
+      <div class="num">33→37→35</div>
+      <div class="delta up">▲ 日次3倍（6月 bookrun稼働）</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">商談→前進系 率</div>
+      <div class="num">22.5%</div>
+      <div class="delta flat">4月28.8% / 5月17.3% / 6月23.1%</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">前進が決まる交渉回数</div>
+      <div class="num">中央値 6.5回</div>
+      <div class="delta flat">ピーク 5〜7回目（短期決着なし）</div>
+    </div>
+    <div class="card kpi">
+      <div class="label">Aランク商談の前進率</div>
+      <div class="num">47.4%</div>
+      <div class="delta up">Cの約7倍（ランクで工数を変える）</div>
+    </div>
+  </div>
+
+  <!-- Funnel -->
+  <section>
+    <h2><span class="dot"></span>ファネル全体像（5月｜満月の実数）</h2>
+    <p class="lead">アポ → 商談（再訪含む面談）→ 事前申込 → 成約系。商談数が多いのは1人が6〜7回面談する長期戦のため。</p>
+    <div class="panel">
+      <div class="funnel">
+        <div class="frow"><div class="fbar" style="width:38%">新規アポ <span>31</span></div><div class="fmeta">飛び込み中心（6月から反響bookrun加わる）</div></div>
+        <div class="frow"><div class="fbar" style="width:100%">商談 面談 <span>84</span></div><div class="fmeta">再訪を含む延べ面談数</div></div>
+        <div class="frow"><div class="fbar" style="width:14%;background:linear-gradient(90deg,#0891b2,#06b6d4)">事前申込 <span>5</span></div><div class="fmeta">住宅ローン事前審査へ</div></div>
+        <div class="frow"><div class="fbar" style="width:18%;background:linear-gradient(90deg,#16a34a,#22c55e)">成約系 <span>10</span></div><div class="fmeta">私募債/保険/リフォーム/契約 ＝ 手ぶらで帰らない</div></div>
+        <div class="frow"><div class="fbar" style="width:12%;background:linear-gradient(90deg,#b91c1c,#ef4444)">打ち切り <span>8</span></div><div class="fmeta">半数はEランク（見切り候補）</div></div>
+      </div>
+      <p class="note">※ 5月実数。各段は「その月に発生したイベント数」で、同一顧客の通時追跡（コホート）ではない。</p>
+    </div>
+  </section>
+
+  <!-- Rank conversion + monthly -->
+  <section>
+    <div class="two">
+      <div>
+        <h2><span class="dot" style="background:var(--good)"></span>ランク別 前進率（最重要）</h2>
+        <p class="lead">A→B→C→Dで前進率が単調減少。主観ランクは確度指標として妥当。<b>Aに資源集中・C/Dは低工数・Eは撤退</b>が勝ち筋。</p>
+        <div class="panel">
+          <div class="bar-row"><span class="name">A <span class="badge">n=38</span></span><span class="track"><span class="fill" style="width:95%;background:var(--a)"></span></span><span class="val">47.4%</span></div>
+          <div class="bar-row"><span class="name">B <span class="badge">n=44</span></span><span class="track"><span class="fill" style="width:41%;background:var(--b)"></span></span><span class="val">20.5%</span></div>
+          <div class="bar-row"><span class="name">C <span class="badge">n=31</span></span><span class="track"><span class="fill" style="width:13%;background:var(--c)"></span></span><span class="val">6.5%</span></div>
+          <div class="bar-row"><span class="name">D <span class="badge">n=11</span></span><span class="track"><span class="fill" style="width:1%;background:var(--d)"></span></span><span class="val">0.0%</span></div>
+          <div class="bar-row"><span class="name">E <span class="badge">n=23</span></span><span class="track"><span class="fill" style="width:35%;background:var(--e)"></span></span><span class="val">打切集中</span></div>
+          <p class="legend">バー長＝前進率（A=47.4%を基準にスケール）。E は確度ではなく「見切り候補」フラグ＝全打ち切り16件中8件が集中。</p>
+        </div>
+      </div>
+      <div>
+        <h2><span class="dot" style="background:var(--brand2)"></span>月次トレンド（量と質）</h2>
+        <p class="lead">5月は件数最多だが前進率は最低。<b>量を追うと質が落ちる</b>。6月は反響稼働で入口が改善。</p>
+        <div class="panel">
+          <table>
+            <thead><tr><th>月</th><th>商談</th><th>前進系</th><th>前進率</th><th>アポ品質<br>C系比率</th></tr></thead>
+            <tbody>
+              <tr><td>4月</td><td>66</td><td>19</td><td><span class="pill up">28.8%</span></td><td>88%</td></tr>
+              <tr><td>5月</td><td>81</td><td>14</td><td><span class="pill down">17.3%</span></td><td>85%</td></tr>
+              <tr><td>6月<small>(MTD)</small></td><td>26</td><td>6</td><td><span class="pill mid">23.1%</span></td><td><b>59%</b></td></tr>
+            </tbody>
+          </table>
+          <p class="note">6月は〜11日の部分月。新規アポ供給は日次で約3倍（bookrun反響自動予約が6/4稼働、6月だけで18件）。C系比率88%→59%へ質改善・A評価が初出現。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Per-rep -->
+  <section>
+    <h2><span class="dot" style="background:var(--warn)"></span>営業マン個人別 3ヶ月推移（商談 前進率）</h2>
+    <p class="lead">エースは「量」ではなく「転換率」で決まる。坂本＝唯一の一貫上昇（ロールモデル）。犬塚＝件数王だが転換が伸びしろ。上田＝少数高率のクローザー。</p>
+    <div class="panel">
+      <table>
+        <thead><tr><th>営業</th><th>4月</th><th>5月</th><th>6月</th><th>3ヶ月 推移</th><th>タイプ</th></tr></thead>
+        <tbody>
+          <tr><td><b>坂本</b></td><td>25%</td><td>29%</td><td>38%</td><td class="spark up">📈 25→29→38</td><td><span class="pill up">伸び頭・ロールモデル</span></td></tr>
+          <tr><td>上田</td><td>33%</td><td>33%</td><td>50%</td><td class="spark up">📈 33→33→50</td><td><span class="pill up">職人型クローザー</span></td></tr>
+          <tr><td>犬塚</td><td>16%</td><td>13%</td><td>25%</td><td class="spark mid">〰 件数1位</td><td><span class="pill mid">量産型・転換が伸びしろ</span></td></tr>
+          <tr><td>酒井</td><td>27%</td><td>7%</td><td>0%</td><td class="spark down">📉 27→7→0</td><td><span class="pill down">失速・要1on1</span></td></tr>
+          <tr><td>菊池</td><td>55%</td><td>0%</td><td>0%</td><td class="spark down">📉 55→0→0</td><td><span class="pill down">急落・立て直し</span></td></tr>
+          <tr><td>小林</td><td>12%</td><td>29%</td><td>—</td><td class="spark mid">〰 改善</td><td><span class="pill mid">平均型</span></td></tr>
+        </tbody>
+      </table>
+      <p class="note">前進率＝前進系÷商談件数。母数の小さい月（6月MTD等）は率が振れるため傾向は複数月で判断。担当名は名寄せ済み。</p>
+    </div>
+  </section>
+
+  <!-- AI quantitative frame -->
+  <section>
+    <h2><span class="dot" style="background:#0891b2"></span>AI（sales-analysis）の勝ち筋＝数字で握る</h2>
+    <p class="lead">各スレッドのAIボットが全案件に当てる定量フレーム。これを暗算できれば"歩くsales-analysis"。</p>
+    <div class="grid cards">
+      <div class="card"><div class="label">総支出（月の持ち出し）</div><div style="font-size:18px;font-weight:800;margin-top:4px">年収帯の安全レンジ</div><p style="font-size:12px;color:var(--muted);margin:6px 0 0">300-350万→6.0-7.0万／〜450万単身→5.5-6.0万。"家賃並み"を<b>文面で握る</b></p></div>
+      <div class="card"><div class="label">DTI（返済比率）</div><div style="font-size:18px;font-weight:800;margin-top:4px">≤ 33%</div><p style="font-size:12px;color:var(--muted);margin:6px 0 0">他返済（車/カード）も合算。健全域21-22%</p></div>
+      <div class="card"><div class="label">借入の暗算</div><div style="font-size:18px;font-weight:800;margin-top:4px">月返済±1万<br>≒ ±330-360万</div><p style="font-size:12px;color:var(--muted);margin:6px 0 0">35年・金利1.0-1.5%・ボ0</p></div>
+      <div class="card"><div class="label">手元現金の死守</div><div style="font-size:18px;font-weight:800;margin-top:4px">≥ 150万円</div><p style="font-size:12px;color:var(--muted);margin:6px 0 0">頭金入れ過ぎNG。私募債等は現金確保を優先し保留</p></div>
+    </div>
+    <p class="note">GO＝総支出≤上限 / DTI≤33% / 事前照会◯ / 現金残OK。STOP＝価格・タイプ・立地・頭金を即差替え。</p>
+  </section>
+
+  <!-- Takeaways -->
+  <section>
+    <h2><span class="dot" style="background:var(--brand)"></span>結論：次に効く打ち手（優先順）</h2>
+    <div class="grid takes">
+      <div class="take"><h3>① ランクで工数を変える</h3><p>Aランク（前進率47%）に上席同行・物件提案・決断取りを集中。C/D（7%/0%）は低工数、E（打切候補）は丁寧に撤退。全顧客を平等に追わない。</p></div>
+      <div class="take"><h3>② 出口（クロージング）を強化</h3><p>入口（アポ）は6月に3倍へ。一方 契約・本申込は5月1件/6月0件と細い。決断取り＋上席クロージングで増えた母数を契約に変える。</p></div>
+      <div class="take"><h3>③ 6〜7回まで切らさず運ぶ</h3><p>前進は中央値6.5回目で発生。各再訪で「文面合意・書類・次回日時」を1つ前進。Wリマインドで日時変更ロス（月20-31件）を削る。</p></div>
+      <div class="take"><h3>④ 坂本の型を横展開</h3><p>唯一の一貫上昇者（25→29→38%）。何を変えて伸びたかを言語化し全社standard化。失速中の酒井・菊池は早期1on1。</p></div>
+      <div class="take"><h3>⑤ アポ品質を上げる</h3><p>C偏重（88%）→59%へ改善中。事前回収・数字1枚・目標金額の明確化でB以上を増やす＝将来の成約に直結。</p></div>
+      <div class="take"><h3>⑥ 三段ピボットで取りこぼし防止</h3><p>不動産NG（貯金不足等）は私募債→保険/リフォームへダウンセル。実データで失注を緩和できている。</p></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    元データ：社内Slack <b>martial-arts-ghd</b>（#02_アポ報告 / #03_商談報告 / #00_martialarts全体 / sales-analysis AIボット）。顧客の個人特定情報はマスキング。数値は取得時点（2026/6/11）の参考値で、6月は部分月・一部はサンプル小のため傾向値。詳細は同フォルダの分析レポート群（README参照）。
+  </div>
+
+</div>
+</body>
+</html>
