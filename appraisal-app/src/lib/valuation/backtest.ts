@@ -125,9 +125,9 @@ export const REAL_SALES: BacktestSample[] = [
   { label: "小山市東城南(戸建)", actual: 17000000, input: { propertyType: "house", city: "小山市", landArea: 164.51, buildingArea: 110, buildAge: 15, structure: "wood", walkMinutes: 18 } },
   { label: "石岡市東大橋(戸建)", actual: 21800000, input: { propertyType: "house", city: "石岡市", landArea: 288.9, buildingArea: 77.01, buildAge: 15, structure: "wood", walkMinutes: 20 } },
   { label: "土浦市上高津(戸建)", actual: 17490000, input: { propertyType: "house", city: "土浦市", landArea: 170.67, buildingArea: 123.66, buildAge: 15, structure: "wood", walkMinutes: 18 } },
-  { label: "東海村須和間(戸建)", actual: 25850000, input: { propertyType: "house", city: "その他（茨城県）", landArea: 212.01, buildingArea: 84.25, buildAge: 15, structure: "wood", walkMinutes: 20 } },
-  { label: "高根沢町宝積寺(戸建)", actual: 25850000, input: { propertyType: "house", city: "その他（栃木県）", landArea: 208.47, buildingArea: 122.84, buildAge: 15, structure: "wood", walkMinutes: 20 } },
-  { label: "寄居町富田下台(戸建)", actual: 13500000, input: { propertyType: "house", city: "その他（埼玉県）", landArea: 151.37, buildingArea: 90.88, buildAge: 15, structure: "wood", walkMinutes: 20 } },
+  { label: "東海村須和間(戸建)", actual: 25850000, input: { propertyType: "house", city: "東海村", landArea: 212.01, buildingArea: 84.25, buildAge: 15, structure: "wood", walkMinutes: 20 } },
+  { label: "高根沢町宝積寺(戸建)", actual: 25850000, input: { propertyType: "house", city: "高根沢町", landArea: 208.47, buildingArea: 122.84, buildAge: 15, structure: "wood", walkMinutes: 20 } },
+  { label: "寄居町富田下台(戸建)", actual: 13500000, input: { propertyType: "house", city: "寄居町", landArea: 151.37, buildingArea: 90.88, buildAge: 15, structure: "wood", walkMinutes: 20 } },
 ];
 
 /** ある実成約サンプルに対応する事例を SAMPLE_COMPS から除外する（リーク防止） */

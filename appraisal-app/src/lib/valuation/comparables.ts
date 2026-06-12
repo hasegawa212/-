@@ -88,9 +88,9 @@ export const SAMPLE_COMPS: TransactionComp[] = [
   { city: "宇都宮市", propertyType: "house", totalPrice: 18000000, landArea: 183.79, buildingArea: 88.19, buildAge: 20, walkMinutes: 25, tradeYear: 2025 }, // 鶴田町（2005新築・駅遠）
   { city: "石岡市", propertyType: "house", totalPrice: 21800000, landArea: 288.9, buildingArea: 77.01, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東大橋
   { city: "土浦市", propertyType: "house", totalPrice: 17490000, landArea: 170.67, buildingArea: 123.66, buildAge: 15, walkMinutes: 18, tradeYear: 2025 }, // 上高津新町
-  { city: "その他（茨城県）", propertyType: "house", totalPrice: 25850000, landArea: 212.01, buildingArea: 84.25, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東海村須和間
-  { city: "その他（栃木県）", propertyType: "house", totalPrice: 25850000, landArea: 208.47, buildingArea: 122.84, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 高根沢町宝積寺
-  { city: "その他（埼玉県）", propertyType: "house", totalPrice: 13500000, landArea: 151.37, buildingArea: 90.88, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 寄居町富田下台
+  { city: "東海村", propertyType: "house", totalPrice: 25850000, landArea: 212.01, buildingArea: 84.25, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東海村須和間
+  { city: "高根沢町", propertyType: "house", totalPrice: 25850000, landArea: 208.47, buildingArea: 122.84, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 高根沢町宝積寺
+  { city: "寄居町", propertyType: "house", totalPrice: 13500000, landArea: 151.37, buildingArea: 90.88, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 寄居町富田下台
 ];
 
 /** 築年による緩い価値逓減係数（事例比較の補正用・下限0.5） */
@@ -161,7 +161,7 @@ export function appraiseByComparables(
 export function appraiseHybrid(
   input: RealEstateInput,
   comps: TransactionComp[] = SAMPLE_COMPS,
-  compWeight = 0.55
+  compWeight = 0.35
 ): AppraisalResult {
   const cost = appraiseRealEstate(input);
   const comp = appraiseByComparables(input, comps);

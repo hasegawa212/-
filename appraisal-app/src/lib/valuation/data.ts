@@ -23,6 +23,7 @@ export const CITY_LAND_PRICE: Record<string, number> = {
   日立市: 45000,
   石岡市: 40000,
   笠間市: 38000,
+  東海村: 45000,
   "その他（茨城県）": 35000,
   // 栃木県
   宇都宮市: 58000,
@@ -32,6 +33,7 @@ export const CITY_LAND_PRICE: Record<string, number> = {
   栃木市: 32000,
   鹿沼市: 30000,
   那須塩原市: 28000,
+  高根沢町: 30000,
   "その他（栃木県）": 25000,
   // 東京都
   "東京23区（都心部）": 1100000,
@@ -42,6 +44,7 @@ export const CITY_LAND_PRICE: Record<string, number> = {
   "その他（神奈川県）": 200000,
   // 埼玉県
   さいたま市: 230000,
+  寄居町: 38000,
   "その他（埼玉県）": 150000,
   // 千葉県
   千葉市: 170000,
@@ -68,6 +71,7 @@ export const AREA_GROUPS: { region: string; cities: string[] }[] = [
       "日立市",
       "石岡市",
       "笠間市",
+      "東海村",
       "その他（茨城県）",
     ],
   },
@@ -81,6 +85,7 @@ export const AREA_GROUPS: { region: string; cities: string[] }[] = [
       "栃木市",
       "鹿沼市",
       "那須塩原市",
+      "高根沢町",
       "その他（栃木県）",
     ],
   },
@@ -94,7 +99,7 @@ export const AREA_GROUPS: { region: string; cities: string[] }[] = [
   },
   {
     region: "埼玉県",
-    cities: ["さいたま市", "その他（埼玉県）"],
+    cities: ["さいたま市", "寄居町", "その他（埼玉県）"],
   },
   {
     region: "千葉県",
@@ -143,6 +148,7 @@ export const CONDO_UNIT_PRICE: Record<string, number> = {
   日立市: 300000,
   石岡市: 300000,
   笠間市: 290000,
+  東海村: 320000,
   "その他（茨城県）": 280000,
   // 栃木県
   宇都宮市: 340000,
@@ -152,6 +158,7 @@ export const CONDO_UNIT_PRICE: Record<string, number> = {
   栃木市: 260000,
   鹿沼市: 260000,
   那須塩原市: 250000,
+  高根沢町: 250000,
   "その他（栃木県）": 240000,
   // 首都圏
   "東京23区（都心部）": 2640000,
@@ -160,6 +167,7 @@ export const CONDO_UNIT_PRICE: Record<string, number> = {
   "横浜市・川崎市": 760000,
   "その他（神奈川県）": 480000,
   さいたま市: 560000,
+  寄居町: 280000,
   "その他（埼玉県）": 380000,
   千葉市: 420000,
   "その他（千葉県）": 300000,
