@@ -77,6 +77,20 @@ export const SAMPLE_COMPS: TransactionComp[] = [
   // 千葉市（戸建）
   { city: "千葉市", propertyType: "house", totalPrice: 34000000, landArea: 140, buildingArea: 102, buildAge: 14, walkMinutes: 13, tradeYear: 2024 },
   { city: "千葉市", propertyType: "house", totalPrice: 30500000, landArea: 130, buildingArea: 96, buildAge: 18, walkMinutes: 16, tradeYear: 2023 },
+
+  // ▼ 実成約（売買契約書・ドライブ一括取込）。築年・駅は契約書に記載が無いものは
+  //   築15年・徒歩20分を仮置き（判明分は実値）。価格は総額（土地+建物）。
+  { city: "ひたちなか市", propertyType: "house", totalPrice: 16300000, landArea: 200.01, buildingArea: 101.02, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 津田東1丁目
+  { city: "ひたちなか市", propertyType: "house", totalPrice: 19800000, landArea: 265.74, buildingArea: 130.83, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 市毛445-8
+  { city: "ひたちなか市", propertyType: "house", totalPrice: 21800000, landArea: 218, buildingArea: 126.23, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 中根字六ツ野（軽量鉄骨）
+  { city: "小山市", propertyType: "house", totalPrice: 17990000, landArea: 151.82, buildingArea: 87.76, buildAge: 8, walkMinutes: 18, tradeYear: 2025 }, // 間々田（2017新築）
+  { city: "小山市", propertyType: "house", totalPrice: 17000000, landArea: 164.51, buildingArea: 110.0, buildAge: 15, walkMinutes: 18, tradeYear: 2025 }, // 東城南2丁目
+  { city: "宇都宮市", propertyType: "house", totalPrice: 18000000, landArea: 183.79, buildingArea: 88.19, buildAge: 20, walkMinutes: 25, tradeYear: 2025 }, // 鶴田町（2005新築・駅遠）
+  { city: "石岡市", propertyType: "house", totalPrice: 21800000, landArea: 288.9, buildingArea: 77.01, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東大橋
+  { city: "土浦市", propertyType: "house", totalPrice: 17490000, landArea: 170.67, buildingArea: 123.66, buildAge: 15, walkMinutes: 18, tradeYear: 2025 }, // 上高津新町
+  { city: "その他（茨城県）", propertyType: "house", totalPrice: 25850000, landArea: 212.01, buildingArea: 84.25, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東海村須和間
+  { city: "その他（栃木県）", propertyType: "house", totalPrice: 25850000, landArea: 208.47, buildingArea: 122.84, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 高根沢町宝積寺
+  { city: "その他（埼玉県）", propertyType: "house", totalPrice: 13500000, landArea: 151.37, buildingArea: 90.88, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 寄居町富田下台
 ];
 
 /** 築年による緩い価値逓減係数（事例比較の補正用・下限0.5） */
