@@ -509,3 +509,29 @@ describe("品質: 事例カバレッジ拡張", () => {
     expect(r).toBeNull(); // 有効事例が1件→2件未満でnull
   });
 });
+
+describe("マンション査定の地方較正（CONDO_UNIT_PRICE）", () => {
+  it("地方マンションが実勢レンジに乗る（水戸70.58㎡・築18 ≈ 1,500〜2,300万）", () => {
+    const r = appraiseRealEstate({
+      propertyType: "apartment", city: "水戸市", landArea: 0, buildingArea: 70.58,
+      buildAge: 18, structure: "rc", walkMinutes: 12,
+    });
+    expect(r.estimate).toBeGreaterThan(15000000); // 旧モデルの約700万を脱却
+    expect(r.estimate).toBeLessThan(23000000);
+  });
+
+  it("東京23区その他のマンションは従来どおり数千万円台を維持", () => {
+    const r = appraiseRealEstate({
+      propertyType: "apartment", city: "東京23区（その他）", landArea: 0, buildingArea: 70,
+      buildAge: 15, structure: "rc", walkMinutes: 8,
+    });
+    expect(r.estimate).toBeGreaterThan(50000000);
+    expect(r.estimate).toBeLessThan(100000000);
+  });
+
+  it("都心マンションは地方より高い", () => {
+    const base = { propertyType: "apartment" as const, landArea: 0, buildingArea: 70, buildAge: 15, structure: "rc" as const, walkMinutes: 8 };
+    expect(appraiseRealEstate({ ...base, city: "東京23区（都心部）" }).estimate)
+      .toBeGreaterThan(appraiseRealEstate({ ...base, city: "水戸市" }).estimate);
+  });
+});

@@ -29,6 +29,8 @@ export interface TransactionComp {
 
 /** 概算サンプルの成約事例（実データは fetch_transactions.py で置換） */
 export const SAMPLE_COMPS: TransactionComp[] = [
+  // 水戸市（中古マンション）▼ 実物件（マイソク）: 水戸赤塚・RC・70.58㎡・3LDK・築2007・2,180万(売出/リフォーム済)
+  { city: "水戸市", propertyType: "apartment", totalPrice: 21800000, landArea: 0, buildingArea: 70.58, buildAge: 18, walkMinutes: 12, tradeYear: 2026 },
   // 水戸市（戸建）
   // ▼ 実成約（登記簿で築年確認済み）: 水戸市鯉淵町・2016新築・土地234.79/建物89.42・駅遠
   { city: "水戸市", propertyType: "house", totalPrice: 22500000, landArea: 234.79, buildingArea: 89.42, buildAge: 6, walkMinutes: 25, tradeYear: 2022 },
