@@ -1,0 +1,56 @@
+{
+  "name": "b-book予約確定 → 反響管理シートにZoom反映",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": { "item": [{ "mode": "everyMinute" }] },
+        "simple": false,
+        "filters": { "q": "from:no-reply@b-book.run" },
+        "options": {}
+      },
+      "id": "d1000000-0000-4000-8000-000000000001",
+      "name": "Gmailトリガー（b-book）",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "credentials": {
+        "gmailOAuth2": { "id": "REPLACE_WITH_BBOOK_GMAIL_CREDENTIAL_ID", "name": "Gmail (08.martialarts.20@gmail.com)" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// b-book予約確定メールからゲスト名/メール/日程/Zoom URLを抽出\nconst t = String($json.text || $json.snippet || $json.html || '');\nconst subj = String($json.subject || '');\nconst pick = (re, s) => { const m = (s || t).match(re); return m ? m[1].trim() : ''; };\nconst guestLine = pick(/【ゲスト】\\s*([^\\n]+)/);\nlet name = pick(/^\\s*([^|｜]+?)様/, guestLine);\nif (!name) name = pick(/新規受付[:：]\\s*([^\\s/／]+?)様/, subj);\nconst email = pick(/([\\w.+-]+@[\\w.-]+\\.[A-Za-z]{2,})/, guestLine);\nconst datetime = pick(/【日程】\\s*([^\\n]+)/);\nconst zoomUrl = pick(/(https?:\\/\\/[^\\s<>\"']*zoom\\.us\\/[^\\s<>\"']+)/);\nconst manageUrl = pick(/【予約管理URL】\\s*(https?:\\/\\/[^\\s<>\"']+)/);\nconst booking = { name, email, datetime, zoomUrl, manageUrl };\nreturn [{ json: { booking } }];"
+      },
+      "id": "d1000000-0000-4000-8000-000000000002",
+      "name": "予約メールを解析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/AKfycbyYfb-XTDekyx9GvEfLYXai3JmRxTKc1RJxkIX8w2L_ExjX2NJUVsPNN_vZI1x01qot/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'addBooking', booking: $json.booking }) }}",
+        "options": {}
+      },
+      "id": "d1000000-0000-4000-8000-000000000003",
+      "name": "反響管理シートへ反映",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Gmailトリガー（b-book）": { "main": [[{ "node": "予約メールを解析", "type": "main", "index": 0 }]] },
+    "予約メールを解析": { "main": [[{ "node": "反響管理シートへ反映", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "description": "08.martialarts.20@gmail.com に届くb-book(no-reply@b-book.run)の予約確定メールを1分ごとに検知し、ゲスト名/メール/日程/Zoom URLを解析してApps Script(action:addBooking)経由で反響管理シートの該当行にZoom URL・次回の日時・zoom面談有=設定済を自動反映する。"
+  }
+}

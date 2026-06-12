@@ -130,7 +130,28 @@ function doPost(e) {
       return jsonOut_(extractTranscript_(String(body.transcript || ''), sheetName));
     }
 
-    // 既定：コンソール保存
+    // 自動化#5：反響メール/Slack → 反響管理シートへ自動追記
+    if (body.action === 'addInquiry') {
+      return jsonOut_(appendInquiry_(body.inquiry || {}));
+    }
+
+    // 自動化#6：b-book予約確定 → 反響管理シートにZoom情報を反映
+    if (body.action === 'addBooking') {
+      return jsonOut_(updateBooking_(body.booking || {}));
+    }
+
+    // 自動化#7：Slack #30の状況 → 反響管理シートの該当行を更新
+    if (body.action === 'updateStatus') {
+      return jsonOut_(updateReactionStatus_(body.update || {}));
+    }
+
+    // 面談コンソール保存 → お客様ごとの「サマリー形式」ヒアリングシートを生成/更新し、
+    //   「ヒアリング一覧」へ1行 upsert する（現行の主保存フロー）。
+    if (body.action === 'saveHearing') {
+      return jsonOut_(saveHearingSummary_(body.cells || {}, body.viewUrl || ''));
+    }
+
+    // 既定：コンソール保存（旧53列カード形式。後方互換のため残置）
     var book = getBook_();
     var sheet = book.getSheetByName(sheetName);
     if (!sheet) return jsonOut_({ ok: false, error: 'シートが見つかりません: ' + sheetName });
@@ -150,9 +171,13 @@ function doPost(e) {
       sheet.getRange(row, colToIndex_(col)).setValue(val);
       written++;
     }
+    SpreadsheetApp.flush(); // 書き込みを確実に確定（後続でエラーが出ても保存は残す）
 
     // 自動化#4：保存と同時に Slack へサマリー投稿（postSlack:true かつ Webhook設定時）
-    if (body.postSlack) postSlackSummary_(cells);
+    // Automation.gs 未追加でも保存が巻き戻らないよう try/catch で隔離する
+    if (body.postSlack) {
+      try { postSlackSummary_(cells); } catch (slackErr) { /* 保存は成功扱い */ }
+    }
 
     return jsonOut_({ ok: true, sheet: sheetName, row: row, written: written });
   } catch (err) {

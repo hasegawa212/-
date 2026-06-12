@@ -4,9 +4,12 @@
  * 4つの自動化をまとめて提供します。各機能は独立して使えます。
  *
  *  #1 Slackサマリー → シート自動転記   parseSummary_() + doPost(action:"importSummary")
- *  #2 反響フォーム → ヒアリング下書き   importInquiriesToDrafts()（時間主導トリガー）
  *  #3 Zoom録画文字起こし → AI要約 → 行  extractTranscript_() + doPost(action:"extractTranscript")
  *  #4 コンソール保存時に Slack も投稿    postSlackSummary_()（Code.gs の doPost から呼ぶ）
+ *  #5 反響メール → 反響管理シート追記    appendInquiry_() + doPost(action:"addInquiry")
+ *  #6 b-book予約確定 → 反響管理シート反映  updateBooking_() + doPost(action:"addBooking")
+ *
+ *  ※ヒアリングシートへは面談コンソールからの保存のみ。反響の自動取り込みはしない方針。
  *
  * 【Script Properties に設定】(プロジェクトの設定 → スクリプト プロパティ)
  *   SLACK_WEBHOOK_URL   … #1/#4 用 Slack Incoming Webhook（任意）
@@ -17,13 +20,151 @@
 
 function props_() { return PropertiesService.getScriptProperties(); }
 
-// シートメニュー（手動実行用）
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('反響自動化')
-    .addItem('反響→ヒアリング下書きを同期', 'importInquiriesToDrafts')
-    .addToUi();
+// =============================================================================
+// #5 反響メール/Slack → 反響管理シートへ自動追記（doPost action:"addInquiry"）
+//   n8n の Gmailトリガー等から { action:"addInquiry", inquiry:{...} } をPOSTする。
+//   inquiry: { name, tel, email, area, source, type, note, hopeDate, hopeTime, receivedAt }
+// =============================================================================
+function appendInquiry_(inq) {
+  inq = inq || {};
+  var sheet = getBook_().getSheetByName('反響管理シート（martialhp連動）');
+  if (!sheet) return { ok: false, error: '反響管理シートが見つかりません' };
+
+  // 重複防止：同じ電話 or メールが直近にあればスキップ
+  var lastRow = sheet.getLastRow();
+  var header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+  if (lastRow >= 2 && (inq.tel || inq.email)) {
+    var vals = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    for (var r = 0; r < vals.length; r++) {
+      var t = idx['電話番号'] != null ? String(vals[r][idx['電話番号']]) : '';
+      var e = idx['メールアドレス'] != null ? String(vals[r][idx['メールアドレス']]) : '';
+      if ((inq.tel && t && t === String(inq.tel)) || (inq.email && e && e === String(inq.email))) {
+        return { ok: true, skipped: true, reason: '重複（既に反響管理シートに存在）' };
+      }
+    }
+  }
+
+  var row = [];
+  for (var i = 0; i < header.length; i++) row.push('');
+  var set = function (name, val) { if (idx[name] != null && val != null && val !== '') row[idx[name]] = val; };
+  var now = new Date();
+  set('No.', sheet.getLastRow()); // ヘッダ1行ぶんを差し引いた通し番号
+  set('受信日時', inq.receivedAt || Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm'));
+  set('氏名', inq.name);
+  set('電話番号', inq.tel);
+  set('メールアドレス', inq.email);
+  set('問い合わせ種別', inq.type || '来場予約');
+  set('希望エリア・物件', inq.area);
+  set('流入元', inq.source || 'サイト予約フォーム');
+  set('担当', '未割当');
+  set('通電有無', '未架電');
+  set('ステータス', '新規');
+  set('次回アクション', 'Zoom調整');
+  var biko = [inq.note, inq.hopeDate ? '希望日:' + inq.hopeDate : '', inq.hopeTime ? '希望時間:' + inq.hopeTime : '']
+    .filter(function (x) { return x; }).join(' / ');
+  set('備考', biko);
+  set('最終更新日', Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd'));
+
+  sheet.appendRow(row);
+  return { ok: true, row: sheet.getLastRow() };
 }
+
+// =============================================================================
+// #6 b-book予約確定メール → 反響管理シートにZoom情報を反映（doPost action:"addBooking"）
+//   booking: { name, email, datetime, zoomUrl, manageUrl, area }
+//   メール/氏名で該当行を探し、Zoom URL・次回の日時・zoom面談有=設定済 等を書く。
+//   該当が無ければ新規行を作って反映する。
+// =============================================================================
+function updateBooking_(b) {
+  b = b || {};
+  var sheet = getBook_().getSheetByName('反響管理シート（martialhp連動）');
+  if (!sheet) return { ok: false, error: '反響管理シートが見つかりません' };
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+
+  var targetRow = -1;
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    for (var r = 0; r < data.length; r++) {
+      var e = idx['メールアドレス'] != null ? String(data[r][idx['メールアドレス']]).trim() : '';
+      var n = idx['氏名'] != null ? String(data[r][idx['氏名']]).trim() : '';
+      if ((b.email && e && e === String(b.email).trim()) ||
+          (b.name && n && n && String(b.name).indexOf(n) >= 0)) {
+        targetRow = r + 2; break;
+      }
+    }
+  }
+
+  if (targetRow < 0) {
+    // 予約だけ先に来たケース：新規行を作る
+    var res = appendInquiry_({ name: b.name, email: b.email, area: b.area, note: 'b-book予約' });
+    targetRow = res.row || sheet.getLastRow();
+  }
+
+  var w = function (col, val) { if (idx[col] != null && val) sheet.getRange(targetRow, idx[col] + 1).setValue(val); };
+  w('Zoom URL', b.zoomUrl);
+  w('次回の日時', b.datetime);
+  w('zoom面談有', '設定済');
+  w('ステータス', 'アポ獲得');
+  w('次回アクション', '来場調整');
+  w('最終更新日', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd'));
+  return { ok: true, row: targetRow };
+}
+
+// =============================================================================
+// #7 Slack #30の状況メッセージ → 反響管理シートの該当行を更新（doPost action:"updateStatus"）
+//   update: { name, tanto, tsuden, zoom, status, nextAction, datetime, naiken, zoomUrl, memo }
+//   氏名で該当行を探し、渡された項目だけ上書き。備考は追記。最終更新日を自動。
+// =============================================================================
+function updateReactionStatus_(u) {
+  u = u || {};
+  if (!u.name) return { ok: false, error: 'name required' };
+  var sheet = getBook_().getSheetByName('反響管理シート（martialhp連動）');
+  if (!sheet) return { ok: false, error: '反響管理シートが見つかりません' };
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+
+  var norm = function (s) { return String(s || '').replace(/[\s　様]/g, ''); };
+  var qn = norm(u.name);
+  var target = -1;
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    for (var r = 0; r < data.length; r++) {
+      var n = idx['氏名'] != null ? norm(data[r][idx['氏名']]) : '';
+      if (n && (n === qn || n.indexOf(qn) >= 0 || qn.indexOf(n) >= 0)) { target = r + 2; break; }
+    }
+  }
+  if (target < 0) return { ok: false, error: '該当顧客が見つかりません: ' + u.name };
+
+  var w = function (col, val) { if (idx[col] != null && val) sheet.getRange(target, idx[col] + 1).setValue(val); };
+  w('担当', u.tanto);
+  w('通電有無', u.tsuden);
+  w('zoom面談有', u.zoom);
+  w('ステータス', u.status);
+  w('次回アクション', u.nextAction);
+  w('次回の日時', u.datetime);
+  w('内見', u.naiken);
+  w('Zoom URL', u.zoomUrl);
+  if (u.memo && idx['備考'] != null) {
+    var cur = String(sheet.getRange(target, idx['備考'] + 1).getValue() || '');
+    sheet.getRange(target, idx['備考'] + 1).setValue(cur ? (cur + ' / ' + u.memo) : u.memo);
+  }
+  w('最終更新日', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd'));
+  return { ok: true, row: target };
+}
+
+
+
+// （メニュー「反響→ヒアリング下書きを同期」は廃止。
+//   ヒアリングシートへは面談コンソールからの保存のみとし、自動では書き込まない方針のため）
 
 // =============================================================================
 // 共通：cells(col→value) を 25行目ヘッダの並びでサマリー本文に整形（#1/#4 共用）
@@ -155,43 +296,8 @@ function parseSummary_(text) {
   return cells;
 }
 
-// =============================================================================
-// #2 反響管理シート → ヒアリングシート下書き自動作成
-//   新規反響（未取り込み）を検知し、分かる範囲を埋めた下書き行を追記する。
-//   取り込み済みは反響管理シートのZ列(=26列目)にマーカーを書いて二重取り込みを防ぐ。
-//   時間主導トリガー（例：5分おき）に登録、またはメニューから手動実行。
-// =============================================================================
-function importInquiriesToDrafts() {
-  var book = getBook_();
-  var src = book.getSheetByName('反響管理シート（martialhp連動）');
-  var dst = book.getSheetByName(DEFAULT_SHEET);
-  if (!src || !dst) return;
-
-  var values = src.getDataRange().getValues();
-  var header = values[0];
-  var idx = {};
-  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
-  var MARK = 25; // Z列（0始まり25）に取り込みマーカー
-
-  for (var r = 1; r < values.length; r++) {
-    var row = values[r];
-    if (!row[idx['氏名']]) continue;          // 空行スキップ
-    if (row[MARK] === '取込済') continue;       // 取り込み済みスキップ
-
-    var cells = {};
-    cells['A'] = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
-    if (idx['受信日時'] != null) cells['B'] = row[idx['受信日時']];
-    if (idx['流入元'] != null)  cells['C'] = row[idx['流入元']];
-    if (idx['担当'] != null)    cells['D'] = row[idx['担当']];
-    if (idx['氏名'] != null)    cells['E'] = row[idx['氏名']];
-    if (idx['電話番号'] != null) cells['AR'] = row[idx['電話番号']];
-    if (idx['希望エリア・物件'] != null) cells['AB'] = row[idx['希望エリア・物件']];
-    if (idx['備考'] != null)    cells['AY'] = row[idx['備考']];
-
-    writeRowToSheet_(dst, cells, '');
-    src.getRange(r + 1, MARK + 1).setValue('取込済');
-  }
-}
+// （#2「反響→ヒアリング下書き自動作成」は廃止しました。
+//   ヒアリングシートへは面談コンソールからの保存のみとし、反響の自動取り込みは行いません。）
 
 // =============================================================================
 // #3 Zoom録画の文字起こし → Claude で53列に構造化 → 行追記
@@ -244,6 +350,157 @@ function extractTranscript_(transcript, sheetName) {
   ensureHeaders_(sheet);
   var row = writeRowToSheet_(sheet, cells, '');
   return { ok: true, row: row };
+}
+
+// =============================================================================
+// 面談コンソール保存（action:"saveHearing"）
+//   cells(col→value, Code.gs の HEADERS と同じ列記号) を受け取り、
+//   ① お客様ごとの「サマリー形式」ヒアリングシートを生成/更新（タブ名＝お名前 日付）
+//   ② 「ヒアリング一覧」へ1行 upsert（お名前で照合・リンク付き）
+//   を行う。これが現行の主保存フロー。
+// =============================================================================
+function saveHearingSummary_(cells, viewUrl) {
+  var c = cells || {};
+  var book = getBook_();
+  var name = String(c['E'] || '').trim();
+  if (!name) return { ok: false, error: 'お客様名(E)が必要です' };
+
+  var date = String(c['B'] || c['A'] || '').trim()
+    || Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var tanto = String(c['D'] || '未割当').trim();
+
+  // タブ名に使えない文字を除去（: \ / ? * [ ]）
+  var safeName = (name + ' ' + date).replace(/[:\\\/?*\[\]]/g, '-').slice(0, 95);
+
+  // 既存（同じお客様）のサマリーシートを探す：タブ名がお名前で始まるもの
+  var sheet = null;
+  var all = book.getSheets();
+  for (var i = 0; i < all.length; i++) {
+    var t = all[i].getName();
+    if (t === safeName || t.indexOf(name + ' ') === 0) { sheet = all[i]; break; }
+  }
+  var isNew = false;
+  if (!sheet) { sheet = book.insertSheet(safeName); isNew = true; }
+  else { try { sheet.setName(safeName); } catch (e) { /* 同名衝突は無視 */ } }
+
+  // 本文（項目｜値）を書き込み
+  var rows = summaryRowsFromCells_(c);
+  sheet.clearContents();
+  sheet.getRange(1, 1, rows.length, 2).setValues(rows);
+  formatSummarySheet_(sheet, rows);
+  SpreadsheetApp.flush();
+
+  // 一覧へ upsert（次回＝確定内見→候補→空 の優先で表示）
+  var next = c['AP'] ? ('内見 ' + c['AP'])
+           : (c['AN'] ? ('内見候補 ' + c['AN'] + (c['AO'] ? '・' + c['AO'] : '')) : '');
+  upsertHearingIndex_(name, date, tanto, '', next, sheet.getSheetId());
+
+  return { ok: true, sheet: safeName, created: isNew, row: 0, written: rows.length };
+}
+
+/** cells(col→value) を「項目｜値」の縦並び（Slackサマリーと同じ構成）に整形して返す */
+function summaryRowsFromCells_(c) {
+  var v = function (col) { var x = c[col]; return (x == null || x === '') ? '-' : String(x); };
+  return [
+    ['━ ヒアリングサマリー｜株式会社 Martial Arts ━', ''],
+    ['記入日', v('A')],
+    ['反響', v('B') + '（' + v('C') + '）'],
+    ['顧客名', v('E') + '（' + v('F') + '）'],
+    ['担当', v('D')],
+    ['連絡先', v('AR')],
+    ['連絡 可/不可', v('AS') + ' / ' + v('AT')],
+    ['■ 現状', ''],
+    ['現住居', v('I') + '（家賃 ' + v('H') + '万円）'],
+    ['住所', v('G')],
+    ['きっかけ', v('AV')],
+    ['検討開始', v('AM')],
+    ['内見経験', v('AK')],
+    ['他社比較', v('AL')],
+    ['■ 資金計画', ''],
+    ['希望価格', v('O') + '〜' + v('P') + '万円'],
+    ['自己資金/預金/月々', v('L') + '万 / ' + v('N') + '万 / ' + v('M') + '万'],
+    ['ローン種別', v('K')],
+    ['勤務先/入社/雇用', v('Q') + ' / ' + v('T') + ' / ' + v('S')],
+    ['源泉A/B', v('U') + '万 / ' + v('V') + '万'],
+    ['金融機関', v('W')],
+    ['既存借入/延滞/確申/資格', v('X') + ' / ' + v('Y') + ' / ' + v('Z') + ' / ' + v('AA')],
+    ['■ 希望エリア', ''],
+    ['エリア', v('AB')],
+    ['勤務地/通勤/徒歩/手段', v('R') + ' / ' + v('AC') + '分 / ' + v('AD') + '分 / ' + v('AE')],
+    ['■ 物件条件', ''],
+    ['種別', v('AF')],
+    ['間取り/階数/駐車', v('AG') + ' / ' + v('AH') + ' / ' + v('AI') + '台'],
+    ['近隣施設', v('AJ')],
+    ['■ ライフプラン・本音', ''],
+    ['家族構成', v('J')],
+    ['親居住', v('AU')],
+    ['動機', v('AW')],
+    ['■ 次アクション', ''],
+    ['内見候補', v('AN') + ' ／ ' + v('AO')],
+    ['★確定内見', v('AP')],
+    ['同行者', v('AQ')],
+    ['備考', v('AY')],
+    ['─', '炎であれ、昨日を超えろ、爪痕を残せ。'],
+  ];
+}
+
+/** サマリーシートの見た目を整える（タイトル帯・見出し・列幅・折返し） */
+function formatSummarySheet_(sheet, rows) {
+  var n = rows.length;
+  sheet.getRange(1, 1, 1, 2).merge();
+  sheet.getRange(1, 1).setBackground('#333333').setFontColor('#ffffff')
+    .setFontWeight('bold').setFontSize(13).setHorizontalAlignment('center');
+  sheet.getRange(2, 1, n - 1, 1).setFontWeight('bold');
+  sheet.getRange(2, 2, n - 1, 1).setWrap(true);
+  sheet.setColumnWidth(1, 180);
+  sheet.setColumnWidth(2, 600);
+  for (var r = 0; r < n; r++) {
+    if (String(rows[r][0]).indexOf('■') === 0) {
+      sheet.getRange(r + 1, 1, 1, 2).setBackground('#d9ead3').setFontWeight('bold');
+    }
+  }
+  sheet.setFrozenRows(1);
+}
+
+/** 「ヒアリング一覧」へ名前で upsert（無ければ作成）。リンクは #gid で当該サマリーシートへ。 */
+function upsertHearingIndex_(name, date, tanto, status, next, gid) {
+  var book = getBook_();
+  var idx = book.getSheetByName('ヒアリング一覧');
+  if (!idx) {
+    idx = book.insertSheet('ヒアリング一覧', 0);
+    idx.getRange(1, 1, 2, 6).setValues([
+      ['▼ ヒアリングシート一覧（お名前・日付で選択）', '', '', '', '', ''],
+      ['お名前', '日付', '担当', 'ステータス', 'シートを開く', '次回（来社／内見）'],
+    ]);
+    idx.getRange(1, 1, 1, 6).merge();
+    idx.getRange(1, 1).setBackground('#333333').setFontColor('#ffffff')
+      .setFontWeight('bold').setFontSize(13).setHorizontalAlignment('center');
+    idx.getRange(2, 1, 1, 6).setBackground('#4472c4').setFontColor('#ffffff').setFontWeight('bold');
+    idx.setFrozenRows(2);
+    idx.setColumnWidth(1, 120); idx.setColumnWidth(4, 170); idx.setColumnWidth(6, 240);
+  }
+  var last = idx.getLastRow();
+  var target = -1;
+  if (last >= 3) {
+    var names = idx.getRange(3, 1, last - 2, 1).getValues();
+    for (var i = 0; i < names.length; i++) {
+      if (String(names[i][0]).trim() === name) { target = i + 3; break; }
+    }
+  }
+  if (target < 0) target = Math.max(last + 1, 3);
+  var link = '=HYPERLINK("#gid=' + gid + '","開く ▶")';
+  // ステータス・次回は空なら既存値を保持
+  var keep = (target <= last)
+    ? idx.getRange(target, 1, 1, 6).getValues()[0]
+    : ['', '', '', '', '', ''];
+  idx.getRange(target, 1, 1, 6).setValues([[
+    name,
+    date || keep[1],
+    tanto || keep[2],
+    status || keep[3],
+    link,
+    next || keep[5],
+  ]]);
 }
 
 // =============================================================================

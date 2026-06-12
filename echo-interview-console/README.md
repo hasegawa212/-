@@ -1,8 +1,17 @@
 # 反響面談コンソール（echo-interview-console）
 
 株式会社 Martial Arts の反響対応・オンライン面談で使うヒアリング入力コンソールです。
-面談中に伺った内容を入力して保存すると、**Google スプレッドシートの「ヒアリングシート」へ
-1 行で確実に反映**されます（既存 53 列 A〜BA を 1 項目=1 列でマッピング）。
+面談中に伺った内容を入力して保存すると、**Google スプレッドシートに反映**されます。
+
+**現行の主保存フロー（`action:"saveHearing"`）**：保存すると Apps Script が
+①**お客様ごとの「サマリー形式」ヒアリングシートを自動生成/更新**（タブ名＝お名前 日付、
+Slack の「反響顧客ヒアリングサマリー」と同じ縦並び）し、②先頭の**「ヒアリング一覧」へ
+お名前・日付・担当・次回（来社/内見）付きの 1 行を upsert**（リンクで各シートへジャンプ）
+します。チームは「ヒアリング一覧」から縦に選んで開けます。
+`saveHearingSummary_()` / `upsertHearingIndex_()`（`apps-script/Automation.gs`）が担当。
+
+> 旧フロー（既存 53 列 A〜BA の `ヒアリングシート①②③` に 1 行追記）も後方互換で残置
+> （`doPost` の既定 `action:"save"`）。入力↔列の対応は `fields.js` が単一のソース。
 
 - フロント：`index.html` / `styles.css` / `app.js` / `fields.js`（依存ゼロのバニラ JS, ES Modules）
 - 書き込み：`apps-script/Code.gs`（Google Apps Script ウェブアプリ）
