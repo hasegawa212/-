@@ -1,4 +1,4 @@
-import { CITY_LAND_PRICE, STRUCTURE_SPEC, APARTMENT_UNIT_MULTIPLIER } from "./data";
+import { CITY_LAND_PRICE, STRUCTURE_SPEC, CONDO_UNIT_PRICE, CONDO_UNIT_DEFAULT } from "./data";
 import type { AppraisalResult, BreakdownItem, Grade, RealEstateInput } from "./types";
 
 /** 1万円単位に丸める */
@@ -86,7 +86,7 @@ export function appraiseRealEstate(input: RealEstateInput): AppraisalResult {
   let total = 0;
 
   if (input.propertyType === "apartment") {
-    const unit = Math.round(cityPrice * APARTMENT_UNIT_MULTIPLIER);
+    const unit = CONDO_UNIT_PRICE[input.city] ?? CONDO_UNIT_DEFAULT;
     // マンションはRC造として残存率を計算
     const residual = buildingResidualRate(input.buildAge, STRUCTURE_SPEC.rc.usefulLife);
     const baseBuilding = input.buildingArea * unit * residual;

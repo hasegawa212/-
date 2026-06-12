@@ -6,7 +6,7 @@ import { evaluateInvestment } from "./investment";
 import { parseBatchText, parseMyosoku, appraiseBatch, resolveCity, resolveStructure, parsePrice, parseArea, parseBuildAge, parseWalkMinutes, judge } from "./batch";
 import { appraiseHybrid, appraiseByComparables } from "./comparables";
 import { capRateForWard } from "./investment";
-import { runBacktest, ACTUAL_SAMPLES } from "./backtest";
+import { runBacktest, optimizeCompWeight, ACTUAL_SAMPLES, runBacktestLOO, REAL_SALES } from "./backtest";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -454,5 +454,109 @@ describe("精度向上 v2", () => {
     expect(report.rows).toHaveLength(ACTUAL_SAMPLES.length);
     // 参考: コンソールに精度サマリを出力
     console.log(`[backtest] n=${report.n} MAPE=${report.mape.toFixed(1)}% ±15%命中=${report.within15.toFixed(0)}%`);
+  });
+});
+
+describe("ブレンド比率の最適化", () => {
+  it("MAPEを最小化する事例比較の重みを探索する（既定0.55以下のMAPE）", () => {
+    const opt = optimizeCompWeight(ACTUAL_SAMPLES);
+    expect(opt.bestWeight).toBeGreaterThanOrEqual(0);
+    expect(opt.bestWeight).toBeLessThanOrEqual(1);
+    // 探索した最適重みは、既定(0.55)以下のMAPEになるはず
+    expect(opt.bestMape).toBeLessThanOrEqual(opt.baselineMape + 1e-9);
+    console.log(`[blend] best weight=${opt.bestWeight} MAPE=${opt.bestMape.toFixed(1)}% (baseline 0.55 → ${opt.baselineMape.toFixed(1)}%)`);
+  });
+
+  it("compWeight=1 は事例比較のみ、0 は原価法のみに一致する", () => {
+    const input = {
+      propertyType: "house" as const, city: "水戸市", landArea: 170, buildingArea: 105,
+      buildAge: 12, structure: "wood" as const, walkMinutes: 12,
+    };
+    const compOnly = appraiseHybrid(input, undefined, 1).estimate;
+    const costOnly = appraiseHybrid(input, undefined, 0).estimate;
+    const comp = appraiseByComparables(input)!;
+    expect(compOnly).toBe(comp.estimate);
+    expect(costOnly).toBe(appraiseRealEstate(input).estimate);
+  });
+});
+
+describe("品質: 事例カバレッジ拡張", () => {
+  it("追加エリア（土浦/日立/さいたま/千葉/都心マンション）でも事例比較が効く", () => {
+    const houseCities = ["土浦市", "日立市", "さいたま市", "千葉市"];
+    for (const city of houseCities) {
+      const r = appraiseByComparables({
+        propertyType: "house", city, landArea: 160, buildingArea: 100,
+        buildAge: 14, structure: "wood", walkMinutes: 14,
+      });
+      expect(r, city).not.toBeNull();
+      expect(r!.n).toBeGreaterThanOrEqual(2);
+    }
+    const condo = appraiseByComparables({
+      propertyType: "apartment", city: "東京23区（都心部）", landArea: 0, buildingArea: 60,
+      buildAge: 12, structure: "rc", walkMinutes: 6,
+    });
+    expect(condo).not.toBeNull();
+  });
+
+  it("価格0の事例は比較対象から除外される", () => {
+    const r = appraiseByComparables(
+      { propertyType: "house", city: "X市", landArea: 150, buildingArea: 100, buildAge: 10, structure: "wood", walkMinutes: 10 },
+      [
+        { city: "X市", propertyType: "house", totalPrice: 0, landArea: 150, buildingArea: 100, buildAge: 10, walkMinutes: 10, tradeYear: 2024 },
+        { city: "X市", propertyType: "house", totalPrice: 30000000, landArea: 160, buildingArea: 100, buildAge: 10, walkMinutes: 10, tradeYear: 2024 },
+      ]
+    );
+    expect(r).toBeNull(); // 有効事例が1件→2件未満でnull
+  });
+});
+
+describe("マンション査定の地方較正（CONDO_UNIT_PRICE）", () => {
+  it("地方マンションが実勢レンジに乗る（水戸70.58㎡・築18 ≈ 1,500〜2,300万）", () => {
+    const r = appraiseRealEstate({
+      propertyType: "apartment", city: "水戸市", landArea: 0, buildingArea: 70.58,
+      buildAge: 18, structure: "rc", walkMinutes: 12,
+    });
+    expect(r.estimate).toBeGreaterThan(15000000); // 旧モデルの約700万を脱却
+    expect(r.estimate).toBeLessThan(23000000);
+  });
+
+  it("東京23区その他のマンションは従来どおり数千万円台を維持", () => {
+    const r = appraiseRealEstate({
+      propertyType: "apartment", city: "東京23区（その他）", landArea: 0, buildingArea: 70,
+      buildAge: 15, structure: "rc", walkMinutes: 8,
+    });
+    expect(r.estimate).toBeGreaterThan(50000000);
+    expect(r.estimate).toBeLessThan(100000000);
+  });
+
+  it("都心マンションは地方より高い", () => {
+    const base = { propertyType: "apartment" as const, landArea: 0, buildingArea: 70, buildAge: 15, structure: "rc" as const, walkMinutes: 8 };
+    expect(appraiseRealEstate({ ...base, city: "東京23区（都心部）" }).estimate)
+      .toBeGreaterThan(appraiseRealEstate({ ...base, city: "水戸市" }).estimate);
+  });
+});
+
+describe("実成約 Leave-One-Out バックテスト", () => {
+  it("実成約を事例から除外して査定し、実測誤差を算出する", () => {
+    const r = runBacktestLOO(REAL_SALES);
+    expect(r.n).toBe(REAL_SALES.length);
+    expect(Number.isFinite(r.mape)).toBe(true);
+    expect(r.mape).toBeLessThan(45); // 概算モデルの妥当域
+    // 各物件の誤差を出力
+    console.log(`[LOO] n=${r.n} MAPE=${r.mape.toFixed(1)}% MAE=${Math.round(r.mae).toLocaleString()}円 ±15%命中=${r.within15.toFixed(0)}%`);
+    for (const row of r.rows) {
+      console.log(`  ${row.label}: 実${(row.actual/10000).toFixed(0)}万 / 査定${(row.estimate/10000).toFixed(0)}万 (誤差${row.errorPct.toFixed(0)}%)`);
+    }
+  });
+
+  it("実成約LOOでブレンド比を最適化する", () => {
+    let best = { w: 0.55, mape: Infinity };
+    for (let w = 0; w <= 1.0001; w += 0.05) {
+      const weight = Math.round(w * 100) / 100;
+      const m = runBacktestLOO(REAL_SALES, undefined, weight).mape;
+      if (m < best.mape) best = { w: weight, mape: m };
+    }
+    console.log(`[LOO最適] 事例ブレンド比 ${best.w} で MAPE=${best.mape.toFixed(1)}%（既定0.55: ${runBacktestLOO(REAL_SALES, undefined, 0.55).mape.toFixed(1)}%）`);
+    expect(best.w).toBeGreaterThanOrEqual(0);
   });
 });

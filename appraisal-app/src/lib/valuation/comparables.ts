@@ -29,7 +29,13 @@ export interface TransactionComp {
 
 /** 概算サンプルの成約事例（実データは fetch_transactions.py で置換） */
 export const SAMPLE_COMPS: TransactionComp[] = [
+  // 水戸市（中古マンション）▼ 実物件（マイソク）: 水戸赤塚・RC・70.58㎡・3LDK・築2007・2,180万(売出/リフォーム済)
+  { city: "水戸市", propertyType: "apartment", totalPrice: 21800000, landArea: 0, buildingArea: 70.58, buildAge: 18, walkMinutes: 12, tradeYear: 2026 },
   // 水戸市（戸建）
+  // ▼ 実成約（登記簿で築年確認済み）: 水戸市鯉淵町・2016新築・土地234.79/建物89.42・駅遠
+  { city: "水戸市", propertyType: "house", totalPrice: 22500000, landArea: 234.79, buildingArea: 89.42, buildAge: 6, walkMinutes: 25, tradeYear: 2022 },
+  // ▼ 実成約（重要事項説明書）: 水戸市藤が原3-12-5・2019新築(築7)・土地290.86/建物105.98(木造)・駅遠
+  { city: "水戸市", propertyType: "house", totalPrice: 28500000, landArea: 290.86, buildingArea: 105.98, buildAge: 7, walkMinutes: 25, tradeYear: 2026 },
   { city: "水戸市", propertyType: "house", totalPrice: 30500000, landArea: 170, buildingArea: 105, buildAge: 12, walkMinutes: 12, tradeYear: 2024 },
   { city: "水戸市", propertyType: "house", totalPrice: 27800000, landArea: 155, buildingArea: 98, buildAge: 18, walkMinutes: 15, tradeYear: 2023 },
   { city: "水戸市", propertyType: "house", totalPrice: 34000000, landArea: 200, buildingArea: 115, buildAge: 8, walkMinutes: 10, tradeYear: 2024 },
@@ -40,14 +46,51 @@ export const SAMPLE_COMPS: TransactionComp[] = [
   { city: "ひたちなか市", propertyType: "house", totalPrice: 24500000, landArea: 180, buildingArea: 100, buildAge: 16, walkMinutes: 20, tradeYear: 2024 },
   { city: "ひたちなか市", propertyType: "house", totalPrice: 27000000, landArea: 190, buildingArea: 105, buildAge: 12, walkMinutes: 15, tradeYear: 2023 },
   // 宇都宮市（戸建）
+  // ▼ 実成約（重要事項説明書・登記）: 宇都宮市清原台5-14-27・2004新築(築22)・土地232.13/建物105.16(木造)・駅遠
+  { city: "宇都宮市", propertyType: "house", totalPrice: 27500000, landArea: 232.13, buildingArea: 105.16, buildAge: 22, walkMinutes: 25, tradeYear: 2025 },
   { city: "宇都宮市", propertyType: "house", totalPrice: 26500000, landArea: 185, buildingArea: 102, buildAge: 14, walkMinutes: 14, tradeYear: 2024 },
   { city: "宇都宮市", propertyType: "house", totalPrice: 29000000, landArea: 200, buildingArea: 108, buildAge: 9, walkMinutes: 12, tradeYear: 2023 },
+  // 牛久市（戸建）
+  // ▼ 実成約（重要事項説明書）: 牛久市南7-53-35・2006新築(築20)・土地331.87/建物104.43(軽量鉄骨)・駅遠
+  { city: "牛久市", propertyType: "house", totalPrice: 23000000, landArea: 331.87, buildingArea: 104.43, buildAge: 20, walkMinutes: 22, tradeYear: 2026 },
   // 横浜市・川崎市（戸建）
   { city: "横浜市・川崎市", propertyType: "house", totalPrice: 46000000, landArea: 135, buildingArea: 98, buildAge: 13, walkMinutes: 10, tradeYear: 2024 },
   { city: "横浜市・川崎市", propertyType: "house", totalPrice: 42000000, landArea: 120, buildingArea: 92, buildAge: 18, walkMinutes: 12, tradeYear: 2023 },
   // 東京23区（その他）（マンション）
   { city: "東京23区（その他）", propertyType: "apartment", totalPrice: 62000000, landArea: 0, buildingArea: 68, buildAge: 14, walkMinutes: 7, tradeYear: 2024 },
   { city: "東京23区（その他）", propertyType: "apartment", totalPrice: 71000000, landArea: 0, buildingArea: 72, buildAge: 9, walkMinutes: 5, tradeYear: 2024 },
+  // 東京23区（都心部）（マンション）
+  { city: "東京23区（都心部）", propertyType: "apartment", totalPrice: 98000000, landArea: 0, buildingArea: 60, buildAge: 12, walkMinutes: 6, tradeYear: 2024 },
+  { city: "東京23区（都心部）", propertyType: "apartment", totalPrice: 88000000, landArea: 0, buildingArea: 55, buildAge: 16, walkMinutes: 5, tradeYear: 2023 },
+  // 横浜市・川崎市（マンション）
+  { city: "横浜市・川崎市", propertyType: "apartment", totalPrice: 42000000, landArea: 0, buildingArea: 68, buildAge: 14, walkMinutes: 8, tradeYear: 2024 },
+  { city: "横浜市・川崎市", propertyType: "apartment", totalPrice: 48000000, landArea: 0, buildingArea: 72, buildAge: 10, walkMinutes: 6, tradeYear: 2024 },
+  // 土浦市（戸建）
+  { city: "土浦市", propertyType: "house", totalPrice: 26000000, landArea: 175, buildingArea: 105, buildAge: 13, walkMinutes: 14, tradeYear: 2024 },
+  { city: "土浦市", propertyType: "house", totalPrice: 23000000, landArea: 160, buildingArea: 98, buildAge: 18, walkMinutes: 18, tradeYear: 2023 },
+  // 日立市（戸建）
+  { city: "日立市", propertyType: "house", totalPrice: 21000000, landArea: 200, buildingArea: 100, buildAge: 16, walkMinutes: 20, tradeYear: 2024 },
+  { city: "日立市", propertyType: "house", totalPrice: 19500000, landArea: 185, buildingArea: 95, buildAge: 20, walkMinutes: 22, tradeYear: 2023 },
+  // さいたま市（戸建）
+  { city: "さいたま市", propertyType: "house", totalPrice: 43000000, landArea: 125, buildingArea: 100, buildAge: 12, walkMinutes: 12, tradeYear: 2024 },
+  { city: "さいたま市", propertyType: "house", totalPrice: 39000000, landArea: 115, buildingArea: 95, buildAge: 16, walkMinutes: 14, tradeYear: 2023 },
+  // 千葉市（戸建）
+  { city: "千葉市", propertyType: "house", totalPrice: 34000000, landArea: 140, buildingArea: 102, buildAge: 14, walkMinutes: 13, tradeYear: 2024 },
+  { city: "千葉市", propertyType: "house", totalPrice: 30500000, landArea: 130, buildingArea: 96, buildAge: 18, walkMinutes: 16, tradeYear: 2023 },
+
+  // ▼ 実成約（売買契約書・ドライブ一括取込）。築年・駅は契約書に記載が無いものは
+  //   築15年・徒歩20分を仮置き（判明分は実値）。価格は総額（土地+建物）。
+  { city: "ひたちなか市", propertyType: "house", totalPrice: 16300000, landArea: 200.01, buildingArea: 101.02, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 津田東1丁目
+  { city: "ひたちなか市", propertyType: "house", totalPrice: 19800000, landArea: 265.74, buildingArea: 130.83, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 市毛445-8
+  { city: "ひたちなか市", propertyType: "house", totalPrice: 21800000, landArea: 218, buildingArea: 126.23, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 中根字六ツ野（軽量鉄骨）
+  { city: "小山市", propertyType: "house", totalPrice: 17990000, landArea: 151.82, buildingArea: 87.76, buildAge: 8, walkMinutes: 18, tradeYear: 2025 }, // 間々田（2017新築）
+  { city: "小山市", propertyType: "house", totalPrice: 17000000, landArea: 164.51, buildingArea: 110.0, buildAge: 15, walkMinutes: 18, tradeYear: 2025 }, // 東城南2丁目
+  { city: "宇都宮市", propertyType: "house", totalPrice: 18000000, landArea: 183.79, buildingArea: 88.19, buildAge: 20, walkMinutes: 25, tradeYear: 2025 }, // 鶴田町（2005新築・駅遠）
+  { city: "石岡市", propertyType: "house", totalPrice: 21800000, landArea: 288.9, buildingArea: 77.01, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東大橋
+  { city: "土浦市", propertyType: "house", totalPrice: 17490000, landArea: 170.67, buildingArea: 123.66, buildAge: 15, walkMinutes: 18, tradeYear: 2025 }, // 上高津新町
+  { city: "東海村", propertyType: "house", totalPrice: 25850000, landArea: 212.01, buildingArea: 84.25, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 東海村須和間
+  { city: "高根沢町", propertyType: "house", totalPrice: 25850000, landArea: 208.47, buildingArea: 122.84, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 高根沢町宝積寺
+  { city: "寄居町", propertyType: "house", totalPrice: 13500000, landArea: 151.37, buildingArea: 90.88, buildAge: 15, walkMinutes: 20, tradeYear: 2025 }, // 寄居町富田下台
 ];
 
 /** 築年による緩い価値逓減係数（事例比較の補正用・下限0.5） */
@@ -86,7 +129,11 @@ export function appraiseByComparables(
   if (subjectSize <= 0) return null;
 
   const matches = comps.filter(
-    (c) => c.city === input.city && c.propertyType === input.propertyType && sizeMetric(c) > 0
+    (c) =>
+      c.city === input.city &&
+      c.propertyType === input.propertyType &&
+      sizeMetric(c) > 0 &&
+      c.totalPrice > 0
   );
   if (matches.length < 2) return null;
 
@@ -108,11 +155,13 @@ export function appraiseByComparables(
 
 /**
  * ハイブリッド査定：原価法と取引事例比較法をブレンドする。
- * 事例が十分にあれば「事例55%・原価45%」で重み付けし、無ければ原価法のみ。
+ * 事例が十分にあれば事例比較に `compWeight`（既定0.55）の重みを置き、無ければ原価法のみ。
+ * compWeight はバックテスト（backtest.ts の optimizeCompWeight）で最適化できる。
  */
 export function appraiseHybrid(
   input: RealEstateInput,
-  comps: TransactionComp[] = SAMPLE_COMPS
+  comps: TransactionComp[] = SAMPLE_COMPS,
+  compWeight = 0.35
 ): AppraisalResult {
   const cost = appraiseRealEstate(input);
   const comp = appraiseByComparables(input, comps);
@@ -124,7 +173,8 @@ export function appraiseHybrid(
     return cost;
   }
 
-  const blended = Math.round((comp.estimate * 0.55 + cost.estimate * 0.45) / 10000) * 10000;
+  const w = Math.min(1, Math.max(0, compWeight));
+  const blended = Math.round((comp.estimate * w + cost.estimate * (1 - w)) / 10000) * 10000;
   const low = Math.round((blended * 0.9) / 10000) * 10000;
   const high = Math.round((blended * 1.1) / 10000) * 10000;
 
@@ -136,7 +186,7 @@ export function appraiseHybrid(
     notes: [
       ...cost.notes,
       `取引事例比較法（成約${comp.n}件・補正後㎡単価中央値 ${Math.round(comp.unitMedian).toLocaleString()}円）では ${formatYen(comp.estimate)} と算定。`,
-      `原価法 ${formatYen(cost.estimate)} とブレンド（事例55%・原価45%）し、最終査定額 ${formatYen(blended)} としています。`,
+      `原価法 ${formatYen(cost.estimate)} とブレンド（事例${Math.round(w * 100)}%・原価${Math.round((1 - w) * 100)}%）し、最終査定額 ${formatYen(blended)} としています。`,
     ],
   };
 }

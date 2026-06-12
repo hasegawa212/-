@@ -1,0 +1,94 @@
+{
+  "name": "会議チェックリスト（フォーム → Sheets + Slack）",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "meeting-checklist-form",
+        "formTitle": "会議の確認事項",
+        "formDescription": "会議では必ず3つの質問・確認事項を記録します（①〜③は必須入力）。",
+        "formFields": {
+          "values": [
+            { "fieldLabel": "会議名・議題", "fieldType": "text", "requiredField": true },
+            { "fieldLabel": "開催日", "fieldType": "date", "requiredField": true },
+            { "fieldLabel": "参加者", "fieldType": "text", "requiredField": false },
+            { "fieldLabel": "確認事項①", "fieldType": "textarea", "requiredField": true },
+            { "fieldLabel": "確認事項②", "fieldType": "textarea", "requiredField": true },
+            { "fieldLabel": "確認事項③", "fieldType": "textarea", "requiredField": true },
+            { "fieldLabel": "担当・次アクション", "fieldType": "textarea", "requiredField": false }
+          ]
+        },
+        "options": {}
+      },
+      "id": "form-trigger-001",
+      "name": "会議フォーム",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.2,
+      "position": [240, 300],
+      "webhookId": "meeting-checklist-form"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "r1", "name": "timestamp", "value": "={{ $now.toISO() }}", "type": "string" },
+            { "id": "r2", "name": "callback_id", "value": "meeting_form", "type": "string" },
+            { "id": "r6", "name": "notify_channel", "value": "REPLACE_WITH_SLACK_CHANNEL_ID", "type": "string" },
+            { "id": "r7", "name": "meeting_title", "value": "={{ $json[\"会議名・議題\"] }}", "type": "string" },
+            { "id": "r8", "name": "meeting_date", "value": "={{ $json[\"開催日\"] }}", "type": "string" },
+            { "id": "r9", "name": "attendees", "value": "={{ $json[\"参加者\"] }}", "type": "string" },
+            { "id": "r10", "name": "check_1", "value": "={{ $json[\"確認事項①\"] }}", "type": "string" },
+            { "id": "r11", "name": "check_2", "value": "={{ $json[\"確認事項②\"] }}", "type": "string" },
+            { "id": "r12", "name": "check_3", "value": "={{ $json[\"確認事項③\"] }}", "type": "string" },
+            { "id": "r13", "name": "owner", "value": "={{ $json[\"担当・次アクション\"] }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "build-row-001",
+      "name": "行を組み立て",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "REPLACE_WITH_GOOGLE_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "meeting_checklist", "mode": "name" },
+        "columns": { "mappingMode": "autoMapInputData", "value": {}, "matchingColumns": [], "schema": [] },
+        "options": {}
+      },
+      "id": "sheets-append-001",
+      "name": "meeting_checklist に追記",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [720, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID", "name": "Google Sheets account" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "accessToken",
+        "select": "channel",
+        "channelId": { "__rl": true, "value": "REPLACE_WITH_SLACK_CHANNEL_ID", "mode": "id" },
+        "text": "=✅ *会議の確認事項* ({{ $('行を組み立て').item.json.meeting_date }})\n*会議:* {{ $('行を組み立て').item.json.meeting_title }}  *参加者:* {{ $('行を組み立て').item.json.attendees }}\n① {{ $('行を組み立て').item.json.check_1 }}\n② {{ $('行を組み立て').item.json.check_2 }}\n③ {{ $('行を組み立て').item.json.check_3 }}",
+        "otherOptions": { "mrkdwn": true }
+      },
+      "id": "slack-notify-001",
+      "name": "Slack 通知",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [960, 300],
+      "credentials": {
+        "slackApi": { "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID", "name": "Slack account" }
+      }
+    }
+  ],
+  "connections": {
+    "会議フォーム": { "main": [[{ "node": "行を組み立て", "type": "main", "index": 0 }]] },
+    "行を組み立て": { "main": [[{ "node": "meeting_checklist に追記", "type": "main", "index": 0 }]] },
+    "meeting_checklist に追記": { "main": [[{ "node": "Slack 通知", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}
