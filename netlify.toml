@@ -7,6 +7,10 @@
   # ビルドコマンドは無し（バニラJS・依存ゼロ）
   command = ""
 
+# 同一オリジンの中継Function（ブラウザ→GASのPOST制約を回避）
+[functions]
+  directory = "netlify/functions"
+
 # キャッシュ事故防止：HTML は毎回最新を取得させる
 [[headers]]
   for = "/*.html"

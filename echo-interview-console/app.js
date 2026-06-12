@@ -188,22 +188,22 @@ async function saveToSheet() {
   saveBtn.disabled = true;
   saveBtn.textContent = '保存中…';
   try {
-    // text/plain にして CORS プリフライトを回避（Apps Script の定番）
-    const res = await fetch(endpoint, {
+    // ブラウザ→GASの直POSTは302でGETに化け書き込まれないため、
+    // 同一オリジンの中継Function経由でサーバー側からGASへPOSTする。
+    // 同一オリジンなので応答(JSON)も読めて、本物の成否を表示できる。
+    const res = await fetch('/.netlify/functions/save', {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: endpoint, payload }),
     });
     const data = await res.json();
     if (data.ok) {
-      toast(`保存しました（${data.sheet} ${data.row}行目 / ${data.written}項目）`);
+      toast(`保存しました（${data.sheet || ''} ${data.row || ''}行目 / ${data.written || ''}項目）`);
     } else {
       toast('保存に失敗：' + (data.error || '不明なエラー'), true);
     }
   } catch (err) {
-    // 応答を読めない場合（CORS等）でも書き込み自体は通っていることが多い。
-    // 403/権限系は公開範囲の設定ミスの可能性が高い旨を案内する。
-    toast('応答を確認できませんでした。シートに反映されたか確認してください（403の場合はウェブアプリの公開範囲を「全員」に）', true);
+    toast('送信に失敗しました：' + err.message, true);
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = '💾 シートに保存';
@@ -225,6 +225,7 @@ async function sendToN8n() {
   try {
     await fetch(url, {
       method: 'POST',
+      mode: 'no-cors',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ text, sheet: $('#sheet-select').value }),
     });
