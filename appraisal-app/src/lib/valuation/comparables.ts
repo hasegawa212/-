@@ -1,4 +1,5 @@
 import { walkFactor, appraiseRealEstate } from "./realEstate";
+import { STRUCTURE_SPEC } from "./data";
 import { formatYen } from "../format";
 import type { AppraisalResult, PropertyType, RealEstateInput } from "./types";
 
@@ -117,9 +118,20 @@ export interface ComparableResult {
   unitMedian: number;
 }
 
+/** 木造想定での建物原価（事例の建物分を控除/付加するため）。事例は構造不明なので木造で近似 */
+function estBuildingCost(buildingArea: number, buildAge: number): number {
+  const spec = STRUCTURE_SPEC.wood;
+  const residual = Math.max(0.1, 1 - buildAge / spec.usefulLife);
+  return buildingArea * spec.rebuildUnit * residual;
+}
+
 /**
  * 取引事例比較法による評価。同一エリア・同一種別の事例が2件以上必要。
- * 各事例の規模あたり単価を、対象の駅距離・築年に補正して中央値を採用する。
+ *
+ * 戸建・土地は「土地・建物分離方式」：各事例の総額から建物原価を控除して土地㎡単価を求め、
+ * 駅距離補正のうえ中央値を対象の土地に適用し、対象の建物原価を足す。
+ * （旧「総額÷土地面積」方式は建物規模が違う事例で土地値を過大評価していた）
+ * マンションは専有㎡単価ベース（駅距離・築年補正）。
  */
 export function appraiseByComparables(
   input: RealEstateInput,
@@ -138,18 +150,29 @@ export function appraiseByComparables(
   if (matches.length < 2) return null;
 
   const sWalk = walkFactor(input.walkMinutes);
-  const sAge = ageMultiplier(input.buildAge);
 
-  const adjustedUnits = matches.map((c) => {
-    const unit = c.totalPrice / sizeMetric(c);
-    const walkAdj = sWalk / walkFactor(c.walkMinutes);
-    // 土地のみは築年補正なし
-    const ageAdj = input.propertyType === "land" ? 1 : sAge / ageMultiplier(c.buildAge);
-    return unit * walkAdj * ageAdj;
-  });
+  if (input.propertyType === "apartment") {
+    // 専有㎡単価ベース（駅距離・築年で補正）
+    const sAge = ageMultiplier(input.buildAge);
+    const units = matches.map(
+      (c) => (c.totalPrice / c.buildingArea) * (sWalk / walkFactor(c.walkMinutes)) * (sAge / ageMultiplier(c.buildAge))
+    );
+    const unitMedian = median(units);
+    return { estimate: Math.round((unitMedian * subjectSize) / 10000) * 10000, n: matches.length, unitMedian };
+  }
 
-  const unitMedian = median(adjustedUnits);
-  const estimate = Math.round((unitMedian * subjectSize) / 10000) * 10000;
+  // 戸建・土地：土地・建物分離方式
+  const landUnits = matches
+    .map((c) => {
+      const landValue = c.totalPrice - (c.propertyType === "land" ? 0 : estBuildingCost(c.buildingArea, c.buildAge));
+      return landValue > 0 && c.landArea > 0 ? (landValue / c.landArea) * (sWalk / walkFactor(c.walkMinutes)) : null;
+    })
+    .filter((x): x is number => x !== null);
+  if (landUnits.length < 2) return null;
+
+  const unitMedian = median(landUnits);
+  const buildingCost = input.propertyType === "land" ? 0 : estBuildingCost(input.buildingArea, input.buildAge);
+  const estimate = Math.round((unitMedian * input.landArea + buildingCost) / 10000) * 10000;
   return { estimate, n: matches.length, unitMedian };
 }
 
