@@ -63,23 +63,25 @@ export function BatchForm({ onResult }: Props) {
     setText("");
   }
 
-  /** マイソク画像をブラウザ内OCR（Tesseract.js）でテキスト化し、マイソク欄へ流し込む */
-  async function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    e.target.value = ""; // 同じ画像を再選択できるように
-    if (files.length === 0) return;
+  /** マイソク画像（複数可）をブラウザ内OCR（Tesseract.js）でテキスト化し、マイソク欄へ流し込む */
+  async function runOcr(files: File[]) {
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) {
+      setOcrStatus("画像が見つかりません（PDFは画像化してから貼り付けてください）。");
+      return;
+    }
     setOcrBusy(true);
     setFormat("myosoku");
     try {
       // Tesseract は重いので動的import（初回のみCDNから日本語データ取得）
       const Tesseract = (await import("tesseract.js")).default;
       const blocks: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        setOcrStatus(`画像 ${i + 1}/${files.length} を解析中…`);
-        const { data } = await Tesseract.recognize(files[i], "jpn+eng", {
+      for (let i = 0; i < images.length; i++) {
+        setOcrStatus(`画像 ${i + 1}/${images.length} を解析中…`);
+        const { data } = await Tesseract.recognize(images[i], "jpn+eng", {
           logger: (m: { status: string; progress: number }) => {
             if (m.status === "recognizing text") {
-              setOcrStatus(`画像 ${i + 1}/${files.length} を解析中… ${Math.round(m.progress * 100)}%`);
+              setOcrStatus(`画像 ${i + 1}/${images.length} を解析中… ${Math.round(m.progress * 100)}%`);
             }
           },
         });
@@ -93,6 +95,30 @@ export function BatchForm({ onResult }: Props) {
       setOcrStatus("OCRに失敗しました。画質を上げるか、本文を手入力してください。");
     } finally {
       setOcrBusy(false);
+    }
+  }
+
+  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // 同じ画像を再選択できるように
+    if (files.length) runOcr(files);
+  }
+
+  /** クリップボードからの画像貼り付け（Ctrl+V）に対応 */
+  function handlePaste(e: React.ClipboardEvent) {
+    const files = Array.from(e.clipboardData.files);
+    if (files.some((f) => f.type.startsWith("image/"))) {
+      e.preventDefault();
+      runOcr(files);
+    }
+  }
+
+  /** 画像のドラッグ＆ドロップに対応 */
+  function handleDrop(e: React.DragEvent) {
+    const files = Array.from(e.dataTransfer.files);
+    if (files.some((f) => f.type.startsWith("image/"))) {
+      e.preventDefault();
+      runOcr(files);
     }
   }
 
@@ -113,7 +139,12 @@ export function BatchForm({ onResult }: Props) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-brand-200 bg-brand-50/40 p-3">
+      <div
+        onPaste={handlePaste}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-brand-300 bg-brand-50/40 p-3"
+      >
         <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-sm font-medium text-brand-700 shadow-sm transition hover:border-gold-400">
           {ocrBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4 text-gold-500" />}
           マイソク画像から読み取り（β）
@@ -127,7 +158,8 @@ export function BatchForm({ onResult }: Props) {
           />
         </label>
         <span className="text-xs text-brand-400">
-          {ocrStatus || "画像を選ぶと文字を自動抽出 → 下に流し込みます（精度は画質依存・要確認）。"}
+          {ocrStatus ||
+            "画像を選択／この枠に ドラッグ&ドロップ／Ctrl+V で貼り付け → 文字を自動抽出（精度は画質依存・要確認）。"}
         </span>
       </div>
 
@@ -150,8 +182,9 @@ export function BatchForm({ onResult }: Props) {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onPaste={handlePaste}
         rows={format === "myosoku" ? 14 : 10}
-        placeholder={format === "myosoku" ? "所在地：◯◯市…\n価格：3,330万円\n土地面積：160㎡ …" : "A邸　水戸市…　160　110　12　木造　10　3330万 …"}
+        placeholder={format === "myosoku" ? "所在地：◯◯市…\n価格：3,330万円\n土地面積：160㎡ …（画像はCtrl+Vでも可）" : "A邸　水戸市…　160　110　12　木造　10　3330万 …"}
         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
 
