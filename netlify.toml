@@ -1,0 +1,14 @@
+# Netlify 設定
+# このリポジトリは複数サブプロジェクトの集合だが、Netlifyサイト
+# "hearing-martialarts" は echo-interview-console（反響面談コンソール）を公開する。
+# 静的サイト（ビルド不要）なので publish ディレクトリのみ指定する。
+[build]
+  publish = "echo-interview-console"
+  # ビルドコマンドは無し（バニラJS・依存ゼロ）
+  command = ""
+
+# キャッシュ事故防止：HTML は毎回最新を取得させる
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"
