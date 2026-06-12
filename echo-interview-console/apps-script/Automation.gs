@@ -116,6 +116,51 @@ function updateBooking_(b) {
   return { ok: true, row: targetRow };
 }
 
+// =============================================================================
+// #7 Slack #30の状況メッセージ → 反響管理シートの該当行を更新（doPost action:"updateStatus"）
+//   update: { name, tanto, tsuden, zoom, status, nextAction, datetime, naiken, zoomUrl, memo }
+//   氏名で該当行を探し、渡された項目だけ上書き。備考は追記。最終更新日を自動。
+// =============================================================================
+function updateReactionStatus_(u) {
+  u = u || {};
+  if (!u.name) return { ok: false, error: 'name required' };
+  var sheet = getBook_().getSheetByName('反響管理シート（martialhp連動）');
+  if (!sheet) return { ok: false, error: '反響管理シートが見つかりません' };
+  var lastRow = sheet.getLastRow();
+  var lastCol = sheet.getLastColumn();
+  var header = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var idx = {};
+  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
+
+  var norm = function (s) { return String(s || '').replace(/[\s　様]/g, ''); };
+  var qn = norm(u.name);
+  var target = -1;
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, lastCol).getValues();
+    for (var r = 0; r < data.length; r++) {
+      var n = idx['氏名'] != null ? norm(data[r][idx['氏名']]) : '';
+      if (n && (n === qn || n.indexOf(qn) >= 0 || qn.indexOf(n) >= 0)) { target = r + 2; break; }
+    }
+  }
+  if (target < 0) return { ok: false, error: '該当顧客が見つかりません: ' + u.name };
+
+  var w = function (col, val) { if (idx[col] != null && val) sheet.getRange(target, idx[col] + 1).setValue(val); };
+  w('担当', u.tanto);
+  w('通電有無', u.tsuden);
+  w('zoom面談有', u.zoom);
+  w('ステータス', u.status);
+  w('次回アクション', u.nextAction);
+  w('次回の日時', u.datetime);
+  w('内見', u.naiken);
+  w('Zoom URL', u.zoomUrl);
+  if (u.memo && idx['備考'] != null) {
+    var cur = String(sheet.getRange(target, idx['備考'] + 1).getValue() || '');
+    sheet.getRange(target, idx['備考'] + 1).setValue(cur ? (cur + ' / ' + u.memo) : u.memo);
+  }
+  w('最終更新日', Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy/MM/dd'));
+  return { ok: true, row: target };
+}
+
 
 
 // （メニュー「反響→ヒアリング下書きを同期」は廃止。

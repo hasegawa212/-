@@ -140,6 +140,11 @@ function doPost(e) {
       return jsonOut_(updateBooking_(body.booking || {}));
     }
 
+    // 自動化#7：Slack #30の状況 → 反響管理シートの該当行を更新
+    if (body.action === 'updateStatus') {
+      return jsonOut_(updateReactionStatus_(body.update || {}));
+    }
+
     // 既定：コンソール保存
     var book = getBook_();
     var sheet = book.getSheetByName(sheetName);
