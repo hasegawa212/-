@@ -177,6 +177,7 @@ async function saveToSheet() {
   }
 
   const payload = {
+    action: 'saveHearing', // お客様ごとの「サマリー形式」シート生成＋「ヒアリング一覧」自動更新
     sheet: $('#sheet-select').value,
     cells: collectByCol(),
     viewUrl: SESSION ? `${location.origin}${location.pathname}?session=${encodeURIComponent(SESSION)}` : VIEW_URL,
@@ -198,7 +199,8 @@ async function saveToSheet() {
     });
     const data = await res.json();
     if (data.ok) {
-      toast(`保存しました（${data.sheet || ''} ${data.row || ''}行目 / ${data.written || ''}項目）`);
+      const what = data.created ? '新規作成' : '更新';
+      toast(`保存しました：「${data.sheet || ''}」を${what}＋一覧に反映`);
     } else {
       toast('保存に失敗：' + (data.error || '不明なエラー'), true);
     }
