@@ -4,9 +4,12 @@
  * 4つの自動化をまとめて提供します。各機能は独立して使えます。
  *
  *  #1 Slackサマリー → シート自動転記   parseSummary_() + doPost(action:"importSummary")
- *  #2 反響フォーム → ヒアリング下書き   importInquiriesToDrafts()（時間主導トリガー）
  *  #3 Zoom録画文字起こし → AI要約 → 行  extractTranscript_() + doPost(action:"extractTranscript")
  *  #4 コンソール保存時に Slack も投稿    postSlackSummary_()（Code.gs の doPost から呼ぶ）
+ *  #5 反響メール → 反響管理シート追記    appendInquiry_() + doPost(action:"addInquiry")
+ *  #6 b-book予約確定 → 反響管理シート反映  updateBooking_() + doPost(action:"addBooking")
+ *
+ *  ※ヒアリングシートへは面談コンソールからの保存のみ。反響の自動取り込みはしない方針。
  *
  * 【Script Properties に設定】(プロジェクトの設定 → スクリプト プロパティ)
  *   SLACK_WEBHOOK_URL   … #1/#4 用 Slack Incoming Webhook（任意）
@@ -115,13 +118,8 @@ function updateBooking_(b) {
 
 
 
-// シートメニュー（手動実行用）
-function onOpen() {
-  SpreadsheetApp.getUi()
-    .createMenu('反響自動化')
-    .addItem('反響→ヒアリング下書きを同期', 'importInquiriesToDrafts')
-    .addToUi();
-}
+// （メニュー「反響→ヒアリング下書きを同期」は廃止。
+//   ヒアリングシートへは面談コンソールからの保存のみとし、自動では書き込まない方針のため）
 
 // =============================================================================
 // 共通：cells(col→value) を 25行目ヘッダの並びでサマリー本文に整形（#1/#4 共用）
@@ -253,43 +251,8 @@ function parseSummary_(text) {
   return cells;
 }
 
-// =============================================================================
-// #2 反響管理シート → ヒアリングシート下書き自動作成
-//   新規反響（未取り込み）を検知し、分かる範囲を埋めた下書き行を追記する。
-//   取り込み済みは反響管理シートのZ列(=26列目)にマーカーを書いて二重取り込みを防ぐ。
-//   時間主導トリガー（例：5分おき）に登録、またはメニューから手動実行。
-// =============================================================================
-function importInquiriesToDrafts() {
-  var book = getBook_();
-  var src = book.getSheetByName('反響管理シート（martialhp連動）');
-  var dst = book.getSheetByName(DEFAULT_SHEET);
-  if (!src || !dst) return;
-
-  var values = src.getDataRange().getValues();
-  var header = values[0];
-  var idx = {};
-  header.forEach(function (h, i) { idx[String(h).trim()] = i; });
-  var MARK = 25; // Z列（0始まり25）に取り込みマーカー
-
-  for (var r = 1; r < values.length; r++) {
-    var row = values[r];
-    if (!row[idx['氏名']]) continue;          // 空行スキップ
-    if (row[MARK] === '取込済') continue;       // 取り込み済みスキップ
-
-    var cells = {};
-    cells['A'] = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
-    if (idx['受信日時'] != null) cells['B'] = row[idx['受信日時']];
-    if (idx['流入元'] != null)  cells['C'] = row[idx['流入元']];
-    if (idx['担当'] != null)    cells['D'] = row[idx['担当']];
-    if (idx['氏名'] != null)    cells['E'] = row[idx['氏名']];
-    if (idx['電話番号'] != null) cells['AR'] = row[idx['電話番号']];
-    if (idx['希望エリア・物件'] != null) cells['AB'] = row[idx['希望エリア・物件']];
-    if (idx['備考'] != null)    cells['AY'] = row[idx['備考']];
-
-    writeRowToSheet_(dst, cells, '');
-    src.getRange(r + 1, MARK + 1).setValue('取込済');
-  }
-}
+// （#2「反響→ヒアリング下書き自動作成」は廃止しました。
+//   ヒアリングシートへは面談コンソールからの保存のみとし、反響の自動取り込みは行いません。）
 
 // =============================================================================
 // #3 Zoom録画の文字起こし → Claude で53列に構造化 → 行追記
