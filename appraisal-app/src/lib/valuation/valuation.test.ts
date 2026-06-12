@@ -6,7 +6,7 @@ import { evaluateInvestment } from "./investment";
 import { parseBatchText, parseMyosoku, appraiseBatch, resolveCity, resolveStructure, parsePrice, parseArea, parseBuildAge, parseWalkMinutes, judge } from "./batch";
 import { appraiseHybrid, appraiseByComparables } from "./comparables";
 import { capRateForWard } from "./investment";
-import { runBacktest, optimizeCompWeight, ACTUAL_SAMPLES } from "./backtest";
+import { runBacktest, optimizeCompWeight, ACTUAL_SAMPLES, runBacktestLOO, REAL_SALES } from "./backtest";
 
 describe("不動産: 補正係数", () => {
   it("駅近は加点・駅遠は減点される", () => {
@@ -533,5 +533,30 @@ describe("マンション査定の地方較正（CONDO_UNIT_PRICE）", () => {
     const base = { propertyType: "apartment" as const, landArea: 0, buildingArea: 70, buildAge: 15, structure: "rc" as const, walkMinutes: 8 };
     expect(appraiseRealEstate({ ...base, city: "東京23区（都心部）" }).estimate)
       .toBeGreaterThan(appraiseRealEstate({ ...base, city: "水戸市" }).estimate);
+  });
+});
+
+describe("実成約 Leave-One-Out バックテスト", () => {
+  it("実成約を事例から除外して査定し、実測誤差を算出する", () => {
+    const r = runBacktestLOO(REAL_SALES);
+    expect(r.n).toBe(REAL_SALES.length);
+    expect(Number.isFinite(r.mape)).toBe(true);
+    expect(r.mape).toBeLessThan(45); // 概算モデルの妥当域
+    // 各物件の誤差を出力
+    console.log(`[LOO] n=${r.n} MAPE=${r.mape.toFixed(1)}% MAE=${Math.round(r.mae).toLocaleString()}円 ±15%命中=${r.within15.toFixed(0)}%`);
+    for (const row of r.rows) {
+      console.log(`  ${row.label}: 実${(row.actual/10000).toFixed(0)}万 / 査定${(row.estimate/10000).toFixed(0)}万 (誤差${row.errorPct.toFixed(0)}%)`);
+    }
+  });
+
+  it("実成約LOOでブレンド比を最適化する", () => {
+    let best = { w: 0.55, mape: Infinity };
+    for (let w = 0; w <= 1.0001; w += 0.05) {
+      const weight = Math.round(w * 100) / 100;
+      const m = runBacktestLOO(REAL_SALES, undefined, weight).mape;
+      if (m < best.mape) best = { w: weight, mape: m };
+    }
+    console.log(`[LOO最適] 事例ブレンド比 ${best.w} で MAPE=${best.mape.toFixed(1)}%（既定0.55: ${runBacktestLOO(REAL_SALES, undefined, 0.55).mape.toFixed(1)}%）`);
+    expect(best.w).toBeGreaterThanOrEqual(0);
   });
 });
