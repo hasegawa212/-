@@ -353,6 +353,157 @@ function extractTranscript_(transcript, sheetName) {
 }
 
 // =============================================================================
+// 面談コンソール保存（action:"saveHearing"）
+//   cells(col→value, Code.gs の HEADERS と同じ列記号) を受け取り、
+//   ① お客様ごとの「サマリー形式」ヒアリングシートを生成/更新（タブ名＝お名前 日付）
+//   ② 「ヒアリング一覧」へ1行 upsert（お名前で照合・リンク付き）
+//   を行う。これが現行の主保存フロー。
+// =============================================================================
+function saveHearingSummary_(cells, viewUrl) {
+  var c = cells || {};
+  var book = getBook_();
+  var name = String(c['E'] || '').trim();
+  if (!name) return { ok: false, error: 'お客様名(E)が必要です' };
+
+  var date = String(c['B'] || c['A'] || '').trim()
+    || Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd');
+  var tanto = String(c['D'] || '未割当').trim();
+
+  // タブ名に使えない文字を除去（: \ / ? * [ ]）
+  var safeName = (name + ' ' + date).replace(/[:\\\/?*\[\]]/g, '-').slice(0, 95);
+
+  // 既存（同じお客様）のサマリーシートを探す：タブ名がお名前で始まるもの
+  var sheet = null;
+  var all = book.getSheets();
+  for (var i = 0; i < all.length; i++) {
+    var t = all[i].getName();
+    if (t === safeName || t.indexOf(name + ' ') === 0) { sheet = all[i]; break; }
+  }
+  var isNew = false;
+  if (!sheet) { sheet = book.insertSheet(safeName); isNew = true; }
+  else { try { sheet.setName(safeName); } catch (e) { /* 同名衝突は無視 */ } }
+
+  // 本文（項目｜値）を書き込み
+  var rows = summaryRowsFromCells_(c);
+  sheet.clearContents();
+  sheet.getRange(1, 1, rows.length, 2).setValues(rows);
+  formatSummarySheet_(sheet, rows);
+  SpreadsheetApp.flush();
+
+  // 一覧へ upsert（次回＝確定内見→候補→空 の優先で表示）
+  var next = c['AP'] ? ('内見 ' + c['AP'])
+           : (c['AN'] ? ('内見候補 ' + c['AN'] + (c['AO'] ? '・' + c['AO'] : '')) : '');
+  upsertHearingIndex_(name, date, tanto, '', next, sheet.getSheetId());
+
+  return { ok: true, sheet: safeName, created: isNew, row: 0, written: rows.length };
+}
+
+/** cells(col→value) を「項目｜値」の縦並び（Slackサマリーと同じ構成）に整形して返す */
+function summaryRowsFromCells_(c) {
+  var v = function (col) { var x = c[col]; return (x == null || x === '') ? '-' : String(x); };
+  return [
+    ['━ ヒアリングサマリー｜株式会社 Martial Arts ━', ''],
+    ['記入日', v('A')],
+    ['反響', v('B') + '（' + v('C') + '）'],
+    ['顧客名', v('E') + '（' + v('F') + '）'],
+    ['担当', v('D')],
+    ['連絡先', v('AR')],
+    ['連絡 可/不可', v('AS') + ' / ' + v('AT')],
+    ['■ 現状', ''],
+    ['現住居', v('I') + '（家賃 ' + v('H') + '万円）'],
+    ['住所', v('G')],
+    ['きっかけ', v('AV')],
+    ['検討開始', v('AM')],
+    ['内見経験', v('AK')],
+    ['他社比較', v('AL')],
+    ['■ 資金計画', ''],
+    ['希望価格', v('O') + '〜' + v('P') + '万円'],
+    ['自己資金/預金/月々', v('L') + '万 / ' + v('N') + '万 / ' + v('M') + '万'],
+    ['ローン種別', v('K')],
+    ['勤務先/入社/雇用', v('Q') + ' / ' + v('T') + ' / ' + v('S')],
+    ['源泉A/B', v('U') + '万 / ' + v('V') + '万'],
+    ['金融機関', v('W')],
+    ['既存借入/延滞/確申/資格', v('X') + ' / ' + v('Y') + ' / ' + v('Z') + ' / ' + v('AA')],
+    ['■ 希望エリア', ''],
+    ['エリア', v('AB')],
+    ['勤務地/通勤/徒歩/手段', v('R') + ' / ' + v('AC') + '分 / ' + v('AD') + '分 / ' + v('AE')],
+    ['■ 物件条件', ''],
+    ['種別', v('AF')],
+    ['間取り/階数/駐車', v('AG') + ' / ' + v('AH') + ' / ' + v('AI') + '台'],
+    ['近隣施設', v('AJ')],
+    ['■ ライフプラン・本音', ''],
+    ['家族構成', v('J')],
+    ['親居住', v('AU')],
+    ['動機', v('AW')],
+    ['■ 次アクション', ''],
+    ['内見候補', v('AN') + ' ／ ' + v('AO')],
+    ['★確定内見', v('AP')],
+    ['同行者', v('AQ')],
+    ['備考', v('AY')],
+    ['─', '炎であれ、昨日を超えろ、爪痕を残せ。'],
+  ];
+}
+
+/** サマリーシートの見た目を整える（タイトル帯・見出し・列幅・折返し） */
+function formatSummarySheet_(sheet, rows) {
+  var n = rows.length;
+  sheet.getRange(1, 1, 1, 2).merge();
+  sheet.getRange(1, 1).setBackground('#333333').setFontColor('#ffffff')
+    .setFontWeight('bold').setFontSize(13).setHorizontalAlignment('center');
+  sheet.getRange(2, 1, n - 1, 1).setFontWeight('bold');
+  sheet.getRange(2, 2, n - 1, 1).setWrap(true);
+  sheet.setColumnWidth(1, 180);
+  sheet.setColumnWidth(2, 600);
+  for (var r = 0; r < n; r++) {
+    if (String(rows[r][0]).indexOf('■') === 0) {
+      sheet.getRange(r + 1, 1, 1, 2).setBackground('#d9ead3').setFontWeight('bold');
+    }
+  }
+  sheet.setFrozenRows(1);
+}
+
+/** 「ヒアリング一覧」へ名前で upsert（無ければ作成）。リンクは #gid で当該サマリーシートへ。 */
+function upsertHearingIndex_(name, date, tanto, status, next, gid) {
+  var book = getBook_();
+  var idx = book.getSheetByName('ヒアリング一覧');
+  if (!idx) {
+    idx = book.insertSheet('ヒアリング一覧', 0);
+    idx.getRange(1, 1, 2, 6).setValues([
+      ['▼ ヒアリングシート一覧（お名前・日付で選択）', '', '', '', '', ''],
+      ['お名前', '日付', '担当', 'ステータス', 'シートを開く', '次回（来社／内見）'],
+    ]);
+    idx.getRange(1, 1, 1, 6).merge();
+    idx.getRange(1, 1).setBackground('#333333').setFontColor('#ffffff')
+      .setFontWeight('bold').setFontSize(13).setHorizontalAlignment('center');
+    idx.getRange(2, 1, 1, 6).setBackground('#4472c4').setFontColor('#ffffff').setFontWeight('bold');
+    idx.setFrozenRows(2);
+    idx.setColumnWidth(1, 120); idx.setColumnWidth(4, 170); idx.setColumnWidth(6, 240);
+  }
+  var last = idx.getLastRow();
+  var target = -1;
+  if (last >= 3) {
+    var names = idx.getRange(3, 1, last - 2, 1).getValues();
+    for (var i = 0; i < names.length; i++) {
+      if (String(names[i][0]).trim() === name) { target = i + 3; break; }
+    }
+  }
+  if (target < 0) target = Math.max(last + 1, 3);
+  var link = '=HYPERLINK("#gid=' + gid + '","開く ▶")';
+  // ステータス・次回は空なら既存値を保持
+  var keep = (target <= last)
+    ? idx.getRange(target, 1, 1, 6).getValues()[0]
+    : ['', '', '', '', '', ''];
+  idx.getRange(target, 1, 1, 6).setValues([[
+    name,
+    date || keep[1],
+    tanto || keep[2],
+    status || keep[3],
+    link,
+    next || keep[5],
+  ]]);
+}
+
+// =============================================================================
 // 共通：cells を次の空行へ書き込み（Code.gs の doPost と同じ規則）。書いた行番号を返す。
 // =============================================================================
 function writeRowToSheet_(sheet, cells, viewUrl) {

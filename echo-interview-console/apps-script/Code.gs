@@ -145,7 +145,13 @@ function doPost(e) {
       return jsonOut_(updateReactionStatus_(body.update || {}));
     }
 
-    // 既定：コンソール保存
+    // 面談コンソール保存 → お客様ごとの「サマリー形式」ヒアリングシートを生成/更新し、
+    //   「ヒアリング一覧」へ1行 upsert する（現行の主保存フロー）。
+    if (body.action === 'saveHearing') {
+      return jsonOut_(saveHearingSummary_(body.cells || {}, body.viewUrl || ''));
+    }
+
+    // 既定：コンソール保存（旧53列カード形式。後方互換のため残置）
     var book = getBook_();
     var sheet = book.getSheetByName(sheetName);
     if (!sheet) return jsonOut_({ ok: false, error: 'シートが見つかりません: ' + sheetName });
