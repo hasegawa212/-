@@ -54,6 +54,39 @@ curl 'http://localhost:3000/health'
 4. 「Messaging API設定」の **Webhook URL** に `https://<公開ドメイン>/webhook` を設定し、**Webhookの利用をオン**
 5. 「Verify」で疎通確認（200 が返ればOK）。あいさつ/応答メッセージ（自動応答）はオフ推奨
 
+## Render へのデプロイ（LINE公式アカウントに繋ぐ）
+
+LINE はボットに **公開HTTPSのWebhook URL** でアクセスします。Render（https://render.com ）で常時稼働させる手順です。
+
+### 手順（ダッシュボードから手動作成・おすすめ）
+
+1. Render にサインアップし、GitHub の `hasegawa212/-` リポジトリを連携
+2. **New + → Web Service** を選び、このリポジトリを選択
+3. 設定：
+   - **Root Directory**：`financial-literacy-line-bot`
+   - **Runtime**：Node
+   - **Build Command**：`npm install`
+   - **Start Command**：`npm start`
+   - **Health Check Path**：`/health`
+   - **Plan**：Free（後述の注意あり）
+4. **Environment** に環境変数を登録（**Git には入れず、ここで設定**）：
+   - `LINE_CHANNEL_SECRET`：チャネルシークレット
+   - `LINE_CHANNEL_ACCESS_TOKEN`：長期チャネルアクセストークン（160文字以上の長い文字列）
+   - `NODE_ENV`：`production`
+   - ※ `PORT` は Render が自動で渡すため設定不要
+5. デプロイ完了後、払い出される URL（例：`https://financial-literacy-line-bot.onrender.com`）の末尾に `/webhook` を付けたものが Webhook URL
+6. LINE Developers の Messaging API チャネル → **Webhook URL** に `https://＜RenderのURL＞/webhook` を設定 → **Webhookの利用をオン** → 「Verify」で 200 を確認
+7. LINE Official Account Manager 側で **「応答メッセージ（自動応答）」をオフ／「Webhook」をオン**
+
+### Blueprint（render.yaml）を使う場合
+
+リポジトリに `financial-literacy-line-bot/render.yaml` を同梱しています。Render の **Blueprint** で使う場合は、このファイルを**リポジトリのルートにコピー**してから「New + → Blueprint」で取り込んでください（`LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` は `sync: false` のため、取り込み後にダッシュボードで値を入力します）。
+
+### ⚠️ Free プランの注意
+
+- Free の Web Service は一定時間アクセスが無いとスリープし、**復帰時に数十秒のコールドスタート**が発生します。LINE 側がタイムアウトし、最初の1通が応答しないことがあります。
+- 実運用では **有料プラン**、または外部監視サービスで `/health` を定期 ping して起こし続ける運用を推奨します。
+
 ## 応答の仕組み
 
 - ユーザーのテキストを正規化し、`faq.js` の `FAQ` ルールを上から評価。`keywords` のいずれかを含めばその `answer` を返す
