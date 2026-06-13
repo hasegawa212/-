@@ -15,6 +15,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── ultimate-ai-agent/        # Full-stack TS monorepo (React + Express + tRPC + SQLite)
 ├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
 ├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
+├── japan-mgmt-line-bot/      # Node + Express LINE Messaging API webhook: rule-based FAQ bot for 株式会社ジャパンマネジメント (JP UI, no AI)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
 
@@ -77,6 +78,14 @@ Zero-dependency vanilla-JS console (ES Modules, no build step — like `claude-c
 - **`fields.js` is the single source of truth** mapping each input ↔ sheet column (`col`). The 7 form sections mirror the Slack 「反響顧客ヒアリングサマリー」 headings. The sheet is fixed at 53 columns (A–BA, headers on row 25), so the 4 qualitative fields with no dedicated column (エリア理由/絶対条件/希望条件/将来像) carry a `mergeInto: 'AY'` instead and are folded into 備考(AY) as `【ラベル】値` at save time — the sheet is never structurally widened.
 - Writes go through `apps-script/Code.gs` (Google Apps Script Web App, `doPost`): it ensures the row-25 headers, finds the next empty data row (≥26, keyed on お客様名/E), and writes each value by column letter; `保存日時`(AZ) + `閲覧URL`(BA) are auto-set. The browser POSTs as `text/plain` to avoid CORS preflight. The Web App URL is configured in the console's ⚙︎ 設定 (stored in localStorage).
 - If you change `FIELDS`, also update `HEADERS` in `Code.gs` and the spreadsheet's row-25 headers. No tests/lint/build. See `echo-interview-console/README.md` (Japanese) for deploy steps.
+
+### `japan-mgmt-line-bot/` — ジャパンマネジメント FAQ LINE ボット
+Node + Express ES Modules app (dependency: `express` only; Node 18+ global `fetch`) implementing a **rule-based FAQ LINE bot** for 株式会社ジャパンマネジメント (http://japan-mgmt.co.jp/, factoring / 資金調達 / コンサル). No AI/LLM — fixed keyword→answer rules only. Same build as `Chat-Bridge`'s LINE webhook: Express + `/webhook` route + `X-Line-Signature` (HMAC-SHA256) verification + LINE reply API.
+
+- `cd japan-mgmt-line-bot && cp .env.example .env` (set `LINE_CHANNEL_SECRET` + `LINE_CHANNEL_ACCESS_TOKEN`), then `npm install && npm start` → http://localhost:3000. Dev: `npm run dev` (`node --watch`).
+- **`faq.js` is the single source of truth**: edit the `FAQ` array (`{ id, label, keywords, answer }`, evaluated top-down, first keyword hit wins), `MENU_LABELS` (quick-reply menu), and `COMPANY` (tel/hours/site). Placeholders are marked `〔要確認〕` — replace with real values (手数料率/対応エリア/連絡先).
+- `server.js` verifies the signature against the **raw** body (`express.raw`) then parses JSON; always returns 200 to LINE; replies via `https://api.line.me/v2/bot/message/reply`. Graceful degradation: no `LINE_CHANNEL_SECRET` → signature check skipped (dev), no `LINE_CHANNEL_ACCESS_TOKEN` → reply is logged as dry-run.
+- Offline check without LINE: `GET /dev/simulate?text=手数料` (disabled when `NODE_ENV=production`); `GET /health`. No build/test/lint. `.env` is gitignored. See `japan-mgmt-line-bot/README.md` (Japanese) for LINE Developers setup.
 
 ### `n8n-workflows/` — n8n workflow exports
 Contains `telegram-to-sheets-slack.json`, an importable n8n workflow (Telegram trigger → Google Sheets append → Slack notify → Telegram ack). Not executable code — it is imported via the n8n UI. Before reuse, the consumer must replace placeholders in the JSON: `REPLACE_WITH_TELEGRAM_CREDENTIAL_ID`, `REPLACE_WITH_GOOGLE_SHEET_ID`, `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID`, `REPLACE_WITH_SLACK_CHANNEL_ID`, `REPLACE_WITH_SLACK_CREDENTIAL_ID`. Setup details and Google Sheets header schema (`timestamp | chat_id | chat_title | user_id | username | text | message_id`) are in `n8n-workflows/README.md` (Japanese).
