@@ -19,7 +19,10 @@ services:
     buildCommand: npm install
     startCommand: npm start
     healthCheckPath: /health
-    autoDeploy: true
+    # ボタン経由で作られたサービスは upstream リポジトリに紐づくため、
+    # 本リポジトリへの push 毎の自動再デプロイを避ける（Render 推奨）。
+    # 各自のフォークで運用する場合は true に変えてよい。
+    autoDeploy: false
     envVars:
       - key: NODE_ENV
         value: production
