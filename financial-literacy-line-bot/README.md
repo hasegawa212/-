@@ -56,7 +56,18 @@ curl 'http://localhost:3000/health'
 
 ## Render へのデプロイ（LINE公式アカウントに繋ぐ）
 
-LINE はボットに **公開HTTPSのWebhook URL** でアクセスします。Render（https://render.com ）で常時稼働させる手順です。
+LINE はボットに **公開HTTPSのWebhook URL** でアクセスします。Render（https://render.com ）で常時稼働させます。
+
+### 最短：ワンクリックでデプロイ
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/hasegawa212/-)
+
+上のボタン → GitHub 連携 → リポジトリのルートにある `render.yaml`（Blueprint）が読み込まれ、`financial-literacy-line-bot` の Web Service が作られます。最後に **Environment** で次の2値を入力すれば完了です（これらは Git に入っていません）：
+
+- `LINE_CHANNEL_SECRET` … Messaging API チャネルのシークレット（32桁hex）
+- `LINE_CHANNEL_ACCESS_TOKEN` … 長期チャネルアクセストークン（**160文字以上**の長い文字列）
+
+> ボタンが使えない場合や手動で作りたい場合は、下の手順をどうぞ。
 
 ### 手順（ダッシュボードから手動作成・おすすめ）
 
@@ -80,7 +91,7 @@ LINE はボットに **公開HTTPSのWebhook URL** でアクセスします。Re
 
 ### Blueprint（render.yaml）を使う場合
 
-リポジトリに `financial-literacy-line-bot/render.yaml` を同梱しています。Render の **Blueprint** で使う場合は、このファイルを**リポジトリのルートにコピー**してから「New + → Blueprint」で取り込んでください（`LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` は `sync: false` のため、取り込み後にダッシュボードで値を入力します）。
+リポジトリ**ルート**の `render.yaml` がこのボットの Web Service を定義しています。Render の「**New + → Blueprint**」でこのリポジトリを取り込めば同じものが作成されます（`LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` は `sync: false` のため、取り込み後にダッシュボードで値を入力します）。
 
 ### ⚠️ Free プランの注意
 

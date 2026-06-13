@@ -1,0 +1,29 @@
+# Render Blueprint (https://render.com)
+#
+# このモノレポ内の LINE ボットを Render の Web Service として定義します。
+# README の「Deploy to Render」ボタン、または Render の
+# 「New + → Blueprint」から取り込めます。
+#
+# シークレットは Git に入れません（sync: false）。取り込み後に Render の
+# ダッシュボード（Environment）で値を入力してください。
+#
+# 別のボット（japan-mgmt-line-bot）も繋ぐ場合は、同じ形式の service ブロックを
+# rootDir: japan-mgmt-line-bot で追加できます。
+
+services:
+  - type: web
+    name: financial-literacy-line-bot
+    runtime: node
+    rootDir: financial-literacy-line-bot
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
