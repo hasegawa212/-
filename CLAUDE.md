@@ -17,6 +17,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
 ├── japan-mgmt-line-bot/      # Node + Express LINE Messaging API webhook: rule-based FAQ bot for 株式会社ジャパンマネジメント (JP UI, no AI)
 ├── financial-literacy-line-bot/ # Node + Express LINE webhook: rule-based 金融リテラシー FAQ bot for 株式会社ジャパンマネジメント (follows fp repo topics, JP UI, no AI)
+├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
 
@@ -94,6 +95,7 @@ Node + Express ES Modules app (dependency: `express` only) — a **rule-based FA
 - `cd financial-literacy-line-bot && cp .env.example .env` (set `LINE_CHANNEL_SECRET` + `LINE_CHANNEL_ACCESS_TOKEN`), then `npm install && npm start` → http://localhost:3000. Dev: `npm run dev`.
 - **`faq.js` is the single source of truth**: FAQ rules (`{ id, label, keywords, answer }`, top-down first-hit), `MENU_LABELS`, and `PROGRAM` (name/tel/hours/site/**disclaimer**). Every greeting includes the disclaimer — this is financial *education*, not investment advice; NISA/iDeCo/tax figures change, so verify against 金融庁/国税庁/日本年金機構 and keep `〔要確認〕` values current.
 - `server.js` is structurally identical to `japan-mgmt-line-bot/server.js`. Offline check: `GET /dev/simulate?text=NISA` (disabled when `NODE_ENV=production`); `GET /health`. No build/test/lint. `.env` is gitignored. See `financial-literacy-line-bot/README.md` (Japanese).
+- Deploy: root `render.yaml` is the Render Blueprint for this bot (`rootDir: financial-literacy-line-bot`, health check `/health`); the README has a one-click "Deploy to Render" button. `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` are `sync: false` — set them in the Render dashboard, never in Git. Free tier sleeps → cold start can drop the first LINE message.
 
 ### `n8n-workflows/` — n8n workflow exports
 Contains `telegram-to-sheets-slack.json`, an importable n8n workflow (Telegram trigger → Google Sheets append → Slack notify → Telegram ack). Not executable code — it is imported via the n8n UI. Before reuse, the consumer must replace placeholders in the JSON: `REPLACE_WITH_TELEGRAM_CREDENTIAL_ID`, `REPLACE_WITH_GOOGLE_SHEET_ID`, `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID`, `REPLACE_WITH_SLACK_CHANNEL_ID`, `REPLACE_WITH_SLACK_CREDENTIAL_ID`. Setup details and Google Sheets header schema (`timestamp | chat_id | chat_title | user_id | username | text | message_id`) are in `n8n-workflows/README.md` (Japanese).
