@@ -1,10 +1,10 @@
-# financial-literacy-line-bot — 金融リテラシーボット (LifePartner FP)
+# financial-literacy-line-bot — 金融リテラシーボット (株式会社ジャパンマネジメント)
 
-「金融リテラシー向上プログラム | LifePartner FP」向けの **ルールベース FAQ LINE ボット**です。
+株式会社ジャパンマネジメント（http://japan-mgmt.co.jp/ ）の顧客向け **金融リテラシー案内 ルールベース FAQ LINE ボット**です。
 お金の基礎知識（家計・保険・投資・NISA/iDeCo・税金・年金・住宅ローン・相続・詐欺対策）を、LINE 上でやさしく解説します。
 （AI/LLM は使わず、固定のルールベース応答のみ。`japan-mgmt-line-bot` / `Chat-Bridge` と同じ作り：Express + `/webhook` + `X-Line-Signature` 検証 + reply API）
 
-内容は `fp` リポジトリ「金融リテラシー向上プログラム」の知識領域を踏襲しています。
+教育トピックの構成は `fp` リポジトリ「金融リテラシー向上プログラム」の知識領域を踏襲し、ブランド・連絡先・相談導線を株式会社ジャパンマネジメント向けに合わせています。
 
 ## ファイル構成
 

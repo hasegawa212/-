@@ -16,7 +16,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
 ├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
 ├── japan-mgmt-line-bot/      # Node + Express LINE Messaging API webhook: rule-based FAQ bot for 株式会社ジャパンマネジメント (JP UI, no AI)
-├── financial-literacy-line-bot/ # Node + Express LINE webhook: rule-based 金融リテラシー FAQ bot (LifePartner FP, follows fp repo topics, JP UI, no AI)
+├── financial-literacy-line-bot/ # Node + Express LINE webhook: rule-based 金融リテラシー FAQ bot for 株式会社ジャパンマネジメント (follows fp repo topics, JP UI, no AI)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
 
@@ -88,11 +88,11 @@ Node + Express ES Modules app (dependency: `express` only; Node 18+ global `fetc
 - `server.js` verifies the signature against the **raw** body (`express.raw`) then parses JSON; always returns 200 to LINE; replies via `https://api.line.me/v2/bot/message/reply`. Graceful degradation: no `LINE_CHANNEL_SECRET` → signature check skipped (dev), no `LINE_CHANNEL_ACCESS_TOKEN` → reply is logged as dry-run.
 - Offline check without LINE: `GET /dev/simulate?text=手数料` (disabled when `NODE_ENV=production`); `GET /health`. No build/test/lint. `.env` is gitignored. See `japan-mgmt-line-bot/README.md` (Japanese) for LINE Developers setup.
 
-### `financial-literacy-line-bot/` — 金融リテラシーボット (LifePartner FP)
-Node + Express ES Modules app (dependency: `express` only) — a **rule-based FAQ LINE bot** that teaches money basics (家計/保険/投資/NISA・iDeCo/税金/年金/住宅ローン/相続/詐欺対策) for the 「金融リテラシー向上プログラム | LifePartner FP」. Content **follows the `fp` repo's knowledge areas**. Same build as `japan-mgmt-line-bot` (Express + `/webhook` + `X-Line-Signature` HMAC-SHA256 verification + reply API), no AI.
+### `financial-literacy-line-bot/` — 金融リテラシーボット (株式会社ジャパンマネジメント)
+Node + Express ES Modules app (dependency: `express` only) — a **rule-based FAQ LINE bot** that teaches money basics (家計/保険/投資/NISA・iDeCo/税金/年金/住宅ローン/相続/詐欺対策) as customer-facing financial education for 株式会社ジャパンマネジメント (http://japan-mgmt.co.jp/). Topic structure **follows the `fp` repo's knowledge areas**, rebranded to japan-mgmt (contact/site/consult CTA). Same build as `japan-mgmt-line-bot` (Express + `/webhook` + `X-Line-Signature` HMAC-SHA256 verification + reply API), no AI.
 
 - `cd financial-literacy-line-bot && cp .env.example .env` (set `LINE_CHANNEL_SECRET` + `LINE_CHANNEL_ACCESS_TOKEN`), then `npm install && npm start` → http://localhost:3000. Dev: `npm run dev`.
-- **`faq.js` is the single source of truth**: FAQ rules (`{ id, label, keywords, answer }`, top-down first-hit), `MENU_LABELS`, and `PROGRAM` (tel/hours/site/**disclaimer**). Every greeting includes the disclaimer — this is financial *education*, not investment advice; NISA/iDeCo/tax figures change, so verify against 金融庁/国税庁/日本年金機構 and keep `〔要確認〕` values current.
+- **`faq.js` is the single source of truth**: FAQ rules (`{ id, label, keywords, answer }`, top-down first-hit), `MENU_LABELS`, and `PROGRAM` (name/tel/hours/site/**disclaimer**). Every greeting includes the disclaimer — this is financial *education*, not investment advice; NISA/iDeCo/tax figures change, so verify against 金融庁/国税庁/日本年金機構 and keep `〔要確認〕` values current.
 - `server.js` is structurally identical to `japan-mgmt-line-bot/server.js`. Offline check: `GET /dev/simulate?text=NISA` (disabled when `NODE_ENV=production`); `GET /health`. No build/test/lint. `.env` is gitignored. See `financial-literacy-line-bot/README.md` (Japanese).
 
 ### `n8n-workflows/` — n8n workflow exports

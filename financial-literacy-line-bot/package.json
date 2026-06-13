@@ -1,7 +1,7 @@
 {
   "name": "financial-literacy-line-bot",
   "version": "1.0.0",
-  "description": "金融リテラシー向上プログラム (LifePartner FP) 向け ルールベース FAQ LINE ボット (Node + Express webhook)",
+  "description": "株式会社ジャパンマネジメント (japan-mgmt.co.jp) 向け 金融リテラシー案内 ルールベース FAQ LINE ボット (Node + Express webhook)",
   "type": "module",
   "main": "server.js",
   "scripts": {
