@@ -36,10 +36,25 @@ export interface InvestmentResult {
   monthlyCashflow: number;
   /** 年間キャッシュフロー（円） */
   annualCashflow: number;
+  /** 収益還元法で用いた期待利回り（還元利回り, %） */
+  capRate: number;
+  /** 収益還元法による理論価格（円） = 年間NOI ÷ 還元利回り */
+  incomePrice: number;
   /** 総合判定 */
   rating: InvestmentRating;
   breakdown: BreakdownItem[];
   notes: string[];
+}
+
+/**
+ * エリア別の期待利回り（還元利回り, %）。
+ * 都心ほど低利回り（高価格）、郊外ほど高利回り。収益還元法の分母に使う。
+ */
+const CENTRAL_WARDS = ["港区", "千代田区", "渋谷区", "中央区", "新宿区", "目黒区", "文京区"];
+export function capRateForWard(ward: string): number {
+  if (CENTRAL_WARDS.includes(ward)) return 3.8;
+  if (ward.endsWith("区")) return 4.5; // その他23区
+  return 5.5; // 23区外・未対応エリア
 }
 
 /** 表面利回りと月次収支から投資妙味を判定する */
@@ -98,6 +113,17 @@ export function evaluateInvestment(input: InvestmentInput): InvestmentResult {
     amount: monthlyCashflow,
   });
 
+  // 収益還元法（直接還元法）：理論価格 = 年間NOI ÷ 還元利回り
+  const capRate = capRateForWard(input.ward);
+  const incomePrice = noi > 0 ? Math.round((noi / (capRate / 100)) / 10000) * 10000 : 0;
+  if (incomePrice > 0 && input.price > 0) {
+    const diff = ((input.price - incomePrice) / incomePrice) * 100;
+    notes.push(
+      `収益還元価格（還元利回り${capRate}%）は ${(incomePrice / 10000).toLocaleString()}万円。` +
+        `提示価格はこれより${diff >= 0 ? "高い" : "低い"}（${diff >= 0 ? "+" : ""}${diff.toFixed(0)}%）です。`
+    );
+  }
+
   const rating = rateInvestment(grossYield, monthlyCashflow);
   if (rating === "poor") {
     notes.push("表面利回りが低い、または月次収支が大きく赤字です。インカム単体では回らず、売却益・節税効果に依存する構造の可能性があります。");
@@ -112,6 +138,8 @@ export function evaluateInvestment(input: InvestmentInput): InvestmentResult {
     netYield,
     monthlyCashflow,
     annualCashflow,
+    capRate,
+    incomePrice,
     rating,
     breakdown,
     notes,

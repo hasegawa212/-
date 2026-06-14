@@ -23,6 +23,7 @@ export const CITY_LAND_PRICE: Record<string, number> = {
   日立市: 45000,
   石岡市: 40000,
   笠間市: 38000,
+  東海村: 45000,
   "その他（茨城県）": 35000,
   // 栃木県
   宇都宮市: 58000,
@@ -32,6 +33,7 @@ export const CITY_LAND_PRICE: Record<string, number> = {
   栃木市: 32000,
   鹿沼市: 30000,
   那須塩原市: 28000,
+  高根沢町: 30000,
   "その他（栃木県）": 25000,
   // 東京都
   "東京23区（都心部）": 1100000,
@@ -42,6 +44,7 @@ export const CITY_LAND_PRICE: Record<string, number> = {
   "その他（神奈川県）": 200000,
   // 埼玉県
   さいたま市: 230000,
+  寄居町: 38000,
   "その他（埼玉県）": 150000,
   // 千葉県
   千葉市: 170000,
@@ -68,6 +71,7 @@ export const AREA_GROUPS: { region: string; cities: string[] }[] = [
       "日立市",
       "石岡市",
       "笠間市",
+      "東海村",
       "その他（茨城県）",
     ],
   },
@@ -81,6 +85,7 @@ export const AREA_GROUPS: { region: string; cities: string[] }[] = [
       "栃木市",
       "鹿沼市",
       "那須塩原市",
+      "高根沢町",
       "その他（栃木県）",
     ],
   },
@@ -94,7 +99,7 @@ export const AREA_GROUPS: { region: string; cities: string[] }[] = [
   },
   {
     region: "埼玉県",
-    cities: ["さいたま市", "その他（埼玉県）"],
+    cities: ["さいたま市", "寄居町", "その他（埼玉県）"],
   },
   {
     region: "千葉県",
@@ -118,28 +123,82 @@ export const STRUCTURE_SPEC: Record<
 /**
  * マンション専有部分の相場単価（円/㎡）を、エリア地価から推計する倍率。
  * 区分所有は土地持分＋建物が一体で取引されるため、土地㎡単価より高くなる。
+ * （旧モデル。地方では実勢に届かないため CONDO_UNIT_PRICE を優先利用）
  */
 export const APARTMENT_UNIT_MULTIPLIER = 2.4;
 
+/**
+ * エリア別の新築相当マンション専有㎡単価（円/㎡）。
+ * 「土地単価×倍率」方式は土地が安い地方で実勢に届かないため、実勢ベースの
+ * ㎡単価を直接持つ。査定では本単価 × 残存率（RC耐用47年）× 駅補正 で算出する。
+ * 実成約（例: 水戸赤塚の中古RC 70.58㎡・築18・2,180万＝㎡約31万）を参考に較正。
+ */
+export const CONDO_UNIT_PRICE: Record<string, number> = {
+  // 茨城県
+  つくば市: 460000,
+  守谷市: 430000,
+  水戸市: 450000,
+  取手市: 360000,
+  牛久市: 340000,
+  土浦市: 360000,
+  ひたちなか市: 360000,
+  つくばみらい市: 340000,
+  古河市: 320000,
+  龍ケ崎市: 320000,
+  日立市: 300000,
+  石岡市: 300000,
+  笠間市: 290000,
+  東海村: 320000,
+  "その他（茨城県）": 280000,
+  // 栃木県
+  宇都宮市: 340000,
+  小山市: 300000,
+  佐野市: 270000,
+  足利市: 270000,
+  栃木市: 260000,
+  鹿沼市: 260000,
+  那須塩原市: 250000,
+  高根沢町: 250000,
+  "その他（栃木県）": 240000,
+  // 首都圏
+  "東京23区（都心部）": 2640000,
+  "東京23区（その他）": 1440000,
+  "東京都下（多摩地区）": 600000,
+  "横浜市・川崎市": 760000,
+  "その他（神奈川県）": 480000,
+  さいたま市: 560000,
+  寄居町: 280000,
+  "その他（埼玉県）": 380000,
+  千葉市: 420000,
+  "その他（千葉県）": 300000,
+};
+
+/** CONDO_UNIT_PRICE 未登録エリアの既定㎡単価（円/㎡） */
+export const CONDO_UNIT_DEFAULT = 300000;
+
 // ───────────────────────── 自動車データ ─────────────────────────
 
-/** 代表的な車種の新車時価格（円・概算）。手入力の補助に使う。 */
-export const CAR_MODELS: { maker: string; model: string; newPrice: number }[] = [
-  { maker: "トヨタ", model: "プリウス", newPrice: 2750000 },
-  { maker: "トヨタ", model: "アクア", newPrice: 2200000 },
-  { maker: "トヨタ", model: "ヤリス", newPrice: 2000000 },
-  { maker: "トヨタ", model: "カローラ", newPrice: 2300000 },
-  { maker: "トヨタ", model: "アルファード", newPrice: 5400000 },
-  { maker: "レクサス", model: "RX", newPrice: 6600000 },
-  { maker: "ホンダ", model: "N-BOX", newPrice: 1700000 },
-  { maker: "ホンダ", model: "フィット", newPrice: 1900000 },
-  { maker: "ホンダ", model: "フリード", newPrice: 2600000 },
-  { maker: "日産", model: "ノート", newPrice: 2200000 },
-  { maker: "日産", model: "セレナ", newPrice: 3000000 },
-  { maker: "スズキ", model: "スペーシア", newPrice: 1600000 },
-  { maker: "ダイハツ", model: "タント", newPrice: 1650000 },
-  { maker: "マツダ", model: "CX-5", newPrice: 3000000 },
-  { maker: "スバル", model: "フォレスター", newPrice: 3100000 },
+/**
+ * 代表的な車種の新車時価格（円・概算）と車種別リセール補正。
+ * resaleFactor は中古市場での値持ちの強さ（人気・球数）を表す係数で、
+ * メーカー補正に上乗せして個車種の残価を微調整する（1.0が標準）。
+ */
+export const CAR_MODELS: { maker: string; model: string; newPrice: number; resaleFactor: number }[] = [
+  { maker: "トヨタ", model: "プリウス", newPrice: 2750000, resaleFactor: 1.05 },
+  { maker: "トヨタ", model: "アクア", newPrice: 2200000, resaleFactor: 1.04 },
+  { maker: "トヨタ", model: "ヤリス", newPrice: 2000000, resaleFactor: 1.02 },
+  { maker: "トヨタ", model: "カローラ", newPrice: 2300000, resaleFactor: 1.0 },
+  { maker: "トヨタ", model: "アルファード", newPrice: 5400000, resaleFactor: 1.15 },
+  { maker: "レクサス", model: "RX", newPrice: 6600000, resaleFactor: 1.1 },
+  { maker: "ホンダ", model: "N-BOX", newPrice: 1700000, resaleFactor: 1.08 },
+  { maker: "ホンダ", model: "フィット", newPrice: 1900000, resaleFactor: 1.0 },
+  { maker: "ホンダ", model: "フリード", newPrice: 2600000, resaleFactor: 1.05 },
+  { maker: "日産", model: "ノート", newPrice: 2200000, resaleFactor: 0.98 },
+  { maker: "日産", model: "セレナ", newPrice: 3000000, resaleFactor: 1.02 },
+  { maker: "スズキ", model: "スペーシア", newPrice: 1600000, resaleFactor: 1.0 },
+  { maker: "ダイハツ", model: "タント", newPrice: 1650000, resaleFactor: 1.0 },
+  { maker: "マツダ", model: "CX-5", newPrice: 3000000, resaleFactor: 0.98 },
+  { maker: "スバル", model: "フォレスター", newPrice: 3100000, resaleFactor: 1.02 },
 ];
 
 /** メーカー別のリセールバリュー補正。人気・流通量・耐久性の傾向を反映。 */

@@ -80,7 +80,18 @@ export function appraiseCar(input: CarInput): AppraisalResult {
     amount: afterMaker - afterMileage,
   });
 
-  let value = afterMaker;
+  // 車種別リセール補正（人気・球数による値持ち）
+  const resaleFactor = input.resaleFactor && input.resaleFactor > 0 ? input.resaleFactor : 1;
+  const afterResale = afterMaker * resaleFactor;
+  if (resaleFactor !== 1) {
+    breakdown.push({
+      label: "車種リセール補正",
+      detail: `係数${resaleFactor.toFixed(2)}`,
+      amount: afterResale - afterMaker,
+    });
+  }
+
+  let value = afterResale;
   if (input.repairHistory) {
     const afterRepair = value * repairFactor;
     breakdown.push({

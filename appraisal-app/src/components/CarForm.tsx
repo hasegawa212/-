@@ -22,14 +22,18 @@ export function CarForm({ onResult }: Props) {
   const [mileageKm, setMileageKm] = useState("50000");
   const [repairHistory, setRepairHistory] = useState(false);
   const [inspectionMonthsLeft, setInspectionMonthsLeft] = useState("12");
+  const [resaleFactor, setResaleFactor] = useState(CAR_MODELS[0].resaleFactor);
 
-  /** 車種プリセットを選ぶと新車価格・メーカーを自動補完 */
+  /** 車種プリセットを選ぶと新車価格・メーカー・リセール補正を自動補完 */
   function handleModelChange(value: string) {
     setModelIndex(value);
     const idx = Number(value);
     if (idx >= 0 && CAR_MODELS[idx]) {
       setNewPrice(String(CAR_MODELS[idx].newPrice));
       setMaker(CAR_MODELS[idx].maker);
+      setResaleFactor(CAR_MODELS[idx].resaleFactor);
+    } else {
+      setResaleFactor(1); // 手入力は標準
     }
   }
 
@@ -44,6 +48,7 @@ export function CarForm({ onResult }: Props) {
         maker,
         repairHistory,
         inspectionMonthsLeft: Number(inspectionMonthsLeft) || 0,
+        resaleFactor,
       })
     );
   }

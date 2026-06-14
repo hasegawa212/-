@@ -7,6 +7,7 @@
 | ファイル | 用途 |
 | --- | --- |
 | `telegram-to-sheets-slack.json` | Telegram → Sheets + Slack 通知（既存） |
+| `gmail-reservation-to-sheets-slack.json` | Gmail（来場予約メール）→ Sheets 追記 + Slack 通知（**OAuth2認証**） |
 | `slack-modal-trigger-daily.json` | `/daily` → 日報モーダル表示 |
 | `slack-modal-trigger-apo.json` | `/apo` → アポ追加/キャンセル モーダル表示 |
 | `slack-modal-trigger-feedback.json` | `/feedback` → 顧客フィードバック モーダル表示 |
@@ -351,4 +352,77 @@ Telegram Trigger → Normalize Message → Has Text?
 
 - **画像/ファイル対応**: `Has Text?` を条件分岐にして `photo` / `document` を Google Drive へアップロードするノードを追加
 - **コマンド処理**: `Normalize Message` の後に `Switch` ノードを置き `/start` 等を振り分け
+
+---
+
+# n8n Workflow: Gmail（来場予約）→ Google Sheets + Slack（`gmail-reservation-to-sheets-slack.json`）
+
+来場予約のメールを **Gmailトリガー（来場予約）** で受信し、本文から氏名・希望日時・電話を抽出して Google Sheets に追記、同時に Slack へ通知します。
+
+## フロー図
+
+```
+Gmailトリガー（来場予約） → 予約情報を整形 ┬→ 来場予約をシートに追記（Google Sheets）
+                                          └→ Slackに通知
+```
+
+## ⚠️ RS256 / 認証エラーについて（重要）
+
+`RS256 を使用する場合、secretOrPrivateKey は非対称鍵である必要があります` というエラーは、Gmailを **サービスアカウント（JWT）認証**にしたときに、秘密鍵欄へ RSA 秘密鍵以外（プレーンな文字列・空・PEMヘッダ欠落・改行破損）が入っていると発生します。
+
+**本ワークフローはこれを避けるため `gmailOAuth2`（OAuth2 認証）を使用しています。** OAuth2 では JWT の RS256 署名を自分で行わないため、このエラーは原理的に発生しません。サービスアカウントをどうしても使う場合は、サービスアカウント JSON の `private_key` 値を `-----BEGIN PRIVATE KEY-----` 〜 `-----END PRIVATE KEY-----` ごと（改行を保ったまま）貼り、Workspace のドメイン全体の委任を設定してください。
+
+## 事前準備
+
+### 1. Gmail（OAuth2）
+- n8n で **Gmail OAuth2 API** credential を作成（Google Cloud で OAuth クライアントを発行し、`https://www.googleapis.com/auth/gmail.readonly`〔または `gmail.modify`〕スコープを許可）
+- 受信トレイで来場予約メールに**ラベル**を付けておくと精度が上がる（フィルタの `q` をラベル検索に変更可能）
+
+### 2. Google Sheets
+- スプレッドシートに **`来場予約`** シートを作成し、1行目に次のヘッダーを用意:
+  `received_at | email_date | from | subject | name | phone | preferred_datetime | body | message_id`
+
+### 3. Slack
+- 通知先チャンネルに Bot を招待（`chat:write`）
+
+## インポート手順
+
+1. n8n → Import from File → `gmail-reservation-to-sheets-slack.json`
+2. 各 `REPLACE_WITH_*` を自分の値に置き換える:
+   - `REPLACE_WITH_GMAIL_CREDENTIAL_ID` → Gmail **OAuth2** 認証情報
+   - `REPLACE_WITH_GOOGLE_SHEET_ID` → スプレッドシート ID
+   - `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` → Google Sheets 認証情報
+   - `REPLACE_WITH_SLACK_CHANNEL_ID` → Slack チャンネル ID
+   - `REPLACE_WITH_SLACK_CREDENTIAL_ID` → Slack 認証情報
+3. ワークフローを **Active** にする
+
+## ノード詳細
+
+- **Gmailトリガー（来場予約）** (`gmailTrigger`, OAuth2): 毎分ポーリング。`filters.q` = `subject:(来場予約 OR 来場 OR 内見予約) -from:me`、未読のみ（`readStatus: unread`）。検索条件は用途に合わせて変更可（例: `label:来場予約`）。
+- **予約情報を整形** (`set`): 受信日時・差出人・件名のほか、本文から「お名前/氏名」「希望日時/来場日時」「電話/連絡先」を正規表現で抽出。抽出できない場合は空文字。
+- **来場予約をシートに追記** (`googleSheets`, append): `来場予約` シートへ1行追記。
+- **Slackに通知** (`slack`): 予約サマリー（氏名・希望日時・電話・差出人・件名・本文先頭500字）を mrkdwn で投稿。
+
+## カスタマイズ
+
+- **抽出精度**: 予約メールのフォーマットが固定なら、`予約情報を整形` の正規表現を実際のラベル文言（例: 「ご希望日：」）に合わせて調整。
+- **取りこぼし防止**: `readStatus` を `both` にし、処理済みメールには Gmail ノードでラベル付与/既読化を追加。
+- **重複防止**: Google Sheets を append ではなく `message_id` で upsert に変更。
 - **要約**: `Append to Google Sheets` の前に OpenAI/Claude ノードを挟んで要約を保存
+
+## 会議チェックリスト・フォーム（CLI不要のUIインポート版）
+
+`meeting-checklist-form.json` は、`scripts/import-meeting-form.mjs` が生成するのと同じ
+「会議フォーム → meeting_checklist シート追記 → Slack 通知」ワークフローを、**n8n の
+UI からインポートできる静的JSON**にしたものです（APIキー・CLI不要）。
+
+手順：
+1. n8n → Workflows → 右上「…」→ **Import from File** で `meeting-checklist-form.json` を読み込む
+2. 各ノードの認証情報（Google Sheets / Slack）を**自分のアカウントのものに選び直す**
+   （プレースホルダ `REPLACE_WITH_*` を実値に差し替え）
+   - Google Sheets: `REPLACE_WITH_GOOGLE_SHEET_ID`（`meeting_checklist` タブを持つシート）
+   - Slack: `REPLACE_WITH_SLACK_CHANNEL_ID`（通知先チャンネル）
+3. 右上トグルで **Active** にする
+4. フォームURL（`<n8n>/form/meeting-checklist-form`）を共有 → ①〜③必須なので3つ揃わないと送信不可
+
+フォーム項目：会議名・議題 / 開催日 / 参加者 / 確認事項①②③（必須）/ 担当・次アクション。

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calculator, FileText } from "lucide-react";
+import { Calculator, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
 import {
   parseBatchText,
   parseMyosoku,
@@ -45,6 +45,8 @@ const SAMPLE_MYOSOKU = [
 export function BatchForm({ onResult }: Props) {
   const [format, setFormat] = useState<InputFormat>("table");
   const [text, setText] = useState("");
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrStatus, setOcrStatus] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -61,12 +63,71 @@ export function BatchForm({ onResult }: Props) {
     setText("");
   }
 
+  /** マイソク画像（複数可）をブラウザ内OCR（Tesseract.js）でテキスト化し、マイソク欄へ流し込む */
+  async function runOcr(files: File[]) {
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) {
+      setOcrStatus("画像が見つかりません（PDFは画像化してから貼り付けてください）。");
+      return;
+    }
+    setOcrBusy(true);
+    setFormat("myosoku");
+    try {
+      // Tesseract は重いので動的import（初回のみCDNから日本語データ取得）
+      const Tesseract = (await import("tesseract.js")).default;
+      const blocks: string[] = [];
+      for (let i = 0; i < images.length; i++) {
+        setOcrStatus(`画像 ${i + 1}/${images.length} を解析中…`);
+        const { data } = await Tesseract.recognize(images[i], "jpn+eng", {
+          logger: (m: { status: string; progress: number }) => {
+            if (m.status === "recognizing text") {
+              setOcrStatus(`画像 ${i + 1}/${images.length} を解析中… ${Math.round(m.progress * 100)}%`);
+            }
+          },
+        });
+        blocks.push((data.text || "").trim());
+      }
+      // 複数画像は空行区切り（＝マイソク本文パーサの物件区切り）で結合し、既存テキストに追記
+      const ocr = blocks.filter(Boolean).join("\n\n");
+      setText((prev) => (prev.trim() ? prev.trim() + "\n\n" + ocr : ocr));
+      setOcrStatus("読み取り完了。内容を確認・修正してから査定してください。");
+    } catch (err) {
+      setOcrStatus("OCRに失敗しました。画質を上げるか、本文を手入力してください。");
+    } finally {
+      setOcrBusy(false);
+    }
+  }
+
+  function handleImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ""; // 同じ画像を再選択できるように
+    if (files.length) runOcr(files);
+  }
+
+  /** クリップボードからの画像貼り付け（Ctrl+V）に対応 */
+  function handlePaste(e: React.ClipboardEvent) {
+    const files = Array.from(e.clipboardData.files);
+    if (files.some((f) => f.type.startsWith("image/"))) {
+      e.preventDefault();
+      runOcr(files);
+    }
+  }
+
+  /** 画像のドラッグ＆ドロップに対応 */
+  function handleDrop(e: React.DragEvent) {
+    const files = Array.from(e.dataTransfer.files);
+    if (files.some((f) => f.type.startsWith("image/"))) {
+      e.preventDefault();
+      runOcr(files);
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-brand-200/60 bg-white p-6 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
           <FileText className="h-4 w-4 text-brand-600" />
-          マイソク情報を貼り付け
+          マイソク情報を入力
         </div>
         <SegmentedControl
           options={[
@@ -76,6 +137,30 @@ export function BatchForm({ onResult }: Props) {
           value={format}
           onChange={(v) => changeFormat(v as InputFormat)}
         />
+      </div>
+
+      <div
+        onPaste={handlePaste}
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed border-brand-300 bg-brand-50/40 p-3"
+      >
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-sm font-medium text-brand-700 shadow-sm transition hover:border-gold-400">
+          {ocrBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4 text-gold-500" />}
+          マイソク画像から読み取り（β）
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            disabled={ocrBusy}
+            onChange={handleImage}
+          />
+        </label>
+        <span className="text-xs text-brand-400">
+          {ocrStatus ||
+            "画像を選択／この枠に ドラッグ&ドロップ／Ctrl+V で貼り付け → 文字を自動抽出（精度は画質依存・要確認）。"}
+        </span>
       </div>
 
       {format === "table" ? (
@@ -97,8 +182,9 @@ export function BatchForm({ onResult }: Props) {
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onPaste={handlePaste}
         rows={format === "myosoku" ? 14 : 10}
-        placeholder={format === "myosoku" ? "所在地：◯◯市…\n価格：3,330万円\n土地面積：160㎡ …" : "A邸　水戸市…　160　110　12　木造　10　3330万 …"}
+        placeholder={format === "myosoku" ? "所在地：◯◯市…\n価格：3,330万円\n土地面積：160㎡ …（画像はCtrl+Vでも可）" : "A邸　水戸市…　160　110　12　木造　10　3330万 …"}
         className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-xs shadow-sm outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100"
       />
 

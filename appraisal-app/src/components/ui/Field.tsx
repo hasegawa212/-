@@ -24,7 +24,10 @@ const baseControl =
   "w-full rounded-lg border border-brand-200 bg-white px-3 py-2 text-sm text-brand-800 shadow-sm outline-none transition focus:border-gold-400 focus:ring-2 focus:ring-gold-200";
 
 export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`${baseControl} ${props.className ?? ""}`} />;
+  // 数値入力はモバイルでテンキーを出す（inputMode 未指定時のみ補完）
+  const inputMode =
+    props.inputMode ?? (props.type === "number" ? "decimal" : undefined);
+  return <input {...props} inputMode={inputMode} className={`${baseControl} ${props.className ?? ""}`} />;
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
