@@ -54,6 +54,7 @@ claude-clone/
 ├── styles.css      # ダークテーマ
 ├── app.js          # フロント: チャットロジック + localStorage
 ├── server.js       # バックエンド: Anthropic API プロキシ
+├── prompt.js       # システムプロンプト (単一の真実源)
 ├── package.json
 ├── .env.example
 └── README.md
@@ -61,6 +62,7 @@ claude-clone/
 
 ## カスタマイズポイント
 
+- **プロンプト変更**: `prompt.js` の `buildSystemPrompt()` を編集 (Open Clone の人格・口調・方針はすべてここに集約)
 - **モデル追加**: `server.js` の `MODEL_MAP` と `index.html` の `<select>` に行を足す
 - **ストリーミング**: `server.js` で `stream: true` に切り替え、SSE で `app.js` に流す
 - **認証**: `server.js` の `/api/*` にミドルウェアを挟む
