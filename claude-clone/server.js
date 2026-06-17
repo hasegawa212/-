@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystemPrompt } from "./prompt.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -46,9 +47,7 @@ app.post("/api/chat", async (req, res) => {
     const response = await client.messages.create({
       model: MODEL_MAP[model] || MODEL_MAP["clone-sonnet"],
       max_tokens: 1024,
-      system:
-        "You are Open Clone, a helpful, concise assistant inspired by Claude. " +
-        "Reply in the same language the user wrote in.",
+      system: buildSystemPrompt({ model }),
       messages: apiMessages,
     });
 
