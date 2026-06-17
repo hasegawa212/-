@@ -14,11 +14,73 @@ import { eq, desc, sql, count } from "drizzle-orm";
 import { processChat } from "./aiServices";
 import { defaultAgents, promptTemplates } from "./agents";
 import { storeMemory, getMemories, deleteMemory } from "./aiServices/memory";
+import { calculateValuation } from "./bankValuation/calculator";
+import {
+  STRUCTURE_PROFILES,
+  PROPERTY_PROFILES,
+  AREA_PROFILES,
+  BANK_PROFILES,
+} from "./bankValuation/constants";
+import {
+  ValuationInputSchema,
+  CreateDealSchema,
+  RecordActualSchema,
+  type Deal,
+} from "../shared/types";
+import { bankValuationDeals } from "../drizzle/schema";
+import {
+  getCalibrations,
+  listCalibrations,
+  recomputeAllCalibrations,
+  recomputeCalibrationFor,
+  MIN_SAMPLES_FOR_CALIBRATION,
+} from "./bankValuation/calibration";
+import { lookupRosenka } from "./bankValuation/rosenkaLookup";
+import { simulateLoanFull } from "./loanSimulator/simulator";
+import { LoanSimulationInputSchema } from "../shared/types";
 
 const t = initTRPC.create();
 
 export const router = t.router;
 export const publicProcedure = t.procedure;
+
+// ----- Deal helpers -----
+function deserializeDeal(r: typeof bankValuationDeals.$inferSelect): Deal {
+  return {
+    id: r.id,
+    dealCode: r.dealCode,
+    title: r.title,
+    input: typeof r.inputJson === "string" ? JSON.parse(r.inputJson) : r.inputJson,
+    result: typeof r.resultJson === "string" ? JSON.parse(r.resultJson) : r.resultJson,
+    actualBankId: r.actualBankId,
+    actualBankName: r.actualBankName,
+    actualValuationYen: r.actualValuationYen,
+    actualLoanYen: r.actualLoanYen,
+    actualInterestRatePercent:
+      r.actualInterestRateX100 === null || r.actualInterestRateX100 === undefined
+        ? null
+        : r.actualInterestRateX100 / 100,
+    dealStatus: r.dealStatus,
+    note: r.note,
+    createdAt: r.createdAt,
+    updatedAt: r.updatedAt,
+  };
+}
+
+async function generateDealCode(): Promise<string> {
+  const year = new Date().getFullYear();
+  const prefix = `DEAL-${year}-`;
+  const existing = await db
+    .select({ code: bankValuationDeals.dealCode })
+    .from(bankValuationDeals);
+  const seqs = existing
+    .map((r) => r.code)
+    .filter((c) => c.startsWith(prefix))
+    .map((c) => parseInt(c.slice(prefix.length), 10))
+    .filter((n) => !isNaN(n));
+  const next = seqs.length === 0 ? 1 : Math.max(...seqs) + 1;
+  return `${prefix}${String(next).padStart(5, "0")}`;
+}
 
 export const appRouter = router({
   // ===== Conversations =====
@@ -363,6 +425,154 @@ export const appRouter = router({
         return allConvs.filter((c) =>
           c.title.toLowerCase().includes(input.query.toLowerCase())
         );
+      }),
+  }),
+
+  // ===== 銀行評価額シミュレーター =====
+  bankValuation: router({
+    metadata: publicProcedure.query(() => ({
+      structures: Object.entries(STRUCTURE_PROFILES).map(([id, p]) => ({
+        id,
+        label: p.label,
+        legalLifeYears: p.legalLifeYears,
+        replacementCostPerSqm: p.replacementCostPerSqm,
+      })),
+      propertyTypes: Object.entries(PROPERTY_PROFILES).map(([id, p]) => ({
+        id,
+        label: p.label,
+        defaultCapRate: p.defaultCapRate,
+        appliesIncomeApproach: p.appliesIncomeApproach,
+      })),
+      areaTiers: Object.entries(AREA_PROFILES).map(([id, p]) => ({
+        id,
+        label: p.label,
+      })),
+      banks: BANK_PROFILES.map((b) => ({
+        id: b.id,
+        label: b.label,
+        category: b.category,
+        loanToValueRatio: b.loanToValueRatio,
+      })),
+    })),
+    calculate: publicProcedure
+      .input(ValuationInputSchema)
+      .mutation(async ({ input }) => {
+        const calibrations = await getCalibrations();
+        return calculateValuation(input, calibrations);
+      }),
+    // ★ PR #16: 住所から路線価を推定
+    lookupRosenka: publicProcedure
+      .input(z.object({ address: z.string() }))
+      .query(({ input }) => {
+        return lookupRosenka(input.address);
+      }),
+  }),
+
+  // ===== 銀行プロファイル校正（学習結果） =====
+  bankCalibration: router({
+    list: publicProcedure.query(async () => {
+      const items = await listCalibrations();
+      return {
+        minSamples: MIN_SAMPLES_FOR_CALIBRATION,
+        items,
+      };
+    }),
+    recomputeAll: publicProcedure.mutation(async () => {
+      return await recomputeAllCalibrations();
+    }),
+  }),
+
+  // ===== 案件保存・実績記録 =====
+  bankValuationDeals: router({
+    list: publicProcedure.query(async () => {
+      const rows = await db
+        .select()
+        .from(bankValuationDeals)
+        .orderBy(desc(bankValuationDeals.updatedAt));
+      return rows.map((r) => deserializeDeal(r));
+    }),
+
+    get: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const rows = await db
+          .select()
+          .from(bankValuationDeals)
+          .where(eq(bankValuationDeals.id, input.id))
+          .limit(1);
+        if (rows.length === 0) throw new Error("Deal not found");
+        return deserializeDeal(rows[0]);
+      }),
+
+    create: publicProcedure
+      .input(CreateDealSchema)
+      .mutation(async ({ input }) => {
+        const dealCode = input.dealCode ?? (await generateDealCode());
+        const inserted = await db
+          .insert(bankValuationDeals)
+          .values({
+            dealCode,
+            title: input.title,
+            inputJson: JSON.stringify(input.input) as unknown as object,
+            resultJson: JSON.stringify(input.result) as unknown as object,
+            note: input.note,
+          })
+          .returning();
+        return deserializeDeal(inserted[0]);
+      }),
+
+    recordActual: publicProcedure
+      .input(RecordActualSchema)
+      .mutation(async ({ input }) => {
+        const updates: Record<string, unknown> = {
+          updatedAt: new Date().toISOString().replace("T", " ").slice(0, 19),
+        };
+        if (input.actualBankId !== undefined) updates.actualBankId = input.actualBankId;
+        if (input.actualBankName !== undefined) updates.actualBankName = input.actualBankName;
+        if (input.actualValuationYen !== undefined)
+          updates.actualValuationYen = input.actualValuationYen;
+        if (input.actualLoanYen !== undefined) updates.actualLoanYen = input.actualLoanYen;
+        if (input.actualInterestRatePercent !== undefined)
+          updates.actualInterestRateX100 =
+            input.actualInterestRatePercent === null
+              ? null
+              : Math.round(input.actualInterestRatePercent * 100);
+        if (input.dealStatus !== undefined) updates.dealStatus = input.dealStatus;
+        if (input.note !== undefined) updates.note = input.note;
+
+        const updated = await db
+          .update(bankValuationDeals)
+          .set(updates)
+          .where(eq(bankValuationDeals.id, input.id))
+          .returning();
+        if (updated.length === 0) throw new Error("Deal not found");
+
+        // 実績が更新されたら校正を再計算（該当銀行のみ）
+        const deal = updated[0];
+        if (deal.actualBankId) {
+          await recomputeCalibrationFor(deal.actualBankId).catch(() => {
+            // 校正失敗は致命的でないため握り潰す（ログだけ）
+            console.warn("recomputeCalibrationFor failed for", deal.actualBankId);
+          });
+        }
+
+        return deserializeDeal(updated[0]);
+      }),
+
+    delete: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.delete(bankValuationDeals).where(eq(bankValuationDeals.id, input.id));
+        return { ok: true };
+      }),
+  }),
+
+  // ===== 住宅ローン シミュレーター（実銀行データ + 否決パターン学習） =====
+  loanSimulator: router({
+    simulate: publicProcedure
+      .input(LoanSimulationInputSchema)
+      .mutation(({ input }) => {
+        return simulateLoanFull(input);
       }),
   }),
 

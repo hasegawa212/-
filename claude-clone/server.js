@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import "dotenv/config";
 import Anthropic from "@anthropic-ai/sdk";
+import { buildSystemPrompt } from "./prompt.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -41,26 +42,41 @@ app.post("/api/chat", async (req, res) => {
       content: m.content,
     }));
 
+  // Server-Sent Events: stream text deltas to the client as they arrive.
+  res.setHeader("Content-Type", "text/event-stream; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.();
+
+  const send = (event, data) =>
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+
   try {
     const client = new Anthropic({ apiKey: API_KEY });
-    const response = await client.messages.create({
+    const stream = client.messages.stream({
       model: MODEL_MAP[model] || MODEL_MAP["clone-sonnet"],
       max_tokens: 1024,
-      system:
-        "You are Open Clone, a helpful, concise assistant inspired by Claude. " +
-        "Reply in the same language the user wrote in.",
+      system: buildSystemPrompt({ model }),
       messages: apiMessages,
     });
 
-    const text = response.content
-      .filter((block) => block.type === "text")
-      .map((block) => block.text)
-      .join("\n");
+    for await (const event of stream) {
+      if (
+        event.type === "content_block_delta" &&
+        event.delta?.type === "text_delta"
+      ) {
+        send("delta", { text: event.delta.text });
+      }
+    }
 
-    res.json({ content: text, model: response.model });
+    const final = await stream.finalMessage();
+    send("done", { model: final.model });
+    res.end();
   } catch (err) {
     console.error("[/api/chat] error:", err);
-    res.status(500).json({ error: err?.message || "Upstream error." });
+    // Headers are already sent, so report the error inside the SSE stream.
+    send("error", { error: err?.message || "Upstream error." });
+    res.end();
   }
 });
 

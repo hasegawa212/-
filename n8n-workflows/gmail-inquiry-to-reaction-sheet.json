@@ -1,0 +1,56 @@
+{
+  "name": "来場予約メール → 反響管理シート 自動追記",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": { "item": [{ "mode": "everyMinute" }] },
+        "simple": false,
+        "filters": { "q": "subject:(来場予約)" },
+        "options": {}
+      },
+      "id": "c1000000-0000-4000-8000-000000000001",
+      "name": "Gmailトリガー（来場予約）",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "credentials": {
+        "gmailOAuth2": { "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID", "name": "Gmail (hikaruhasegawa0708@gmail.com)" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 来場予約メール本文から各項目を抽出\nconst t = String($json.text || $json.snippet || $json.html || '');\nconst pick = (re) => { const m = t.match(re); return m ? m[1].trim() : ''; };\nconst inquiry = {\n  name:     pick(/お名前[:：]\\s*([^\\n■]+?)\\s*(?:■|$)/),\n  email:    pick(/メール[:：]\\s*([^\\s\\n■]+)/),\n  tel:      pick(/電話番号[:：]\\s*([^\\s\\n■]+)/),\n  area:     pick(/事業所[:：]\\s*([^\\n■]+?)\\s*(?:■|$)/),\n  hopeDate: pick(/希望日[:：]\\s*([^\\n■]+?)\\s*(?:■|$)/),\n  hopeTime: pick(/希望時間[:：]\\s*([^\\n■]+?)\\s*(?:■|$)/),\n  note:     pick(/備考[:：]\\s*([^\\n■—]+?)\\s*(?:■|—|$)/),\n  source:   'サイト予約フォーム',\n  type:     '来場予約',\n  receivedAt: String($json.date || '')\n};\nreturn [{ json: { inquiry } }];"
+      },
+      "id": "c1000000-0000-4000-8000-000000000002",
+      "name": "メール本文を解析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://script.google.com/macros/s/AKfycbyYfb-XTDekyx9GvEfLYXai3JmRxTKc1RJxkIX8w2L_ExjX2NJUVsPNN_vZI1x01qot/exec",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'addInquiry', inquiry: $json.inquiry }) }}",
+        "options": { "redirect": { "redirect": {} } }
+      },
+      "id": "c1000000-0000-4000-8000-000000000003",
+      "name": "反響管理シートへ追記",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Gmailトリガー（来場予約）": { "main": [[{ "node": "メール本文を解析", "type": "main", "index": 0 }]] },
+    "メール本文を解析": { "main": [[{ "node": "反響管理シートへ追記", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false,
+  "pinData": {},
+  "meta": {
+    "description": "個人Gmailに届く【来場予約】メールを1分ごとに検知し、本文を解析してApps Script(action:addInquiry)経由で反響管理シートへ自動追記する。"
+  }
+}

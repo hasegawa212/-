@@ -21,7 +21,12 @@ import DocumentAnalyzer from "./pages/DocumentAnalyzer";
 import ImageGenerator from "./pages/ImageGenerator";
 import CodeGenerator from "./pages/CodeGenerator";
 import BatchProcessor from "./pages/BatchProcessor";
+import BankValuation from "./pages/BankValuation";
+import DealHistory from "./pages/DealHistory";
+import LoanSimulator from "./pages/LoanSimulator";
 import { useAuth } from "./contexts/AuthContext";
+
+const IS_PUBLIC_MODE = import.meta.env.VITE_PUBLIC_MODE === "true";
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -31,6 +36,23 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // 公開モード: 仕入れシミュ 2 ページ + 案件履歴 + Login + Home + Settings のみ
+  if (IS_PUBLIC_MODE) {
+    return (
+      <Routes>
+        <Route element={<DashboardLayout />}>
+          <Route path="/" element={<Navigate to="/loan-simulator" replace />} />
+          <Route path="/bank-valuation" element={<BankValuation />} />
+          <Route path="/loan-simulator" element={<LoanSimulator />} />
+          <Route path="/deal-history" element={<DealHistory />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<Navigate to="/loan-simulator" replace />} />
+        </Route>
+        <Route path="/login" element={<Navigate to="/loan-simulator" replace />} />
       </Routes>
     );
   }
@@ -59,6 +81,9 @@ function App() {
         <Route path="/image-generator" element={<ImageGenerator />} />
         <Route path="/code-generator" element={<CodeGenerator />} />
         <Route path="/batch-processor" element={<BatchProcessor />} />
+        <Route path="/bank-valuation" element={<BankValuation />} />
+        <Route path="/deal-history" element={<DealHistory />} />
+        <Route path="/loan-simulator" element={<LoanSimulator />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="/login" element={<Navigate to="/" replace />} />

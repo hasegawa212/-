@@ -1,0 +1,398 @@
+{
+  "name": "Slack Reaction → Invoice + Receipt PDF Merge → Drive (請求分)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-invoice-merge",
+        "responseMode": "responseNode",
+        "options": { "rawBody": false }
+      },
+      "id": "merge-01-webhook",
+      "name": "Slack Events Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "slack-invoice-merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst headers = input.headers || {};\n// Slack のリトライ（200応答が遅い時に最大3回再送）は無視して重複格納を防ぐ\nif (headers['x-slack-retry-num'] || headers['X-Slack-Retry-Num']) {\n  return [{ json: { skip: true, reason: 'slack-retry' } }];\n}\nconst body = input.body ?? input;\n// Slack Events API の URL 検証ハンドシェイク\nif (body.type === 'url_verification') {\n  return [{ json: { isChallenge: true, challenge: body.challenge, skip: true } }];\n}\nconst TARGET = 'moneybag'; // トリガー絵文字（:なし）。標準絵文字 💰 のため登録不要。変更する場合はここを書き換え\nconst ev = body.event || {};\nif (ev.type !== 'reaction_added' || ev.reaction !== TARGET) {\n  return [{ json: { skip: true, reason: 'not-target-reaction' } }];\n}\nif (!ev.item || ev.item.type !== 'message') {\n  return [{ json: { skip: true, reason: 'not-message-item' } }];\n}\nreturn [{ json: { skip: false, isChallenge: false, channel: ev.item.channel, message_ts: ev.item.ts, reactor: ev.user } }];"
+      },
+      "id": "merge-02-parse",
+      "name": "Parse Slack Event",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.challenge || 'ok' }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "merge-03-respond",
+      "name": "Ack Slack 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [680, 560]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ $json.skip }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEqual" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "merge-04-if-process",
+      "name": "Process reaction?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "GET",
+        "url": "https://slack.com/api/conversations.replies",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "channel", "value": "={{ $json.channel }}" },
+            { "name": "ts", "value": "={{ $json.message_ts }}" },
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-05-replies",
+      "name": "Get Thread Replies",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300],
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID", "name": "Slack Bot Token" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nif (!res.ok) {\n  return [{ json: { error: true, reason: 'slack-api:' + (res.error || 'unknown'), channel: $('Parse Slack Event').item.json.channel, message_ts: $('Parse Slack Event').item.json.message_ts } }];\n}\nconst msgs = res.messages || [];\nconst parent = msgs[0] || {};\n// 親メッセージ（請求書振込依頼）の PDF を請求書とみなす\nlet invoice = null;\nfor (const f of (parent.files || [])) {\n  const t = (f.filetype || '').toLowerCase();\n  if (t === 'pdf' || (f.mimetype || '') === 'application/pdf') { invoice = f; break; }\n}\n// スレッド返信の画像/PDF を「振込受付書」として全件収集（分割払い等で複数枚に対応）\nconst receipts = [];\nfor (let i = 1; i < msgs.length; i++) {\n  for (const f of (msgs[i].files || [])) {\n    const t = (f.filetype || '').toLowerCase();\n    const m = (f.mimetype || '');\n    if (m.indexOf('image/') === 0 || ['png','jpg','jpeg','heic','gif','pdf'].indexOf(t) >= 0) { receipts.push(f); }\n  }\n}\n// 時系列（Slack 投稿順）を厳密化: ファイルのアップロード日時 created で昇順ソート\nreceipts.sort((a, b) => (a.created || 0) - (b.created || 0));\nconst channel = $('Parse Slack Event').item.json.channel;\nconst message_ts = $('Parse Slack Event').item.json.message_ts;\nif (!invoice || receipts.length === 0) {\n  return [{ json: { error: true, reason: 'missing-file', hasInvoice: !!invoice, receiptCount: receipts.length, channel, message_ts } }];\n}\n// ファイル名: YYYYMMDD_<請求書名>_振込受付書セット.pdf （JST）\nconst now = new Date(Date.now() + 9 * 3600 * 1000);\nconst ymd = now.toISOString().slice(0,10).split('-').join('');\nlet base = (invoice.title || invoice.name || 'invoice').replace(/\\.pdf$/i, '');\nfor (const ch of ['/','\\\\',':','*','?','<','>','|']) { base = base.split(ch).join('_'); }\nbase = base.slice(0, 80);\nconst filename = ymd + '_' + base + '_振込受付書セット.pdf';\n// CloudConvert は Slack の非公開 URL を Authorization ヘッダ付きで取得する\nconst SLACK_AUTH = 'Bearer REPLACE_WITH_SLACK_BOT_TOKEN';\nconst tasks = {\n  'import-invoice': { operation: 'import/url', url: invoice.url_private_download, headers: { Authorization: SLACK_AUTH } }\n};\n// 請求書を先頭に、受付書をスレッド投稿順で結合（画像は都度PDF化）\nconst mergeInputs = ['import-invoice'];\nreceipts.forEach((r, idx) => {\n  const importName = 'import-receipt-' + idx;\n  tasks[importName] = { operation: 'import/url', url: r.url_private_download, headers: { Authorization: SLACK_AUTH } };\n  const isPdf = ((r.filetype || '').toLowerCase() === 'pdf') || ((r.mimetype || '') === 'application/pdf');\n  if (isPdf) {\n    mergeInputs.push(importName);\n  } else {\n    const convName = 'convert-receipt-' + idx;\n    tasks[convName] = { operation: 'convert', input: importName, output_format: 'pdf', page_size: 'A4', page_orientation: 'portrait', fit: 'max' };\n    mergeInputs.push(convName);\n  }\n});\ntasks['merge'] = { operation: 'merge', input: mergeInputs, output_format: 'pdf', filename: filename };\ntasks['export'] = { operation: 'export/url', input: 'merge', inline: false, archive_multiple_files: false };\nreturn [{ json: { error: false, filename, channel, message_ts, invoice_name: invoice.title || invoice.name, receipt_count: receipts.length, ccJob: { tasks } } }];"
+      },
+      "id": "merge-06-build",
+      "name": "Build CloudConvert Job",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            { "id": "c1", "leftValue": "={{ $json.error }}", "rightValue": true, "operator": { "type": "boolean", "operation": "notEqual" } }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "merge-07-if-files",
+      "name": "Files found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://api.cloudconvert.com/v2/jobs",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.ccJob }}",
+        "options": {}
+      },
+      "id": "merge-08-cc-create",
+      "name": "CloudConvert: Create Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 220],
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID", "name": "CloudConvert" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "GET",
+        "url": "=https://api.cloudconvert.com/v2/jobs/{{ $json.data.id }}/wait",
+        "options": { "timeout": 120000 }
+      },
+      "id": "merge-09-cc-wait",
+      "name": "CloudConvert: Wait",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 220],
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID", "name": "CloudConvert" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json.data || {};\nconst tasks = data.tasks || [];\nconst exp = tasks.find(t => t.operation === 'export/url' && t.status === 'finished');\nif (!exp || !exp.result || !exp.result.files || !exp.result.files.length) {\n  return [{ json: { error: true, reason: 'no-export', status: data.status } }];\n}\nconst src = $('Build CloudConvert Job').item.json;\nreturn [{ json: { error: false, download_url: exp.result.files[0].url, filename: src.filename, channel: src.channel, message_ts: src.message_ts, invoice_name: src.invoice_name } }];"
+      },
+      "id": "merge-10-export",
+      "name": "Get Export URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 220]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "'16_5uX0SptbHkSwpC9r-AmbnyBTX9eg44' in parents and name contains '請求分' and mimeType = 'application/vnd.google-apps.folder' and trashed = false" },
+            { "name": "corpora", "value": "drive" },
+            { "name": "driveId", "value": "0AM6Ft-LAGZvNUk9PVA" },
+            { "name": "includeItemsFromAllDrives", "value": "true" },
+            { "name": "supportsAllDrives", "value": "true" },
+            { "name": "fields", "value": "files(id,name,createdTime)" },
+            { "name": "orderBy", "value": "createdTime desc" },
+            { "name": "pageSize", "value": "200" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-11-list-seikyu",
+      "name": "List 請求分 Folders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 220],
+      "credentials": {
+        "googleDriveOAuth2Api": { "id": "gfOBJVodrD5AiTXe", "name": "Google Drive account 19" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const files = $input.first().json.files || [];\n// フォルダ名から日付(YYYY.M.D)を抽出し、最新（最大）を選ぶ。同点は createdTime が新しい方。\nfunction dateKey(name) {\n  const m = (name || '').match(/(\\d{4})\\.(\\d{1,2})\\.(\\d{1,2})/);\n  if (!m) return 0;\n  return parseInt(m[1], 10) * 10000 + parseInt(m[2], 10) * 100 + parseInt(m[3], 10);\n}\nlet best = null;\nfor (const f of files) {\n  const k = dateKey(f.name);\n  if (!best || k > best.key || (k === best.key && (f.createdTime || '') > (best.createdTime || ''))) {\n    best = { id: f.id, name: f.name, key: k, createdTime: f.createdTime };\n  }\n}\nconst src = $('Get Export URL').item.json;\nif (!best) {\n  return [{ json: { error: true, reason: 'no-seikyubun-folder', channel: src.channel, message_ts: src.message_ts } }];\n}\nreturn [{ json: { error: false, latestFolderId: best.id, latestFolderName: best.name, download_url: src.download_url, filename: src.filename, channel: src.channel, message_ts: src.message_ts, invoice_name: src.invoice_name } }];"
+      },
+      "id": "merge-12-pick-latest",
+      "name": "Pick Latest 請求分",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 220]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "q", "value": "={{ \"'\" + $json.latestFolderId + \"' in parents and name contains '支払' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}" },
+            { "name": "corpora", "value": "drive" },
+            { "name": "driveId", "value": "0AM6Ft-LAGZvNUk9PVA" },
+            { "name": "includeItemsFromAllDrives", "value": "true" },
+            { "name": "supportsAllDrives", "value": "true" },
+            { "name": "fields", "value": "files(id,name)" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-13-find-sub",
+      "name": "Find 支払い Subfolder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2640, 220],
+      "credentials": {
+        "googleDriveOAuth2Api": { "id": "gfOBJVodrD5AiTXe", "name": "Google Drive account 19" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sub = ($input.first().json.files) || [];\nconst prev = $('Pick Latest 請求分').item.json;\n// 「4.支払いの請求書全て」サブフォルダがあればそこへ、無ければ月フォルダ直下へ\nconst hasSub = sub.length > 0 && sub[0].id;\nconst folderId = hasSub ? sub[0].id : prev.latestFolderId;\nconst folderPath = hasSub ? (prev.latestFolderName + ' / ' + sub[0].name) : prev.latestFolderName;\nreturn [{ json: { folderId, folderPath, download_url: prev.download_url, filename: prev.filename, channel: prev.channel, message_ts: prev.message_ts, invoice_name: prev.invoice_name } }];"
+      },
+      "id": "merge-14-resolve",
+      "name": "Resolve Target Folder",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, 220]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.download_url }}",
+        "options": {
+          "response": { "response": { "responseFormat": "file", "outputPropertyName": "data" } }
+        }
+      },
+      "id": "merge-15-download",
+      "name": "Download Merged PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3080, 220]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "inputDataFieldName": "data",
+        "name": "={{ $('Resolve Target Folder').item.json.filename }}",
+        "driveId": { "__rl": true, "mode": "list", "value": "0AM6Ft-LAGZvNUk9PVA", "cachedResultName": "ma_payment" },
+        "folderId": { "__rl": true, "mode": "id", "value": "={{ $('Resolve Target Folder').item.json.folderId }}" },
+        "options": {}
+      },
+      "id": "merge-16-drive",
+      "name": "Upload to Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [3300, 220],
+      "credentials": {
+        "googleDriveOAuth2Api": { "id": "gfOBJVodrD5AiTXe", "name": "Google Drive account 19" }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "1lbKD-ZyoVJFv7M5XLwHzh0QXBIXuP8BroGyVEiz2CJo", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "merge_log", "mode": "name" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $now.toISO() }}",
+            "invoice_name": "={{ $('Resolve Target Folder').item.json.invoice_name }}",
+            "filename": "={{ $('Resolve Target Folder').item.json.filename }}",
+            "folder": "={{ $('Resolve Target Folder').item.json.folderPath }}",
+            "drive_link": "={{ $('Upload to Drive').item.json.webViewLink }}",
+            "channel": "={{ $('Resolve Target Folder').item.json.channel }}",
+            "message_ts": "={{ $('Resolve Target Folder').item.json.message_ts }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "timestamp", "displayName": "timestamp", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "invoice_name", "displayName": "invoice_name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "filename", "displayName": "filename", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "folder", "displayName": "folder", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "drive_link", "displayName": "drive_link", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "channel", "displayName": "channel", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "message_ts", "displayName": "message_ts", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-17-log",
+      "name": "Append merge_log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [3520, 220],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "ssVAU7BAqgTbfMNe", "name": "Google Sheets account 9" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { channel: $('Resolve Target Folder').item.json.channel, thread_ts: $('Resolve Target Folder').item.json.message_ts, text: ':white_check_mark: 請求書と振込受付書を1つのPDFに結合し、梅本様共有フォルダへ格納しました。\\n*ファイル名:* ' + $('Resolve Target Folder').item.json.filename + '\\n*格納先:* ' + $('Resolve Target Folder').item.json.folderPath + '\\n*リンク:* ' + ($('Upload to Drive').item.json.webViewLink || '(Google Drive)') + '\\n*実行:* <@' + $('Parse Slack Event').item.json.reactor + '>' } }}",
+        "options": {}
+      },
+      "id": "merge-18-notify",
+      "name": "Notify Thread (done)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3740, 220],
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID", "name": "Slack Bot Token" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://slack.com/api/reactions.add",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { channel: $('Resolve Target Folder').item.json.channel, timestamp: $('Resolve Target Folder').item.json.message_ts, name: 'white_check_mark' } }}",
+        "options": {}
+      },
+      "id": "merge-19-react",
+      "name": "Add Done Reaction",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3960, 220],
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID", "name": "Slack Bot Token" }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { channel: $('Build CloudConvert Job').item.json.channel, thread_ts: $('Build CloudConvert Job').item.json.message_ts, text: ':warning: 請求書PDFまたは振込受付書が見つかりませんでした。スレッド内に「請求書PDF（親メッセージ）」と「振込受付書（画像/PDF）」が揃っているかご確認のうえ、再度リアクションしてください。' } }}",
+        "options": {}
+      },
+      "id": "merge-20-notify-missing",
+      "name": "Notify Missing Files",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 440],
+      "credentials": {
+        "httpHeaderAuth": { "id": "REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID", "name": "Slack Bot Token" }
+      }
+    }
+  ],
+  "connections": {
+    "Slack Events Webhook": { "main": [[{ "node": "Parse Slack Event", "type": "main", "index": 0 }]] },
+    "Parse Slack Event": { "main": [[
+      { "node": "Ack Slack 200", "type": "main", "index": 0 },
+      { "node": "Process reaction?", "type": "main", "index": 0 }
+    ]] },
+    "Process reaction?": { "main": [
+      [{ "node": "Get Thread Replies", "type": "main", "index": 0 }],
+      []
+    ] },
+    "Get Thread Replies": { "main": [[{ "node": "Build CloudConvert Job", "type": "main", "index": 0 }]] },
+    "Build CloudConvert Job": { "main": [[{ "node": "Files found?", "type": "main", "index": 0 }]] },
+    "Files found?": { "main": [
+      [{ "node": "CloudConvert: Create Job", "type": "main", "index": 0 }],
+      []
+    ] },
+    "CloudConvert: Create Job": { "main": [[{ "node": "CloudConvert: Wait", "type": "main", "index": 0 }]] },
+    "CloudConvert: Wait": { "main": [[{ "node": "Get Export URL", "type": "main", "index": 0 }]] },
+    "Get Export URL": { "main": [[{ "node": "List 請求分 Folders", "type": "main", "index": 0 }]] },
+    "List 請求分 Folders": { "main": [[{ "node": "Pick Latest 請求分", "type": "main", "index": 0 }]] },
+    "Pick Latest 請求分": { "main": [[{ "node": "Find 支払い Subfolder", "type": "main", "index": 0 }]] },
+    "Find 支払い Subfolder": { "main": [[{ "node": "Resolve Target Folder", "type": "main", "index": 0 }]] },
+    "Resolve Target Folder": { "main": [[{ "node": "Download Merged PDF", "type": "main", "index": 0 }]] },
+    "Download Merged PDF": { "main": [[{ "node": "Upload to Drive", "type": "main", "index": 0 }]] },
+    "Upload to Drive": { "main": [[{ "node": "Append merge_log", "type": "main", "index": 0 }]] },
+    "Append merge_log": { "main": [[{ "node": "Notify Thread (done)", "type": "main", "index": 0 }]] },
+    "Notify Thread (done)": { "main": [[{ "node": "Add Done Reaction", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": [{ "name": "slack" }, { "name": "pdf" }, { "name": "cloudconvert" }, { "name": "drive" }, { "name": "invoice" }]
+}

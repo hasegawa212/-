@@ -1,15 +1,288 @@
 # n8n Workflows
 
-Telegram / Google Sheets / Slack を組み合わせた業務自動化ワークフロー集です。
+このディレクトリには n8n にインポート可能なワークフロー JSON が格納されています。
+
+## ワークフロー一覧
 
 | ファイル | 用途 |
 | --- | --- |
-| `telegram-to-sheets-slack.json` | Telegram受信 → ログをSheetsに追記 + Slack通知 |
-| `telegram-call-log-to-sheet.json` | Telegramで「No. 結果」を送ると、テレアポ管理シートの該当行を自動更新。アポ獲得時はSlackに通知 |
+| `telegram-to-sheets-slack.json` | Telegram → Sheets + Slack 通知（既存） |
+| `gmail-reservation-to-sheets-slack.json` | Gmail（来場予約メール）→ Sheets 追記 + Slack 通知（**OAuth2認証**） |
+| `slack-modal-trigger-daily.json` | `/daily` → 日報モーダル表示 |
+| `slack-modal-trigger-apo.json` | `/apo` → アポ追加/キャンセル モーダル表示 |
+| `slack-modal-trigger-feedback.json` | `/feedback` → 顧客フィードバック モーダル表示 |
+| `slack-modal-trigger-meeting.json` | `/meeting` → 会議の確認事項（必須3つ）モーダル表示 |
+| `slack-modal-submit-handler.json` | 4 つのモーダル送信を一括処理（Sheets append + Slack 通知） |
+| `invoice-receipt-pdf-merge.json` | Slack リアクション → 請求書PDF + 振込受付書を1つのPDFに結合 → Google Drive 格納 |
+| `sheets-to-twilio-sms-appointment-confirm.json` | スケジュール実行 → Google Sheets のアポ一覧 → **Twilio で国際SMSのアポ確認**を自動送信 → 送信結果をシートに書き戻し |
 
 ---
 
-## ワークフロー1: Telegram → Google Sheets + Slack
+# 請求書 × 振込受付書 PDF 結合ワークフロー（`invoice-receipt-pdf-merge.json`）
+
+経理スレッドで **請求書振込依頼の投稿（親メッセージに請求書PDF）** に対し、振込完了後に
+**振込受付書（スクリーンショット/PDF）をスレッド返信** し、親メッセージに所定の絵文字リアクションを
+付けると、請求書と受付書を **1つのPDFに自動結合 → 命名 → 梅本様共有フォルダ（Google Drive）へ格納**
+します。税理士が「どの請求書に対する支払いか」を1ファイルで確認できる状態を、手作業ゼロで実現します。
+
+## 運用イメージ
+
+```
+[請求書振込依頼を投稿（親メッセージに 請求書PDF を添付）]
+        │
+        ▼  …振込完了…
+[CEO がそのスレッドに 振込受付書（スクショ/PDF）を返信]
+        │
+        ▼  親メッセージに :振込完了: リアクションを付ける（ワンクリック）
+[n8n ワークフロー]
+  Webhook(reaction_added) → スレッド取得 → 請求書/受付書を特定
+        → CloudConvert(画像→PDF化 + 結合) → Google Drive へ格納
+        → merge_log に記録 → スレッドに完了報告 + ✅ リアクション
+```
+
+- **トリガー**: 親メッセージへの特定絵文字リアクション（`REPLACE_WITH_TRIGGER_EMOJI`、既定: `moneybag` = 💰。標準絵文字なのでワークスペースへの絵文字登録は不要）
+- **結合エンジン**: CloudConvert（画像のPDF化と複数PDFの結合を1ジョブで実行）
+- **保存先**: 梅本様共有の **`ma_payment` 共有ドライブ** 内、**最新の `★…請求分` 月次フォルダ**の中の **`4.支払いの請求書全て（振込、引き落とし）`** サブフォルダへ自動格納（サブフォルダが無い場合は月フォルダ直下にフォールバック）
+- **漏れ防止**: 完了後に親メッセージへ `:white_check_mark:` を自動付与＋`merge_log` シートに台帳記録
+- **まとめ処理にも対応**: 週次/月次でまとめてリアクションを付けていけば、その分だけ順次処理されます
+
+## フロー図（ノード）
+
+```
+Slack Events Webhook → Parse Slack Event ─┬→ Ack Slack 200 (即時応答)
+                                          └→ Process reaction?
+                                               └(対象)→ Get Thread Replies
+                                                         → Build CloudConvert Job
+                                                         → Files found?
+                                                            ├(NG)→ Notify Missing Files
+                                                            └(OK)→ CloudConvert: Create Job
+                                                                   → CloudConvert: Wait
+                                                                   → Get Export URL
+                                                                   → List 請求分 Folders（共有ドライブ）
+                                                                   → Pick Latest 請求分（最新の月フォルダ選定）
+                                                                   → Find 支払い Subfolder（4.支払い…）
+                                                                   → Resolve Target Folder（格納先ID確定）
+                                                                   → Download Merged PDF
+                                                                   → Upload to Drive（4.支払い… へ）
+                                                                   → Append merge_log
+                                                                   → Notify Thread (done)
+                                                                   → Add Done Reaction
+```
+
+## 事前準備
+
+### 1. CloudConvert
+1. [cloudconvert.com](https://cloudconvert.com/) でアカウント作成 → **API Key** を発行
+2. n8n の **Credentials → New → Header Auth** を作成し、`Name = Authorization` / `Value = Bearer <CloudConvert API Key>` を登録（このワークフローでは `CloudConvert` という名前で参照）
+
+> ⚠️ CloudConvert は外部サービスのため、結合のために**請求書PDFと受付書が一時的に CloudConvert へ送信**されます（書類取り扱いの観点で承認済みの方式）。社外秘運用が必要になった場合は、自前ホストの Stirling-PDF 等への差し替えも可能です。
+
+### 2. Slack App
+**Bot Token Scopes**（OAuth & Permissions）:
+- `reactions:read` — リアクションイベント受信（必須）
+- `channels:history` / `groups:history` — スレッド本文・添付ファイル取得（チャンネル種別に応じて）
+- `files:read` — 添付ファイル（請求書/受付書）の取得
+- `chat:write` — スレッドへの完了報告
+- `reactions:write` — 完了の ✅ 付与
+
+**Event Subscriptions**:
+1. **Enable Events** を On
+2. **Request URL** に `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-invoice-merge` を設定（保存時に URL 検証ハンドシェイクが走り、ワークフローが応答します）
+3. **Subscribe to bot events** に `reaction_added` を追加 → **Reinstall to Workspace**
+
+n8n の **Credentials → New → Header Auth** をもう1つ作成し、`Name = Authorization` / `Value = Bearer xoxb-...`（Bot User OAuth Token）を登録（このワークフローでは `Slack Bot Token` という名前で参照）。
+
+### 3. Google Drive（共有ドライブ `ma_payment`）
+- 格納先は **`ma_payment` 共有ドライブ**内の `★…請求分` 月次フォルダ群です。次の ID は調査済みで JSON に直接埋め込まれています（変わった場合のみ差し替え）:
+  - 共有ドライブ ID（`driveId`）: `0AM6Ft-LAGZvNUk9PVA`（`ma_payment`）— `List 請求分 Folders` / `Find 支払い Subfolder` / `Upload to Drive` の各ノード
+  - `★…請求分` フォルダの親フォルダ ID: `16_5uX0SptbHkSwpC9r-AmbnyBTX9eg44` — `List 請求分 Folders` の検索クエリ `q`
+- n8n の **Credentials → New → Google Drive OAuth2 API** を登録（このワークフローでは `Google Drive` という名前で参照）。**共有ドライブ `ma_payment` に書き込める Google アカウント**で認可してください。
+- ※ 月次フォルダ（`★YYYY.M.25請求分`）と中の `4.支払い…` サブフォルダは**人手で用意されている前提**です。ワークフローは新規作成せず、既存の最新フォルダを探して格納します。
+
+### 4. Google Sheets（台帳 `merge_log`）
+STEP 3 のスプレッドシートに `merge_log` シートを追加し、1行目に以下のヘッダーを作成:
+```
+timestamp | invoice_name | filename | folder | drive_link | channel | message_ts
+```
+
+## インポート手順
+
+1. n8n → **Workflows → Import from File** → `invoice-receipt-pdf-merge.json`
+2. 各 `REPLACE_WITH_*` を差し替え:
+   | プレースホルダ | 入れる値 |
+   | --- | --- |
+   | `REPLACE_WITH_TRIGGER_EMOJI` | トリガーにする絵文字名（`:` なし。既定 `moneybag` = 💰。標準絵文字なので登録不要） |
+   | `REPLACE_WITH_SLACK_HEADER_CREDENTIAL_ID` | Slack Bot Token の Header Auth credential |
+   | `REPLACE_WITH_SLACK_BOT_TOKEN` | Bot User OAuth Token（`xoxb-...`）※「Build CloudConvert Job」ノードの Code 内。CloudConvert が Slack の非公開ファイルURLを取得するために使用 |
+   | `REPLACE_WITH_CLOUDCONVERT_CREDENTIAL_ID` | CloudConvert の Header Auth credential |
+   | `REPLACE_WITH_GOOGLE_DRIVE_CREDENTIAL_ID` | Google Drive OAuth2 credential（`List 請求分 Folders` / `Find 支払い Subfolder` / `Upload to Drive` の3ノード。`ma_payment` 共有ドライブに書き込める権限で認可） |
+   | `REPLACE_WITH_GOOGLE_SHEET_ID` | 台帳スプレッドシートの ID |
+   | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | Google Sheets OAuth2 credential |
+3. 右上の **Active** を ON
+
+## ノード詳細
+
+| ノード | 役割 |
+| --- | --- |
+| Slack Events Webhook | `reaction_added` イベント / URL 検証を受信 |
+| Parse Slack Event | 検証ハンドシェイク応答・対象絵文字判定・親メッセージ ts 抽出 |
+| Ack Slack 200 | Slack へ 3 秒以内に即時 200 応答（本処理は別ブランチで継続） |
+| Process reaction? | 対象リアクションのみ後続へ |
+| Get Thread Replies | `conversations.replies` でスレッド全体を取得 |
+| Build CloudConvert Job | 親=請求書PDF / 返信=受付書 を特定し、命名 + CloudConvert ジョブ定義を生成 |
+| Files found? | 請求書・受付書が揃っているか判定（欠けていれば差し戻し通知） |
+| CloudConvert: Create Job / Wait | 画像のPDF化 + 結合ジョブを実行し完了を待機 |
+| Get Export URL | 結合済みPDFのダウンロードURLを取得 |
+| List 請求分 Folders | `ma_payment` 共有ドライブの親フォルダ配下にある `★…請求分` 月次フォルダを一覧取得 |
+| Pick Latest 請求分 | フォルダ名の日付（`YYYY.M.D`）が最大のものを「最新」として選定（同名重複は `createdTime` が新しい方） |
+| Find 支払い Subfolder | 選定した月フォルダ内の `4.支払いの請求書全て（振込、引き落とし）` サブフォルダを検索 |
+| Resolve Target Folder | 格納先フォルダ ID を確定（サブフォルダが無ければ月フォルダ直下にフォールバック） |
+| Download Merged PDF | 結合PDFをバイナリで取得 |
+| Upload to Drive | 確定した格納先（`ma_payment` 共有ドライブ内）へ格納 |
+| Append merge_log | 台帳（請求書名・ファイル名・フォルダ・Driveリンク）に記録 |
+| Notify Thread (done) / Add Done Reaction | スレッドに完了報告＋✅ で処理済みを可視化 |
+| Notify Missing Files | 請求書/受付書が不足している場合にスレッドへ差し戻し |
+
+## 運用上の注意
+
+- **リアクションは「親メッセージ（請求書PDF投稿）」に付ける**こと。受付書は同じスレッドに返信しておく必要があります。
+- 受付書が画像（スクショ）でも PDF でも、いずれも結合対象として処理します（画像は自動でPDF化）。
+- **分割払い等で複数の受付書**がある場合も対応済みです。スレッド内の受付書（画像/PDF）を**全件、Slack投稿順（時系列＝アップロード日時 `created` の昇順）で**請求書の後ろに結合します（請求書 → 受付書1 → 受付書2 …）。1スレッドに受付書を複数返信しておけば、まとめて1つのPDFになります。
+- 重複処理防止のため、処理済みには `:white_check_mark:` が付きます。トリガー絵文字とは別の絵文字にしてあるためループしません。
+
+## 格納先（請求分フォルダ）の決まり方
+
+実際の Drive 構造（`ma_payment` 共有ドライブ）に合わせて、**フォルダは自動作成せず・既存の最新フォルダへ格納**します。
+
+```
+ma_payment（共有ドライブ）
+└─ 親フォルダ 16_5uX0SptbHkSwpC9r-AmbnyBTX9eg44
+   ├─ ★2026.3.25請求分
+   │    ├─ 1.預金通帳
+   │    ├─ 2.不動産売買契約書（AB間契約書、BC間契約書）
+   │    ├─ 3.リフォーム、新築等工事売上の請求書
+   │    ├─ 4.支払いの請求書全て（振込、引き落とし）  ← ここへ格納
+   │    └─ 5.その他資料
+   ├─ ★2026.5.3請求分
+   └─ …（毎月の月次フォルダ）
+```
+
+1. `List 請求分 Folders` … 親フォルダ配下の `★…請求分` 月次フォルダを一覧
+2. `Pick Latest 請求分` … フォルダ名の日付（`YYYY.M.D`）が**最大のもの**を「最新」として選定（同名が複数ある場合は `createdTime` が新しい方）
+3. `Find 支払い Subfolder` … その月フォルダ内の `4.支払いの請求書全て（振込、引き落とし）` を検索（先頭が `4.支払` で前方一致）
+4. `Upload to Drive` … 見つかった `4.支払い…` サブフォルダへ格納（無ければ月フォルダ直下にフォールバック）
+
+> **運用上の前提**: 月次フォルダ（`★YYYY.M.25請求分` 等）と中の `4.支払い…` サブフォルダは、**人手で用意されている**ことが前提です。新しい月に入ったらフォルダを先に作成しておけば、その月の最新フォルダへ自動で入ります。
+>
+> **注意（重複フォルダ）**: 同名の `★…請求分` フォルダが複数あると「最新」判定が曖昧になります（現状 `★2026.5.3請求分` が2件存在）。1期間1フォルダの運用を推奨します。
+>
+> **月の選定を変えたい場合**: 「最新」ではなく「支払期日の月」「処理日の月」「投稿で明示」等に変えたいときは、`List 請求分 Folders` の `q` と `Pick Latest 請求分` の選定ロジックを調整します（ご相談ください）。
+
+---
+
+# Slack Modal Workflows（業務フォーム連携）
+
+`/daily` `/apo` `/feedback` `/meeting` の 4 スラッシュコマンドからモーダルを開き、送信内容を Google Sheets に蓄積 + Slack チャンネルに通知。
+
+> **会議の「必ず3つの質問・確認事項」ルールの共有・管理は `/meeting` を使う。** 会議終了時に `/meeting` を打つと確認事項①〜③（必須入力）のモーダルが開き、送信すると `meeting_checklist` シートに1行追記され、`#martial-arts-meeting-checklist` 等のチャンネルへ自動共有される。3つ揃わないと Slack 側で送信できないため、ルールがフォームで強制される。
+
+## フロー全体図
+
+```
+[Slack User]
+    │ /daily, /apo, /feedback, /meeting
+    ▼
+[Trigger Workflow]                          ┌──────────────┐
+  Webhook → Extract → views.open → Respond  │ Slack Modal  │
+                                            └──────┬───────┘
+                                                   │ submit
+                                                   ▼
+                              [Submit Handler Workflow]
+                                Webhook → Parse (callback_id 分岐)
+                                       ↓
+                                  Switch
+                                  ├─ daily_report      → Sheets: daily_reports
+                                  ├─ apo_action        → Sheets: apo_log
+                                  ├─ customer_feedback → Sheets: feedback_log
+                                  └─ meeting_check     → Sheets: meeting_checklist
+                                       ↓
+                                  Slack Channel Notify
+```
+
+## セットアップ手順
+
+### 1. n8n でワークフローをインポート
+
+5 つの JSON を全てインポートし、各 `REPLACE_WITH_*` を実値に置換:
+- `REPLACE_WITH_SLACK_BOT_TOKEN` → Slack Bot User OAuth Token (`xoxb-...`)
+- `REPLACE_WITH_SLACK_CREDENTIAL_ID` → n8n Slack credential
+- `REPLACE_WITH_GOOGLE_SHEET_ID` → スプレッドシート ID
+- `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` → n8n Google Sheets credential
+
+> 通知先チャンネルは `slack-modal-submit-handler.json` の `Parse + Normalize` ノード内の `NOTIFY_CHANNEL` 定数で `callback_id` ごとに固定振分（Slack ノードは `{{ $json.notify_channel }}` で参照）。4 チャンネルとも設定済み（`meeting_check` = `#martial-arts-meeting-checklist` / `C0B9RAHM13K`）。差し替え対象なし。詳細は `SETUP.md` §4-3-1。
+
+### 2. Slack App 設定
+
+**Slash Commands**（3 件登録）:
+| Command | Request URL |
+| --- | --- |
+| `/daily` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-daily` |
+| `/apo` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-apo` |
+| `/feedback` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-feedback` |
+| `/meeting` | `https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-trigger-meeting` |
+
+**Interactivity & Shortcuts**（Request URL）:
+```
+https://martial-arts-ghd.app.n8n.cloud/webhook/slack-modal-submit
+```
+
+**Bot Token Scopes**:
+- `commands` — スラッシュコマンド受信
+- `chat:write` — チャンネル通知
+- `users:read` — ユーザー情報取得（オプション）
+
+### 3. Google Sheets 準備
+
+スプレッドシートに 4 つのシートを作成:
+
+**`daily_reports`**
+```
+timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id |
+report_date | call_count | apo_count | meeting_count | contract_count |
+highlights | tomorrow_plan | blockers
+```
+
+**`apo_log`**
+```
+timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id |
+action_type | customer_code | deal_code | apo_datetime | reason
+```
+
+**`feedback_log`**
+```
+timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id |
+deal_code | customer_code | feedback_type | rating | content | action_needed
+```
+
+**`meeting_checklist`**
+```
+timestamp | callback_id | staff_slack_id | staff_slack_name | channel_id |
+notify_channel | meeting_title | meeting_date | attendees |
+check_1 | check_2 | check_3 | owner
+```
+
+各ワークフローの Google Sheets ノードは `autoMapInputData` モードのため、
+**ヘッダー名が一致している必要があります**。
+
+## 機微情報の扱い
+
+- 顧客実名は入力欄に含まず、**案件 ID + 顧客匿名コード（CUST-A 形式）** のみ記録
+- Sheets の閲覧権限は **営業 + 経営層のみ**
+- Slack 通知は専用プライベートチャンネル推奨
+
+---
+
+# n8n Workflow: Telegram → Google Sheets + Slack
 
 Telegramに届いたメッセージを Google Sheets に記録し、Slack にも通知するn8nワークフローです。
 
@@ -80,73 +353,179 @@ Telegram Trigger → Normalize Message → Has Text?
 
 - **画像/ファイル対応**: `Has Text?` を条件分岐にして `photo` / `document` を Google Drive へアップロードするノードを追加
 - **コマンド処理**: `Normalize Message` の後に `Switch` ノードを置き `/start` 等を振り分け
+
+---
+
+# n8n Workflow: Gmail（来場予約）→ Google Sheets + Slack（`gmail-reservation-to-sheets-slack.json`）
+
+来場予約のメールを **Gmailトリガー（来場予約）** で受信し、本文から氏名・希望日時・電話を抽出して Google Sheets に追記、同時に Slack へ通知します。
+
+## フロー図
+
+```
+Gmailトリガー（来場予約） → 予約情報を整形 ┬→ 来場予約をシートに追記（Google Sheets）
+                                          └→ Slackに通知
+```
+
+## ⚠️ RS256 / 認証エラーについて（重要）
+
+`RS256 を使用する場合、secretOrPrivateKey は非対称鍵である必要があります` というエラーは、Gmailを **サービスアカウント（JWT）認証**にしたときに、秘密鍵欄へ RSA 秘密鍵以外（プレーンな文字列・空・PEMヘッダ欠落・改行破損）が入っていると発生します。
+
+**本ワークフローはこれを避けるため `gmailOAuth2`（OAuth2 認証）を使用しています。** OAuth2 では JWT の RS256 署名を自分で行わないため、このエラーは原理的に発生しません。サービスアカウントをどうしても使う場合は、サービスアカウント JSON の `private_key` 値を `-----BEGIN PRIVATE KEY-----` 〜 `-----END PRIVATE KEY-----` ごと（改行を保ったまま）貼り、Workspace のドメイン全体の委任を設定してください。
+
+## 事前準備
+
+### 1. Gmail（OAuth2）
+- n8n で **Gmail OAuth2 API** credential を作成（Google Cloud で OAuth クライアントを発行し、`https://www.googleapis.com/auth/gmail.readonly`〔または `gmail.modify`〕スコープを許可）
+- 受信トレイで来場予約メールに**ラベル**を付けておくと精度が上がる（フィルタの `q` をラベル検索に変更可能）
+
+### 2. Google Sheets
+- スプレッドシートに **`来場予約`** シートを作成し、1行目に次のヘッダーを用意:
+  `received_at | email_date | from | subject | name | phone | preferred_datetime | body | message_id`
+
+### 3. Slack
+- 通知先チャンネルに Bot を招待（`chat:write`）
+
+## インポート手順
+
+1. n8n → Import from File → `gmail-reservation-to-sheets-slack.json`
+2. 各 `REPLACE_WITH_*` を自分の値に置き換える:
+   - `REPLACE_WITH_GMAIL_CREDENTIAL_ID` → Gmail **OAuth2** 認証情報
+   - `REPLACE_WITH_GOOGLE_SHEET_ID` → スプレッドシート ID
+   - `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` → Google Sheets 認証情報
+   - `REPLACE_WITH_SLACK_CHANNEL_ID` → Slack チャンネル ID
+   - `REPLACE_WITH_SLACK_CREDENTIAL_ID` → Slack 認証情報
+3. ワークフローを **Active** にする
+
+## ノード詳細
+
+- **Gmailトリガー（来場予約）** (`gmailTrigger`, OAuth2): 毎分ポーリング。`filters.q` = `subject:(来場予約 OR 来場 OR 内見予約) -from:me`、未読のみ（`readStatus: unread`）。検索条件は用途に合わせて変更可（例: `label:来場予約`）。
+- **予約情報を整形** (`set`): 受信日時・差出人・件名のほか、本文から「お名前/氏名」「希望日時/来場日時」「電話/連絡先」を正規表現で抽出。抽出できない場合は空文字。
+- **来場予約をシートに追記** (`googleSheets`, append): `来場予約` シートへ1行追記。
+- **Slackに通知** (`slack`): 予約サマリー（氏名・希望日時・電話・差出人・件名・本文先頭500字）を mrkdwn で投稿。
+
+## カスタマイズ
+
+- **抽出精度**: 予約メールのフォーマットが固定なら、`予約情報を整形` の正規表現を実際のラベル文言（例: 「ご希望日：」）に合わせて調整。
+- **取りこぼし防止**: `readStatus` を `both` にし、処理済みメールには Gmail ノードでラベル付与/既読化を追加。
+- **重複防止**: Google Sheets を append ではなく `message_id` で upsert に変更。
 - **要約**: `Append to Google Sheets` の前に OpenAI/Claude ノードを挟んで要約を保存
 
 ---
 
-## ワークフロー2: Telegram → テレアポ管理シート 自動更新
+# n8n Workflow: アポ確認 国際SMS（Google Sheets → Twilio）（`sheets-to-twilio-sms-appointment-confirm.json`）
 
-担当者がTelegramに「`<No.> <結果>`」と送るだけで、`テレアポ管理シート` の該当行の **架電日N / 架電結果N / 架電ステータス** が自動更新されるワークフロー。アポ獲得時は Slack にも通知します。
+Google Sheets で管理しているアポ一覧を毎日決まった時刻に読み込み、**対象日（既定: 前日）のアポ**について **Twilio で確認SMS（国際SMS対応・日英2言語）を自動送信**し、送信結果（送信済み/失敗・送信日時・Twilio SID・エラー）をシートに書き戻すワークフローです。アポ確認用途（1日数件〜数十件）を想定しています。
 
-### フロー図
+> **送信規模の目安**: アポ確認なら1日数件〜数十件レベル。Twilio の国際SMSスループット制限（米国ロングコードで目安1通/秒程度）でも全く問題ない範囲です。「大量送信に不向き」というのは数千通の一斉送信のような話なので、この用途では無視してOKです。
 
-```
-Telegram Trigger → Parse Command → Parse OK?
-                                      ├─ NG → Telegram: Error
-                                      └─ OK → Lookup Row by No. → Pick Empty Slot → Slot OK?
-                                                                                        ├─ NG → Telegram: Error
-                                                                                        └─ OK → Update Sheet Row → Is Appointment?
-                                                                                                                       ├─ Yes → Slack: Appointment + Telegram: Confirm
-                                                                                                                       └─ No  → Telegram: Confirm
-```
-
-### 入力フォーマット
-
-担当者がボットに送る文言:
+## フロー図
 
 ```
-3 アポ獲得         ← No.3 にアポ獲得を記録
-12 不在            ← No.12 に不在を記録
-/log 7 再架電      ← /log プレフィックスもOK
-5:番号違い         ← コロン区切りもOK
+毎日10時に実行（Schedule）
+   → アポ一覧を読み込み（Google Sheets: read）
+   → 確認対象を抽出（Code: 対象日・未送信・電話番号ありで絞り込み + E.164化 + 文面生成）
+   → Twilio SMS送信
+        ├─（成功）→ 送信済みに更新（Google Sheets: update）
+        └─（失敗）→ 送信失敗に更新（Google Sheets: update）
 ```
 
-結果キーワード → 架電ステータスの対応:
+## スプレッドシート（`アポ一覧` シート）
 
-| キーワード | 設定される 架電ステータス | アポ通知 |
-| --- | --- | --- |
-| アポ獲得 / 獲得 / 成約 | アポ獲得 | ✅ Slack通知 |
-| アポ | アポ予定 | — |
-| 不在 / 留守 | 次回架電予定 | — |
-| 拒否 / 断り / NG | 対応不可 | — |
-| 再架電 / 折り返し | 次回架電予定 | — |
-| 番号違い | 番号誤り | — |
-| その他 | 架電済み | — |
+1行目に以下のヘッダーを用意してください（列の並びは自由・ヘッダー名が一致していればOK）:
 
-### 動作
+```
+予約ID | 氏名 | 電話番号 | 国コード | アポ日時 | 担当者 | 確認ステータス | SMS送信日時 | Twilio_SID | エラー
+```
 
-1. `Parse Command` がメッセージを `No.` と `結果` に分解
-2. `Lookup Row by No.` で該当行をシートから取得
-3. `Pick Empty Slot` が `架電日1/2/3` のうち空いている枠を判定
-4. `Update Sheet Row` で `架電日N` / `架電結果N` / `架電ステータス` を更新 (結果欄には担当者名も付加)
-5. 「アポ獲得」系のキーワードならSlackチャンネルにお祝い通知
-6. 担当者にTelegramで「✅ 記録しました」と返信
+| 列 | 用途 |
+| --- | --- |
+| `予約ID` | **必須・一意**。送信結果の書き戻し（update）の照合キー |
+| `氏名` | 文面の宛名に使用（空なら「お客様」） |
+| `電話番号` | `+819012345678` のような E.164 推奨。`090-1234-5678` など国内表記でも可（下記参照） |
+| `国コード` | 任意。国内表記の番号に付ける国番号（例: 日本 `81`、米国 `1`）。空欄なら Code 内の `DEFAULT_COUNTRY_CODE` を使用 |
+| `アポ日時` | `2026-06-16 14:00` / `2026/6/16` / `2026年6月16日` 等から日付を抽出。**この日付が対象日と一致する行だけ**送信 |
+| `担当者` | 任意（運用メモ） |
+| `確認ステータス` | `送信済み` を含む行はスキップ。送信後に自動更新 |
+| `SMS送信日時` / `Twilio_SID` / `エラー` | 送信結果を自動書き戻し |
 
-### 事前準備
+**電話番号の正規化（E.164）**: `+` 始まりはそのまま、`00` 始まりは `+` に置換、`0` 始まりの国内表記は先頭の `0` を除いて `国コード`（または `DEFAULT_COUNTRY_CODE`）を付与します。国際送信では **E.164 形式での保存を強く推奨**します。
 
-ワークフロー1と同じ Telegram / Google Sheets / Slack の認証情報を使い回せます。シートは既存の `テレアポ管理シート` (列: `No.`, `架電ステータス`, `架電日1〜3`, `架電結果1〜3` など) を Google Sheets にインポートしてください。
+## 事前準備
 
-### インポート手順
+### 1. Twilio
+1. [twilio.com](https://www.twilio.com/) でアカウント作成 → **無料トライアルを有料アップグレード（クレカ登録）**。トライアルのままだと送信先が認証済み番号に限られ、本文に固定の試用メッセージが付くため、**本番送信にはアップグレードが必須**です。
+2. **国際SMSの送信を有効化**: Console → Messaging → Settings → **Geo Permissions** で送信したい国を許可（既定では一部の国がオフになっています）。
+3. **送信元番号**を用意（`from`）。Twilio で購入した電話番号（SMS対応）か、登録済みの **Messaging Service SID（`MG...`）／Alphanumeric Sender ID** を使用。
+4. **Account SID** と **Auth Token**（Console トップに表示）を控える。
+5. n8n の **Credentials → New → Twilio API** に Account SID / Auth Token を登録（このワークフローでは `Twilio` という名前で参照）。
 
-1. n8nを開く → **Workflows → Import from File**
-2. `telegram-call-log-to-sheet.json` を選択
-3. `REPLACE_WITH_*` を置換 (Telegram / Google Sheets / Slack の認証情報ID + シートID + チャンネルID)
-4. シート名 (`テレアポ管理シート`) が実際のシートタブ名と一致しているか確認
-5. **Active** をONにする
+> **コスト感（目安）**: 送信料 約 $0.089/通 ＋ キャリアフィー → 1通あたりおよそ15〜20円前後。月100件のアポ確認でも2,000円弱で、導入コストは軽量です（正確な料金は送信先国・経路で変動）。
 
-### テスト
+### 2. Google Sheets
+- 上記 `アポ一覧` シートを作成し、ヘッダーを用意。
+- n8n の **Credentials → New → Google Sheets OAuth2 API** を登録（このワークフローでは `Google Sheets` という名前で参照）。
+- URL から **Sheet ID** を取得（`.../spreadsheets/d/<SHEET_ID>/edit`）。
 
-1. ボットに `1 アポ獲得` と送信
-2. シートの No.1 の `架電日1` に今日の日付、`架電結果1` に「アポ獲得 (担当者名)」、`架電ステータス` に「アポ獲得」が入る
-3. Slackに :tada: 通知が届く
-4. Telegramで「✅ 記録しました」と返信される
+## インポート手順
+
+1. n8n → **Workflows → Import from File** → `sheets-to-twilio-sms-appointment-confirm.json`
+2. 各 `REPLACE_WITH_*` を差し替え:
+   | プレースホルダ | 入れる値 |
+   | --- | --- |
+   | `REPLACE_WITH_GOOGLE_SHEET_ID` | アポ一覧スプレッドシートの ID（**3ノードとも同じ値**） |
+   | `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID` | Google Sheets OAuth2 credential |
+   | `REPLACE_WITH_TWILIO_CREDENTIAL_ID` | Twilio API credential |
+   | `REPLACE_WITH_TWILIO_FROM_NUMBER` | 送信元（購入した `+1...` 等の番号 / `MG...` Messaging Service SID / Sender ID） |
+3. `確認対象を抽出`（Code ノード）冒頭の設定を運用に合わせて調整:
+   - `REMIND_DAYS_BEFORE`（既定 `1`=前日／`0`=当日）
+   - `DEFAULT_COUNTRY_CODE`（既定 `81`=日本）
+   - `TZ_OFFSET_HOURS`（既定 `9`=JST。アポ日時と「今日」の解釈に使用）
+   - `COMPANY`（署名の会社名。`〔要確認〕会社名` を実値に）
+4. `毎日10時に実行`（Schedule トリガー）の時刻を運用に合わせて変更（既定 cron `0 10 * * *`）。
+5. 右上の **Active** を ON。
+
+## ノード詳細
+
+| ノード | 役割 |
+| --- | --- |
+| 毎日10時に実行 | Schedule トリガー。既定で毎日 10:00（cron `0 10 * * *`）に起動 |
+| アポ一覧を読み込み | `アポ一覧` シートの全行を取得 |
+| 確認対象を抽出 | 対象日（既定: 前日）・`送信済み`でない・電話番号ありの行だけに絞り、番号を E.164 化し、日英2言語の文面を生成 |
+| Twilio SMS送信 | 抽出された各行へ確認SMSを送信（`onError: continueErrorOutput` で1件失敗しても残りを継続。成功=出力1／失敗=出力2に分岐） |
+| 送信済みに更新 | 成功した行の `確認ステータス`=`送信済み`、`SMS送信日時`、`Twilio_SID` を `予約ID` で照合して書き戻し |
+| 送信失敗に更新 | 失敗した行の `確認ステータス`=`送信失敗`、`エラー` を書き戻し（要対応の可視化） |
+
+## テスト方法
+
+1. `アポ一覧` に1行追加（`予約ID` を入れ、`アポ日時` を**対象日（既定なら明日）**に、`電話番号` を自分の番号の E.164 表記に、`確認ステータス` は空に）。
+2. n8n でワークフローを開き **Execute Workflow** で手動実行。
+3. SMS が届くこと／その行の `確認ステータス` が `送信済み` に変わり `Twilio_SID` が入ることを確認。
+4. 失敗時は `送信失敗` と `エラー` 列で原因を確認（Geo Permissions 未許可・番号形式・トライアル制限が典型）。
+
+## カスタマイズ
+
+- **送信タイミングを複数回に**: Schedule を複数 cron にするか、`REMIND_DAYS_BEFORE` を変えたコピーを併用（例: 前日＋当日朝）。
+- **言語の出し分け**: シートに `言語` 列を足し、Code 内で `r['言語']` を見て文面を切替。
+- **WhatsApp 送信**: Twilio ノードの `toWhatsapp` を `true` にし、`from`/`to` を WhatsApp 対応番号に（Geo/テンプレ要件あり）。
+- **送信サマリーを Slack 通知**: 末尾に Slack ノードを足して当日の送信件数/失敗件数を投稿（他ワークフローの `Notify Slack` を流用）。
+- **重複送信防止**: 既定で `確認ステータス` に `送信済み` を含む行はスキップ。同日複数回起動しても二重送信しません。
+
+> ⚠️ 電話番号は個人情報です。`アポ一覧` シートの閲覧権限は最小限にし、外部サービスへ行データを貼り付けないでください（リポジトリの `テレアポ管理シート.csv` 取り扱い方針に準拠）。
+
+## 会議チェックリスト・フォーム（CLI不要のUIインポート版）
+
+`meeting-checklist-form.json` は、`scripts/import-meeting-form.mjs` が生成するのと同じ
+「会議フォーム → meeting_checklist シート追記 → Slack 通知」ワークフローを、**n8n の
+UI からインポートできる静的JSON**にしたものです（APIキー・CLI不要）。
+
+手順：
+1. n8n → Workflows → 右上「…」→ **Import from File** で `meeting-checklist-form.json` を読み込む
+2. 各ノードの認証情報（Google Sheets / Slack）を**自分のアカウントのものに選び直す**
+   （プレースホルダ `REPLACE_WITH_*` を実値に差し替え）
+   - Google Sheets: `REPLACE_WITH_GOOGLE_SHEET_ID`（`meeting_checklist` タブを持つシート）
+   - Slack: `REPLACE_WITH_SLACK_CHANNEL_ID`（通知先チャンネル）
+3. 右上トグルで **Active** にする
+4. フォームURL（`<n8n>/form/meeting-checklist-form`）を共有 → ①〜③必須なので3つ揃わないと送信不可
+
+フォーム項目：会議名・議題 / 開催日 / 参加者 / 確認事項①②③（必須）/ 担当・次アクション。

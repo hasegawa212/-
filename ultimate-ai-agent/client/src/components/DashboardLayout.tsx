@@ -27,6 +27,9 @@ import {
   Code2,
   Layers,
   FlaskConical,
+  Building2,
+  ClipboardList,
+  Calculator,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -49,6 +52,14 @@ export default function DashboardLayout() {
       items: [
         { name: t("nav.home"), href: "/", icon: Home },
         { name: t("nav.chat"), href: "/chat", icon: MessageSquare },
+      ],
+    },
+    {
+      label: "仕入れ業務",
+      items: [
+        { name: "銀行評価額", href: "/bank-valuation", icon: Building2 },
+        { name: "住宅ローン シミュ", href: "/loan-simulator", icon: Calculator },
+        { name: "案件履歴/実績", href: "/deal-history", icon: ClipboardList },
       ],
     },
     {
@@ -96,7 +107,13 @@ export default function DashboardLayout() {
     },
   ];
 
-  const navigation = navSections.flatMap((s) => s.items);
+  // 公開モード: 仕入れ業務セクション + 設定のみ表示
+  const isPublicMode = import.meta.env.VITE_PUBLIC_MODE === "true";
+  const filteredNavSections = isPublicMode
+    ? navSections.filter((s) => s.label === "仕入れ業務" || s.label === "")
+    : navSections;
+
+  const navigation = filteredNavSections.flatMap((s) => s.items);
 
   const cycleTheme = () => {
     const themes: Array<"light" | "dark" | "system"> = ["light", "dark", "system"];
@@ -127,7 +144,7 @@ export default function DashboardLayout() {
         </div>
 
         <nav className="p-3 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
-          {navSections.map((section, si) => (
+          {filteredNavSections.map((section, si) => (
             <div key={si}>
               {section.label && (
                 <p className="px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">

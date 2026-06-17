@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Martial Arts — Real Estate & Construction</title>
+<style>
+/* ─── Reset ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:      #C9A84C;
+  --gold-lt:   #F5EDD4;
+  --gold-dk:   #9A7A30;
+  --red:       #8B1A1A;
+  --dark:      #111111;
+  --dark2:     #1E1E1E;
+  --dark3:     #2A2A2A;
+  --mid:       #6B6B6B;
+  --light:     #F7F4EF;
+  --white:     #FFFFFF;
+  --c1: #4A7BB8;
+  --c2: #3A8C50;
+  --c3: #C9A84C;
+  --c4: #7C5299;
+  --c5: #B5732A;
+  --c6: #6B5A52;
+  --font-en: 'Helvetica Neue', 'Arial', sans-serif;
+  --font-ja: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-ja);
+  color: var(--dark);
+  background: var(--light);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Nav ─── */
+#topnav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  background: rgba(12,12,12,0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(201,168,76,0.25);
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 12px;
+  text-decoration: none;
+}
+.nav-logo svg { width: 36px; height: 36px; }
+.nav-logo-text { line-height: 1.2; }
+.nav-logo-text .n-main {
+  font-family: var(--font-en); font-size: 15px;
+  font-weight: 700; letter-spacing: 0.14em;
+  color: #fff; text-transform: uppercase;
+}
+.nav-logo-text .n-sub {
+  font-family: var(--font-en); font-size: 8.5px;
+  letter-spacing: 0.22em; color: var(--gold);
+  text-transform: uppercase;
+}
+.nav-links { display: flex; gap: 24px; }
+.nav-links a {
+  font-size: 11.5px; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.65); text-decoration: none;
+  transition: color .2s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--gold); }
+.nav-cta {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  padding: 8px 22px; border-radius: 2px;
+  font-size: 11.5px; letter-spacing: 0.1em;
+  text-decoration: none; transition: background .2s, color .2s;
+}
+.nav-cta:hover { background: var(--gold); color: #000; }
+
+/* ─── Progress dots ─── */
+#dots {
+  position: fixed; right: 18px; top: 50%; transform: translateY(-50%);
+  z-index: 150; display: flex; flex-direction: column; gap: 10px;
+}
+#dots span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.3); display: block;
+  cursor: pointer; transition: all .25s;
+}
+#dots span.active { background: var(--gold); transform: scale(1.5); }
+
+/* ─── Shared section ─── */
+.section { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; position: relative; overflow: hidden; }
+.inner { padding: 100px clamp(24px,6vw,80px); max-width: 1240px; margin: 0 auto; width: 100%; }
+.inner-full { padding: 100px clamp(24px,5vw,60px); }
+
+.eyebrow {
+  font-family: var(--font-en); font-size: 10.5px;
+  letter-spacing: 0.28em; color: var(--gold);
+  text-transform: uppercase; margin-bottom: 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.eyebrow::before {
+  content: ''; display: block;
+  width: 28px; height: 1px; background: var(--gold);
+}
+.sec-title {
+  font-size: clamp(22px, 3vw, 34px); font-weight: 700;
+  line-height: 1.4; color: var(--dark);
+  margin-bottom: 16px;
+}
+.sec-title.light { color: #fff; }
+.sec-desc {
+  font-size: 14px; line-height: 2;
+  color: var(--mid); max-width: 600px;
+}
+.sec-desc.light { color: rgba(255,255,255,0.6); }
+
+/* ─────────────────────────────────────────
+   1. HERO
+───────────────────────────────────────── */
+#hero {
+  min-height: 100vh;
+  background: var(--dark);
+  position: relative;
+}
+#hero .hero-bg {
+  position: absolute; inset: 0;
+  background-image: url('img/hero-bg.png');
+  background-size: cover; background-position: center 30%;
+  opacity: 0.35;
+}
+#hero .hero-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0.85) 40%, rgba(0,0,0,0.3) 100%);
+}
+#hero .hero-body {
+  position: relative; z-index: 1;
+  padding: 120px clamp(24px,7vw,100px) 80px;
+  max-width: 760px;
+}
+.hero-logo { margin-bottom: 48px; }
+.hero-logo svg { width: 220px; height: auto; }
+#hero h1 {
+  font-size: clamp(28px, 4.5vw, 54px);
+  font-weight: 300; color: #fff; line-height: 1.25;
+  letter-spacing: 0.02em; margin-bottom: 20px;
+}
+#hero h1 strong {
+  font-weight: 800; color: var(--gold);
+  display: block;
+}
+#hero .hero-sub {
+  font-size: 14px; color: rgba(255,255,255,0.6);
+  line-height: 2; letter-spacing: 0.05em; margin-bottom: 48px;
+}
+.hero-btns { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn-gold {
+  background: var(--gold); color: #000;
+  padding: 14px 38px; border-radius: 2px;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.1em;
+  text-decoration: none; transition: opacity .2s, transform .2s;
+}
+.btn-gold:hover { opacity: .85; transform: translateY(-1px); }
+.btn-outline {
+  border: 1px solid rgba(255,255,255,0.4); color: rgba(255,255,255,0.9);
+  padding: 14px 38px; border-radius: 2px;
+  font-size: 13px; letter-spacing: 0.1em;
+  text-decoration: none; transition: border-color .2s, color .2s;
+}
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.hero-scroll {
+  position: absolute; bottom: 36px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,0.35); font-family: var(--font-en);
+  font-size: 10px; letter-spacing: 0.2em;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.hero-scroll::after {
+  content: ''; width: 1px; height: 44px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.4), transparent);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{ opacity:.35 } 50%{ opacity:1 } }
+
+/* ─────────────────────────────────────────
+   2. ABOUT
+───────────────────────────────────────── */
+#about { background: #fff; }
+#about .about-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 64px; align-items: center;
+}
+#about .about-photo {
+  border-radius: 4px; overflow: hidden;
+  aspect-ratio: 4/3;
+  position: relative;
+}
+#about .about-photo img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+#about .about-photo .photo-caption {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 16px 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.65), transparent);
+  color: rgba(255,255,255,0.85); font-size: 11px; letter-spacing: 0.08em;
+}
+.stats-row {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 12px; margin-top: 36px;
+}
+.stat-box {
+  padding: 20px 14px; text-align: center;
+  border: 1px solid rgba(201,168,76,0.3);
+  border-radius: 2px; background: var(--light);
+}
+.stat-box .sb-num {
+  font-family: var(--font-en); font-size: 30px; font-weight: 800;
+  color: var(--gold); line-height: 1;
+}
+.stat-box .sb-unit { font-size: 12px; color: var(--gold); }
+.stat-box .sb-label { font-size: 11px; color: var(--mid); margin-top: 5px; }
+.gold-line {
+  width: 40px; height: 2px; background: var(--gold); margin: 20px 0;
+}
+.services-pill-row {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px;
+}
+.services-pill-row .pill {
+  padding: 7px 16px; border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 2px; font-size: 11.5px; color: var(--mid);
+  letter-spacing: 0.04em;
+}
+
+/* ─────────────────────────────────────────
+   3. STRENGTHS
+───────────────────────────────────────── */
+#strengths { background: var(--dark); }
+#strengths .str-intro {
+  display: grid; grid-template-columns: 1fr 1.1fr;
+  gap: 64px; align-items: start;
+}
+#strengths .big-quote {
+  font-size: clamp(26px, 3.5vw, 44px);
+  font-weight: 800; color: #fff; line-height: 1.3;
+  margin: 24px 0;
+}
+#strengths .big-quote em { color: var(--gold); font-style: normal; }
+.str-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+}
+.str-card {
+  border-radius: 3px; padding: 24px 18px 18px;
+  cursor: pointer; transition: transform .2s;
+  aspect-ratio: 0.9;
+  display: flex; flex-direction: column; justify-content: space-between;
+  color: #fff; position: relative; overflow: hidden;
+}
+.str-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+}
+.str-card:hover { transform: translateY(-3px) scale(1.02); }
+.str-card .sn { font-family: var(--font-en); font-size: 10px; letter-spacing: 0.18em; opacity: .65; margin-bottom: 8px; }
+.str-card h3 { font-size: 14px; font-weight: 700; line-height: 1.4; }
+.str-card .se { font-family: var(--font-en); font-size: 9px; opacity: .6; margin-top: 4px; letter-spacing: 0.06em; }
+.str-card .sa { font-size: 16px; opacity: .5; align-self: flex-end; }
+.sc1 { background: linear-gradient(140deg, #3a6ca8, #1e4070); }
+.sc2 { background: linear-gradient(140deg, #2e7a42, #1a4e28); }
+.sc3 { background: linear-gradient(140deg, #b8921e, #7a5e10); }
+.sc4 { background: linear-gradient(140deg, #6b4492, #3e2460); }
+.sc5 { background: linear-gradient(140deg, #a05e20, #603410); }
+.sc6 { background: linear-gradient(140deg, #5e4a40, #342420); }
+
+/* ─────────────────────────────────────────
+   4. CONSTRUCTION PHOTOS
+───────────────────────────────────────── */
+#cases { background: var(--light); }
+#cases .cases-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 12px;
+  margin-top: 40px;
+}
+.case-photo {
+  border-radius: 3px; overflow: hidden;
+  position: relative;
+}
+.case-photo img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block;
+  transition: transform .4s ease;
+}
+.case-photo:hover img { transform: scale(1.03); }
+.case-photo.main { grid-row: 1 / 3; aspect-ratio: 4/5; }
+.case-photo.sub  { aspect-ratio: 16/9; }
+.case-photo .cp-label {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px 18px 16px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+}
+.case-photo .cp-tag {
+  font-family: var(--font-en); font-size: 9.5px;
+  letter-spacing: 0.2em; color: var(--gold);
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.case-photo .cp-title {
+  font-size: 13px; color: #fff; line-height: 1.5;
+}
+.cases-extra {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 12px; margin-top: 12px;
+}
+.extra-card {
+  border-radius: 3px; overflow: hidden;
+  background: #fff; border: 1px solid rgba(0,0,0,0.06);
+}
+.extra-card .ec-img {
+  aspect-ratio: 16/9; overflow: hidden; position: relative;
+}
+.extra-card .ec-img img {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .4s;
+}
+.extra-card:hover .ec-img img { transform: scale(1.05); }
+.extra-card .ec-body { padding: 14px 16px; }
+.extra-card .ec-tag {
+  font-family: var(--font-en); font-size: 9px;
+  letter-spacing: 0.15em; color: var(--gold); margin-bottom: 5px;
+}
+.extra-card .ec-title { font-size: 12.5px; font-weight: 700; line-height: 1.5; }
+.extra-card .ec-spec { font-size: 10.5px; color: var(--mid); margin-top: 4px; }
+
+/* ─────────────────────────────────────────
+   5. DESIGN STRENGTH
+───────────────────────────────────────── */
+#design { background: #fff; }
+#design .design-wrap {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+}
+.design-points { display: flex; flex-direction: column; gap: 16px; margin-top: 28px; }
+.dp {
+  display: flex; gap: 18px;
+  padding: 18px 20px; border-radius: 3px;
+  background: var(--light);
+  border-left: 3px solid var(--gold);
+}
+.dp .dp-ico { font-size: 24px; flex-shrink: 0; }
+.dp h4 { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
+.dp p { font-size: 12px; color: var(--mid); line-height: 1.8; }
+.design-img-stack {
+  display: grid; grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr; gap: 10px; height: 440px;
+}
+.di { border-radius: 3px; overflow: hidden; }
+.di img { width: 100%; height: 100%; object-fit: cover; }
+.di.tall { grid-row: 1 / 3; }
+.di.ph-dark { background: linear-gradient(145deg,#444,#1a1a1a); }
+.di.ph-mid  { background: linear-gradient(145deg,#888,#505050); }
+.di.ph-lite { background: linear-gradient(145deg,#ccc,#909090); }
+
+/* ─────────────────────────────────────────
+   6. HIGH PERFORMANCE
+───────────────────────────────────────── */
+#performance { background: var(--dark2); }
+#performance .perf-wrap {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+}
+.perf-cards {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-top: 28px;
+}
+.pc {
+  background: var(--dark3); border-radius: 3px;
+  padding: 22px 18px;
+  border-top: 2px solid var(--c2);
+}
+.pc .pc-ico { font-size: 28px; margin-bottom: 10px; }
+.pc h4 { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 7px; }
+.pc p { font-size: 11.5px; color: rgba(255,255,255,0.5); line-height: 1.8; }
+.pc .pc-badge {
+  display: inline-block; margin-top: 10px;
+  background: rgba(58,140,80,0.2); color: var(--c2);
+  padding: 3px 10px; border-radius: 2px; font-size: 10px;
+}
+.perf-visual { display: flex; flex-direction: column; gap: 14px; }
+.pv-box {
+  background: var(--dark3); border-radius: 3px; padding: 22px 24px;
+}
+.pv-box h4 { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 14px; letter-spacing: 0.06em; }
+.grade-row { display: flex; gap: 5px; align-items: flex-end; height: 64px; }
+.gb { flex: 1; border-radius: 2px 2px 0 0; background: #444; position: relative; }
+.gb.on { background: var(--c2); }
+.gb .gl { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: rgba(255,255,255,0.4); white-space: nowrap; }
+.gb.on .gl { color: var(--c2); font-weight: 700; }
+.spec-bars { display: flex; flex-direction: column; gap: 10px; }
+.sb { display: flex; align-items: center; gap: 10px; }
+.sb .sl { flex-shrink: 0; width: 72px; font-size: 11px; color: rgba(255,255,255,0.45); }
+.sb .sw { flex: 1; background: #333; border-radius: 2px; height: 8px; overflow: hidden; }
+.sb .sf { height: 100%; background: var(--c2); border-radius: 2px; }
+.sb .sv { font-size: 10px; font-weight: 700; color: var(--c2); white-space: nowrap; }
+
+/* ─────────────────────────────────────────
+   7. HIGH QUALITY
+───────────────────────────────────────── */
+#quality { background: var(--light); }
+#quality .qual-wrap {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+}
+.qual-list { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; }
+.ql {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: #fff; padding: 16px 18px; border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+.ql .qn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--gold); color: #000;
+  font-size: 12px; font-weight: 800; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ql p { font-size: 12.5px; line-height: 1.75; }
+.ql p strong { display: block; font-size: 13.5px; margin-bottom: 2px; }
+.qual-img {
+  border-radius: 3px; overflow: hidden;
+  aspect-ratio: 3/4; position: relative;
+}
+.qual-img img { width: 100%; height: 100%; object-fit: cover; }
+.qual-img .qi-footer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 28px 20px 20px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  color: rgba(255,255,255,.75); font-size: 12px; line-height: 1.7;
+}
+
+/* ─────────────────────────────────────────
+   8. COST PERFORMANCE
+───────────────────────────────────────── */
+#cost { background: #fff; }
+#cost .cost-wrap {
+  display: grid; grid-template-columns: 1fr 1.1fr;
+  gap: 60px; align-items: center;
+}
+.cost-items { display: flex; flex-direction: column; gap: 14px; margin-top: 28px; }
+.ci {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 16px; background: var(--light); border-radius: 3px;
+}
+.ci .ico { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.ci p { font-size: 12.5px; line-height: 1.75; color: var(--mid); }
+.ci p strong { color: var(--dark); display: block; margin-bottom: 2px; }
+.cost-panel {
+  background: var(--dark); border-radius: 3px;
+  padding: 32px; display: flex; flex-direction: column; gap: 20px;
+}
+.cost-panel h3 { font-size: 14px; color: rgba(255,255,255,.6); text-align: center; margin-bottom: 4px; }
+.cost-bars { display: flex; gap: 20px; align-items: flex-end; justify-content: center; height: 160px; }
+.cbw { display: flex; flex-direction: column; align-items: center; gap: 8px; flex: 1; }
+.cbar { width: 100%; border-radius: 3px 3px 0 0; display: flex; align-items: flex-start; justify-content: center; padding-top: 10px; font-family: var(--font-en); font-size: 12px; font-weight: 700; }
+.cbar.a { background: #333; color: rgba(255,255,255,.3); height: 70%; }
+.cbar.b { background: linear-gradient(to top, var(--gold-dk), var(--gold)); color: #000; height: 100%; }
+.cbl { font-size: 11px; color: rgba(255,255,255,.4); }
+.cost-metrics { display: flex; flex-direction: column; gap: 8px; }
+.cm { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: rgba(255,255,255,.04); border-radius: 2px; }
+.cm .ck { font-size: 12px; color: rgba(255,255,255,.5); }
+.cm .cv { font-size: 12px; font-weight: 700; color: var(--gold); }
+
+/* ─────────────────────────────────────────
+   9. AFTER MAINTENANCE
+───────────────────────────────────────── */
+#maintenance { background: var(--dark); }
+#maintenance .maint-wrap {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+}
+.maint-timeline { display: flex; flex-direction: column; margin-top: 28px; }
+.mt {
+  display: flex; gap: 16px; padding-bottom: 24px;
+  position: relative;
+}
+.mt::before {
+  content: ''; position: absolute;
+  left: 17px; top: 38px; bottom: 0; width: 2px;
+  background: linear-gradient(to bottom, var(--gold), rgba(201,168,76,0.1));
+}
+.mt:last-child::before { display: none; }
+.mt .md {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: var(--gold); color: #000;
+  font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1;
+}
+.mt .mb h4 { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+.mt .mb p { font-size: 12px; color: rgba(255,255,255,.45); line-height: 1.8; }
+.maint-kpis {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.mkpi {
+  background: var(--dark3); border-radius: 3px;
+  padding: 22px; text-align: center;
+}
+.mkpi.big { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 20px; }
+.mkpi .mi { font-size: 36px; }
+.mkpi .mn { font-family: var(--font-en); font-size: 32px; font-weight: 800; color: var(--gold); line-height: 1; }
+.mkpi .mu { font-size: 13px; font-weight: 700; color: var(--gold); }
+.mkpi .ml { font-size: 11px; color: rgba(255,255,255,.4); margin-top: 4px; }
+
+/* ─────────────────────────────────────────
+   10. LAND INFORMATION
+───────────────────────────────────────── */
+#land { background: var(--light); }
+#land .land-wrap {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 60px; align-items: center;
+}
+.land-items { display: flex; flex-direction: column; gap: 14px; margin-top: 28px; }
+.li {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: #fff; padding: 18px; border-radius: 3px;
+  border-left: 3px solid var(--c6);
+}
+.li .lio { font-size: 22px; flex-shrink: 0; }
+.li p { font-size: 12.5px; line-height: 1.75; color: var(--mid); }
+.li p strong { color: var(--dark); display: block; margin-bottom: 3px; }
+.land-card {
+  background: #fff; border-radius: 3px; padding: 28px; display: flex; flex-direction: column; gap: 18px;
+}
+.land-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.area-nums { display: flex; gap: 12px; }
+.an {
+  flex: 1; text-align: center; padding: 18px 10px;
+  border: 1px solid rgba(201,168,76,0.25);
+  background: var(--light); border-radius: 2px;
+}
+.an .anl { font-size: 10.5px; color: var(--mid); margin-bottom: 6px; }
+.an .anv { font-family: var(--font-en); font-size: 34px; font-weight: 800; color: var(--gold); line-height: 1; }
+.an .anu { font-size: 12px; font-weight: 700; color: var(--gold); }
+.an .ant { font-size: 10px; color: var(--mid); margin-top: 4px; }
+.location-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.location-tags .lt {
+  padding: 5px 12px; background: var(--light);
+  border-radius: 2px; font-size: 11px; color: var(--mid);
+}
+
+/* ─────────────────────────────────────────
+   11. SCHEDULE
+───────────────────────────────────────── */
+#schedule { background: #fff; }
+.steps-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 10px; margin-top: 36px;
+}
+.step {
+  background: var(--light); border-radius: 3px;
+  padding: 18px 14px; transition: background .2s, box-shadow .2s;
+  cursor: default;
+}
+.step:hover { background: #fff; box-shadow: 0 4px 18px rgba(0,0,0,0.06); }
+.step .st-num {
+  font-family: var(--font-en); font-size: 10px;
+  letter-spacing: 0.12em; color: var(--gold); margin-bottom: 5px;
+}
+.step .st-phase {
+  display: inline-block; font-size: 9.5px;
+  padding: 2px 8px; border-radius: 2px; margin-bottom: 8px;
+}
+.ph-a { background: #E8F3FD; color: var(--c1); }
+.ph-b { background: var(--gold-lt); color: var(--gold-dk); }
+.ph-c { background: #FFE8E8; color: #C03030; }
+.ph-d { background: #E8F6EB; color: var(--c2); }
+.ph-e { background: #F0EDF8; color: var(--c4); }
+.step h4 { font-size: 12.5px; font-weight: 700; margin-bottom: 6px; line-height: 1.4; }
+.step p { font-size: 11px; color: var(--mid); line-height: 1.75; }
+
+/* ─────────────────────────────────────────
+   12. CTA
+───────────────────────────────────────── */
+#cta {
+  background: var(--dark);
+  text-align: center; align-items: center;
+}
+#cta .cta-bg {
+  position: absolute; inset: 0;
+  background-image: url('img/hero-bg.png');
+  background-size: cover; background-position: center;
+  opacity: 0.12;
+}
+#cta .cta-body {
+  position: relative; z-index: 1;
+  max-width: 640px; padding: 100px 24px;
+}
+#cta .cta-logo { margin-bottom: 40px; }
+#cta .cta-logo svg { width: 160px; }
+#cta h2 {
+  font-size: clamp(22px, 3.5vw, 38px); color: #fff;
+  font-weight: 700; line-height: 1.4; margin-bottom: 16px;
+}
+#cta h2 em { color: var(--gold); font-style: normal; }
+#cta p { font-size: 14px; color: rgba(255,255,255,.55); line-height: 2; margin-bottom: 40px; }
+.cta-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.cta-info {
+  margin-top: 44px;
+  color: rgba(255,255,255,.3); font-size: 11.5px;
+  line-height: 2.2; letter-spacing: 0.06em;
+}
+.cta-info a { color: rgba(255,255,255,.45); text-decoration: none; }
+
+/* ─────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────── */
+footer {
+  background: #080808;
+  padding: 24px 36px;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 12px;
+  border-top: 1px solid rgba(201,168,76,0.15);
+}
+.foot-brand {
+  font-family: var(--font-en); font-size: 13px;
+  letter-spacing: 0.14em; font-weight: 700; color: rgba(255,255,255,.7);
+}
+.foot-brand span { color: var(--gold); }
+footer p { font-size: 10.5px; color: rgba(255,255,255,.25); letter-spacing: 0.06em; }
+
+/* ─────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────── */
+@media (max-width: 900px) {
+  #about .about-grid,
+  #strengths .str-intro,
+  #design .design-wrap,
+  #performance .perf-wrap,
+  #quality .qual-wrap,
+  #cost .cost-wrap,
+  #maintenance .maint-wrap,
+  #land .land-wrap { grid-template-columns: 1fr; gap: 36px; }
+  .str-grid { grid-template-columns: repeat(2,1fr); }
+  .steps-grid { grid-template-columns: repeat(2,1fr); }
+  #cases .cases-grid { grid-template-columns: 1fr; }
+  #cases .cases-grid .case-photo.main { aspect-ratio: 16/9; grid-row: auto; }
+  .nav-links { display: none; }
+  #dots { display: none; }
+  .hero-logo svg { width: 160px; }
+}
+@media (max-width: 540px) {
+  .str-grid { grid-template-columns: 1fr 1fr; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .cases-extra { grid-template-columns: 1fr; }
+  .inner { padding: 80px 20px; }
+  #hero .hero-body { padding: 100px 20px 70px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="topnav">
+  <a href="#hero" class="nav-logo">
+    <!-- Martial Arts Logo SVG -->
+    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <polygon points="18,3 8,14 18,10 28,14" fill="#C9A84C" opacity="0.9"/>
+      <polygon points="6,14 4,28 18,22 32,28 30,14 18,10" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+      <line x1="12" y1="14" x2="12" y2="26" stroke="#8B1A1A" stroke-width="1.8"/>
+      <line x1="24" y1="14" x2="24" y2="26" stroke="#8B1A1A" stroke-width="1.8"/>
+      <line x1="18" y1="11" x2="18" y2="26" stroke="#C9A84C" stroke-width="1.8"/>
+    </svg>
+    <div class="nav-logo-text">
+      <div class="n-main">Martial Arts</div>
+      <div class="n-sub">Real Estate &amp; Construction</div>
+    </div>
+  </a>
+  <div class="nav-links">
+    <a href="#about" class="nav-link">会社概要</a>
+    <a href="#cases" class="nav-link">施工事例</a>
+    <a href="#strengths" class="nav-link">強み</a>
+    <a href="#schedule" class="nav-link">家づくりの流れ</a>
+    <a href="#cta" class="nav-link">お問い合わせ</a>
+  </div>
+  <a href="#cta" class="nav-cta">無料相談</a>
+</nav>
+
+<!-- DOTS -->
+<div id="dots"></div>
+
+<!-- ═══════════ 1. HERO ═══════════ -->
+<section class="section" id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-body">
+    <div class="hero-logo">
+      <svg viewBox="0 0 320 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Icon -->
+        <polygon points="30,6 14,22 30,17 46,22" fill="#C9A84C"/>
+        <polygon points="10,22 7,48 30,38 53,48 50,22 30,17" fill="none" stroke="#C9A84C" stroke-width="2"/>
+        <line x1="18" y1="22" x2="18" y2="46" stroke="#8B1A1A" stroke-width="2.2"/>
+        <line x1="42" y1="22" x2="42" y2="46" stroke="#8B1A1A" stroke-width="2.2"/>
+        <line x1="30" y1="18" x2="30" y2="46" stroke="#C9A84C" stroke-width="2.2"/>
+        <!-- Text -->
+        <text x="68" y="40" font-family="Helvetica Neue,Arial,sans-serif" font-size="30" font-weight="800" letter-spacing="3" fill="white">MARTIAL ARTS</text>
+        <text x="68" y="60" font-family="Helvetica Neue,Arial,sans-serif" font-size="11" letter-spacing="5" fill="#C9A84C">REAL ESTATE &amp; CONSTRUCTION</text>
+      </svg>
+    </div>
+    <h1>
+      確かな価値を、<br>
+      未来へ。<br>
+      <strong>自社施工の誇りと共に。</strong>
+    </h1>
+    <p class="hero-sub">
+      不動産の可能性を最大限引き出し、<br>
+      建築と品質へのこだわりをプロフェッショナルな視点で、<br>
+      お客様の理想を、現実以上のカタチに。
+    </p>
+    <div class="hero-btns">
+      <a href="#cases" class="btn-gold">施工事例を見る</a>
+      <a href="#schedule" class="btn-outline">家づくりの流れ</a>
+    </div>
+  </div>
+  <div class="hero-scroll">SCROLL</div>
+</section>
+
+<!-- ═══════════ 2. ABOUT ═══════════ -->
+<section class="section" id="about">
+  <div class="inner">
+    <div class="about-grid">
+      <div>
+        <div class="eyebrow">About Us</div>
+        <h2 class="sec-title">「住」に関わる全てを、<br>自社の力でお届けします。</h2>
+        <div class="gold-line"></div>
+        <p class="sec-desc">不動産・建設・資産管理・トータルサービスの4軸で、お客様の理想の住まいを実現します。自社施工へのこだわりと品質への誇りが、株式会社Martial Artsの根幹です。</p>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="sb-num">自社<span class="sb-unit"></span></div>
+            <div class="sb-label">施工・設計・管理</div>
+          </div>
+          <div class="stat-box">
+            <div class="sb-num">4<span class="sb-unit">軸</span></div>
+            <div class="sb-label">ワンストップ体制</div>
+          </div>
+          <div class="stat-box">
+            <div class="sb-num">品質<span class="sb-unit"></span></div>
+            <div class="sb-label">第一主義</div>
+          </div>
+        </div>
+        <div class="services-pill-row" style="margin-top:20px">
+          <span class="pill">不動産売買・仲介</span>
+          <span class="pill">建築・施工管理</span>
+          <span class="pill">リノベーション</span>
+          <span class="pill">資産運用コンサル</span>
+          <span class="pill">ワンストップサービス</span>
+        </div>
+      </div>
+      <div class="about-photo">
+        <img src="img/house1.jpg" alt="Martial Arts 自社施工実例">
+        <div class="photo-caption">自社施工実例 — モダンキューブスタイル</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 3. STRENGTHS ═══════════ -->
+<section class="section" id="strengths">
+  <div class="inner">
+    <div class="str-intro">
+      <div>
+        <div class="eyebrow" style="color:var(--gold)">Our Strengths</div>
+        <div class="big-quote">
+          「6つの強み」を<br>
+          重ねあわせ、<br>
+          <em>後悔しない</em><br>
+          家づくり。
+        </div>
+        <p class="sec-desc light">デザイン・性能・品質・コスト・保証・土地——どれか一つではなく全ての領域で高水準を維持することが、Martial Artsのこだわりです。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px">
+          <span style="padding:7px 18px;border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:11.5px;letter-spacing:.06em;border-radius:2px">自社設計・自社施工</span>
+          <span style="padding:7px 18px;border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:11.5px;letter-spacing:.06em;border-radius:2px">最高耐震等級</span>
+          <span style="padding:7px 18px;border:1px solid rgba(201,168,76,0.4);color:var(--gold);font-size:11.5px;letter-spacing:.06em;border-radius:2px">長期保証体制</span>
+        </div>
+      </div>
+      <div class="str-grid">
+        <div class="str-card sc1" onclick="document.querySelector('#design').scrollIntoView({behavior:'smooth'})">
+          <div>
+            <div class="sn">STRENGTH 01</div>
+            <h3>デザイン<br>設計力</h3>
+            <div class="se">Design &amp; Planning</div>
+          </div>
+          <div class="sa">→</div>
+        </div>
+        <div class="str-card sc2" onclick="document.querySelector('#performance').scrollIntoView({behavior:'smooth'})">
+          <div>
+            <div class="sn">STRENGTH 02</div>
+            <h3>高性能</h3>
+            <div class="se">High Performance</div>
+          </div>
+          <div class="sa">→</div>
+        </div>
+        <div class="str-card sc3" onclick="document.querySelector('#quality').scrollIntoView({behavior:'smooth'})">
+          <div>
+            <div class="sn">STRENGTH 03</div>
+            <h3>高品質</h3>
+            <div class="se">High Quality</div>
+          </div>
+          <div class="sa">→</div>
+        </div>
+        <div class="str-card sc4" onclick="document.querySelector('#cost').scrollIntoView({behavior:'smooth'})">
+          <div>
+            <div class="sn">STRENGTH 04</div>
+            <h3>コスト<br>パフォーマンス</h3>
+            <div class="se">Cost Performance</div>
+          </div>
+          <div class="sa">→</div>
+        </div>
+        <div class="str-card sc5" onclick="document.querySelector('#maintenance').scrollIntoView({behavior:'smooth'})">
+          <div>
+            <div class="sn">STRENGTH 05</div>
+            <h3>アフター<br>メンテナンス</h3>
+            <div class="se">After Maintenance</div>
+          </div>
+          <div class="sa">→</div>
+        </div>
+        <div class="str-card sc6" onclick="document.querySelector('#land').scrollIntoView({behavior:'smooth'})">
+          <div>
+            <div class="sn">STRENGTH 06</div>
+            <h3>土地情報力</h3>
+            <div class="se">Land Information</div>
+          </div>
+          <div class="sa">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 4. CASES ═══════════ -->
+<section class="section" id="cases">
+  <div class="inner">
+    <div class="eyebrow">Construction Cases</div>
+    <h2 class="sec-title">自社施工事例</h2>
+    <p class="sec-desc">Martial Artsが手掛けた、それぞれのライフスタイルに寄り添う家づくりの実例をご紹介します。</p>
+
+    <div class="cases-grid">
+      <div class="case-photo main">
+        <img src="img/house1.jpg" alt="施工事例1 — モダンキューブ">
+        <div class="cp-label">
+          <div class="cp-tag">Case 01 — Completed</div>
+          <div class="cp-title">都市型モダンキューブ。<br>洗練された外観と広い駐車スペース。</div>
+        </div>
+      </div>
+      <div class="case-photo sub">
+        <img src="img/house2.jpg" alt="施工事例2 — ブラックキューブ">
+        <div class="cp-label">
+          <div class="cp-tag">Case 02 — Completed</div>
+          <div class="cp-title">黒を纏ったシンプルモダン。</div>
+        </div>
+      </div>
+      <div class="case-photo sub">
+        <img src="img/construction.jpg" alt="施工中 — エクステリア">
+        <div class="cp-label">
+          <div class="cp-tag">In Progress — Construction</div>
+          <div class="cp-title">外構・エクステリア施工中。丁寧な自社施工。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cases-extra">
+      <div class="extra-card">
+        <div class="ec-img"><img src="img/house1.jpg" alt="施工例"></div>
+        <div class="ec-body">
+          <div class="ec-tag">注文住宅</div>
+          <div class="ec-title">ダークグレー外壁の<br>キューブフォルム</div>
+          <div class="ec-spec">モダン / 都市型 / 2階建て</div>
+        </div>
+      </div>
+      <div class="extra-card">
+        <div class="ec-img"><img src="img/house2.jpg" alt="施工例"></div>
+        <div class="ec-body">
+          <div class="ec-tag">注文住宅</div>
+          <div class="ec-title">シンプルキューブスタイル<br>スリットドア仕様</div>
+          <div class="ec-spec">モダン / シンプル / 自社設計</div>
+        </div>
+      </div>
+      <div class="extra-card">
+        <div class="ec-img"><img src="img/construction.jpg" alt="施工中"></div>
+        <div class="ec-body">
+          <div class="ec-tag">施工中</div>
+          <div class="ec-title">外構・玄関アプローチ<br>仕上げ施工</div>
+          <div class="ec-spec">エクステリア / 自社施工</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5. DESIGN ═══════════ -->
+<section class="section" id="design">
+  <div class="inner">
+    <div class="design-wrap">
+      <div>
+        <div class="eyebrow" style="color:var(--c1)">Strength 01 — Design</div>
+        <h2 class="sec-title">設計にこだわり、<br>暮らしに「喜び」と<br>「豊かさ」を。</h2>
+        <p class="sec-desc">デザインと機能性どちらも家族の理想をカタチにします。自社設計だからこそ実現できる、細部まで妥協のない空間づくり。</p>
+        <div class="design-points">
+          <div class="dp">
+            <div class="dp-ico">🌿</div>
+            <div>
+              <h4>「外観」を整える</h4>
+              <p>充分な緑と素材の組み合わせで、生活感のない美しいファサードを実現。建物を引き立てる外構計画も自社で一貫対応。</p>
+            </div>
+          </div>
+          <div class="dp">
+            <div class="dp-ico">🎨</div>
+            <div>
+              <h4>「色・素材」を整える</h4>
+              <p>色と素材を厳選して飽きの来ないモダンへ。ダークグレー・ブラック・ウッドの組み合わせで高級感を演出します。</p>
+            </div>
+          </div>
+          <div class="dp">
+            <div class="dp-ico">📐</div>
+            <div>
+              <h4>「空間」を整える</h4>
+              <p>100%自社設計で間取りを最適化。明るさ・動線・収納・家具レイアウトを総合的に考慮した設計提案をいたします。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="design-img-stack">
+        <div class="di tall">
+          <img src="img/house1.jpg" alt="外観デザイン">
+        </div>
+        <div class="di">
+          <img src="img/house2.jpg" alt="外観デザイン2">
+        </div>
+        <div class="di ph-dark" style="display:flex;align-items:center;justify-content:center">
+          <span style="color:rgba(201,168,76,.6);font-size:12px;letter-spacing:.1em">自社設計</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 6. PERFORMANCE ═══════════ -->
+<section class="section" id="performance">
+  <div class="inner">
+    <div class="perf-wrap">
+      <div>
+        <div class="eyebrow" style="color:var(--c2)">Strength 02 — High Performance</div>
+        <h2 class="sec-title" style="color:#fff">地震や台風に強く、<br>長持ちする家を。</h2>
+        <p class="sec-desc light">家族が安心して暮らせること。日本の気候風土に根付いた木材の魅力を活かし、最新の耐震・制振技術で安全な住まいを提供します。</p>
+        <div class="perf-cards">
+          <div class="pc">
+            <div class="pc-ico">🏗️</div>
+            <h4>ベタ基礎</h4>
+            <p>面で支える強固な基礎。不同沈下を防ぎ安定した地盤を形成します。</p>
+            <span class="pc-badge">標準採用</span>
+          </div>
+          <div class="pc">
+            <div class="pc-ico">🔩</div>
+            <h4>金物工法</h4>
+            <p>金属部品で柱・梁を強固に接合。伝統工法より大幅に強度を向上。</p>
+            <span class="pc-badge">標準採用</span>
+          </div>
+          <div class="pc">
+            <div class="pc-ico">🌲</div>
+            <h4>国産木材採用</h4>
+            <p>日本の気候風土にマッチした木材。鉄より軽く、熱伝導率は1/360。</p>
+            <span class="pc-badge">国産材</span>
+          </div>
+          <div class="pc">
+            <div class="pc-ico">📐</div>
+            <h4>制振ダンパー</h4>
+            <p>繰り返す揺れに強い制振ダンパーを全棟標準搭載。大地震にも対応。</p>
+            <span class="pc-badge">全棟標準</span>
+          </div>
+        </div>
+      </div>
+      <div class="perf-visual">
+        <div class="pv-box">
+          <h4>耐震等級（最高ランクの安全性能）</h4>
+          <div class="grade-row">
+            <div class="gb" style="height:33%"><span class="gl">等級1</span></div>
+            <div class="gb" style="height:60%"><span class="gl">等級2</span></div>
+            <div class="gb on" style="height:100%"><span class="gl">等級3<br>最高</span></div>
+          </div>
+          <p style="font-size:11px;color:rgba(255,255,255,.35);margin-top:28px;line-height:1.7">許容応力度計算書＋耐震＋制振を採用。全棟で耐震等級3（最高等級）を取得します。</p>
+        </div>
+        <div class="pv-box">
+          <h4>木材の特性（対鉄比較）</h4>
+          <div class="spec-bars">
+            <div class="sb">
+              <span class="sl">圧縮強度</span>
+              <div class="sw"><div class="sf" style="width:90%"></div></div>
+              <span class="sv">鉄の約4倍</span>
+            </div>
+            <div class="sb">
+              <span class="sl">熱伝導率</span>
+              <div class="sw"><div class="sf" style="width:85%"></div></div>
+              <span class="sv">鉄の1/360</span>
+            </div>
+            <div class="sb">
+              <span class="sl">軽量性</span>
+              <div class="sw"><div class="sf" style="width:95%"></div></div>
+              <span class="sv">鉄より軽い</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 7. QUALITY ═══════════ -->
+<section class="section" id="quality">
+  <div class="inner">
+    <div class="qual-wrap">
+      <div>
+        <div class="eyebrow" style="color:var(--c3)">Strength 03 — High Quality</div>
+        <h2 class="sec-title">住み心地を左右する品質に、<br>こだわりをもって。</h2>
+        <p class="sec-desc">自社設計・自社施工だからこそ実現できる、細部まで妥協のない品質。設計からアフターまでスペシャリストが一貫してサポートします。</p>
+        <div class="qual-list">
+          <div class="ql">
+            <div class="qn">1</div>
+            <p><strong>100%自社設計</strong>専属の設計士が打ち合わせに参加。家族の想いに寄り添いながら最適な間取りを提案します。</p>
+          </div>
+          <div class="ql">
+            <div class="qn">2</div>
+            <p><strong>明るさ・通風を考える</strong>窓の配置と採光・通風計画を綿密に設計。快適な住環境を実現します。</p>
+          </div>
+          <div class="ql">
+            <div class="qn">3</div>
+            <p><strong>動線・収納を考える</strong>日々の家事動線と収納を徹底的に考慮。暮らしやすい空間を設計します。</p>
+          </div>
+          <div class="ql">
+            <div class="qn">4</div>
+            <p><strong>自社施工管理</strong>施工を外注せず自社で管理するため、品質・工期・コストすべてを一元管理できます。</p>
+          </div>
+          <div class="ql">
+            <div class="qn">5</div>
+            <p><strong>素材・仕様の厳選</strong>外壁・内装・設備に至るまで、耐久性とデザイン性を両立した素材を厳選採用します。</p>
+          </div>
+        </div>
+      </div>
+      <div class="qual-img">
+        <img src="img/house1.jpg" alt="高品質施工">
+        <div class="qi-footer">
+          自社設計士・施工管理者が一丸となり、<br>
+          お客様の期待値を超える高品質な家づくりをご提供します。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 8. COST ═══════════ -->
+<section class="section" id="cost">
+  <div class="inner">
+    <div class="cost-wrap">
+      <div>
+        <div class="eyebrow" style="color:var(--c4)">Strength 04 — Cost Performance</div>
+        <h2 class="sec-title">妥協をせず、工夫を凝らし<br>譲れない想いとコストを両立。</h2>
+        <p class="sec-desc">自社で全工程を管理するため、中間コストを省き高品質をリーズナブルに実現。お客様の想いに予算をしっかり充てます。</p>
+        <div class="cost-items">
+          <div class="ci">
+            <div class="ico">📐</div>
+            <p><strong>設計から施工まで一貫体制</strong>外注なしで全工程を自社管理。余計なコストをカットしながら品質を最大化します。</p>
+          </div>
+          <div class="ci">
+            <div class="ico">📊</div>
+            <p><strong>スケールメリットの活用</strong>仕入れ力と長年のノウハウで、同価格帯の他社より高仕様な提案が可能です。</p>
+          </div>
+          <div class="ci">
+            <div class="ico">💡</div>
+            <p><strong>予算内で最大の価値を</strong>ご予算に合わせた最適な間取り・仕様・素材をプロが丁寧に提案いたします。</p>
+          </div>
+        </div>
+      </div>
+      <div class="cost-panel">
+        <h3>同価格帯での品質・設計力の違い</h3>
+        <div class="cost-bars">
+          <div class="cbw">
+            <div class="cbar a">他社</div>
+            <div class="cbl">一般工務店</div>
+          </div>
+          <div class="cbw">
+            <div class="cbar b">MA</div>
+            <div class="cbl">Martial Arts</div>
+          </div>
+        </div>
+        <div class="cost-metrics">
+          <div class="cm"><span class="ck">自社設計・施工管理</span><span class="cv">完全一貫</span></div>
+          <div class="cm"><span class="ck">外注コスト</span><span class="cv">ゼロ</span></div>
+          <div class="cm"><span class="ck">デザイン提案力</span><span class="cv">★★★★★</span></div>
+          <div class="cm"><span class="ck">コスパ満足度</span><span class="cv">最高水準</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 9. MAINTENANCE ═══════════ -->
+<section class="section" id="maintenance">
+  <div class="inner">
+    <div class="maint-wrap">
+      <div>
+        <div class="eyebrow" style="color:var(--gold)">Strength 05 — After Maintenance</div>
+        <h2 class="sec-title light">末永い安心を支える、<br>万全のサポート。</h2>
+        <p class="sec-desc light">引き渡して終わりではありません。長期にわたる保証制度と定期点検で、お客様の暮らしを末永く見守り続けます。</p>
+        <div class="maint-timeline">
+          <div class="mt">
+            <div class="md">初期</div>
+            <div class="mb">
+              <h4>引き渡し直後のフォロー</h4>
+              <p>引渡し後のきめ細やかなサポート体制。入居直後から専任スタッフが対応します。</p>
+            </div>
+          </div>
+          <div class="mt">
+            <div class="md">定期</div>
+            <div class="mb">
+              <h4>定期点検・メンテナンス</h4>
+              <p>長期にわたる定期点検で住まいの品質を維持。業界最高水準の保証体制です。</p>
+            </div>
+          </div>
+          <div class="mt">
+            <div class="md">24h</div>
+            <div class="mb">
+              <h4>24時間365日緊急対応</h4>
+              <p>急なトラブルにも即対応できるサービス体制で、住まいの安心をバックアップします。</p>
+            </div>
+          </div>
+          <div class="mt">
+            <div class="md">長期</div>
+            <div class="mb">
+              <h4>長期保証体制</h4>
+              <p>構造・防水・設備など広範囲にわたる長期保証でお客様の大切な資産を守ります。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="maint-kpis">
+        <div class="mkpi big">
+          <div class="mi">🏠</div>
+          <div>
+            <div class="mn">長期<span class="mu">保証</span></div>
+            <div class="ml">構造・防水・設備すべてカバー</div>
+          </div>
+        </div>
+        <div class="mkpi">
+          <div class="mi">📞</div>
+          <div class="mn">24<span class="mu">h</span></div>
+          <div class="ml">365日緊急対応</div>
+        </div>
+        <div class="mkpi">
+          <div class="mi">🔍</div>
+          <div class="mn">定期</div>
+          <div class="ml">点検・メンテナンス</div>
+        </div>
+        <div class="mkpi">
+          <div class="mi">📋</div>
+          <div class="mn">全棟</div>
+          <div class="ml">住宅履歴管理</div>
+        </div>
+        <div class="mkpi">
+          <div class="mi">👥</div>
+          <div class="mn">専任</div>
+          <div class="ml">アフターチーム</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 10. LAND ═══════════ -->
+<section class="section" id="land">
+  <div class="inner">
+    <div class="land-wrap">
+      <div>
+        <div class="eyebrow" style="color:var(--c6)">Strength 06 — Land Information</div>
+        <h2 class="sec-title">圧倒的な情報量をベースに<br>プロ視点で土地を選び抜く。</h2>
+        <p class="sec-desc">豊富な不動産データから、お客様のニーズに応える土地情報を厳選。土地の個性を最大限引き出す設計手法で新たな家づくりの可能性をご提案します。</p>
+        <div class="land-items">
+          <div class="li">
+            <div class="lio">🗺️</div>
+            <p><strong>豊富な不動産データベース</strong>日々更新される最新土地情報をプロの視点でお客様に合わせて厳選します。</p>
+          </div>
+          <div class="li">
+            <div class="lio">🏗️</div>
+            <p><strong>土地の個性を引き出す設計力</strong>変形地・狭小地も独自の設計手法で価値あるマイホームへ転換します。</p>
+          </div>
+          <div class="li">
+            <div class="lio">🤝</div>
+            <p><strong>不動産×建設の一貫提案</strong>土地探しから設計・施工・アフターまで一社で完結するワンストップ体制です。</p>
+          </div>
+        </div>
+      </div>
+      <div class="land-card">
+        <h3>エリア対応状況</h3>
+        <div class="area-nums">
+          <div class="an">
+            <div class="anl">対応エリア</div>
+            <div class="anv">広域<span class="anu"></span></div>
+            <div class="ant">ご相談ください</div>
+          </div>
+          <div class="an">
+            <div class="anl">サービス</div>
+            <div class="anv">4<span class="anu">軸</span></div>
+            <div class="ant">ワンストップ</div>
+          </div>
+        </div>
+        <div>
+          <p style="font-size:12px;color:var(--mid);margin-bottom:10px;font-weight:600">主な対応サービス</p>
+          <div class="location-tags">
+            <span class="lt">土地探し・提案</span>
+            <span class="lt">土地仕入れ</span>
+            <span class="lt">用途変更相談</span>
+            <span class="lt">変形地設計</span>
+            <span class="lt">狭小地設計</span>
+            <span class="lt">不動産売買仲介</span>
+            <span class="lt">資産運用相談</span>
+            <span class="lt">建設条件付き土地</span>
+          </div>
+        </div>
+        <div style="padding:16px;background:var(--light);border-radius:3px;border-left:3px solid var(--gold)">
+          <p style="font-size:12px;line-height:1.8;color:var(--mid)">土地と建物をセットでご提案することで、<strong style="color:var(--dark)">トータルコストを最適化</strong>しながら理想の住まいを実現できます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 11. SCHEDULE ═══════════ -->
+<section class="section" id="schedule">
+  <div class="inner">
+    <div class="eyebrow">Building Process</div>
+    <h2 class="sec-title">家づくりのスケジュール</h2>
+    <p class="sec-desc" style="max-width:640px">お問い合わせからお引き渡しまで、お客様に丁寧にご説明しながら家づくりを進めます。自社設計・施工・アフターの一貫体制だからこそ実現できる安心の家づくりです。</p>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="st-num">STEP 01</div>
+        <div class="st-phase ph-a">ご検討</div>
+        <h4>初回ご相談</h4>
+        <p>会社・サービスのご紹介、土地・建物・資金のヒアリング、スケジュール確認。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 02</div>
+        <div class="st-phase ph-a">ご検討</div>
+        <h4>物件案内・土地提案</h4>
+        <p>展示場・施工事例のご案内。住まい作りのご申込み、土地情報のご提供。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 03</div>
+        <div class="st-phase ph-a">ご検討</div>
+        <h4>ハウスメーカー決定</h4>
+        <p>総費用のご提案で、家づくりが本格的にスタートします。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 04</div>
+        <div class="st-phase ph-c">ご契約</div>
+        <h4>土地・建物ご契約</h4>
+        <p>土地・住宅メーカーの決定。理想の家づくりが本格的にスタートします。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 05</div>
+        <div class="st-phase ph-b">打合せ</div>
+        <h4>測量・地盤調査</h4>
+        <p>専門家による地盤調査（地盤保証付）を実施し、安心な土台を整えます。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 06</div>
+        <div class="st-phase ph-b">打合せ</div>
+        <h4>設計打合せ</h4>
+        <p>デザイン・間取りの詳細打合せ。自社設計士と丁寧に進めます。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 07</div>
+        <div class="st-phase ph-b">打合せ</div>
+        <h4>確認申請</h4>
+        <p>図面決定と確認申請図書の作成。建物確認申請の検査チェックを実施。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 08</div>
+        <div class="st-phase ph-c">最終契約</div>
+        <h4>最終打合せ・変更契約</h4>
+        <p>設計・仕様・金額の最終確認と変更契約、工事段取りへ。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 09</div>
+        <div class="st-phase ph-d">施工</div>
+        <h4>地鎮祭・着工</h4>
+        <p>基礎工事の開始。節目ごとに現場をご案内・ご報告します。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 10</div>
+        <div class="st-phase ph-d">施工</div>
+        <h4>上棟・中間検査</h4>
+        <p>行政による中間検査を実施。骨組みの確認を丁寧に行います。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 11</div>
+        <div class="st-phase ph-d">施工</div>
+        <h4>完了検査</h4>
+        <p>建物工事完了後に行政検査。外構工事スタートへ。</p>
+      </div>
+      <div class="step">
+        <div class="st-num">STEP 12</div>
+        <div class="st-phase ph-d">施工</div>
+        <h4>お引き渡し</h4>
+        <p>念願のマイホーム完成。快適で豊かな暮らしの始まりです。</p>
+      </div>
+      <div class="step" style="grid-column: span 2">
+        <div class="st-num">STEP 13</div>
+        <div class="st-phase ph-e">アフター</div>
+        <h4>定期点検・長期アフターサービス</h4>
+        <p>業品準準に基づいた定期点検の実施。安心・安全のサポート体制で長期にわたり見守り続けます。自社施工だからこそ実現できる、きめ細やかなアフターフォローです。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 12. CTA ═══════════ -->
+<section class="section" id="cta">
+  <div class="cta-bg"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to right,rgba(0,0,0,0.9) 30%,rgba(0,0,0,0.75) 100%)"></div>
+  <div class="cta-body">
+    <div class="cta-logo">
+      <svg viewBox="0 0 260 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="26,5 13,19 26,15 39,19" fill="#C9A84C"/>
+        <polygon points="8,19 6,42 26,33 46,42 44,19 26,15" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
+        <line x1="15" y1="19" x2="15" y2="40" stroke="#8B1A1A" stroke-width="2"/>
+        <line x1="37" y1="19" x2="37" y2="40" stroke="#8B1A1A" stroke-width="2"/>
+        <line x1="26" y1="15" x2="26" y2="40" stroke="#C9A84C" stroke-width="2"/>
+        <text x="58" y="34" font-family="Helvetica Neue,Arial,sans-serif" font-size="22" font-weight="800" letter-spacing="2" fill="white">MARTIAL ARTS</text>
+        <text x="58" y="52" font-family="Helvetica Neue,Arial,sans-serif" font-size="9.5" letter-spacing="4.5" fill="#C9A84C">REAL ESTATE &amp; CONSTRUCTION</text>
+      </svg>
+    </div>
+    <h2>あなたの理想の住まいを、<br><em>自社の力で実現します。</em></h2>
+    <p>
+      展示場・施工事例をリアルサイズで体感いただけます。<br>
+      プラン相談・資金相談・土地探しも、お気軽にどうぞ。<br>
+      専任スタッフが丁寧にご対応いたします。
+    </p>
+    <div class="cta-btns">
+      <a href="#" class="btn-gold">無料相談・来場予約</a>
+      <a href="#hero" class="btn-outline">最初から見る</a>
+    </div>
+    <div class="cta-info">
+      株式会社 Martial Arts — REAL ESTATE &amp; CONSTRUCTION<br>
+      自社設計 ／ 自社施工 ／ 自社管理 ／ ワンストップサービス
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-brand"><span>Martial</span> Arts</div>
+  <p>Real Estate &amp; Construction — 自社設計・自社施工・長期保証</p>
+  <p>© 株式会社Martial Arts. All rights reserved.</p>
+</footer>
+
+<script>
+// Dot navigation setup
+const secIds = ['hero','about','strengths','cases','design','performance','quality','cost','maintenance','land','schedule','cta'];
+const dotsEl = document.getElementById('dots');
+secIds.forEach((id, i) => {
+  const d = document.createElement('span');
+  d.addEventListener('click', () => document.getElementById(id).scrollIntoView({behavior:'smooth'}));
+  dotsEl.appendChild(d);
+});
+
+// Active dot & nav link on scroll
+const navLinks = document.querySelectorAll('.nav-link');
+function onScroll() {
+  const cy = window.scrollY + window.innerHeight * 0.4;
+  let cur = 0;
+  secIds.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (el && el.offsetTop <= cy) cur = i;
+  });
+  dotsEl.querySelectorAll('span').forEach((d, i) => d.classList.toggle('active', i === cur));
+  navLinks.forEach(a => {
+    a.classList.toggle('active', a.getAttribute('href') === '#' + secIds[cur]);
+  });
+}
+window.addEventListener('scroll', onScroll, {passive:true});
+onScroll();
+
+// Fade-in on scroll
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.style.opacity = '1';
+      e.target.style.transform = 'translateY(0)';
+    }
+  });
+}, {threshold: 0.12});
+
+document.querySelectorAll('.step, .str-card, .pc, .ql, .ci, .li, .mt, .mkpi, .extra-card').forEach(el => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(16px)';
+  el.style.transition = 'opacity 0.5s ease, transform 0.4s ease';
+  observer.observe(el);
+});
+</script>
+</body>
+</html>

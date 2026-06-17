@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>営業トークカード｜現場で使う逐語スクリプト</title>
+<style>
+  :root{--ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--brand:#4f46e5;--soft:#f8fafc;
+    --good:#16a34a;--warn:#d97706;--bad:#dc2626}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+    color:var(--ink);background:#eef2f7;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 18px 60px}
+  h1{font-size:24px;margin:0 0 4px;font-weight:800}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:6px}
+  .rule{background:#111827;color:#fff;border-radius:12px;padding:12px 16px;font-size:13px;margin:14px 0 22px}
+  .rule b{color:#fde68a}
+  .cards{columns:2;column-gap:16px}
+  @media(max-width:760px){.cards{columns:1}}
+  .card{break-inside:avoid;background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:15px 16px;margin:0 0 16px;box-shadow:0 8px 24px -18px rgba(15,23,42,.35)}
+  .tag{display:inline-block;font-size:11px;font-weight:800;color:#fff;background:var(--brand);
+    padding:2px 9px;border-radius:999px;margin-bottom:8px}
+  .tag.g{background:var(--good)} .tag.w{background:var(--warn)} .tag.b{background:var(--bad)}
+  .card h3{margin:2px 0 8px;font-size:15px}
+  .say{background:var(--soft);border-left:3px solid var(--brand);border-radius:0 8px 8px 0;
+    padding:9px 12px;font-size:13.5px;margin:8px 0}
+  .say.g{border-color:var(--good)} .say.b{border-color:var(--bad)}
+  .lbl{font-size:11px;font-weight:800;color:var(--muted)}
+  .ph{color:#7c3aed;font-weight:700}
+  ul{margin:8px 0 0;padding-left:18px;font-size:13px}
+  li{margin:3px 0}
+  .mini{font-size:11.5px;color:var(--muted);margin-top:8px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+  th,td{border-bottom:1px solid var(--line);padding:6px 6px;text-align:left}
+  th{color:var(--muted);font-size:11px}
+  .print{position:sticky;top:0;text-align:right;margin-bottom:8px}
+  .print button{font:inherit;font-size:12px;border:1px solid var(--line);background:#fff;
+    border-radius:8px;padding:6px 12px;cursor:pointer}
+  @media print{body{background:#fff}.card{box-shadow:none}.print{display:none}.cards{columns:2}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="print"><button onclick="window.print()">🖨 印刷 / PDF保存</button></div>
+  <h1>営業トークカード</h1>
+  <div class="sub">現場でそのまま使う逐語スクリプト。<span class="ph">[　]</span>は差し替え変数。詳細版＝営業トークスクリプト集.md</div>
+  <div class="rule">大原則 ①数字は口頭でなく<b>"文面"で握る</b> ②<b>断られてから本番</b>（前進は中央値6.5回目）③<b>ランクで力配分</b>（A=全力／C・D=低工数／E=撤退）</div>
+
+  <div class="cards">
+
+    <div class="card"><span class="tag">① 飛び込み</span><h3>警戒を解いて日付を切る</h3>
+      <div class="lbl">断られたら（引かない）</div>
+      <div class="say">怪しく感じて当然です。これ、うちの<span class="ph">[HP]</span>です。お一人の時間が取れる時に改めてご説明させてください。</div>
+      <div class="lbl">★決め台詞</div>
+      <div class="say g">似た案内が来て連絡が来ない方が多いんです。<b>僕たちは"決めた日付に必ず来ます"。</b>来週<span class="ph">[日付/時間帯]</span>はご在宅ですか？</div>
+    </div>
+
+    <div class="card"><span class="tag">① アンケート切り口</span><h3>不安を起点に対面化</h3>
+      <div class="say"><span class="ph">[2000万円問題]</span>ってご存知ですか？──今のままだと<span class="ph">[老後/税金]</span>で損する方が多くて。<b>今の対策が合っているか数字でお見せします。</b>来週<span class="ph">[日付]</span>いかがですか？</div>
+      <div class="mini">切り口：税金対策／2000万円問題／今のNISA見直し／将来対策</div>
+    </div>
+
+    <div class="card"><span class="tag g">② 初訪</span><h3>売り込まない・聞く</h3>
+      <div class="lbl">★必ず聞く（感情の理由）</div>
+      <div class="say g"><span class="ph">[マイホーム]</span>って、どういうきっかけで考え始めたんですか？／5年後どんな暮らしをしていたいですか？</div>
+      <div class="lbl">収支ヒアリング</div>
+      <ul><li>家賃／月の手取り／固定費／毎月の手残り／貯金／既存ローン</li></ul>
+      <div class="lbl">次回アポ（書類の約束＝本気度）</div>
+      <div class="say">次回いくらいけるか数字でお見せします。<b>源泉徴収票と身分証</b>だけご準備を。写真で大丈夫です。</div>
+    </div>
+
+    <div class="card"><span class="tag">③ 再訪</span><h3>総支出を文面で握る</h3>
+      <div class="say"><span class="ph">[ご年収]</span>なら無理のない月の持ち出しは<span class="ph">[5.5〜6.0]</span>万。今の家賃<span class="ph">[8]</span>万より安く、資産になります。<b>この"総支出◯万まで"を今日握らせてください。</b></div>
+      <table><tr><th>年収帯</th><th>総支出 安全圏</th></tr>
+        <tr><td>300-350万</td><td>6.0-7.0万</td></tr>
+        <tr><td>〜450万 単身</td><td>5.5-6.0万</td></tr>
+        <tr><td>450-550万</td><td>6.0-6.5万</td></tr></table>
+      <div class="mini">借入暗算：月返済±1万 ≒ 借入±330-360万</div>
+    </div>
+
+    <div class="card"><span class="tag">③ 物件提案</span><h3>中間価格＋比較で即決</h3>
+      <div class="say">2軒お持ちしました。<b>価格も立地も"中間"のこちらが本命</b>、もう1軒は比較用。次回<span class="ph">[内見]</span>で見て、その場でどちらか決めましょう。</div>
+    </div>
+
+    <div class="card"><span class="tag b">④ 切り返し</span><h3>嫁ブロック / 家族反対</h3>
+      <div class="say b">ご家族が心配されるのは当然です。<b>次回はご一緒に</b>。借入を増やすのでなく"家計がむしろ安全になる"のを数字でお見せします。本人だけで進めると後でひっくり返るので。</div>
+    </div>
+
+    <div class="card"><span class="tag b">④ 切り返し</span><h3>ローン不安 / 独身不安</h3>
+      <div class="say b">その不安、普通です。同じ<span class="ph">[20代・独身・同職種]</span>の方、たくさんいます（事例提示）。今の家賃は掛け捨て、これは払った分が資産。持ち出しも月<span class="ph">[6万]</span>で生活は変わりません。</div>
+    </div>
+
+    <div class="card"><span class="tag b">④ 切り返し</span><h3>転勤 / 他社比較 / 温度ゼロ</h3>
+      <div class="lbl">転勤・地元回帰</div>
+      <div class="say b">住む前提は一旦置きましょう。"住まなくても資産になる"形（投資用 or 私募債）に切り替えます。</div>
+      <div class="lbl">他社比較</div>
+      <div class="say b">最後は"誰から買うか"。流動性・確実性・手間まで含めて1枚で出します。</div>
+      <div class="lbl">温度感ゼロ（→見切り）</div>
+      <div class="say b">承知しました、今日はここまでに。<b>深追いしない（Eランク=撤退）。</b></div>
+    </div>
+
+    <div class="card"><span class="tag w">⑤ 三段ピボット</span><h3>手ぶらで帰らない</h3>
+      <div class="mini">不動産 → 私募債(1口100万) → 保険/リフォーム</div>
+      <div class="say">不動産が今じゃない、了解です。まとまった資金を運用できる<b>私募債</b>はいかがですか。住まいの決断は要りません。</div>
+      <div class="say">ご貯金的に1口は手元が薄いですね。なら無理せず<b>保険見直し／リフォーム</b>で月<span class="ph">[◯万]</span>の改善から。</div>
+    </div>
+
+    <div class="card"><span class="tag g">⑥ クロージング</span><h3>決断取り（逃げ場を作らない）</h3>
+      <div class="say g">2物件とも気に入っていただけましたね。では<b>次回、申込書を書きましょう。</b>それまでに<b>どちらでいくか</b>だけ決めておいてください。<span class="ph">[◯/◯14時]</span>契約、続けて15時に本申込まで進めます。</div>
+      <div class="mini">★「どちらにしますか」と聞かず、"次回は書類を書く"工程を先に固定してから選ばせる。</div>
+    </div>
+
+    <div class="card"><span class="tag g">⑥ クロージング</span><h3>握る＆背中を押す</h3>
+      <div class="say g">気になる点・不安は全部出し切りましたか？（全部返す）── では<span class="ph">[マイホーム]</span>、僕に任せていただけますか。</div>
+      <div class="say g">ご決断いただけるなら<span class="ph">[家賃半年分/3万円]</span>をキャッシュバックします。</div>
+      <div class="mini">★決まった商談は「金銭が動く/書類を預かる/次回契約日が決まる」のどれかが必ず起きる。</div>
+    </div>
+
+    <div class="card"><span class="tag">⑦ Wリマインド</span><h3>バックれ・日時変更を潰す</h3>
+      <div class="lbl">中間（前々日SMS）</div>
+      <div class="say"><span class="ph">[日時]</span>の確認です。ご準備の書類は写真でOK。</div>
+      <div class="lbl">前日17時（TEL+SMS）★</div>
+      <div class="say">明日<span class="ph">[◯時]</span>、所要45分で伺います。持ち物だけ念のため。</div>
+      <div class="lbl">当日12時（OK返信必須）</div>
+      <div class="say">本日<span class="ph">[◯時]</span>。問題なければ"OK"だけご返信を。難しければ±60分か別日で。</div>
+    </div>
+
+    <div class="card"><span class="tag w">⑧ 撤退・紹介</span><h3>失注を資産化</h3>
+      <div class="lbl">再接触3択</div>
+      <div class="say">今後の連絡、A：<span class="ph">[戻る◯ヶ月前]</span>に連絡／B：四半期に市況だけ／C：連絡不要。どれが良いですか？</div>
+      <div class="lbl">紹介依頼（コピペ）</div>
+      <div class="say">お知り合いで①年収400万以上 ②1年以内に購入検討 ③<span class="ph">[対象エリア]</span>の方がいれば、お名前・携帯・希望エリアだけ送ってください。</div>
+    </div>
+
+    <div class="card"><span class="tag">🧰 事前回収リスト</span><h3>再訪前に送る</h3>
+      <ul>
+        <li>源泉徴収票 or 給与明細1〜2ヶ月</li>
+        <li>家計（家賃/食費/光熱/通信/交通/サブスク）</li>
+        <li>貯金残高（概算）／保険証券</li>
+        <li>企業型DC（会社掛金・自己拠出）／NISA</li>
+        <li>車・カードローン（残債/金利/残期間）</li>
+      </ul>
+      <div class="mini">情報白紙だと試算精度が出ない＝AI指摘の最頻NG。メールも必ず取得。</div>
+    </div>
+
+    <div class="card"><span class="tag">✅ 30秒セルフチェック</span><h3>商談前に</h3>
+      <ul>
+        <li>この客のランクは？（A=全力/C・D=低工数/E=撤退）</li>
+        <li>今日動かすのは 金銭/書類/次回契約日 のどれ？</li>
+        <li>総支出の上限を文面で握れているか？</li>
+        <li>次回日時＋前日確認の段取りは？</li>
+        <li>録音・画面録画はONか？</li>
+      </ul>
+    </div>
+
+  </div>
+  <div class="mini" style="margin-top:18px">出所：社内Slack（#02_アポ報告/#03_商談報告/sales-analysis AI）。顧客個人情報はマスキング。棒読みNG、相手に合わせて自然に。</div>
+</div>
+</body>
+</html>

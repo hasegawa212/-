@@ -1,0 +1,219 @@
+{
+  "name": "Gmail（来場予約）→ Sheets + Slack Notify",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            { "mode": "everyMinute" }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "subject:(来場予約 OR 来場 OR 内見予約) -from:me",
+          "readStatus": "unread"
+        },
+        "options": {}
+      },
+      "id": "2a7c1b00-1111-4b01-9001-000000000001",
+      "name": "Gmailトリガー（来場予約）",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "REPLACE_WITH_GMAIL_CREDENTIAL_ID",
+          "name": "Gmail account (OAuth2)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "received_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "b2",
+              "name": "from",
+              "value": "={{ ($json.from && ($json.from.text || $json.from.value?.[0]?.address)) || $json.headers?.from || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b3",
+              "name": "subject",
+              "value": "={{ $json.subject || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b4",
+              "name": "email_date",
+              "value": "={{ $json.date || $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "b5",
+              "name": "name",
+              "value": "={{ ((($json.text || $json.snippet || '')).match(/(?:お名前|氏名|名前)[\\s:：]*([^\\n\\r]+)/) || [])[1]?.trim() || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b6",
+              "name": "phone",
+              "value": "={{ ((($json.text || $json.snippet || '')).match(/(?:電話|TEL|お電話番号|連絡先)[\\s:：]*([0-9\\-+() ]{8,})/i) || [])[1]?.trim() || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b7",
+              "name": "preferred_datetime",
+              "value": "={{ ((($json.text || $json.snippet || '')).match(/(?:来場|内見|希望)(?:日時|日)[\\s:：]*([^\\n\\r]+)/) || [])[1]?.trim() || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b8",
+              "name": "body",
+              "value": "={{ (($json.text || $json.snippet || '')).trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "b9",
+              "name": "message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a7c1b00-2222-4b02-9002-000000000002",
+      "name": "予約情報を整形",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "来場予約",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "received_at": "={{ $json.received_at }}",
+            "email_date": "={{ $json.email_date }}",
+            "from": "={{ $json.from }}",
+            "subject": "={{ $json.subject }}",
+            "name": "={{ $json.name }}",
+            "phone": "={{ $json.phone }}",
+            "preferred_datetime": "={{ $json.preferred_datetime }}",
+            "body": "={{ $json.body }}",
+            "message_id": "={{ $json.message_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            { "id": "received_at", "displayName": "received_at", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "email_date", "displayName": "email_date", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "from", "displayName": "from", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "subject", "displayName": "subject", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "name", "displayName": "name", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "phone", "displayName": "phone", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "preferred_datetime", "displayName": "preferred_datetime", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "body", "displayName": "body", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "message_id", "displayName": "message_id", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2a7c1b00-3333-4b03-9003-000000000003",
+      "name": "来場予約をシートに追記",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [760, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=:calendar: *来場予約が入りました*\n*お名前:* {{ $json.name || '（本文から抽出できず）' }}\n*希望日時:* {{ $json.preferred_datetime || '（本文を確認）' }}\n*電話:* {{ $json.phone || '-' }}\n*差出人:* {{ $json.from }}\n*件名:* {{ $json.subject }}\n*受信:* {{ $json.email_date }}\n\n> {{ ($json.body || '').slice(0, 500) }}",
+        "otherOptions": {
+          "mrkdwn": true
+        }
+      },
+      "id": "2a7c1b00-4444-4b04-9004-000000000004",
+      "name": "Slackに通知",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [760, 400],
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "REPLACE_WITH_SLACK_CREDENTIAL_ID",
+          "name": "Slack"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Gmailトリガー（来場予約）": {
+      "main": [
+        [
+          { "node": "予約情報を整形", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "予約情報を整形": {
+      "main": [
+        [
+          { "node": "来場予約をシートに追記", "type": "main", "index": 0 },
+          { "node": "Slackに通知", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "来場予約をシートに追記": {
+      "main": [
+        []
+      ]
+    },
+    "Slackに通知": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    { "name": "gmail" },
+    { "name": "slack" },
+    { "name": "sheets" },
+    { "name": "来場予約" }
+  ]
+}
