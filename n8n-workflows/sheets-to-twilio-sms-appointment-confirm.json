@@ -1,0 +1,212 @@
+{
+  "name": "アポ確認 国際SMS（Sheets → Twilio）",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 10 * * *" }
+          ]
+        }
+      },
+      "id": "3c8d2f00-1111-4c01-a001-000000000001",
+      "name": "毎日10時に実行",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 320]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "アポ一覧",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "3c8d2f00-2222-4c02-a002-000000000002",
+      "name": "アポ一覧を読み込み",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [480, 320],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// === 設定（必要に応じて変更）===\nconst REMIND_DAYS_BEFORE = 1;        // アポの何日前に確認SMSを送るか（1=前日, 0=当日）\nconst DEFAULT_COUNTRY_CODE = '81';   // 電話番号が国内表記(0始まり)のときに付ける国番号（日本=81, 米国=1）\nconst TZ_OFFSET_HOURS = 9;           // アポ日時/「今日」を解釈するタイムゾーン（JST=+9）\nconst COMPANY = '〔要確認〕会社名';   // 署名に使う会社名\nconst SENT_MARK = '送信済み';        // この語が確認ステータスに含まれる行は送信済みとしてスキップ\n\n// 電話番号を E.164（+国番号始まり）へ正規化\nfunction toE164(raw, country) {\n  let s = String(raw == null ? '' : raw).replace(/[\\s\\-().]/g, '');\n  if (!s) return '';\n  if (s.startsWith('+')) return s;\n  if (s.startsWith('00')) return '+' + s.slice(2);\n  const cc = String(country || DEFAULT_COUNTRY_CODE).replace(/[^0-9]/g, '') || DEFAULT_COUNTRY_CODE;\n  if (s.startsWith('0')) s = s.slice(1);\n  return '+' + cc + s;\n}\n\n// アポ日時セルから YYYY-MM-DD を取り出す\nfunction apptYmd(v) {\n  const m = String(v == null ? '' : v).match(/(\\d{4})[-/.年](\\d{1,2})[-/.月](\\d{1,2})/);\n  if (!m) return '';\n  return `${m[1]}-${String(m[2]).padStart(2, '0')}-${String(m[3]).padStart(2, '0')}`;\n}\n\n// 指定TZでの基準日(YYYY-MM-DD)を求める\nconst nowTz = new Date(Date.now() + TZ_OFFSET_HOURS * 3600 * 1000);\nconst targetTz = new Date(nowTz.getTime() + REMIND_DAYS_BEFORE * 86400000);\nconst targetYmd = targetTz.toISOString().slice(0, 10);\n\nconst out = [];\nfor (const item of $input.all()) {\n  const r = item.json;\n  const id = r['予約ID'];\n  const name = (r['氏名'] != null ? String(r['氏名']) : '').trim();\n  const status = (r['確認ステータス'] != null ? String(r['確認ステータス']) : '');\n  const apptRaw = r['アポ日時'];\n\n  if (status.includes(SENT_MARK)) continue;        // 送信済みはスキップ\n  if (apptYmd(apptRaw) !== targetYmd) continue;     // 対象日（既定: 前日）のアポだけ\n\n  const to = toE164(r['電話番号'], r['国コード']);\n  if (!to) continue;                                // 電話番号が無ければスキップ\n\n  const message =\n    `【アポ確認 / Appointment Reminder】\\n` +\n    `${name ? name + ' 様' : 'お客様'}\\n\\n` +\n    `${apptRaw} のお約束を確認させていただきます。\\n` +\n    `ご都合に変更がございましたら本メッセージにご返信ください。\\n\\n` +\n    `This is a reminder of your appointment on ${apptRaw}. ` +\n    `Please reply to this message if you need to reschedule.\\n\\n` +\n    `— ${COMPANY}`;\n\n  out.push({ json: { 予約ID: id, 氏名: name, to, message } });\n}\n\nreturn out;"
+      },
+      "id": "3c8d2f00-3333-4c03-a003-000000000003",
+      "name": "確認対象を抽出",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 320]
+    },
+    {
+      "parameters": {
+        "from": "REPLACE_WITH_TWILIO_FROM_NUMBER",
+        "to": "={{ $json.to }}",
+        "toWhatsapp": false,
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "3c8d2f00-4444-4c04-a004-000000000004",
+      "name": "Twilio SMS送信",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [980, 320],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "twilioApi": {
+          "id": "REPLACE_WITH_TWILIO_CREDENTIAL_ID",
+          "name": "Twilio"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "アポ一覧",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "予約ID": "={{ $('確認対象を抽出').item.json.予約ID }}",
+            "確認ステータス": "送信済み",
+            "SMS送信日時": "={{ $now.toISO() }}",
+            "Twilio_SID": "={{ $json.sid }}",
+            "エラー": ""
+          },
+          "matchingColumns": ["予約ID"],
+          "schema": [
+            { "id": "予約ID", "displayName": "予約ID", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "確認ステータス", "displayName": "確認ステータス", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "SMS送信日時", "displayName": "SMS送信日時", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "Twilio_SID", "displayName": "Twilio_SID", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "エラー", "displayName": "エラー", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3c8d2f00-5555-4c05-a005-000000000005",
+      "name": "送信済みに更新",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1240, 220],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "アポ一覧",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "予約ID": "={{ $('確認対象を抽出').item.json.予約ID }}",
+            "確認ステータス": "送信失敗",
+            "SMS送信日時": "={{ $now.toISO() }}",
+            "エラー": "={{ ($json.error && ($json.error.message || $json.error)) || $json.message || '不明なエラー' }}"
+          },
+          "matchingColumns": ["予約ID"],
+          "schema": [
+            { "id": "予約ID", "displayName": "予約ID", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "確認ステータス", "displayName": "確認ステータス", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "SMS送信日時", "displayName": "SMS送信日時", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true },
+            { "id": "エラー", "displayName": "エラー", "required": false, "defaultMatch": false, "display": true, "type": "string", "canBeUsedToMatch": true }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3c8d2f00-6666-4c06-a006-000000000006",
+      "name": "送信失敗に更新",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1240, 420],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "毎日10時に実行": {
+      "main": [
+        [
+          { "node": "アポ一覧を読み込み", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "アポ一覧を読み込み": {
+      "main": [
+        [
+          { "node": "確認対象を抽出", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "確認対象を抽出": {
+      "main": [
+        [
+          { "node": "Twilio SMS送信", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Twilio SMS送信": {
+      "main": [
+        [
+          { "node": "送信済みに更新", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "送信失敗に更新", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": [
+    { "name": "twilio" },
+    { "name": "sms" },
+    { "name": "sheets" },
+    { "name": "アポ確認" }
+  ]
+}
