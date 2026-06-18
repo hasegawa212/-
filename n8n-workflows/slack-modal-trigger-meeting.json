@@ -1,0 +1,81 @@
+{
+  "name": "Slack /meeting → Open Meeting Checklist Modal",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-modal-trigger-meeting",
+        "responseMode": "responseNode",
+        "options": { "rawBody": false }
+      },
+      "id": "mtg-01-webhook",
+      "name": "Webhook /meeting",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "slack-modal-trigger-meeting"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1", "name": "trigger_id", "value": "={{ $json.body.trigger_id }}", "type": "string" },
+            { "id": "s2", "name": "user_id", "value": "={{ $json.body.user_id }}", "type": "string" },
+            { "id": "s3", "name": "user_name", "value": "={{ $json.body.user_name }}", "type": "string" },
+            { "id": "s4", "name": "channel_id", "value": "={{ $json.body.channel_id }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "mtg-02-extract",
+      "name": "Extract Slack Payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/views.open",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer REPLACE_WITH_SLACK_BOT_TOKEN" },
+            { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"trigger_id\": \"{{ $json.trigger_id }}\",\n  \"view\": {\n    \"type\": \"modal\",\n    \"callback_id\": \"meeting_check\",\n    \"private_metadata\": \"{{ JSON.stringify({channel_id: $json.channel_id, user_id: $json.user_id, user_name: $json.user_name}) }}\",\n    \"title\": { \"type\": \"plain_text\", \"text\": \"✅ 会議の確認事項\" },\n    \"submit\": { \"type\": \"plain_text\", \"text\": \"送信\" },\n    \"close\": { \"type\": \"plain_text\", \"text\": \"閉じる\" },\n    \"blocks\": [\n      {\n        \"type\": \"context\",\n        \"elements\": [ { \"type\": \"mrkdwn\", \"text\": \"会議では *必ず3つの質問・確認事項* を記録するルールです。①〜③は全て必須入力です。\" } ]\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"meeting_title\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"会議名・議題\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"placeholder\": { \"type\": \"plain_text\", \"text\": \"例: 週次定例 / ◯◯案件キックオフ\" } }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"meeting_date\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"開催日\" },\n        \"element\": { \"type\": \"datepicker\", \"action_id\": \"value\" }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"attendees\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"参加者\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"placeholder\": { \"type\": \"plain_text\", \"text\": \"例: 長谷川, 佐藤, 田中\" } }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"check_1\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"確認事項① (必須)\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"check_2\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"確認事項② (必須)\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"check_3\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"確認事項③ (必須)\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true }\n      },\n      {\n        \"type\": \"input\", \"block_id\": \"owner\",\n        \"label\": { \"type\": \"plain_text\", \"text\": \"担当・次アクション\" },\n        \"element\": { \"type\": \"plain_text_input\", \"action_id\": \"value\", \"multiline\": true },\n        \"optional\": true\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "mtg-03-views-open",
+      "name": "Slack views.open",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "",
+        "options": { "responseCode": 200 }
+      },
+      "id": "mtg-04-respond",
+      "name": "Respond 200",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook /meeting": { "main": [[{ "node": "Extract Slack Payload", "type": "main", "index": 0 }]] },
+    "Extract Slack Payload": { "main": [[{ "node": "Slack views.open", "type": "main", "index": 0 }]] },
+    "Slack views.open": { "main": [[{ "node": "Respond 200", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": false },
+  "tags": [{ "name": "slack" }, { "name": "modal" }, { "name": "meeting" }]
+}

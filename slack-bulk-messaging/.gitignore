@@ -1,0 +1,6 @@
+node_modules/
+.env
+# 実行時に生成される宛先・本文・送信ログ（PIIを含むためコミットしない）
+send-log-*.csv
+recipients.csv
+message.txt

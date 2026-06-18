@@ -1,0 +1,16 @@
+# PII を含むローカル限定ファイル
+*.local.txt
+**/.staff_mapping_*.txt
+
+# OS / Editor
+.DS_Store
+*.swp
+.vscode/
+.idea/
+
+# Node / Python
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.local
