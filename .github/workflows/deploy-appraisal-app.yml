@@ -1,0 +1,66 @@
+name: Deploy appraisal-app to Netlify
+
+# main への push で appraisal-app をビルドし、Netlify サイト「ma-appraisal」へ自動公開する。
+# 必要なシークレット（リポジトリ Settings → Secrets and variables → Actions）:
+#   NETLIFY_AUTH_TOKEN … Netlify の Personal access token（User settings → Applications）
+# サイトIDは公開情報なので env に直書き（必要なら NETLIFY_SITE_ID シークレットで上書き）。
+# NETLIFY_AUTH_TOKEN が未設定の環境では、ビルド検証のみ実行してデプロイはスキップする。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "appraisal-app/**"
+      - ".github/workflows/deploy-appraisal-app.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: appraisal-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: appraisal-app/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck & test
+        run: |
+          npm run typecheck
+          npm run test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check Netlify auth
+        id: netlify-auth
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::NETLIFY_AUTH_TOKEN is not configured; skipping Netlify deploy."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Netlify
+        if: steps.netlify-auth.outputs.configured == 'true'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'e6431469-8bb5-4d42-8db1-c370eebd5d04' }}
+        run: |
+          npx --yes netlify-cli@17 deploy \
+            --prod \
+            --dir=dist \
+            --site="$NETLIFY_SITE_ID" \
+            --auth="$NETLIFY_AUTH_TOKEN" \
+            --message "CI deploy ${{ github.sha }}"

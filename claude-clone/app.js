@@ -164,12 +164,39 @@
     chat.messages.push(placeholder);
     renderConversation();
 
-    const reply = await generateReply(text, chat.messages, els.modelSelect.value);
+    // Incrementally update the in-flight assistant bubble as tokens stream in.
+    const onDelta = (full) => {
+      placeholder.typing = false;
+      placeholder.content = full;
+      const bubbles = els.conversation.querySelectorAll(".message.assistant .bubble");
+      const last = bubbles[bubbles.length - 1];
+      if (last) last.innerHTML = formatContent(full);
+      els.conversation.scrollTop = els.conversation.scrollHeight;
+    };
+
+    const reply = await generateReply(text, chat.messages, els.modelSelect.value, onDelta);
 
     placeholder.typing = false;
     placeholder.content = reply;
     save();
     renderConversation();
+  }
+
+  // Parse one SSE record ("event: x\ndata: {...}") into { type, data }.
+  function parseSSE(raw) {
+    let type = "delta";
+    const dataLines = [];
+    for (const line of raw.split("\n")) {
+      if (line.startsWith("event:")) type = line.slice(6).trim();
+      else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+    }
+    let data = {};
+    try {
+      data = JSON.parse(dataLines.join("\n") || "{}");
+    } catch {
+      data = {};
+    }
+    return { type, data };
   }
 
   let backendAvailable = null;
@@ -187,7 +214,7 @@
     return backendAvailable;
   }
 
-  async function generateReply(prompt, history, model) {
+  async function generateReply(prompt, history, model, onDelta) {
     if (await checkBackend()) {
       try {
         const payload = {
@@ -205,8 +232,35 @@
           const err = await res.json().catch(() => ({}));
           throw new Error(err.error || `HTTP ${res.status}`);
         }
-        const data = await res.json();
-        return data.content || "(空の応答)";
+        if (!res.body) {
+          // Streaming unsupported in this environment — fall back to plain text.
+          return (await res.text()) || "(空の応答)";
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let full = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let idx;
+          while ((idx = buffer.indexOf("\n\n")) !== -1) {
+            const record = buffer.slice(0, idx);
+            buffer = buffer.slice(idx + 2);
+            const { type, data } = parseSSE(record);
+            if (type === "delta" && data.text) {
+              full += data.text;
+              if (onDelta) onDelta(full);
+            } else if (type === "error") {
+              throw new Error(data.error || "stream error");
+            }
+          }
+        }
+        return full || "(空の応答)";
       } catch (err) {
         return `⚠️ バックエンドエラー: ${err.message}\n\nオフラインのデモ応答に切り替わります。`;
       }

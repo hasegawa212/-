@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Slack interactivity payload は body.payload に JSON 文字列で入る\nconst raw = $input.first().json.body?.payload;\nif (!raw) {\n  return [{ json: { error: 'no payload', skip: true } }];\n}\nconst payload = typeof raw === 'string' ? JSON.parse(raw) : raw;\nif (payload.type !== 'view_submission') {\n  return [{ json: { skip: true, type: payload.type } }];\n}\nconst view = payload.view;\nconst values = view.state.values;\nconst meta = view.private_metadata ? JSON.parse(view.private_metadata) : {};\n\n// block_id.action_id.value or selected_option.value or selected_date 等を吸収\nfunction val(blockId) {\n  const block = values[blockId];\n  if (!block) return '';\n  const el = Object.values(block)[0];\n  if (!el) return '';\n  return el.value\n    ?? el.selected_date\n    ?? el.selected_date_time\n    ?? el.selected_option?.value\n    ?? '';\n}\n\nconst callback_id = view.callback_id;\nconst now = new Date().toISOString();\n\nlet flat = {\n  timestamp: now,\n  callback_id,\n  staff_slack_id: meta.user_id,\n  staff_slack_name: meta.user_name,\n  channel_id: meta.channel_id,\n};\n\nif (callback_id === 'daily_report') {\n  flat = { ...flat,\n    report_date: val('report_date'),\n    call_count: val('call_count'),\n    apo_count: val('apo_count'),\n    meeting_count: val('meeting_count'),\n    contract_count: val('contract_count'),\n    highlights: val('highlights'),\n    tomorrow_plan: val('tomorrow_plan'),\n    blockers: val('blockers'),\n  };\n  flat.sheet_name = 'daily_reports';\n  flat.notify_text = `📅 *日報* by <@${meta.user_id}> (${val('report_date')})\\n架電 ${val('call_count')} / アポ ${val('apo_count')} / 商談 ${val('meeting_count') || 0} / 契約 ${val('contract_count') || 0}\\n*ハイライト:* ${val('highlights')}`;\n} else if (callback_id === 'apo_action') {\n  flat = { ...flat,\n    action_type: val('action_type'),\n    customer_code: val('customer_code'),\n    deal_code: val('deal_code'),\n    apo_datetime: val('apo_datetime'),\n    reason: val('reason'),\n  };\n  flat.sheet_name = 'apo_log';\n  flat.notify_text = `📌 *アポ ${val('action_type')}* by <@${meta.user_id}>\\n顧客: ${val('customer_code')} / 案件: ${val('deal_code') || '—'}\\n日時: ${val('apo_datetime')}\\n${val('reason') ? '理由: ' + val('reason') : ''}`;\n} else if (callback_id === 'customer_feedback') {\n  flat = { ...flat,\n    deal_code: val('deal_code'),\n    customer_code: val('customer_code'),\n    feedback_type: val('feedback_type'),\n    rating: val('rating'),\n    content: val('content'),\n    action_needed: val('action_needed'),\n  };\n  flat.sheet_name = 'feedback_log';\n  flat.notify_text = `💬 *フィードバック* by <@${meta.user_id}>\\n案件 ${val('deal_code')} / 顧客 ${val('customer_code')} / ${val('feedback_type')} (★${val('rating')})\\n${val('content')}`;\n} else {\n  return [{ json: { skip: true, callback_id } }];\n}\n\nreturn [{ json: flat }];\n"
+        "jsCode": "// Slack interactivity payload は body.payload に JSON 文字列で入る\nconst raw = $input.first().json.body?.payload;\nif (!raw) {\n  return [{ json: { error: 'no payload', skip: true } }];\n}\nconst payload = typeof raw === 'string' ? JSON.parse(raw) : raw;\nif (payload.type !== 'view_submission') {\n  return [{ json: { skip: true, type: payload.type } }];\n}\nconst view = payload.view;\nconst values = view.state.values;\nconst meta = view.private_metadata ? JSON.parse(view.private_metadata) : {};\n\n// block_id.action_id.value or selected_option.value or selected_date 等を吸収\nfunction val(blockId) {\n  const block = values[blockId];\n  if (!block) return '';\n  const el = Object.values(block)[0];\n  if (!el) return '';\n  return el.value\n    ?? el.selected_date\n    ?? el.selected_date_time\n    ?? el.selected_option?.value\n    ?? '';\n}\n\n// 通知先チャンネル（callback_id ごとに固定振分）\n// IDs are also documented in n8n-workflows/SETUP.md §4-3-1\nconst NOTIFY_CHANNEL = {\n  daily_report: 'C0B7T9Z4J1Z',       // #martial-arts-daily-report\n  apo_action: 'C0B7RRM138X',         // #martial-arts-apo-log\n  customer_feedback: 'C0B8G0E3CR2',  // #martial-arts-feedback\n  meeting_check: 'C0B9RAHM13K',  // #martial-arts-meeting-checklist\n};\n\nconst callback_id = view.callback_id;\nconst now = new Date().toISOString();\n\nlet flat = {\n  timestamp: now,\n  callback_id,\n  staff_slack_id: meta.user_id,\n  staff_slack_name: meta.user_name,\n  channel_id: meta.channel_id,\n  notify_channel: NOTIFY_CHANNEL[callback_id] || '',\n};\n\nif (callback_id === 'daily_report') {\n  flat = { ...flat,\n    report_date: val('report_date'),\n    call_count: val('call_count'),\n    apo_count: val('apo_count'),\n    meeting_count: val('meeting_count'),\n    contract_count: val('contract_count'),\n    highlights: val('highlights'),\n    tomorrow_plan: val('tomorrow_plan'),\n    blockers: val('blockers'),\n  };\n  flat.sheet_name = 'daily_reports';\n  flat.notify_text = `📅 *日報* by <@${meta.user_id}> (${val('report_date')})\\n架電 ${val('call_count')} / アポ ${val('apo_count')} / 商談 ${val('meeting_count') || 0} / 契約 ${val('contract_count') || 0}\\n*ハイライト:* ${val('highlights')}`;\n} else if (callback_id === 'apo_action') {\n  flat = { ...flat,\n    action_type: val('action_type'),\n    customer_code: val('customer_code'),\n    deal_code: val('deal_code'),\n    apo_datetime: val('apo_datetime'),\n    reason: val('reason'),\n  };\n  flat.sheet_name = 'apo_log';\n  flat.notify_text = `📌 *アポ ${val('action_type')}* by <@${meta.user_id}>\\n顧客: ${val('customer_code')} / 案件: ${val('deal_code') || '—'}\\n日時: ${val('apo_datetime')}\\n${val('reason') ? '理由: ' + val('reason') : ''}`;\n} else if (callback_id === 'customer_feedback') {\n  flat = { ...flat,\n    deal_code: val('deal_code'),\n    customer_code: val('customer_code'),\n    feedback_type: val('feedback_type'),\n    rating: val('rating'),\n    content: val('content'),\n    action_needed: val('action_needed'),\n  };\n  flat.sheet_name = 'feedback_log';\n  flat.notify_text = `💬 *フィードバック* by <@${meta.user_id}>\\n案件 ${val('deal_code')} / 顧客 ${val('customer_code')} / ${val('feedback_type')} (★${val('rating')})\\n${val('content')}`;\n} else if (callback_id === 'meeting_check') {\n  flat = { ...flat,\n    meeting_title: val('meeting_title'),\n    meeting_date: val('meeting_date'),\n    attendees: val('attendees'),\n    check_1: val('check_1'),\n    check_2: val('check_2'),\n    check_3: val('check_3'),\n    owner: val('owner'),\n  };\n  flat.sheet_name = 'meeting_checklist';\n  flat.notify_text = `✅ *会議の確認事項* by <@${meta.user_id}> (${val('meeting_date')})\\n*会議:* ${val('meeting_title')}  *参加者:* ${val('attendees')}\\n① ${val('check_1')}\\n② ${val('check_2')}\\n③ ${val('check_3')}${val('owner') ? '\\n*担当・次アクション:* ' + val('owner') : ''}`;\n} else {\n  return [{ json: { skip: true, callback_id } }];\n}\n\nreturn [{ json: flat }];\n"
       },
       "id": "submit-02-parse",
       "name": "Parse + Normalize",
@@ -60,7 +60,8 @@
           "values": [
             { "outputKey": "daily", "conditions": { "options": { "caseSensitive": true }, "conditions": [{ "leftValue": "={{ $json.callback_id }}", "rightValue": "daily_report", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" } },
             { "outputKey": "apo", "conditions": { "options": { "caseSensitive": true }, "conditions": [{ "leftValue": "={{ $json.callback_id }}", "rightValue": "apo_action", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" } },
-            { "outputKey": "feedback", "conditions": { "options": { "caseSensitive": true }, "conditions": [{ "leftValue": "={{ $json.callback_id }}", "rightValue": "customer_feedback", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" } }
+            { "outputKey": "feedback", "conditions": { "options": { "caseSensitive": true }, "conditions": [{ "leftValue": "={{ $json.callback_id }}", "rightValue": "customer_feedback", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" } },
+            { "outputKey": "meeting", "conditions": { "options": { "caseSensitive": true }, "conditions": [{ "leftValue": "={{ $json.callback_id }}", "rightValue": "meeting_check", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and" } }
           ]
         },
         "options": {}
@@ -139,9 +140,31 @@
     },
     {
       "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "REPLACE_WITH_GOOGLE_SHEET_ID", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "meeting_checklist", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "submit-10-sheets-meeting",
+      "name": "Append meeting_checklist",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1220, 520],
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID", "name": "Google Sheets" }
+      }
+    },
+    {
+      "parameters": {
         "authentication": "oAuth2",
         "select": "channel",
-        "channelId": { "__rl": true, "value": "REPLACE_WITH_SLACK_CHANNEL_ID", "mode": "id" },
+        "channelId": { "__rl": true, "value": "={{ $json.notify_channel }}", "mode": "id" },
         "text": "={{ $json.notify_text }}",
         "otherOptions": { "mrkdwn": true }
       },
@@ -168,11 +191,13 @@
     "Route by callback_id": { "main": [
       [{ "node": "Append daily_reports", "type": "main", "index": 0 }],
       [{ "node": "Append apo_log", "type": "main", "index": 0 }],
-      [{ "node": "Append feedback_log", "type": "main", "index": 0 }]
+      [{ "node": "Append feedback_log", "type": "main", "index": 0 }],
+      [{ "node": "Append meeting_checklist", "type": "main", "index": 0 }]
     ] },
     "Append daily_reports": { "main": [[{ "node": "Notify Slack Channel", "type": "main", "index": 0 }]] },
     "Append apo_log": { "main": [[{ "node": "Notify Slack Channel", "type": "main", "index": 0 }]] },
-    "Append feedback_log": { "main": [[{ "node": "Notify Slack Channel", "type": "main", "index": 0 }]] }
+    "Append feedback_log": { "main": [[{ "node": "Notify Slack Channel", "type": "main", "index": 0 }]] },
+    "Append meeting_checklist": { "main": [[{ "node": "Notify Slack Channel", "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" },
   "pinData": {},
