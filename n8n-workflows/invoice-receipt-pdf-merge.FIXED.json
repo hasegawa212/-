@@ -315,7 +315,7 @@
           "parameters": [
             {
               "name": "q",
-              "value": "={{ \"'\" + $json.latestFolderId + \"' in parents and name contains '支払' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}"
+              "value": "={{ \"'\" + $json.latestFolderId + \"' in parents and name contains '4.支払' and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}"
             },
             {
               "name": "corpora",
@@ -358,7 +358,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const sub = ($input.first().json.files) || [];\nconst prev = $('Pick Latest 請求分').item.json;\n// 「4.支払いの請求書全て」サブフォルダがあればそこへ、無ければ月フォルダ直下へ\nconst hasSub = sub.length > 0 && sub[0].id;\nconst folderId = hasSub ? sub[0].id : prev.latestFolderId;\nconst folderPath = hasSub ? (prev.latestFolderName + ' / ' + sub[0].name) : prev.latestFolderName;\nreturn [{ json: { folderId, folderPath, download_url: prev.download_url, filename: prev.filename, channel: prev.channel, message_ts: prev.message_ts, invoice_name: prev.invoice_name } }];"
+        "jsCode": "const sub = ($input.first().json.files) || [];\nconst prev = $('Pick Latest 請求分').item.json;\n// 「4.支払いの請求書全て」サブフォルダがあればそこへ、無ければ月フォルダ直下へ\nconst norm = (s) => (s || '').trim();\nlet target = sub.find(f => norm(f.name) === '4.支払いの請求書全て') || sub.find(f => norm(f.name).indexOf('4.支払') === 0) || sub.slice().sort((a, b) => norm(a.name).localeCompare(norm(b.name)))[0];\nconst hasSub = !!(target && target.id);\nconst folderId = hasSub ? target.id : prev.latestFolderId;\nconst folderPath = hasSub ? (prev.latestFolderName + ' / ' + target.name) : prev.latestFolderName;\nreturn [{ json: { folderId, folderPath, download_url: prev.download_url, filename: prev.filename, channel: prev.channel, message_ts: prev.message_ts, invoice_name: prev.invoice_name } }];"
       },
       "id": "merge-14-resolve",
       "name": "Resolve Target Folder",
