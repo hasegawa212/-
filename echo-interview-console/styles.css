@@ -1,0 +1,118 @@
+:root {
+  --fire: #e2562b;
+  --fire-dark: #c23f18;
+  --ink: #1c1917;
+  --muted: #78716c;
+  --line: #e7e5e4;
+  --bg: #faf9f7;
+  --card: #ffffff;
+  --ok: #16a34a;
+  --err: #dc2626;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  line-height: 1.6;
+}
+
+/* topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 14px 20px;
+  background: linear-gradient(120deg, var(--fire-dark), var(--fire));
+  color: #fff; position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .flame { font-size: 28px; }
+.topbar h1 { margin: 0; font-size: 20px; }
+.topbar .sub { margin: 0; font-size: 12px; opacity: .9; }
+.topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.chip {
+  background: rgba(255,255,255,.18); padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; white-space: nowrap;
+}
+.sheet-select { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.sheet-select select { padding: 4px 8px; border-radius: 6px; border: none; }
+
+main { max-width: 960px; margin: 0 auto; padding: 20px; }
+.lead {
+  background: #fff7ed; border: 1px solid #fed7aa; color: #7c2d12;
+  padding: 12px 16px; border-radius: 10px; font-size: 14px;
+}
+
+/* sections */
+.section {
+  border: 1px solid var(--line); border-radius: 12px; background: var(--card);
+  margin: 0 0 18px; padding: 16px 18px 18px;
+}
+.section legend {
+  font-weight: 700; color: var(--fire-dark); padding: 2px 10px;
+  background: #fff1ec; border: 1px solid #fbcab8; border-radius: 999px; font-size: 14px;
+}
+.grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px 16px; margin-top: 12px;
+}
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
+.field-wide { grid-column: 1 / -1; }
+.field > span { color: var(--muted); font-weight: 600; }
+.field input, .field select, .field textarea {
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 14px; font-family: inherit; background: #fff; color: var(--ink);
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  outline: none; border-color: var(--fire); box-shadow: 0 0 0 3px rgba(226,86,43,.15);
+}
+.field input[readonly] { background: #f5f5f4; color: var(--muted); }
+.field small { color: var(--muted); font-size: 11px; }
+.field textarea { resize: vertical; }
+
+/* actions */
+.actions {
+  position: sticky; bottom: 0; display: flex; gap: 12px; align-items: center; justify-content: flex-end;
+  padding: 14px 0; background: linear-gradient(to top, var(--bg) 70%, transparent);
+}
+.slack-toggle { margin-right: auto; font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+button { cursor: pointer; font-family: inherit; font-size: 14px; border-radius: 8px; }
+button.primary {
+  background: var(--fire); color: #fff; border: none; padding: 10px 22px; font-weight: 700;
+}
+button.primary:hover { background: var(--fire-dark); }
+button.primary:disabled { opacity: .6; cursor: progress; }
+button.ghost {
+  background: #fff; color: var(--ink); border: 1px solid var(--line); padding: 9px 16px;
+}
+button.ghost:hover { border-color: var(--fire); color: var(--fire-dark); }
+
+/* summary panel */
+.panel { border: 1px solid var(--line); border-radius: 12px; background: var(--card); padding: 16px; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; }
+.panel-actions { display: flex; gap: 8px; }
+.panel-head h2 { margin: 0; font-size: 16px; }
+.panel pre {
+  white-space: pre-wrap; word-break: break-word; background: #1c1917; color: #f5f5f4;
+  padding: 16px; border-radius: 8px; font-size: 13px; line-height: 1.7; margin: 12px 0 0;
+}
+
+/* modal */
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px;
+}
+.modal-card { background: #fff; border-radius: 12px; padding: 22px; width: min(480px, 100%); }
+.modal-card h2 { margin: 0 0 14px; font-size: 18px; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+  background: var(--ok); color: #fff; padding: 12px 20px; border-radius: 999px;
+  font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,.2); z-index: 60; max-width: 90vw;
+}
+.toast.error { background: var(--err); }
+
+.hidden { display: none !important; }

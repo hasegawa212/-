@@ -28,6 +28,8 @@ export interface AppraisalResult {
 
 export type PropertyType = "house" | "land" | "apartment";
 export type Structure = "wood" | "steel" | "rc";
+/** 内装グレード（建物価値の補正に使用） */
+export type Grade = "standard" | "high" | "luxury";
 
 export interface RealEstateInput {
   propertyType: PropertyType;
@@ -43,6 +45,10 @@ export interface RealEstateInput {
   structure: Structure;
   /** 最寄駅まで徒歩（分） */
   walkMinutes: number;
+  /** リフォーム/リノベーション済みか（建物価値を加点）。任意 */
+  renovated?: boolean;
+  /** 内装グレード（建物価値を補正）。任意・既定は standard */
+  grade?: Grade;
 }
 
 // ───────────────────────── 自動車 ─────────────────────────
@@ -62,4 +68,6 @@ export interface CarInput {
   repairHistory: boolean;
   /** 車検残（月） */
   inspectionMonthsLeft: number;
+  /** 車種別リセール補正（人気・球数による値持ち）。任意・既定1.0 */
+  resaleFactor?: number;
 }

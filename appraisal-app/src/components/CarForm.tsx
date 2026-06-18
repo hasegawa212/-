@@ -22,14 +22,18 @@ export function CarForm({ onResult }: Props) {
   const [mileageKm, setMileageKm] = useState("50000");
   const [repairHistory, setRepairHistory] = useState(false);
   const [inspectionMonthsLeft, setInspectionMonthsLeft] = useState("12");
+  const [resaleFactor, setResaleFactor] = useState(CAR_MODELS[0].resaleFactor);
 
-  /** 車種プリセットを選ぶと新車価格・メーカーを自動補完 */
+  /** 車種プリセットを選ぶと新車価格・メーカー・リセール補正を自動補完 */
   function handleModelChange(value: string) {
     setModelIndex(value);
     const idx = Number(value);
     if (idx >= 0 && CAR_MODELS[idx]) {
       setNewPrice(String(CAR_MODELS[idx].newPrice));
       setMaker(CAR_MODELS[idx].maker);
+      setResaleFactor(CAR_MODELS[idx].resaleFactor);
+    } else {
+      setResaleFactor(1); // 手入力は標準
     }
   }
 
@@ -44,12 +48,13 @@ export function CarForm({ onResult }: Props) {
         maker,
         repairHistory,
         inspectionMonthsLeft: Number(inspectionMonthsLeft) || 0,
+        resaleFactor,
       })
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-brand-200/60 bg-white p-6 shadow-card">
       <Field label="車種（プリセット）" htmlFor="car-model" hint="選ぶと新車価格とメーカーが自動入力されます。">
         <Select id="car-model" value={modelIndex} onChange={(e) => handleModelChange(e.target.value)}>
           <option value="-1">手入力する</option>
@@ -129,7 +134,7 @@ export function CarForm({ onResult }: Props) {
 
       <button
         type="submit"
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700"
+        className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-brand-600 to-brand-700 px-4 py-2.5 text-sm font-semibold text-cream shadow-luxe ring-1 ring-gold-400/30 transition hover:from-brand-700 hover:to-brand-800"
       >
         <Calculator className="h-4 w-4" />
         査定する
