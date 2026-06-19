@@ -1,0 +1,51 @@
+name: Deploy construction-book to Netlify
+
+# construction-book（施工記録ブック作成ツール／静的・ビルド不要）を
+# Netlify サイト「construction-book-martialarts」へ自動公開する。
+# 必要なシークレット（リポジトリ Settings → Secrets and variables → Actions）:
+#   NETLIFY_AUTH_TOKEN … Netlify の Personal access token（User settings → Applications）
+#   ※ 同リポジトリの appraisal-app デプロイと同じシークレットを共用。
+# サイトIDは公開情報なので env に直書き（必要なら NETLIFY_SITE_ID シークレットで上書き）。
+# NETLIFY_AUTH_TOKEN が未設定の場合はデプロイをスキップ（ジョブは成功扱い）。
+
+on:
+  push:
+    branches: [main, claude/construction-book-xkxvhg]
+    paths:
+      - "construction-book/**"
+      - ".github/workflows/deploy-construction-book.yml"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: construction-book
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Netlify auth
+        id: netlify-auth
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        run: |
+          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::NETLIFY_AUTH_TOKEN is not configured; skipping Netlify deploy."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Netlify
+        if: steps.netlify-auth.outputs.configured == 'true'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_CONSTRUCTION_SITE_ID || 'c134ad32-356e-4110-9764-c43998bae7ac' }}
+        run: |
+          npx --yes netlify-cli@17 deploy \
+            --prod \
+            --dir=. \
+            --site="$NETLIFY_SITE_ID" \
+            --auth="$NETLIFY_AUTH_TOKEN" \
+            --message "CI deploy ${{ github.sha }}"
