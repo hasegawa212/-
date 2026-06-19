@@ -10,7 +10,7 @@ name: Deploy construction-book to Netlify
 
 on:
   push:
-    branches: [main, claude/construction-book-xkxvhg]
+    branches: [main]
     paths:
       - "construction-book/**"
       - ".github/workflows/deploy-construction-book.yml"
