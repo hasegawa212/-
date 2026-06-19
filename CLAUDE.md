@@ -15,6 +15,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── ultimate-ai-agent/        # Full-stack TS monorepo (React + Express + tRPC + SQLite)
 ├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
 ├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
+├── construction-book/        # Zero-dep single-HTML 施工記録ブック (construction record book) builder for 株式会社 Martial Arts → A4 print/PDF, localStorage (JP UI)
 ├── japan-mgmt-line-bot/      # Node + Express LINE Messaging API webhook: rule-based FAQ bot for 株式会社ジャパンマネジメント (JP UI, no AI)
 ├── financial-literacy-line-bot/ # Node + Express LINE webhook: rule-based 金融リテラシー FAQ bot for 株式会社ジャパンマネジメント (follows fp repo topics, JP UI, no AI)
 ├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
@@ -80,6 +81,15 @@ Zero-dependency vanilla-JS console (ES Modules, no build step — like `claude-c
 - **`fields.js` is the single source of truth** mapping each input ↔ sheet column (`col`). The 7 form sections mirror the Slack 「反響顧客ヒアリングサマリー」 headings. The sheet is fixed at 53 columns (A–BA, headers on row 25), so the 4 qualitative fields with no dedicated column (エリア理由/絶対条件/希望条件/将来像) carry a `mergeInto: 'AY'` instead and are folded into 備考(AY) as `【ラベル】値` at save time — the sheet is never structurally widened.
 - Writes go through `apps-script/Code.gs` (Google Apps Script Web App, `doPost`): it ensures the row-25 headers, finds the next empty data row (≥26, keyed on お客様名/E), and writes each value by column letter; `保存日時`(AZ) + `閲覧URL`(BA) are auto-set. The browser POSTs as `text/plain` to avoid CORS preflight. The Web App URL is configured in the console's ⚙︎ 設定 (stored in localStorage).
 - If you change `FIELDS`, also update `HEADERS` in `Code.gs` and the spreadsheet's row-25 headers. No tests/lint/build. See `echo-interview-console/README.md` (Japanese) for deploy steps.
+
+### `construction-book/` — 施工記録ブック作成ツール (construction record book builder)
+Zero-dependency single-file vanilla-JS app (no build step — like `echo-interview-console`/`claude-clone`) for 株式会社 Martial Arts (不動産・建設). The operator fills a form (表紙・物件情報 → 工事概要 → 施工工程 → 完了報告 → 会社情報) and the right pane renders a **print/PDF-ready A4 「施工記録ブック」** to hand to the customer.
+
+- Run: `cd construction-book && python3 -m http.server 5181` → http://localhost:5181 (no install/build); opening `index.html` directly also works (fully client-side).
+- **Everything lives in `construction-book/index.html`** (markup + CSS + JS in one file). Two-pane editor/live-preview; output is one A4 `.page` per section via `@media print` (A4 = 794×1123px @96dpi). Export = browser print dialog → "Save as PDF".
+- Data persists to **localStorage** only (no backend): books under `martialarts_construction_books_v1`, active id under `martialarts_construction_active_v1`. Multiple books are managed via the 一覧 modal; autosave is debounced.
+- 施工工程 pages are repeatable; each holds 工程名/実施日/説明 + multiple photos with a 施工前/施工中/施工後 label (`TAGS`) and caption. **Photos are downscaled to max 1280px JPEG (q0.78) via canvas in `compressImage()` before storage** to avoid blowing the ~5MB localStorage quota.
+- No tests/lint/build. See `construction-book/README.md` (Japanese) for usage and customization (TAGS, default company info, image-compression knobs).
 
 ### `japan-mgmt-line-bot/` — ジャパンマネジメント FAQ LINE ボット
 Node + Express ES Modules app (dependency: `express` only; Node 18+ global `fetch`) implementing a **rule-based FAQ LINE bot** for 株式会社ジャパンマネジメント (http://japan-mgmt.co.jp/, factoring / 資金調達 / コンサル). No AI/LLM — fixed keyword→answer rules only. Same build as `Chat-Bridge`'s LINE webhook: Express + `/webhook` route + `X-Line-Signature` (HMAC-SHA256) verification + LINE reply API.
