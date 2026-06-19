@@ -352,8 +352,16 @@ function newBook(){
 }
 function newProcess(){ return { id:uid(), name:'', date:'', desc:'', photos:[] }; }
 
-function loadAll(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }catch{ return []; } }
-function saveAll(list){ localStorage.setItem(STORE_KEY, JSON.stringify(list)); }
+/* Safe storage: localStorage が使えない環境（file:// で直接開く・プライベート
+   ブラウズ・Cookieブロック・サンドボックス内プレビュー等では SecurityError を
+   投げる）でもアプリが落ちないよう、メモリへフォールバックする。 */
+const _mem = {};
+let storageAvailable = true;
+function lsGet(k){ try{ return localStorage.getItem(k); }catch{ storageAvailable=false; return (k in _mem)?_mem[k]:null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ if(e&&e.name==='QuotaExceededError'){ _mem[k]=v; throw e; } storageAvailable=false; _mem[k]=v; } }
+
+function loadAll(){ try{ return JSON.parse(lsGet(STORE_KEY)) || []; }catch{ return []; } }
+function saveAll(list){ lsSet(STORE_KEY, JSON.stringify(list)); }
 
 let book;   // current working book
 let openSections = { cover:true, overview:false, processes:false, completion:false, company:false };
@@ -367,8 +375,12 @@ function persist(){
   if (i>=0) list[i]=book; else list.push(book);
   try{
     saveAll(list);
-    localStorage.setItem(ACTIVE_KEY, book.id);
-    $('#saveState').textContent = '保存済 '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    lsSet(ACTIVE_KEY, book.id);
+    if (storageAvailable){
+      $('#saveState').textContent = '保存済 '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    } else {
+      $('#saveState').textContent = '一時保存（端末未保存）';
+    }
   }catch(e){
     $('#saveState').textContent = '保存失敗';
     toast('保存容量の上限に達した可能性があります。写真を減らしてください。');
@@ -699,7 +711,7 @@ function loadBook(id){
   const b = loadAll().find(x=>x.id===id);
   if (!b) return;
   book = b;
-  localStorage.setItem(ACTIVE_KEY, id);
+  lsSet(ACTIVE_KEY, id);
   renderEditor(); renderPreview();
   $('#saveState').textContent='読み込み完了';
   toast('ブックを開きました', true);
@@ -733,11 +745,15 @@ $('#mobile-toggle').addEventListener('click', ()=>{
 /* boot */
 (function boot(){
   const all = loadAll();
-  const activeId = localStorage.getItem(ACTIVE_KEY);
+  const activeId = lsGet(ACTIVE_KEY);
   const found = activeId && all.find(b=>b.id===activeId);
   book = found || all[0] || newBook();
   if (!found && all.length===0) persist();
   renderEditor(); renderPreview();
+  if (!storageAvailable){
+    $('#saveState').textContent = '端末保存オフ';
+    setTimeout(()=>toast('この環境では保存が無効です。編集は可能ですが、印刷/PDFで保存してください。'), 600);
+  }
 })();
 </script>
 </body>
