@@ -216,8 +216,10 @@ textarea{ resize:vertical; }
 @media print{
   @page{ size:A4; margin:0; }
   #topbar, #editor-pane, .toast, .modal-bg, .page-no-screen{ display:none !important; }
-  #work{ display:block; }
-  #preview-pane{ overflow:visible; max-height:none; background:#fff; padding:0; }
+  #work{ display:block !important; }
+  /* 狭い画面の @media(max-width:980px) で preview が display:none になるのを必ず打ち消す */
+  #preview-pane{ display:block !important; overflow:visible; max-height:none; background:#fff; padding:0; }
+  #work.show-preview #editor-pane{ display:none !important; }
   #book{ width:auto; }
   .page{ width:210mm; min-height:297mm; margin:0; box-shadow:none; page-break-after:always; }
   .page:last-child{ page-break-after:auto; }
