@@ -7,11 +7,10 @@ name: Deploy construction-book to Netlify
 #   ※ 同リポジトリの appraisal-app デプロイと同じシークレットを共用。
 # サイトIDは公開情報なので env に直書き（必要なら NETLIFY_SITE_ID シークレットで上書き）。
 # NETLIFY_AUTH_TOKEN が未設定の場合はデプロイをスキップ（ジョブは成功扱い）。
-# （NETLIFY_AUTH_TOKEN 更新後の再デプロイ用トリガー）
 
 on:
   push:
-    branches: [main, claude/construction-book-xkxvhg]
+    branches: [main]
     paths:
       - "construction-book/**"
       - ".github/workflows/deploy-construction-book.yml"
