@@ -1,0 +1,39 @@
+name: Deploy construction-book to GitHub Pages
+
+# construction-book（静的・単一HTML）を GitHub Pages へ公開する。
+# Netlify トークンに依存しない（GITHUB_TOKEN のみ使用）。
+# 公開URL: https://hasegawa212.github.io/-/
+# 公開ディレクトリは construction-book/ のみをアーティファクトとして配置するため、
+# サイトのルートが construction-book/index.html になる。
+
+on:
+  push:
+    branches: [main, claude/construction-book-xkxvhg]
+    paths:
+      - "construction-book/**"
+      - ".github/workflows/pages-construction-book.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: construction-book
+      - id: deployment
+        uses: actions/deploy-pages@v4
