@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>施工記録ブック作成ツール — 株式会社 Martial Arts</title>
+<style>
+/* ─────────── Reset / tokens ─────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root{
+  --gold:#C9A84C; --gold-lt:#F5EDD4; --gold-dk:#9A7A30;
+  --red:#8B1A1A; --dark:#111; --dark2:#1E1E1E; --dark3:#2A2A2A;
+  --mid:#6B6B6B; --line:#E2DCD0; --light:#F7F4EF; --white:#fff;
+  --font-en:'Helvetica Neue','Arial',sans-serif;
+  --font-ja:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-serif;
+  --shadow:0 6px 24px rgba(0,0,0,.12);
+}
+html{ -webkit-text-size-adjust:100%; }
+body{ font-family:var(--font-ja); color:var(--dark); background:var(--light); -webkit-font-smoothing:antialiased; }
+button,input,textarea,select{ font-family:inherit; font-size:inherit; color:inherit; }
+button{ cursor:pointer; border:none; background:none; }
+textarea{ resize:vertical; }
+
+/* ─────────── App chrome ─────────── */
+#app{ display:flex; flex-direction:column; min-height:100vh; }
+
+#topbar{
+  position:sticky; top:0; z-index:100; display:flex; align-items:center; gap:16px;
+  height:58px; padding:0 18px; background:rgba(14,14,14,.95);
+  backdrop-filter:blur(12px); border-bottom:1px solid rgba(201,168,76,.28);
+}
+.brand{ display:flex; align-items:center; gap:11px; }
+.brand svg{ width:30px; height:30px; }
+.brand-txt{ line-height:1.15; }
+.brand-main{ font-family:var(--font-en); font-size:13px; font-weight:700; letter-spacing:.13em; color:#fff; text-transform:uppercase; }
+.brand-sub{ font-size:10px; letter-spacing:.18em; color:var(--gold); }
+.tool-name{ color:rgba(255,255,255,.55); font-size:12px; letter-spacing:.08em; border-left:1px solid rgba(255,255,255,.18); padding-left:16px; }
+.spacer{ flex:1; }
+
+.tbtn{
+  display:inline-flex; align-items:center; gap:7px; height:36px; padding:0 15px;
+  border-radius:3px; font-size:12.5px; letter-spacing:.04em; color:#eee;
+  border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.05); transition:.15s;
+}
+.tbtn:hover{ background:rgba(255,255,255,.12); }
+.tbtn svg{ width:15px; height:15px; }
+.tbtn.gold{ background:var(--gold); color:#1a1a1a; border-color:var(--gold); font-weight:700; }
+.tbtn.gold:hover{ background:#d8b95e; }
+.save-state{ font-size:11px; color:rgba(255,255,255,.4); min-width:64px; }
+
+/* ─────────── Workspace ─────────── */
+#work{ display:grid; grid-template-columns:minmax(340px,420px) 1fr; flex:1; min-height:0; }
+@media (max-width:980px){ #work{ grid-template-columns:1fr; } #preview-pane{ display:none; } #work.show-preview #editor-pane{ display:none; } #work.show-preview #preview-pane{ display:block; } }
+
+#editor-pane{ overflow-y:auto; max-height:calc(100vh - 58px); border-right:1px solid var(--line); background:var(--white); }
+#preview-pane{ overflow-y:auto; max-height:calc(100vh - 58px); background:#54514b; padding:26px 0; }
+
+/* ─────────── Editor ─────────── */
+.ed-sec{ border-bottom:1px solid var(--line); }
+.ed-head{
+  display:flex; align-items:center; gap:9px; width:100%; padding:14px 18px;
+  background:var(--light); font-size:13px; font-weight:700; letter-spacing:.05em; color:#333; text-align:left;
+}
+.ed-head .num{ display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--gold); color:#1a1a1a; font-size:11px; font-weight:700; }
+.ed-head .chev{ margin-left:auto; transition:transform .2s; color:var(--mid); }
+.ed-sec.open .ed-head .chev{ transform:rotate(90deg); }
+.ed-body{ display:none; padding:16px 18px 22px; }
+.ed-sec.open .ed-body{ display:block; }
+
+.fld{ margin-bottom:13px; }
+.fld:last-child{ margin-bottom:0; }
+.fld label{ display:block; font-size:11.5px; font-weight:600; color:#555; margin-bottom:5px; letter-spacing:.03em; }
+.fld input[type=text], .fld input[type=date], .fld textarea, .fld select{
+  width:100%; padding:9px 11px; border:1px solid var(--line); border-radius:4px;
+  background:#fcfbf8; font-size:13px; transition:.15s;
+}
+.fld input:focus, .fld textarea:focus, .fld select:focus{ outline:none; border-color:var(--gold); background:#fff; box-shadow:0 0 0 3px rgba(201,168,76,.15); }
+.fld textarea{ min-height:74px; line-height:1.6; }
+.row2{ display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+.hint{ font-size:10.5px; color:var(--mid); margin-top:4px; line-height:1.5; }
+
+/* process cards in editor */
+.proc-card{ border:1px solid var(--line); border-radius:6px; margin-bottom:14px; overflow:hidden; }
+.proc-card-head{ display:flex; align-items:center; gap:8px; padding:9px 11px; background:#f4f0e8; }
+.proc-card-head .pc-title{ font-size:12px; font-weight:700; color:#444; flex:1; }
+.proc-card-head .grip{ color:var(--mid); font-size:11px; }
+.icon-btn{ display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:4px; color:var(--mid); transition:.15s; }
+.icon-btn:hover{ background:rgba(0,0,0,.07); color:#333; }
+.icon-btn.danger:hover{ background:rgba(139,26,26,.1); color:var(--red); }
+.icon-btn svg{ width:15px; height:15px; }
+.proc-card-body{ padding:12px 11px; }
+
+/* photo editor grid */
+.photos{ display:grid; grid-template-columns:repeat(2,1fr); gap:9px; margin-top:6px; }
+.photo-item{ border:1px solid var(--line); border-radius:5px; overflow:hidden; background:#faf8f4; }
+.photo-item img{ width:100%; height:84px; object-fit:cover; display:block; background:#eee; }
+.photo-item .pi-foot{ padding:6px; }
+.photo-item .pi-foot input{ width:100%; padding:5px 7px; border:1px solid var(--line); border-radius:3px; font-size:11px; background:#fff; }
+.photo-item .pi-bar{ display:flex; align-items:center; gap:4px; margin-top:5px; }
+.tag-sel{ flex:1; font-size:10.5px !important; padding:4px 5px !important; }
+.add-photo{
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px;
+  min-height:120px; border:1.5px dashed var(--line); border-radius:5px; color:var(--mid);
+  font-size:11px; transition:.15s; background:#fcfbf8;
+}
+.add-photo:hover{ border-color:var(--gold); color:var(--gold-dk); background:var(--gold-lt); }
+.add-photo svg{ width:22px; height:22px; }
+
+.add-proc{
+  display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:12px;
+  border:1.5px dashed var(--gold); border-radius:6px; color:var(--gold-dk); font-size:12.5px; font-weight:700; background:var(--gold-lt); transition:.15s;
+}
+.add-proc:hover{ background:#f0e4bf; }
+
+/* mobile preview toggle */
+#mobile-toggle{ display:none; }
+@media (max-width:980px){
+  #mobile-toggle{ display:inline-flex; }
+  .tool-name{ display:none; }
+}
+
+/* ─────────── Preview (the BOOK) ─────────── */
+#book{ margin:0 auto; }
+.page{
+  width:794px; min-height:1123px; /* A4 @96dpi */
+  margin:0 auto 26px; background:#fff; box-shadow:var(--shadow);
+  padding:0; position:relative; overflow:hidden; color:#1a1a1a;
+}
+.page-pad{ padding:54px 60px 64px; }
+
+/* cover */
+.cover{ display:flex; flex-direction:column; background:linear-gradient(160deg,#141414 0%,#1f1f1f 60%,#0e0e0e 100%); color:#fff; }
+.cover-top{ padding:48px 60px 0; display:flex; align-items:center; gap:14px; }
+.cover-top svg{ width:40px; height:40px; }
+.cover-brand-main{ font-family:var(--font-en); font-size:17px; font-weight:700; letter-spacing:.16em; }
+.cover-brand-sub{ font-size:10.5px; letter-spacing:.26em; color:var(--gold); margin-top:2px; }
+.cover-mid{ flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 60px; }
+.cover-kicker{ font-size:13px; letter-spacing:.5em; color:var(--gold); margin-bottom:18px; }
+.cover-title{ font-size:42px; font-weight:800; line-height:1.3; letter-spacing:.02em; }
+.cover-subtitle{ font-size:16px; color:rgba(255,255,255,.7); margin-top:14px; letter-spacing:.04em; }
+.cover-rule{ width:64px; height:3px; background:var(--gold); margin:30px 0; }
+.cover-meta{ display:grid; grid-template-columns:auto 1fr; gap:11px 22px; font-size:14px; }
+.cover-meta dt{ color:var(--gold); letter-spacing:.08em; white-space:nowrap; }
+.cover-meta dd{ color:#f0f0f0; }
+.cover-bottom{ padding:0 60px 50px; border-top:1px solid rgba(201,168,76,.25); margin-top:34px; padding-top:24px; display:flex; justify-content:space-between; align-items:flex-end; }
+.cover-company{ font-size:13px; line-height:1.7; color:rgba(255,255,255,.78); }
+.cover-company strong{ color:#fff; font-size:14px; letter-spacing:.05em; }
+.cover-stamp{ text-align:right; font-size:10.5px; color:rgba(255,255,255,.45); letter-spacing:.1em; }
+
+/* generic section header inside pages */
+.sec-mark{ display:flex; align-items:center; gap:13px; margin-bottom:26px; }
+.sec-mark .bar{ width:5px; height:30px; background:var(--gold); border-radius:1px; }
+.sec-mark .ttl{ font-size:23px; font-weight:800; letter-spacing:.04em; }
+.sec-mark .en{ font-family:var(--font-en); font-size:11px; letter-spacing:.3em; color:var(--gold-dk); text-transform:uppercase; margin-top:3px; }
+.page-no{ position:absolute; bottom:26px; right:60px; font-size:11px; color:#aaa; letter-spacing:.1em; }
+.page-foot-brand{ position:absolute; bottom:26px; left:60px; font-size:10px; color:#bbb; letter-spacing:.14em; font-family:var(--font-en); }
+
+/* overview */
+.ov-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+.ov-cell{ border:1px solid var(--line); border-radius:6px; padding:15px 17px; }
+.ov-cell .k{ font-size:11px; color:var(--gold-dk); letter-spacing:.1em; margin-bottom:6px; }
+.ov-cell .v{ font-size:15px; font-weight:600; }
+.ov-body{ font-size:13.5px; line-height:2; white-space:pre-wrap; color:#333; }
+
+/* process page */
+.proc-head{ display:flex; align-items:baseline; gap:14px; margin-bottom:6px; }
+.proc-step-no{ display:inline-flex; align-items:center; justify-content:center; min-width:38px; height:38px; padding:0 9px; border-radius:5px; background:var(--dark); color:var(--gold); font-family:var(--font-en); font-weight:700; font-size:15px; }
+.proc-name{ font-size:21px; font-weight:800; }
+.proc-date{ margin-left:auto; font-size:12.5px; color:var(--mid); }
+.proc-desc{ font-size:13px; line-height:1.95; color:#333; white-space:pre-wrap; margin:14px 0 22px; padding-left:52px; }
+.proc-photos{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.bp-photos{ grid-template-columns:1fr 1fr; }
+.pphoto{ border:1px solid var(--line); border-radius:6px; overflow:hidden; background:#f6f4ef; }
+.pphoto .ph-tag{ position:absolute; top:9px; left:9px; padding:3px 11px; border-radius:3px; font-size:11px; font-weight:700; letter-spacing:.05em; color:#fff; }
+.pphoto .ph-wrap{ position:relative; }
+.pphoto img{ width:100%; height:215px; object-fit:cover; display:block; }
+.pphoto .ph-cap{ padding:9px 12px; font-size:12px; color:#444; line-height:1.5; border-top:1px solid var(--line); min-height:20px; }
+.tag-before{ background:#6B5A52; } .tag-after{ background:var(--gold-dk); } .tag-during{ background:#4A7BB8; } .tag-none{ background:#888; }
+.proc-empty{ padding:40px; text-align:center; color:#bbb; border:1.5px dashed var(--line); border-radius:8px; font-size:13px; }
+
+/* completion */
+.comp-msg{ font-size:14px; line-height:2.1; color:#2a2a2a; white-space:pre-wrap; background:var(--gold-lt); border-left:4px solid var(--gold); border-radius:0 6px 6px 0; padding:22px 26px; margin-bottom:34px; }
+.comp-grid{ display:grid; grid-template-columns:1fr 1fr; gap:22px; margin-top:8px; }
+.sign-box{ border:1px solid var(--line); border-radius:6px; padding:18px 20px; min-height:120px; }
+.sign-box .sb-k{ font-size:11px; color:var(--gold-dk); letter-spacing:.1em; margin-bottom:auto; }
+.sign-box .sb-v{ font-size:16px; font-weight:600; margin-top:14px; }
+.sign-line{ border-bottom:1px solid #bbb; height:40px; margin-top:16px; }
+.thanks{ text-align:center; margin-top:50px; padding-top:30px; border-top:1px solid var(--line); }
+.thanks .tk-en{ font-family:var(--font-en); font-size:12px; letter-spacing:.4em; color:var(--gold-dk); }
+.thanks .tk-ja{ font-size:18px; font-weight:700; margin-top:10px; letter-spacing:.1em; }
+
+.empty-photo-note{ text-align:center; color:#c4c4c4; font-size:12px; padding:30px 0; }
+
+/* dialog (book list) */
+.modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300; display:none; align-items:center; justify-content:center; padding:20px; }
+.modal-bg.open{ display:flex; }
+.modal{ width:100%; max-width:520px; max-height:80vh; overflow-y:auto; background:#fff; border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,.4); }
+.modal-head{ display:flex; align-items:center; padding:18px 22px; border-bottom:1px solid var(--line); }
+.modal-head h3{ font-size:15px; letter-spacing:.05em; }
+.modal-head .x{ margin-left:auto; color:var(--mid); width:30px; height:30px; border-radius:5px; display:inline-flex; align-items:center; justify-content:center; }
+.modal-head .x:hover{ background:#eee; }
+.modal-body{ padding:14px 22px 22px; }
+.book-row{ display:flex; align-items:center; gap:12px; padding:13px 14px; border:1px solid var(--line); border-radius:7px; margin-bottom:9px; transition:.15s; }
+.book-row:hover{ border-color:var(--gold); background:var(--gold-lt); }
+.book-row .br-main{ flex:1; min-width:0; }
+.book-row .br-title{ font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.book-row .br-meta{ font-size:11px; color:var(--mid); margin-top:3px; }
+.book-row.active{ border-color:var(--gold); background:var(--gold-lt); }
+.br-open{ font-size:11.5px; color:var(--gold-dk); font-weight:700; padding:6px 12px; border:1px solid var(--gold); border-radius:4px; }
+
+.toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a1a; color:#fff; padding:11px 22px; border-radius:6px; font-size:13px; letter-spacing:.03em; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:.25s; z-index:400; }
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+.toast.gold{ border-left:3px solid var(--gold); }
+
+/* ─────────── Print ─────────── */
+@media print{
+  @page{ size:A4; margin:0; }
+  #topbar, #editor-pane, .toast, .modal-bg, .page-no-screen{ display:none !important; }
+  #work{ display:block !important; }
+  /* 狭い画面の @media(max-width:980px) で preview が display:none になるのを必ず打ち消す */
+  #preview-pane{ display:block !important; overflow:visible; max-height:none; background:#fff; padding:0; }
+  #work.show-preview #editor-pane{ display:none !important; }
+  #book{ width:auto; }
+  .page{ width:210mm; min-height:297mm; margin:0; box-shadow:none; page-break-after:always; }
+  .page:last-child{ page-break-after:auto; }
+  body{ background:#fff; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ───── Top bar ───── -->
+  <header id="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 3 L34 11 V29 L20 37 L6 29 V11 Z" stroke="#C9A84C" stroke-width="1.6"/>
+        <path d="M20 11 L27 15 V23 L20 27 L13 23 V15 Z" fill="#C9A84C" opacity="0.85"/>
+      </svg>
+      <div class="brand-txt">
+        <div class="brand-main">Martial Arts</div>
+        <div class="brand-sub">REAL ESTATE &amp; CONSTRUCTION</div>
+      </div>
+    </div>
+    <span class="tool-name">施工記録ブック作成ツール</span>
+    <div class="spacer"></div>
+    <span class="save-state" id="saveState">—</span>
+    <button class="tbtn" id="btnNew" title="新規ブック">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>新規
+    </button>
+    <button class="tbtn" id="btnList" title="ブック一覧">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>一覧
+    </button>
+    <button class="tbtn" id="mobile-toggle">プレビュー</button>
+    <button class="tbtn gold" id="btnPrint" title="印刷 / PDF出力">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v8H6z"/></svg>印刷 / PDF
+    </button>
+  </header>
+
+  <!-- ───── Workspace ───── -->
+  <div id="work">
+    <!-- Editor -->
+    <section id="editor-pane"></section>
+    <!-- Preview -->
+    <section id="preview-pane">
+      <div id="book"></div>
+    </section>
+  </div>
+</div>
+
+<!-- Book list modal -->
+<div class="modal-bg" id="listModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>保存済みの施工記録ブック</h3>
+      <button class="x" id="listClose">✕</button>
+    </div>
+    <div class="modal-body" id="listBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ════════════════ 施工記録ブック作成ツール ════════════════
+   ゼロ依存・単一HTML。データは localStorage に保存。
+   画像はアップロード時に canvas でリサイズ/圧縮して保存。 */
+
+const STORE_KEY = 'martialarts_construction_books_v1';
+const ACTIVE_KEY = 'martialarts_construction_active_v1';
+const TAGS = [
+  { v:'none',   label:'（ラベルなし）' },
+  { v:'before', label:'施工前 BEFORE' },
+  { v:'during', label:'施工中 DURING' },
+  { v:'after',  label:'施工後 AFTER' },
+];
+
+/* ---------- utilities ---------- */
+const $ = (s, r=document) => r.querySelector(s);
+const el = (t, props={}, kids=[]) => {
+  const n = document.createElement(t);
+  for (const [k,v] of Object.entries(props)){
+    if (k==='class') n.className=v;
+    else if (k==='html') n.innerHTML=v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (v!=null) n.setAttribute(k, v);
+  }
+  (Array.isArray(kids)?kids:[kids]).forEach(c=>{ if(c==null)return; n.appendChild(typeof c==='string'?document.createTextNode(c):c); });
+  return n;
+};
+const uid = () => Math.random().toString(36).slice(2,9);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate = iso => { if(!iso) return ''; const [y,m,d]=iso.split('-'); return `${y}年${+m}月${+d}日`; };
+
+let toastTimer;
+function toast(msg, gold=false){
+  const t = $('#toast'); t.textContent = msg;
+  t.classList.toggle('gold', gold); t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* image compression: max edge 1280px, JPEG q0.78 */
+function compressImage(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const MAX = 1280;
+        let { width:w, height:h } = img;
+        if (w>MAX || h>MAX){ const r=Math.min(MAX/w, MAX/h); w=Math.round(w*r); h=Math.round(h*r); }
+        const c = el('canvas'); c.width=w; c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(c.toDataURL('image/jpeg', 0.78));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- data model ---------- */
+function newBook(){
+  return {
+    id: uid(), updatedAt: Date.now(),
+    cover: { title:'', subtitle:'', customer:'', type:'', address:'', startDate:'', endDate:'', manager:'' },
+    overview: { area:'', structure:'', content:'' },
+    processes: [],
+    completion: { comment:'', handoverDate:'', warranty:'' },
+    company: { name:'株式会社 Martial Arts', dept:'建設事業部', tel:'', address:'', site:'' },
+  };
+}
+function newProcess(){ return { id:uid(), name:'', date:'', desc:'', photos:[] }; }
+
+/* Safe storage: localStorage が使えない環境（file:// で直接開く・プライベート
+   ブラウズ・Cookieブロック・サンドボックス内プレビュー等では SecurityError を
+   投げる）でもアプリが落ちないよう、メモリへフォールバックする。 */
+const _mem = {};
+let storageAvailable = true;
+function lsGet(k){ try{ return localStorage.getItem(k); }catch{ storageAvailable=false; return (k in _mem)?_mem[k]:null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){ if(e&&e.name==='QuotaExceededError'){ _mem[k]=v; throw e; } storageAvailable=false; _mem[k]=v; } }
+
+function loadAll(){ try{ return JSON.parse(lsGet(STORE_KEY)) || []; }catch{ return []; } }
+function saveAll(list){ lsSet(STORE_KEY, JSON.stringify(list)); }
+
+let book;   // current working book
+let openSections = { cover:true, overview:false, processes:false, completion:false, company:false };
+
+/* ---------- persistence ---------- */
+let saveDebounce;
+function persist(){
+  book.updatedAt = Date.now();
+  const list = loadAll();
+  const i = list.findIndex(b=>b.id===book.id);
+  if (i>=0) list[i]=book; else list.push(book);
+  try{
+    saveAll(list);
+    lsSet(ACTIVE_KEY, book.id);
+    if (storageAvailable){
+      $('#saveState').textContent = '保存済 '+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    } else {
+      $('#saveState').textContent = '一時保存（端末未保存）';
+    }
+  }catch(e){
+    $('#saveState').textContent = '保存失敗';
+    toast('保存容量の上限に達した可能性があります。写真を減らしてください。');
+  }
+}
+function scheduleSave(){
+  $('#saveState').textContent = '入力中…';
+  clearTimeout(saveDebounce); saveDebounce = setTimeout(persist, 600);
+}
+
+/* update helper: mutate book then re-render preview (+optionally editor) */
+function update(fn, rerenderEditor=false){
+  fn();
+  renderPreview();
+  if (rerenderEditor) renderEditor();
+  scheduleSave();
+}
+
+/* ════════════════ EDITOR ════════════════ */
+function field(label, value, oninput, opts={}){
+  const id = 'f_'+uid();
+  let inp;
+  if (opts.type==='textarea'){
+    inp = el('textarea', { id, placeholder:opts.ph||'' });
+    inp.value = value||'';
+  } else {
+    inp = el('input', { id, type:opts.type||'text', placeholder:opts.ph||'' });
+    inp.value = value||'';
+  }
+  inp.addEventListener('input', e=>oninput(e.target.value));
+  const wrap = el('div', { class:'fld' }, [ el('label',{for:id},label), inp ]);
+  if (opts.hint) wrap.appendChild(el('div',{class:'hint'},opts.hint));
+  return wrap;
+}
+
+function edSection(key, num, title, bodyNodes){
+  const head = el('button', { class:'ed-head', onClick:()=>{ openSections[key]=!openSections[key]; renderEditor(); } }, [
+    el('span',{class:'num'},String(num)), title,
+    el('span',{class:'chev',html:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>'}),
+  ]);
+  const body = el('div', { class:'ed-body' }, bodyNodes);
+  return el('section', { class:'ed-sec'+(openSections[key]?' open':'') }, [head, body]);
+}
+
+function renderEditor(){
+  const pane = $('#editor-pane');
+  pane.innerHTML='';
+  const c = book.cover, ov = book.overview, co = book.completion, cm = book.company;
+
+  /* 1. 表紙 */
+  pane.appendChild(edSection('cover',1,'表紙・物件情報',[
+    field('ブックタイトル', c.title, v=>update(()=>c.title=v), { ph:'例）○○様邸 新築工事 施工記録' }),
+    field('サブタイトル', c.subtitle, v=>update(()=>c.subtitle=v), { ph:'例）木造2階建て / 自社設計・自社施工' }),
+    el('div',{class:'row2'},[
+      field('お客様名', c.customer, v=>update(()=>c.customer=v), { ph:'例）山田 太郎' }),
+      field('工事種別', c.type, v=>update(()=>c.type=v), { ph:'例）新築・リフォーム' }),
+    ]),
+    field('施工場所（住所）', c.address, v=>update(()=>c.address=v), { ph:'例）茨城県つくば市…' }),
+    el('div',{class:'row2'},[
+      field('着工日', c.startDate, v=>update(()=>c.startDate=v), { type:'date' }),
+      field('完了日', c.endDate, v=>update(()=>c.endDate=v), { type:'date' }),
+    ]),
+    field('現場担当者', c.manager, v=>update(()=>c.manager=v), { ph:'例）佐藤 一郎' }),
+  ]));
+
+  /* 2. 工事概要 */
+  pane.appendChild(edSection('overview',2,'工事概要',[
+    el('div',{class:'row2'},[
+      field('延床面積 / 規模', ov.area, v=>update(()=>ov.area=v), { ph:'例）120.5㎡' }),
+      field('構造 / 工法', ov.structure, v=>update(()=>ov.structure=v), { ph:'例）木造軸組工法' }),
+    ]),
+    field('工事内容', ov.content, v=>update(()=>ov.content=v), { type:'textarea', ph:'工事の概要・範囲・特記事項などを記入' }),
+  ]));
+
+  /* 3. 施工工程 */
+  const procNodes = [];
+  if (book.processes.length===0){
+    procNodes.push(el('div',{class:'hint',style:'text-align:center;padding:8px 0 14px'},'工程がまだありません。下のボタンから追加してください。'));
+  }
+  book.processes.forEach((p, idx)=>{
+    procNodes.push(procEditCard(p, idx));
+  });
+  procNodes.push(el('button',{class:'add-proc',onClick:()=>{
+    update(()=>book.processes.push(newProcess()), true);
+  }},[ el('span',{html:'＋'}), '工程ページを追加' ]));
+  pane.appendChild(edSection('processes',3,`施工工程（${book.processes.length}）`, procNodes));
+
+  /* 4. 完了報告 */
+  pane.appendChild(edSection('completion',4,'完了報告・お引渡し',[
+    field('お客様へのメッセージ', co.comment, v=>update(()=>co.comment=v), { type:'textarea', ph:'このたびは弊社にご用命いただき…' }),
+    el('div',{class:'row2'},[
+      field('お引渡し日', co.handoverDate, v=>update(()=>co.handoverDate=v), { type:'date' }),
+      field('保証 / アフター', co.warranty, v=>update(()=>co.warranty=v), { ph:'例）構造10年保証' }),
+    ]),
+  ]));
+
+  /* 5. 会社情報 */
+  pane.appendChild(edSection('company',5,'会社情報（表紙下部）',[
+    el('div',{class:'row2'},[
+      field('会社名', cm.name, v=>update(()=>cm.name=v)),
+      field('部署', cm.dept, v=>update(()=>cm.dept=v)),
+    ]),
+    field('TEL', cm.tel, v=>update(()=>cm.tel=v), { ph:'例）029-XXX-XXXX' }),
+    field('所在地', cm.address, v=>update(()=>cm.address=v), { ph:'例）茨城県…' }),
+    field('Web', cm.site, v=>update(()=>cm.site=v), { ph:'例）martial-arts.co.jp' }),
+  ]));
+}
+
+function procEditCard(p, idx){
+  const photosWrap = el('div',{class:'photos'});
+  p.photos.forEach(ph=>photosWrap.appendChild(photoEditItem(p, ph)));
+  // add-photo tile
+  const fileInput = el('input',{type:'file',accept:'image/*',multiple:'',style:'display:none'});
+  fileInput.addEventListener('change', async e=>{
+    const files=[...e.target.files];
+    for (const f of files){
+      try{ const src=await compressImage(f); p.photos.push({id:uid(),src,caption:'',tag:'none'}); }
+      catch{ toast('画像の読み込みに失敗しました'); }
+    }
+    update(()=>{}, true);
+  });
+  const addTile = el('button',{class:'add-photo',onClick:()=>fileInput.click()},[
+    el('span',{html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>'}),
+    '写真を追加', fileInput,
+  ]);
+  photosWrap.appendChild(addTile);
+
+  return el('div',{class:'proc-card'},[
+    el('div',{class:'proc-card-head'},[
+      el('span',{class:'grip'},`工程 ${idx+1}`),
+      el('span',{class:'pc-title'}, p.name||'（無題の工程）'),
+      el('button',{class:'icon-btn',title:'上へ',onClick:()=>moveProc(idx,-1),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>'}),
+      el('button',{class:'icon-btn',title:'下へ',onClick:()=>moveProc(idx,1),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>'}),
+      el('button',{class:'icon-btn danger',title:'削除',onClick:()=>{ if(confirm('この工程ページを削除しますか？')) update(()=>book.processes.splice(idx,1), true); },html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>'}),
+    ]),
+    el('div',{class:'proc-card-body'},[
+      el('div',{class:'row2'},[
+        field('工程名', p.name, v=>update(()=>p.name=v, false)||updateProcTitle(idx,v), { ph:'例）基礎工事' }),
+        field('実施日', p.date, v=>update(()=>p.date=v), { type:'date' }),
+      ]),
+      field('説明・コメント', p.desc, v=>update(()=>p.desc=v), { type:'textarea', ph:'施工内容・使用材料・検査結果など' }),
+      el('label',{class:'',style:'font-size:11.5px;font-weight:600;color:#555;display:block;margin-bottom:2px'},'写真'),
+      photosWrap,
+    ]),
+  ]);
+}
+function updateProcTitle(idx, v){
+  // light-touch: update the card title text without full editor rerender
+  const cards = document.querySelectorAll('.proc-card .pc-title');
+  if (cards[idx]) cards[idx].textContent = v || '（無題の工程）';
+}
+function moveProc(idx, dir){
+  const j = idx+dir; if (j<0||j>=book.processes.length) return;
+  update(()=>{ const a=book.processes; [a[idx],a[j]]=[a[j],a[idx]]; }, true);
+}
+
+function photoEditItem(p, ph){
+  const cap = el('input',{type:'text',placeholder:'キャプション',value:ph.caption||''});
+  cap.addEventListener('input', e=>update(()=>ph.caption=e.target.value));
+  const sel = el('select',{class:'tag-sel'});
+  TAGS.forEach(t=>{ const o=el('option',{value:t.v},t.label); if(t.v===ph.tag)o.selected=true; sel.appendChild(o); });
+  sel.addEventListener('change', e=>update(()=>ph.tag=e.target.value));
+  const del = el('button',{class:'icon-btn danger',title:'写真を削除',onClick:()=>update(()=>{ p.photos=p.photos.filter(x=>x.id!==ph.id); }, true),html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>'});
+  return el('div',{class:'photo-item'},[
+    el('img',{src:ph.src,alt:''}),
+    el('div',{class:'pi-foot'},[ cap, el('div',{class:'pi-bar'},[sel, del]) ]),
+  ]);
+}
+
+/* ════════════════ PREVIEW (the book) ════════════════ */
+function pageFoot(no){
+  return [
+    el('div',{class:'page-foot-brand'},'MARTIAL ARTS  —  CONSTRUCTION RECORD'),
+    el('div',{class:'page-no'}, no!=null?String(no).padStart(2,'0'):''),
+  ];
+}
+function secMark(ttl, en){
+  return el('div',{class:'sec-mark'},[
+    el('div',{class:'bar'}),
+    el('div',{},[ el('div',{class:'ttl'},ttl), el('div',{class:'en'},en) ]),
+  ]);
+}
+
+function renderPreview(){
+  const root = $('#book'); root.innerHTML='';
+  let pageNo = 0;
+
+  /* ── Cover ── */
+  const c = book.cover, cm = book.company;
+  const meta = el('dl',{class:'cover-meta'});
+  const addMeta = (k,v)=>{ if(v){ meta.appendChild(el('dt',{},k)); meta.appendChild(el('dd',{},v)); } };
+  addMeta('お客様', c.customer ? c.customer+' 様' : '');
+  addMeta('工事種別', c.type);
+  addMeta('施工場所', c.address);
+  if (c.startDate||c.endDate) addMeta('工期', `${fmtDate(c.startDate)||'—'}  〜  ${fmtDate(c.endDate)||'—'}`);
+  addMeta('現場担当', c.manager);
+
+  const companyLines = el('div',{class:'cover-company'},[
+    el('strong',{}, cm.name||'株式会社 Martial Arts'), el('br'),
+    ...(cm.dept?[document.createTextNode(cm.dept),el('br')]:[]),
+    ...(cm.address?[document.createTextNode(cm.address),el('br')]:[]),
+    ...(cm.tel?[document.createTextNode('TEL '+cm.tel),el('br')]:[]),
+    ...(cm.site?[document.createTextNode(cm.site)]:[]),
+  ]);
+
+  const cover = el('div',{class:'page cover'},[
+    el('div',{class:'cover-top'},[
+      el('span',{html:'<svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 3 L34 11 V29 L20 37 L6 29 V11 Z" stroke="#C9A84C" stroke-width="1.4"/><path d="M20 11 L27 15 V23 L20 27 L13 23 V15 Z" fill="#C9A84C" opacity="0.85"/></svg>'}),
+      el('div',{},[ el('div',{class:'cover-brand-main'},'Martial Arts'), el('div',{class:'cover-brand-sub'},'REAL ESTATE & CONSTRUCTION') ]),
+    ]),
+    el('div',{class:'cover-mid'},[
+      el('div',{class:'cover-kicker'},'施 工 記 録 ブ ッ ク'),
+      el('div',{class:'cover-title'}, c.title || '○○様邸 施工記録'),
+      ...(c.subtitle?[el('div',{class:'cover-subtitle'},c.subtitle)]:[]),
+      el('div',{class:'cover-rule'}),
+      meta,
+    ]),
+    el('div',{class:'cover-bottom'},[
+      companyLines,
+      el('div',{class:'cover-stamp'}, c.endDate?('発行 '+fmtDate(c.endDate)):'CONSTRUCTION RECORD BOOK'),
+    ]),
+  ]);
+  root.appendChild(cover);
+
+  /* ── Overview ── */
+  const ov = book.overview;
+  if (ov.area||ov.structure||ov.content||true){
+    pageNo++;
+    const grid = el('div',{class:'ov-grid'});
+    const cell=(k,v)=> el('div',{class:'ov-cell'},[ el('div',{class:'k'},k), el('div',{class:'v'}, v||'—') ]);
+    grid.appendChild(cell('お客様', c.customer?c.customer+' 様':'—'));
+    grid.appendChild(cell('工事種別', c.type||'—'));
+    grid.appendChild(cell('延床面積 / 規模', ov.area||'—'));
+    grid.appendChild(cell('構造 / 工法', ov.structure||'—'));
+    grid.appendChild(cell('施工場所', c.address||'—'));
+    grid.appendChild(cell('工期', (c.startDate||c.endDate)?`${fmtDate(c.startDate)||'—'} 〜 ${fmtDate(c.endDate)||'—'}`:'—'));
+    const page = el('div',{class:'page'},[
+      el('div',{class:'page-pad'},[
+        secMark('工事概要','Project Overview'),
+        grid,
+        ...(ov.content?[ el('div',{class:'ov-body'}, ov.content) ]:[ el('div',{class:'ov-body',style:'color:#bbb'},'工事内容は「工事概要」セクションで入力できます。') ]),
+      ]),
+      ...pageFoot(pageNo),
+    ]);
+    root.appendChild(page);
+  }
+
+  /* ── Process pages (one A4 page each) ── */
+  book.processes.forEach((p, idx)=>{
+    pageNo++;
+    const photoGrid = el('div',{class:'proc-photos'});
+    if (p.photos.length===0){
+      photoGrid.appendChild(el('div',{class:'proc-empty',style:'grid-column:1/-1'},'写真が登録されていません'));
+    } else {
+      p.photos.forEach(ph=>{
+        const tag = TAGS.find(t=>t.v===ph.tag) || TAGS[0];
+        photoGrid.appendChild(el('div',{class:'pphoto'},[
+          el('div',{class:'ph-wrap'},[
+            ph.tag!=='none' ? el('span',{class:'ph-tag tag-'+ph.tag}, tag.label.split(' ')[0]) : null,
+            el('img',{src:ph.src,alt:''}),
+          ]),
+          el('div',{class:'ph-cap'}, ph.caption||''),
+        ]));
+      });
+    }
+    const page = el('div',{class:'page'},[
+      el('div',{class:'page-pad'},[
+        secMark('施工工程','Construction Process'),
+        el('div',{class:'proc-head'},[
+          el('span',{class:'proc-step-no'}, 'No.'+(idx+1)),
+          el('span',{class:'proc-name'}, p.name||'（工程名未入力）'),
+          ...(p.date?[el('span',{class:'proc-date'}, fmtDate(p.date))]:[]),
+        ]),
+        ...(p.desc?[el('div',{class:'proc-desc'}, p.desc)]:[el('div',{class:'proc-desc',style:'color:#c4c4c4'},'—')]),
+        photoGrid,
+      ]),
+      ...pageFoot(pageNo),
+    ]);
+    root.appendChild(page);
+  });
+
+  /* ── Completion ── */
+  const co = book.completion;
+  pageNo++;
+  const comp = el('div',{class:'page'},[
+    el('div',{class:'page-pad'},[
+      secMark('完了報告','Completion Report'),
+      el('div',{class:'comp-msg'}, co.comment || 'このたびは弊社にご用命を賜り、誠にありがとうございました。安全・品質を第一に施工を進め、無事に完了いたしましたことをご報告申し上げます。'),
+      el('div',{class:'comp-grid'},[
+        el('div',{class:'sign-box'},[ el('div',{class:'sb-k'},'お引渡し日'), el('div',{class:'sb-v'}, co.handoverDate?fmtDate(co.handoverDate):'　年　月　日') ]),
+        el('div',{class:'sign-box'},[ el('div',{class:'sb-k'},'保証 / アフターサービス'), el('div',{class:'sb-v'}, co.warranty||'—') ]),
+        el('div',{class:'sign-box'},[ el('div',{class:'sb-k'},'施工'), el('div',{class:'sb-v'}, (cm.name||'株式会社 Martial Arts')), el('div',{class:'sign-line'}) ]),
+        el('div',{class:'sign-box'},[ el('div',{class:'sb-k'},'お客様確認'), el('div',{class:'sb-v'}, c.customer?c.customer+' 様':''), el('div',{class:'sign-line'}) ]),
+      ]),
+      el('div',{class:'thanks'},[
+        el('div',{class:'tk-en'},'THANK YOU'),
+        el('div',{class:'tk-ja'},'最後までご覧いただき、誠にありがとうございました'),
+      ]),
+    ]),
+    ...pageFoot(pageNo),
+  ]);
+  root.appendChild(comp);
+}
+
+/* ════════════════ Book list / new / load ════════════════ */
+function openList(){
+  const body = $('#listBody'); body.innerHTML='';
+  const list = loadAll().sort((a,b)=>b.updatedAt-a.updatedAt);
+  if (list.length===0){ body.appendChild(el('div',{class:'hint',style:'text-align:center;padding:24px'},'保存済みのブックはありません。')); }
+  list.forEach(b=>{
+    const title = b.cover?.title || '（無題の施工記録）';
+    const cust = b.cover?.customer ? b.cover.customer+' 様 ・ ' : '';
+    const when = new Date(b.updatedAt).toLocaleString('ja-JP',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    const row = el('div',{class:'book-row'+(b.id===book.id?' active':'')},[
+      el('div',{class:'br-main',onClick:()=>{ loadBook(b.id); closeList(); }},[
+        el('div',{class:'br-title'}, title),
+        el('div',{class:'br-meta'}, `${cust}工程 ${b.processes?.length||0} ・ 更新 ${when}`),
+      ]),
+      el('button',{class:'br-open',onClick:()=>{ loadBook(b.id); closeList(); }},'開く'),
+      el('button',{class:'icon-btn danger',title:'削除',onClick:(e)=>{ e.stopPropagation(); delBook(b.id); },html:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>'}),
+    ]);
+    body.appendChild(row);
+  });
+  $('#listModal').classList.add('open');
+}
+function closeList(){ $('#listModal').classList.remove('open'); }
+function loadBook(id){
+  const b = loadAll().find(x=>x.id===id);
+  if (!b) return;
+  book = b;
+  lsSet(ACTIVE_KEY, id);
+  renderEditor(); renderPreview();
+  $('#saveState').textContent='読み込み完了';
+  toast('ブックを開きました', true);
+}
+function delBook(id){
+  if (!confirm('このブックを完全に削除しますか？元に戻せません。')) return;
+  const list = loadAll().filter(b=>b.id!==id);
+  saveAll(list);
+  if (book.id===id){ const next=list[0]; if(next){ loadBook(next.id); } else { startNew(); } }
+  openList();
+  toast('削除しました');
+}
+function startNew(){
+  book = newBook();
+  openSections = { cover:true, overview:false, processes:false, completion:false, company:false };
+  renderEditor(); renderPreview(); persist();
+  toast('新しい施工記録ブックを作成しました', true);
+}
+
+/* ════════════════ wiring ════════════════ */
+$('#btnNew').addEventListener('click', ()=>{ if(confirm('新規ブックを作成しますか？現在のブックは保存済みです。')) startNew(); });
+$('#btnList').addEventListener('click', openList);
+$('#listClose').addEventListener('click', closeList);
+$('#listModal').addEventListener('click', e=>{ if(e.target.id==='listModal') closeList(); });
+$('#btnPrint').addEventListener('click', ()=>window.print());
+$('#mobile-toggle').addEventListener('click', ()=>{
+  const w=$('#work'), on=w.classList.toggle('show-preview');
+  $('#mobile-toggle').textContent = on?'編集':'プレビュー';
+});
+
+/* boot */
+(function boot(){
+  const all = loadAll();
+  const activeId = lsGet(ACTIVE_KEY);
+  const found = activeId && all.find(b=>b.id===activeId);
+  book = found || all[0] || newBook();
+  if (!found && all.length===0) persist();
+  renderEditor(); renderPreview();
+  if (!storageAvailable){
+    $('#saveState').textContent = '端末保存オフ';
+    setTimeout(()=>toast('この環境では保存が無効です。編集は可能ですが、印刷/PDFで保存してください。'), 600);
+  }
+})();
+</script>
+</body>
+</html>

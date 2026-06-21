@@ -1,0 +1,102 @@
+name: Deploy construction sites to GitHub Pages
+
+# construction-book（施工記録ブック作成ツール）と construction-portfolio
+# （施工事例パンフレット「WORKS」）を GitHub Pages へまとめて公開する。
+# Netlify トークン不要（GITHUB_TOKEN のみ）。
+#   トップ:        https://hasegawa212.github.io/-/
+#   施工記録ブック: https://hasegawa212.github.io/-/construction-book/
+#   施工事例集:     https://hasegawa212.github.io/-/construction-portfolio/
+# ※ 事前に Settings → Pages → Source を「GitHub Actions」にしておくこと。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "construction-book/**"
+      - "construction-portfolio/**"
+      - ".github/workflows/pages-construction-book.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble site
+        run: |
+          set -e
+          mkdir -p _site
+          cp -r construction-book _site/construction-book
+          cp -r construction-portfolio _site/construction-portfolio
+          cat > _site/index.html <<'HTML'
+          <!DOCTYPE html>
+          <html lang="ja">
+          <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>株式会社 Martial Arts — 制作物</title>
+          <style>
+            *{margin:0;padding:0;box-sizing:border-box}
+            body{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+              font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
+              background:radial-gradient(120% 120% at 50% 0%,#1c1c1f 0%,#0c0c0d 60%);color:#f4f0e8;padding:40px}
+            .brand{font-family:Georgia,serif;letter-spacing:.26em;font-size:15px;color:#fff;text-transform:uppercase}
+            .sub{font-size:10px;letter-spacing:.34em;color:#c2a24c;margin-top:6px}
+            h1{font-family:Georgia,serif;font-size:46px;letter-spacing:.04em;margin:34px 0 6px}
+            .lead{font-size:13px;letter-spacing:.12em;color:rgba(244,240,232,.7);margin-bottom:42px}
+            .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:760px}
+            a.card{display:block;width:340px;text-decoration:none;color:inherit;border:1px solid rgba(194,162,76,.4);
+              border-radius:10px;padding:30px 28px;background:rgba(255,255,255,.03);transition:.2s}
+            a.card:hover{background:rgba(194,162,76,.10);border-color:#c2a24c;transform:translateY(-3px)}
+            .k{font-family:Georgia,serif;font-size:11px;letter-spacing:.3em;color:#c2a24c;text-transform:uppercase}
+            .t{font-size:19px;font-weight:700;letter-spacing:.08em;margin:12px 0 10px}
+            .d{font-size:12.5px;line-height:1.9;color:rgba(244,240,232,.72)}
+            .go{margin-top:18px;font-size:12px;color:#c2a24c;letter-spacing:.1em}
+            footer{margin-top:46px;font-family:Georgia,serif;font-size:10px;letter-spacing:.3em;color:rgba(255,255,255,.35)}
+          </style>
+          </head>
+          <body>
+            <div class="brand">Martial Arts</div>
+            <div class="sub">REAL ESTATE &amp; CONSTRUCTION</div>
+            <h1>WORKS &amp; TOOLS</h1>
+            <div class="lead">施工事例パンフレットと施工記録ブック作成ツール</div>
+            <div class="cards">
+              <a class="card" href="construction-portfolio/">
+                <div class="k">Brochure</div>
+                <div class="t">施工事例集「WORKS」</div>
+                <div class="d">実際の施工写真で組んだ高級パンフレット。ブラウザ上で文字・写真を編集してPDF出力できます。</div>
+                <div class="go">ひらく →</div>
+              </a>
+              <a class="card" href="construction-book/">
+                <div class="k">Tool</div>
+                <div class="t">施工記録ブック作成ツール</div>
+                <div class="d">物件ごとに工程・写真を入力して、お客様にお渡しする施工記録ブックをA4 PDFで作成します。</div>
+                <div class="go">ひらく →</div>
+              </a>
+            </div>
+            <footer>MARTIAL ARTS — REAL ESTATE &amp; CONSTRUCTION</footer>
+          </body>
+          </html>
+          HTML
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+# re-trigger Pages deploy
