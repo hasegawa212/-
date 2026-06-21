@@ -16,6 +16,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
 ├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
 ├── construction-book/        # Zero-dep single-HTML 施工記録ブック (construction record book) builder for 株式会社 Martial Arts → A4 print/PDF, localStorage (JP UI)
+├── construction-portfolio/   # Zero-dep single-HTML 施工事例パンフレット「WORKS」 for 株式会社 Martial Arts → premium A4 brochure, in-browser editable (contenteditable + click-to-replace photos), print/PDF (JP UI)
 ├── japan-mgmt-line-bot/      # Node + Express LINE Messaging API webhook: rule-based FAQ bot for 株式会社ジャパンマネジメント (JP UI, no AI)
 ├── financial-literacy-line-bot/ # Node + Express LINE webhook: rule-based 金融リテラシー FAQ bot for 株式会社ジャパンマネジメント (follows fp repo topics, JP UI, no AI)
 ├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
@@ -90,6 +91,14 @@ Zero-dependency single-file vanilla-JS app (no build step — like `echo-intervi
 - Data persists to **localStorage** only (no backend): books under `martialarts_construction_books_v1`, active id under `martialarts_construction_active_v1`. Multiple books are managed via the 一覧 modal; autosave is debounced.
 - 施工工程 pages are repeatable; each holds 工程名/実施日/説明 + multiple photos with a 施工前/施工中/施工後 label (`TAGS`) and caption. **Photos are downscaled to max 1280px JPEG (q0.78) via canvas in `compressImage()` before storage** to avoid blowing the ~5MB localStorage quota.
 - No tests/lint/build. See `construction-book/README.md` (Japanese) for usage and customization (TAGS, default company info, image-compression knobs).
+
+### `construction-portfolio/` — 施工事例パンフレット「WORKS」 (premium construction portfolio brochure)
+Zero-dependency single-file vanilla-JS app (no build step) for 株式会社 Martial Arts. Where `construction-book` is a customer-facing *record* tool, this is a **sales/branding brochure** — a high-end A4 8-page portfolio (dark + gold) built from real site photos. Photos live in `construction-portfolio/img/` and are referenced relatively (like `arr-gallery-pamphlet`).
+
+- Run: `cd construction-portfolio && python3 -m http.server 5182` → http://localhost:5182 (no install/build); opening `index.html` directly also works (keep `img/` alongside).
+- **8 A4 pages**: 表紙(WORKS) → 理念 → 外観 → 住まい(LDK) → キッチン → 外構・設備 → 施工品質(基礎/上棟/断熱) → 会社情報. Output is one A4 `.page` per section via `@media print`; export = browser print dialog → "Save as PDF" (A4 = 794×1123px @96dpi).
+- **In-browser editing**: text elements are `contenteditable` (click to rewrite company name/TEL/URL/copy/captions); images have `class="ph"` and are **click-to-replace** (canvas-compressed to max 1600px JPEG). Edits autosave to localStorage (`martialarts_portfolio_v1`); a 初期化 button restores the original. Toolbar (`#bar`) and edit outlines are hidden in print.
+- Typography uses a Latin serif stack for display headings + JP gothic (`IPAGothic` fallback in this repo's render env — no mincho installed). No tests/lint/build. See `construction-portfolio/README.md` (Japanese).
 
 ### `japan-mgmt-line-bot/` — ジャパンマネジメント FAQ LINE ボット
 Node + Express ES Modules app (dependency: `express` only; Node 18+ global `fetch`) implementing a **rule-based FAQ LINE bot** for 株式会社ジャパンマネジメント (http://japan-mgmt.co.jp/, factoring / 資金調達 / コンサル). No AI/LLM — fixed keyword→answer rules only. Same build as `Chat-Bridge`'s LINE webhook: Express + `/webhook` route + `X-Line-Signature` (HMAC-SHA256) verification + LINE reply API.
