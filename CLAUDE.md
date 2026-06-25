@@ -14,6 +14,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── appraisal-app/            # Vite + React + TS appraisal simulator (real estate & car, tested valuation engine, JP UI)
 ├── ultimate-ai-agent/        # Full-stack TS monorepo (React + Express + tRPC + SQLite)
 ├── slack-bulk-messaging/     # Zero-dep Node CLI: send individual Slack DMs to a recipient list in bulk (JP UI)
+├── meeting-feedback-slack/   # Zero-dep Node CLI: send per-person meeting feedback (発言量・参加度 + 次回アクション) as individual Slack DMs (JP UI)
 ├── echo-interview-console/   # Zero-dep vanilla-JS 反響面談 hearing console → writes a full 53-col row into the Google Sheets ヒアリングシート via Apps Script
 ├── construction-book/        # Zero-dep single-HTML 施工記録ブック (construction record book) builder for 株式会社 Martial Arts → A4 print/PDF, localStorage (JP UI)
 ├── construction-portfolio/   # Zero-dep single-HTML 施工事例パンフレット「WORKS」 for 株式会社 Martial Arts → premium A4 brochure, in-browser editable (contenteditable + click-to-replace photos), print/PDF (JP UI)
@@ -74,6 +75,14 @@ Zero-dependency Node ES Modules CLI (`send.js`, Node 18+ global `fetch` only) th
 - Send for real: `node send.js -r recipients.csv -m message.txt [--delay 1500]`
 - No build/test/lint. Required Bot scopes: `chat:write`, `im:write`, and `users:read.email` for email recipients.
 - `.gitignore` excludes `recipients.csv` / `message.txt` / `send-log-*.csv` (PII) — only `*.example.*` files are tracked. See `slack-bulk-messaging/README.md` (Japanese) for the full setup.
+
+### `meeting-feedback-slack/` — 会議フィードバック個別DM CLI
+Zero-dependency Node ES Modules CLI (`send-feedback.js`, Node 18+ global `fetch` only) that sends **per-person meeting feedback** as individual 1:1 Slack DMs. Same build/plumbing as `slack-bulk-messaging` (CSV parse, `.env` loader, `conversations.open` → `chat.postMessage`, 429 retry, per-run log), but the content differs per recipient and is **structured around two axes the user cares about: 発言量・参加度 (participation) and 次回アクション (next action)** — embodying the rule 「会議は意見交換の場、黙っているのはNG」.
+
+- `cd meeting-feedback-slack && cp .env.example .env` (set `SLACK_BOT_TOKEN`, `xoxb-...`).
+- Preview first: `node send-feedback.js -p participants.csv --dry-run` (no token needed; email recipients show an `email:...` placeholder). Send: `node send-feedback.js -p participants.csv [--delay 1500]`.
+- **Per-person CSV** (1 row = 1 person): `email`/`slack_id` (slack_id wins) + optional `name`/`会議名`/`日付`/`発言回数`/`良かった点`/`改善点`/`次回アクション`/`一言`. `buildFeedbackMessage()` auto-composes the DM; `participationComment()` turns `発言回数` into a graded nudge (0 → strong "次回は必ず発言" push, `< --low` (default 3) → "もう一歩", ≥ → praise). 次回アクション is always included (defaults to "最低1回は意見を出す" if blank).
+- `--template tmpl.txt` switches to `{{列}}` substitution incl. computed `{{発言コメント}}`. No build/test/lint. Required Bot scopes: `chat:write`, `im:write`, plus `users:read.email` for email recipients. `.env`/`participants.csv`/`feedback-log-*.csv`/`template.txt` are gitignored (PII) — only `*.example.*` tracked. See `meeting-feedback-slack/README.md` (Japanese).
 
 ### `echo-interview-console/` — 反響面談コンソール (hearing console → ヒアリングシート)
 Zero-dependency vanilla-JS console (ES Modules, no build step — like `claude-clone`) used during 反響/online 面談 for 株式会社 Martial Arts. Operators fill the hearing form and on save it writes **one row covering every field (the existing 53 columns A–BA)** into a `ヒアリングシート①/②/③` tab of the Google Sheet `⭐️反響管理シート（martialhp連動）`. Solves the "ちゃんと反映されない" gap where the deployed Replit console only populated a few of the sheet's 53 columns.
