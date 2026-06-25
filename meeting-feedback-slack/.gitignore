@@ -1,0 +1,7 @@
+.env
+node_modules/
+
+# 実データ・ログ（PII）。example だけ追跡する
+participants.csv
+feedback-log-*.csv
+template.txt
