@@ -1,21 +1,33 @@
 # 売上利益ブックを業務用デザインに一括整形するスタイラー
 # 既存データは変更せず、見た目（配色・行縞・桁区切り・列幅・固定）だけを整える。
-import sys, openpyxl
+import re, sys, openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.formatting.rule import DataBarRule, ColorScaleRule
 
 NAVY   = "1F3A5F"
 NAVY_D = "16293F"
 ACCENT = "C8A24B"
 BAND   = "EEF3FA"
+TOTAL  = "DCE5F4"   # 合計行の地色（淡い紺）
 WHITE  = "FFFFFF"
 GRID   = "D7DEE8"
 TXT    = "1A2433"
 GREEN  = "1E7B45"
 AMBER  = "B5740F"
+RED    = "C0392B"   # マイナス数値
 
 thin = Side(style="thin", color=GRID)
 BORDER = Border(left=thin, right=thin, top=thin, bottom=thin)
+TOP_NAVY = Side(style="medium", color=NAVY)
+
+TOTAL_RE = re.compile(r"(合計|総計|小計|計$|期計|累計計|全体)")
+def is_total_row(ws, r, hdr_r, ncol):
+    for c in range(1, min(ncol, 3) + 1):
+        v = ws.cell(r, c).value
+        if v not in (None, "") and TOTAL_RE.search(str(v)):
+            return True
+    return False
 
 def cjk_w(s):
     s = "" if s is None else str(s)
@@ -50,6 +62,8 @@ def beautify_sheet(ws):
     ncol = ws.max_column
     nrow = ws.max_row
     ws.sheet_view.showGridLines = False
+    from openpyxl.formatting.formatting import ConditionalFormattingList
+    ws.conditional_formatting = ConditionalFormattingList()  # 再実行で重複しないよう初期化
 
     if title_r is not None:
         tc = ws.cell(title_r, 1)
@@ -60,8 +74,12 @@ def beautify_sheet(ws):
             ws.merge_cells(start_row=title_r, start_column=1, end_row=title_r, end_column=ncol)
         except Exception:
             pass
+        tc.font = Font(name="Yu Gothic", size=14, bold=True, color=WHITE)
         for c in range(1, ncol + 1):
-            ws.cell(title_r, c).border = Border(bottom=Side(style="medium", color=ACCENT))
+            tcell = ws.cell(title_r, c)
+            tcell.fill = PatternFill("solid", fgColor=NAVY_D)
+            tcell.border = Border(bottom=Side(style="medium", color=ACCENT))
+        ws.row_dimensions[title_r].height = 32
 
     headers = {}
     for c in range(1, ncol + 1):
@@ -74,12 +92,15 @@ def beautify_sheet(ws):
     ws.row_dimensions[hdr_r].height = 30
 
     for r in range(hdr_r + 1, nrow + 1):
+        total = is_total_row(ws, r, hdr_r, ncol)
         band = (r - hdr_r) % 2 == 0
         for c in range(1, ncol + 1):
             cell = ws.cell(r, c)
             h = headers.get(c)
-            cell.border = BORDER
-            if band:
+            cell.border = Border(left=thin, right=thin, top=TOP_NAVY, bottom=thin) if total else BORDER
+            if total:
+                cell.fill = PatternFill("solid", fgColor=TOTAL)
+            elif band:
                 cell.fill = PatternFill("solid", fgColor=BAND)
             num = is_num_col(h) and isinstance(cell.value, (int, float))
             cell.alignment = Alignment(
@@ -88,11 +109,14 @@ def beautify_sheet(ws):
             )
             color = TXT
             v = str(cell.value or "")
-            if any(k in v for k in ("確定", "入金済", "完了", "計上")):
+            if isinstance(cell.value, (int, float)) and cell.value < 0:
+                color = RED
+            elif any(k in v for k in ("確定", "入金済", "完了", "計上")):
                 color = GREEN
             elif any(k in v for k in ("進行中", "未", "予定")):
                 color = AMBER
-            cell.font = Font(name="Yu Gothic", size=10, color=color, bold=(c == 1 and h == "順位"))
+            cell.font = Font(name="Yu Gothic", size=10, color=color,
+                             bold=total or (c == 1 and h == "順位"))
             if num and is_pct_col(h):
                 cell.number_format = "0.0%"
             elif num:
@@ -109,7 +133,28 @@ def beautify_sheet(ws):
             for r in range(hdr_r + 1, nrow + 1):
                 ws.cell(r, c).alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
-    ws.freeze_panes = ws.cell(hdr_r + 1, 1).coordinate
+    # 条件付き書式: 利益/利益(万) にデータバー、利益率/構成比 にカラースケール
+    last_data = nrow
+    while last_data > hdr_r and is_total_row(ws, last_data, hdr_r, ncol):
+        last_data -= 1   # 合計行はバー対象から外す
+    if last_data > hdr_r + 1:
+        for c in range(1, ncol + 1):
+            h = str(headers.get(c) or "")
+            col = get_column_letter(c)
+            rng = f"{col}{hdr_r+1}:{col}{last_data}"
+            if h in ("利益(万)", "利益") or h.startswith("利益(万"):
+                ws.conditional_formatting.add(rng, DataBarRule(
+                    start_type="min", end_type="max", color="9DB8D9", showValue=True))
+            elif ("利益率" in h) or ("構成比" in h):
+                ws.conditional_formatting.add(rng, ColorScaleRule(
+                    start_type="min", start_color="FFFFFF",
+                    end_type="max", end_color="BFE3C9"))
+
+    # 固定枠: 横長シートは先頭の識別列も固定
+    key_cols = 1
+    if ncol >= 8:
+        key_cols = 3 if (headers.get(1) in ("順位", "年月", "期") or "年月" in str(headers.get(2))) else 1
+    ws.freeze_panes = ws.cell(hdr_r + 1, key_cols + 1).coordinate
 
 def main(path):
     wb = openpyxl.load_workbook(path)

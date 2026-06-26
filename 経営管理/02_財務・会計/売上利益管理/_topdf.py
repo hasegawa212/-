@@ -51,6 +51,18 @@ def status_color(v):
     if any(k in s for k in ("進行中","未","予定")): return AMBER
     return None
 
+RED = colors.HexColor("#C0392B")
+TOTBG = colors.HexColor("#DCE5F4")
+TOTAL_RE = re.compile(r"(合計|総計|小計|計$|期計|累計計|全体)")
+def is_total(ws,r,ncol):
+    for c in range(1,min(ncol,3)+1):
+        v=ws.cell(r,c).value
+        if v not in (None,"") and TOTAL_RE.search(str(v)): return True
+    return False
+
+def pstyle(base, color):
+    return ParagraphStyle("x", parent=base, textColor=color)
+
 def sheet_flow(ws, page_w):
     tr,hr=find_rows(ws)
     if hr is None: return []
@@ -70,26 +82,29 @@ def sheet_flow(ws, page_w):
     s=sum(widths)
     if s>page_w: widths=[w*page_w/s for w in widths]
 
-    data=[]; styles=[]
+    data=[]; total_rows=[]
     # header
     data.append([Paragraph(clean(h), st_hdr) for h in headers])
     for ri,r in enumerate(range(hr+1,nrow+1)):
+        tot=is_total(ws,r,ncol)
+        if tot: total_rows.append(ri+1)  # +1: ヘッダー行ぶん
         row=[]
         for c in range(1,ncol+1):
             v=ws.cell(r,c).value
             h=headers[c-1]
+            emph = NAVYD if tot else None
             if isinstance(v,(int,float)) and is_pct(h):
-                row.append(Paragraph(f"{v*100:.1f}%", st_num))
+                row.append(Paragraph(f"{v*100:.1f}%", pstyle(st_num, RED if v<0 else (emph or TXT))))
             elif isinstance(v,(int,float)) and is_num(h):
-                row.append(Paragraph(f"{v:,.0f}", st_num))
+                row.append(Paragraph(f"{v:,.0f}", pstyle(st_num, RED if v<0 else (emph or TXT))))
             else:
                 sc=status_color(v)
                 if sc is not None:
-                    row.append(Paragraph(clean(v) if False else str(v),
-                               ParagraphStyle("s",parent=st_cell,textColor=sc,alignment=1)))
+                    row.append(Paragraph(str(v), ParagraphStyle("s",parent=st_cell,textColor=sc,alignment=1)))
                 else:
                     stl = st_c1 if c==1 else st_cell
-                    row.append(Paragraph("" if v in (None,) else str(v), stl))
+                    row.append(Paragraph("" if v in (None,) else str(v),
+                               pstyle(stl, emph) if emph else stl))
         data.append(row)
     t=Table(data, colWidths=widths, repeatRows=1)
     ts=[("BACKGROUND",(0,0),(-1,0),NAVY),
@@ -100,6 +115,9 @@ def sheet_flow(ws, page_w):
         ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,BAND]),
         ("GRID",(0,0),(-1,-1),0.4,GRID),
         ("LINEABOVE",(0,0),(-1,0),0,NAVY)]
+    for tr_i in total_rows:
+        ts.append(("BACKGROUND",(0,tr_i),(-1,tr_i),TOTBG))
+        ts.append(("LINEABOVE",(0,tr_i),(-1,tr_i),1.0,NAVY))
     t.setStyle(TableStyle(ts))
     flow=[]
     if tr is not None:
