@@ -7,15 +7,17 @@
 import { COMPANY, SERVICES, MENU, getService } from './faq.js';
 
 // ── カラートークン ─────────────────────────────────────────────
+// 洗練された落ち着いたゴールドに調整し、余白と細い罫線で「清潔感」を強調。
 const C = {
   white: '#FFFFFF',   // カード面
-  ivory: '#FAF8F3',   // 補助面（情報ボックス等）
-  ink: '#1C1C20',     // 本文（濃い墨）
-  sub: '#726E66',     // 補助文字
-  gold: '#C2A24C',    // ゴールド（ボタン・帯）
-  goldDeep: '#A6812C', // 白地で読みやすい濃いゴールド（ラベル文字）
-  line: '#ECE7DC',    // ヘアライン
-  band: '#101013',    // ヒーロー見出し帯（ダーク）
+  ivory: '#FBF9F4',   // 補助面（情報ボックス等）
+  ink: '#20201E',     // 本文（濃い墨）
+  sub: '#7C776D',     // 補助文字
+  gold: '#B9973F',    // ゴールド（ボタン・帯・罫線）— 少しマットに
+  goldDeep: '#927327', // 白地で読みやすい濃いゴールド（ラベル文字）
+  goldSoft: '#D8C79B', // 淡いゴールド（大きな装飾数字など）
+  line: '#EFEAE1',    // ヘアライン
+  band: '#0E0E10',    // ヒーロー見出し帯（ダーク）
   paper: '#F4F0E8',   // ダーク帯の上の文字
 };
 
@@ -99,21 +101,24 @@ export function greetingHero() {
 }
 
 // ── ② サービスカルーセル（6事業） ──────────────────────────────
-function serviceBubble(s) {
+// 絵文字は使わず、淡いゴールドの通し番号（01–06）× 英字タグの
+// エディトリアルな構成で、清潔感と一体感を出す。
+function serviceBubble(s, i) {
+  const no = String(i + 1).padStart(2, '0');
   return {
     type: 'bubble', size: 'kilo',
     body: {
-      type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '20px', spacing: 'none',
+      type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '22px', spacing: 'none',
       contents: [
-        { type: 'text', text: s.icon, size: 'xxl', align: 'center' },
+        { type: 'text', text: no, size: 'xxl', color: C.goldSoft, weight: 'bold', align: 'center' },
         { type: 'text', text: s.tag, size: 'xxs', color: C.goldDeep, weight: 'bold', align: 'center', margin: 'md' },
         { type: 'text', text: s.label, size: 'md', color: C.ink, weight: 'bold', align: 'center', wrap: true, margin: 'sm' },
-        goldRuleCentered('md'),
-        { type: 'text', text: s.short, size: 'xs', color: C.sub, wrap: true, margin: 'lg', align: 'center' },
+        goldRuleCentered('lg'),
+        { type: 'text', text: s.short, size: 'xs', color: C.sub, wrap: true, margin: 'lg', align: 'center', lineSpacing: '5px' },
       ],
     },
     footer: {
-      type: 'box', layout: 'vertical', backgroundColor: C.white, paddingStart: '20px', paddingEnd: '20px', paddingBottom: '20px',
+      type: 'box', layout: 'vertical', backgroundColor: C.white, paddingStart: '22px', paddingEnd: '22px', paddingBottom: '22px',
       contents: [primaryBtn('詳しく見る', { type: 'message', label: '詳しく見る', text: s.label })],
     },
   };
@@ -123,7 +128,7 @@ export function serviceCarousel() {
   return {
     type: 'flex',
     altText: `${COMPANY.name} のサービス一覧`,
-    contents: { type: 'carousel', contents: SERVICES.map(serviceBubble) },
+    contents: { type: 'carousel', contents: SERVICES.map((s, i) => serviceBubble(s, i)) },
   };
 }
 
@@ -131,6 +136,7 @@ export function serviceCarousel() {
 export function serviceDetail(serviceId) {
   const s = getService(serviceId);
   if (!s) return null;
+  const no = String(SERVICES.findIndex((x) => x.id === s.id) + 1).padStart(2, '0');
   const lines = s.detail.split('\n');
   const title = lines[0].replace(/[【】]/g, '');
   const bodyText = lines.slice(1).join('\n').trim();
@@ -139,13 +145,16 @@ export function serviceDetail(serviceId) {
     altText: s.label,
     contents: {
       type: 'bubble', size: 'mega',
-      // 上部に細いゴールドの帯（清潔感のあるアクセント）
+      // 上部に細いゴールドの帯 + 通し番号（清潔感のあるエディトリアルなアクセント）
       header: {
-        type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '22px', paddingBottom: '0px', spacing: 'xs',
+        type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '24px', paddingBottom: '0px', spacing: 'xs',
         contents: [
-          { type: 'box', layout: 'vertical', height: '3px', width: '44px', backgroundColor: C.gold, cornerRadius: '2px' },
+          { type: 'box', layout: 'horizontal', contents: [
+            { type: 'box', layout: 'vertical', height: '3px', width: '44px', backgroundColor: C.gold, cornerRadius: '2px', margin: 'sm', flex: 0 },
+            { type: 'text', text: no, size: 'sm', color: C.goldSoft, weight: 'bold', align: 'end' },
+          ]},
           { type: 'text', text: s.tag, size: 'xxs', color: C.goldDeep, weight: 'bold', margin: 'lg' },
-          { type: 'text', text: `${s.icon}  ${title}`, size: 'lg', color: C.ink, weight: 'bold', wrap: true, margin: 'sm' },
+          { type: 'text', text: title, size: 'lg', color: C.ink, weight: 'bold', wrap: true, margin: 'sm' },
         ],
       },
       body: {
