@@ -109,35 +109,52 @@ curl     'http://localhost:3000/health'
 
 ## リッチメニューの登録
 
-1. `assets/richmenu.svg` を **2500×1686 の PNG** に変換して `assets/richmenu.png` を用意
-   ```bash
-   # 例1) rsvg-convert
-   rsvg-convert -w 2500 -h 1686 assets/richmenu.svg -o assets/richmenu.png
-   # 例2) Chrome ヘッドレス
-   chrome --headless --window-size=2500,1686 --screenshot=assets/richmenu.png assets/richmenu.svg
-   ```
-2. 登録（`.env` の `LINE_CHANNEL_ACCESS_TOKEN` を使用し、全ユーザーのデフォルトに設定）
-   ```bash
-   npm run setup:richmenu
-   ```
+**書き出し済みの `assets/richmenu.png`（2500×1686）を同梱済み**なので、変換不要でそのまま登録できます。
+
+```bash
+npm run setup:richmenu     # .env の LINE_CHANNEL_ACCESS_TOKEN を使い、全ユーザーのデフォルトに設定
+```
 
 6セルは次のメッセージを送信し、そのまま FAQ に着地します：
 無料相談 / 査定 / 購入 / リフォーム / 太陽光 / アクセス。
 
+デザインを変えたい場合は `assets/richmenu.svg` を編集し、PNG に書き出してから再登録してください。
+```bash
+# 例) Chrome ヘッドレス（rsvg-convert / デザインツールでも可）
+chrome --headless --hide-scrollbars --window-size=2500,1686 \
+  --screenshot=assets/richmenu.png assets/richmenu.svg
+```
+
 ---
 
-## LINE Developers 側の設定
+## 本番で使う（公開までの4ステップ）
 
-1. [LINE Developers](https://developers.line.biz/) で **Messaging API チャネル**を作成
-2. **チャネルシークレット** と **チャネルアクセストークン（長期）** を発行 → `.env` に設定
-3. **Webhook URL** に `https://<公開ホスト>/webhook` を設定し、Webhook を「オン」
-4. 応答設定で「あいさつメッセージ」「応答メッセージ」はオフ、「Webhook」をオンに
-5. 必要な権限：メッセージ送信（reply）／リッチメニュー
+実際にお客様の LINE から使えるようにするまでの最短手順です。
 
-### デプロイ
+### 1. LINE 公式アカウント / Messaging API を用意
+1. [LINE Developers](https://developers.line.biz/) で **Messaging API チャネル**を作成（既存の公式アカウントとも連携可）
+2. **チャネルシークレット** と **チャネルアクセストークン（長期）** を発行
+3. LINE Official Account Manager の「応答設定」で、**「応答メッセージ」オフ／「Webhook」オン／「あいさつメッセージ」オフ**（あいさつは本ボットが送るため）
 
-`express` のみの単純な Node アプリなので、Render / Railway / Fly.io などにそのまま載せられます
-（`npm start`、ヘルスチェック `GET /health`）。`PORT` は環境変数で上書き可能。
+### 2. サーバーを公開（デプロイ）
+このフォルダには **Render 用 Blueprint（`render.yaml`）を同梱**しています。
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+- Render → **New + → Blueprint** → 本リポジトリを選択し、Blueprint に `martialarts-line-bot/render.yaml` を指定
+- 取り込み後、**Environment** で `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` を入力（`NODE_ENV=production` は設定済み）
+- `express` だけの単純な Node アプリなので、Railway / Fly.io / 自前サーバーでも `npm start`（ヘルスチェック `GET /health`、`PORT` は環境変数で自動）で動きます
+
+### 3. Webhook を接続
+- チャネルの **Webhook URL** に `https://<公開したホスト>/webhook` を設定 → 「検証」で 200 が返ればOK
+- Webhook を「オン」に
+
+### 4. リッチメニューを反映
+- ローカルまたはサーバーで `.env` にトークンを設定し `npm run setup:richmenu` を実行（画像同梱済み・変換不要）
+- これで全ユーザーのトーク下部に6分割メニューが表示されます
+
+> 動作確認：友だち追加 → あいさつカードが届く／「査定」「豆知識」などを送ると各カードが返れば成功です。
+> 公開前に `NODE_ENV` を外した状態で `GET /dev/simulate?text=査定` を使うと、ローカルで応答を目視確認できます。
 
 ---
 
