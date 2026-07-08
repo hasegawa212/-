@@ -4,7 +4,7 @@
 // 余白を広くとり、上質で清潔感のある不動産ブランドの見え方を LINE 上で再現します。
 // ブランドの象徴として、ヒーローの見出し帯だけダーク（黒 × ゴールド）を残しています。
 
-import { COMPANY, SERVICES, MENU, getService } from './faq.js';
+import { COMPANY, SERVICES, MENU, getService, randomTip } from './faq.js';
 
 // ── カラートークン ─────────────────────────────────────────────
 // 洗練された落ち着いたゴールドに調整し、余白と細い罫線で「清潔感」を強調。
@@ -280,6 +280,65 @@ export function accessCard() {
   };
 }
 
+// ── ⑦ 豆知識カード（不動産トリビア） ──────────────────────────
+export function tipCard() {
+  return {
+    type: 'flex',
+    altText: '不動産の豆知識',
+    contents: {
+      type: 'bubble', size: 'mega',
+      body: {
+        type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '26px', spacing: 'none',
+        contents: [
+          { type: 'text', text: '豆知識', size: 'xs', color: C.goldDeep, weight: 'bold', align: 'center' },
+          { type: 'text', text: 'REAL ESTATE TIPS', size: 'xxs', color: C.goldSoft, weight: 'bold', align: 'center', margin: 'xs' },
+          goldRuleCentered('lg'),
+          { type: 'text', text: randomTip(), size: 'md', color: C.ink, align: 'center', wrap: true, margin: 'xl', lineSpacing: '7px' },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', backgroundColor: C.white, paddingStart: '20px', paddingEnd: '20px', paddingBottom: '22px', spacing: 'sm',
+        contents: [
+          softBtn('もう1つみる', { type: 'message', label: 'もう1つ', text: '豆知識' }),
+          softBtn('専門知識を学ぶ', { type: 'message', label: '専門知識', text: '専門知識' }),
+        ],
+      },
+      styles: { footer: { separator: false } },
+    },
+  };
+}
+
+// ── ⑧ 専門知識メニュー（タップして学べる） ────────────────────
+export function knowledgeMenu() {
+  const topics = [
+    '仲介手数料', '住宅ローン控除', '売却の流れ',
+    '査定の種類', '建ぺい率', '再建築不可', '相続登記', '税金',
+  ];
+  return {
+    type: 'flex',
+    altText: '不動産の専門知識',
+    contents: {
+      type: 'bubble', size: 'mega',
+      body: {
+        type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '24px', spacing: 'none',
+        contents: [
+          { type: 'text', text: 'REAL ESTATE KNOWLEDGE', size: 'xxs', color: C.goldDeep, weight: 'bold', align: 'center' },
+          { type: 'text', text: '不動産の専門知識', size: 'lg', color: C.ink, weight: 'bold', align: 'center', margin: 'sm' },
+          goldRuleCentered('md'),
+          { type: 'text', text: '気になるテーマをタップすると、プロがやさしく解説します。', size: 'xs', color: C.sub, align: 'center', wrap: true, margin: 'lg', lineSpacing: '5px' },
+          { type: 'box', layout: 'vertical', spacing: 'sm', margin: 'xl',
+            contents: topics.map((t) => softBtn(t, { type: 'message', label: t, text: t })) },
+        ],
+      },
+      footer: {
+        type: 'box', layout: 'vertical', backgroundColor: C.white, paddingStart: '20px', paddingEnd: '20px', paddingBottom: '22px',
+        contents: [primaryBtn('豆知識をみる', { type: 'message', label: '豆知識', text: '豆知識' })],
+      },
+      styles: { footer: { separator: false } },
+    },
+  };
+}
+
 // server.js から名前で解決するためのレジストリ
 export const FLEX_BUILDERS = {
   greetingHero,
@@ -288,4 +347,6 @@ export const FLEX_BUILDERS = {
   ctaCard,
   contactCard,
   accessCard,
+  tipCard,
+  knowledgeMenu,
 };
