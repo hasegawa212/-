@@ -1,0 +1,18 @@
+{
+  "name": "martialarts-line-bot",
+  "version": "1.0.0",
+  "description": "株式会社 Martial Arts 向け ビジネスライン（LINE公式アカウント）— ブランドデザインのFlexメッセージ + リッチメニュー付き ルールベース FAQ ボット (Node + Express webhook)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "setup:richmenu": "node setup-richmenu.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
