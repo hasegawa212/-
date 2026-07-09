@@ -1,0 +1,38 @@
+name: Setup LINE Rich Menu (martialarts-line-bot)
+
+# martialarts-line-bot のリッチメニューを LINE に登録するワークフロー。
+# ローカル環境（Mac 等）を使わず、GitHub の画面だけで実行できます。
+#
+# 使い方:
+#   1. リポジトリ Settings → Secrets and variables → Actions → New repository secret
+#      Name = LINE_CHANNEL_ACCESS_TOKEN / Secret = 長期チャネルアクセストークン
+#   2. Actions タブ → 「Setup LINE Rich Menu (martialarts-line-bot)」→ Run workflow
+#   実行後、全ユーザーのトーク下部に6分割リッチメニューが表示されます。
+#   （画像 assets/richmenu.png は同梱済み。トークンは Secrets 経由でログに出ません）
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-richmenu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Register rich menu
+        working-directory: martialarts-line-bot
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$LINE_CHANNEL_ACCESS_TOKEN" ]; then
+            echo "::error::Secret 'LINE_CHANNEL_ACCESS_TOKEN' が未設定です。Settings → Secrets → Actions で追加してください。"
+            exit 1
+          fi
+          npm install
+          npm run setup:richmenu

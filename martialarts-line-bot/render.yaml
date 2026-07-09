@@ -1,0 +1,30 @@
+# Render Blueprint (https://render.com) — martialarts-line-bot 専用
+#
+# 株式会社 Martial Arts のビジネスライン（LINE公式アカウント）を
+# Render の Web Service として1クリックで公開するための定義です。
+#
+# 使い方:
+#   Render → New + → Blueprint → このリポジトリを選択し、Blueprint に
+#   martialarts-line-bot/render.yaml を指定（またはこのファイルをリポジトリ
+#   ルートの render.yaml として使う）。取り込み後、Environment で
+#   LINE_CHANNEL_SECRET / LINE_CHANNEL_ACCESS_TOKEN を入力してください。
+#
+# シークレットは Git に入れません（sync: false）。
+
+services:
+  - type: web
+    name: martialarts-line-bot
+    runtime: node
+    rootDir: martialarts-line-bot
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
