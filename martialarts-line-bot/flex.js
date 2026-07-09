@@ -233,8 +233,9 @@ export function contactCard() {
           goldRuleCentered('lg'),
           { type: 'box', layout: 'vertical', spacing: 'lg', margin: 'xl', contents: [
             infoRow('TEL', COMPANY.tel),
+            ...(COMPANY.fax ? [infoRow('FAX', COMPANY.fax)] : []),
             infoRow('受付', COMPANY.hours),
-            infoRow('所在地', COMPANY.address),
+            infoRow('所在地', `${COMPANY.office ? COMPANY.office + '\n' : ''}${COMPANY.address}`),
             infoRow('アクセス', COMPANY.access),
           ]},
         ],
@@ -265,7 +266,7 @@ export function accessCard() {
         type: 'box', layout: 'vertical', backgroundColor: C.white, paddingAll: '26px', spacing: 'none',
         contents: [
           eyebrow('ACCESS'),
-          { type: 'text', text: '本社アクセス', size: 'xl', color: C.ink, weight: 'bold', align: 'center', margin: 'md' },
+          { type: 'text', text: `${COMPANY.office || '本社'}アクセス`, size: 'xl', color: C.ink, weight: 'bold', align: 'center', margin: 'md' },
           goldRuleCentered('lg'),
           { type: 'text', text: COMPANY.address, size: 'sm', color: C.ink, align: 'center', wrap: true, margin: 'xl' },
           { type: 'text', text: COMPANY.access, size: 'xs', color: C.goldDeep, weight: 'bold', align: 'center', wrap: true, margin: 'sm' },
