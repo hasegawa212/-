@@ -10,15 +10,10 @@
 
 import { readFileSync } from 'node:fs';
 import { setupRichMenu } from './richmenu.js';
+import { loadEnv } from './env.js';
 
-// .env の簡易ローダー（依存を増やさないため自前）
-try {
-  const env = readFileSync(new URL('./.env', import.meta.url), 'utf8');
-  for (const line of env.split('\n')) {
-    const m = line.match(/^\s*([\w.-]+)\s*=\s*(.*)\s*$/);
-    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
-  }
-} catch { /* .env が無ければ環境変数をそのまま使う */ }
+// .env を読み込む（GitHub Actions 等では環境変数が優先され、.env が無くてもOK）
+loadEnv();
 
 const imagePath = process.argv[2] || new URL('./assets/richmenu.png', import.meta.url);
 const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;

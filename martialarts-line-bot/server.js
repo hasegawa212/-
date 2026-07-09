@@ -7,8 +7,13 @@
 
 import express from 'express';
 import crypto from 'node:crypto';
+import { loadEnv } from './env.js';
 import { matchFaq, greetingText, fallbackText } from './faq.js';
 import { FLEX_BUILDERS, greetingHero, serviceDetail, quickReply } from './flex.js';
+
+// ローカル実行時は .env を読み込む（本番は環境変数が直接渡るため .env 不要）。
+// 認証情報の定数を読む前に実行することが重要。
+loadEnv();
 
 const PORT = process.env.PORT || 3000;
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET || '';
