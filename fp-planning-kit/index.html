@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FPと始めるライフプランニング ｜ お金の不安を、地図に変える</title>
+<style>
+  :root{
+    --ink:#1c2b28;
+    --teal:#0f5a52;      /* 信頼のティール */
+    --teal2:#14746a;
+    --teal-l:#e9f3f1;
+    --gold:#bf9a4a;      /* ゴールド */
+    --gold-l:#d8b976;
+    --sub:#5c6b67;
+    --line:#e3ddd0;
+    --paper:#ffffff;
+    --cream:#f6f2e9;
+    --sand:#efe9db;
+    --coral:#c1633f;     /* アクセント */
+    --coral-l:#f7ece6;
+    --red:#a83a3a;
+  }
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  html,body{margin:0;padding:0;}
+  body{background:#37403d;color:var(--ink);line-height:1.75;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,"IPAGothic",sans-serif;-webkit-font-smoothing:antialiased;}
+  .serif{font-family:"Times New Roman",Georgia,"Yu Mincho","Hiragino Mincho ProN",serif;}
+
+  #bar{position:sticky;top:0;z-index:50;background:rgba(15,47,43,.97);color:#fff;
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;font-size:13px;border-bottom:2px solid var(--gold);}
+  #bar b{color:var(--gold-l);letter-spacing:.05em;}
+  #bar .sp{flex:1;}
+  #bar .hint{color:#9fc0ba;font-size:12px;}
+  #bar button{background:var(--gold);color:#241a06;border:0;border-radius:7px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;}
+  #bar button.ghost{background:transparent;color:#e0ece9;border:1px solid #3d5b55;}
+  #bar button:hover{filter:brightness(1.08);}
+
+  .stage{padding:26px 10px 60px;}
+  .page{width:794px;min-height:1123px;margin:0 auto 26px;background:var(--paper);position:relative;overflow:hidden;
+    box-shadow:0 12px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;}
+  .pad{padding:50px 56px;flex:1;display:flex;flex-direction:column;}
+
+  [contenteditable="true"]{outline:0;transition:background .15s;border-radius:3px;}
+  body.editing [contenteditable="true"]:hover{background:rgba(191,154,74,.14);}
+  body.editing [contenteditable="true"]:focus{background:rgba(191,154,74,.2);box-shadow:0 0 0 2px rgba(191,154,74,.5);}
+
+  .kicker{font-size:12px;letter-spacing:.32em;color:var(--gold);font-weight:700;text-transform:uppercase;margin:0 0 10px;}
+  .sec-no{font-family:"Times New Roman",serif;letter-spacing:.1em;color:var(--gold);}
+  h1.title{font-size:32px;line-height:1.34;margin:0 0 6px;font-weight:800;color:var(--teal);}
+  h2.hd{font-size:20px;margin:0 0 4px;font-weight:800;color:var(--teal);}
+  .lead{color:var(--sub);font-size:14.5px;margin:6px 0 0;}
+  .rule{height:3px;width:54px;background:var(--gold);border-radius:2px;margin:14px 0 20px;}
+
+  .foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:12px 56px;font-size:11px;color:var(--sub);}
+  .foot .bt{color:var(--teal);font-weight:700;}
+
+  /* cover */
+  .cover{background:
+      radial-gradient(1100px 560px at 82% -10%, rgba(191,154,74,.28), transparent 60%),
+      linear-gradient(160deg,#0b3d38 0%, #0f5a52 48%, #14746a 100%);color:#eaf4f1;}
+  .cover .pad{padding:60px 56px;}
+  .cover .brandrow{display:flex;justify-content:space-between;align-items:center;color:#c3ddd7;font-size:12.5px;letter-spacing:.08em;}
+  .cover .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.12em;}
+  .cover .logo .dot{width:12px;height:12px;background:var(--gold);border-radius:50%;box-shadow:0 0 0 4px rgba(191,154,74,.25);}
+  .cover .mid{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .cover .eyebrow{color:var(--gold-l);letter-spacing:.36em;font-size:13px;font-weight:700;margin-bottom:22px;}
+  .cover h1{font-size:50px;line-height:1.28;font-weight:900;margin:0;color:#fff;}
+  .cover h1 .g{color:var(--gold-l);}
+  .cover .sub{font-size:16.5px;color:#c9e2dd;margin-top:24px;max-width:580px;line-height:1.95;}
+  .cover .pills{display:flex;gap:10px;margin-top:32px;flex-wrap:wrap;}
+  .cover .pills span{border:1px solid rgba(216,185,118,.5);color:var(--gold-l);border-radius:30px;padding:7px 16px;font-size:12.5px;letter-spacing:.04em;}
+  .cover .bottom{border-top:1px solid rgba(255,255,255,.16);padding-top:20px;display:flex;justify-content:space-between;align-items:flex-end;font-size:13px;color:#c3ddd7;}
+  .cover .bottom b{color:#fff;font-size:15px;display:block;letter-spacing:.05em;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:#fff;}
+  .card.cream{background:var(--cream);border-color:var(--sand);}
+  .card.teal{background:linear-gradient(160deg,#0f5a52,#14746a);color:#eaf4f1;border:0;}
+  .card.tealbg{background:var(--teal-l);border-color:#cfe6e2;}
+  .card.coral{background:var(--coral-l);border-color:#eed7cc;}
+  .card h3{margin:0 0 7px;font-size:15.5px;color:var(--teal);font-weight:800;}
+  .card.teal h3{color:#fff;}
+  .card p{margin:0;font-size:13px;color:var(--sub);}
+  .card.teal p{color:#c9e2dd;}
+
+  .stat{display:flex;gap:16px;flex-wrap:wrap;}
+  .stat .s{flex:1;min-width:150px;background:var(--cream);border:1px solid var(--sand);border-radius:12px;padding:16px 18px;}
+  .stat .s .n{font-family:"Times New Roman",serif;font-size:33px;font-weight:800;color:var(--teal);line-height:1;}
+  .stat .s .n em{font-style:normal;font-size:16px;color:var(--gold);}
+  .stat .s .l{font-size:12px;color:var(--sub);margin-top:8px;}
+
+  ul.check{list-style:none;padding:0;margin:0;}
+  ul.check li{position:relative;padding:8px 0 8px 30px;font-size:13.5px;border-bottom:1px solid var(--line);}
+  ul.check li:last-child{border-bottom:0;}
+  ul.check li:before{content:"";position:absolute;left:2px;top:13px;width:15px;height:15px;border-radius:4px;background:var(--gold);}
+  ul.check li:after{content:"✓";position:absolute;left:4.5px;top:8px;color:#fff;font-size:11px;font-weight:900;}
+
+  /* 6分野 grid */
+  .dom{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .dom .d{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#fff;}
+  .dom .d .ic{flex:0 0 40px;height:40px;border-radius:10px;background:var(--teal-l);border:1px solid #cfe6e2;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  .dom .d h3{margin:0 0 2px;font-size:14.5px;color:var(--teal);font-weight:800;}
+  .dom .d p{margin:0;font-size:12px;color:var(--sub);}
+
+  /* cashflow table */
+  table.tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+  table.tbl th,table.tbl td{border:1px solid var(--line);padding:7px 9px;text-align:center;}
+  table.tbl th{background:var(--teal);color:#fff;font-weight:700;}
+  table.tbl td.h{background:var(--cream);font-weight:700;color:var(--teal);text-align:left;white-space:nowrap;}
+  table.tbl tr:nth-child(even) td{background:#fbfaf6;}
+  table.tbl td.neg{color:var(--red);font-weight:700;}
+  table.tbl td.pos{color:var(--teal);font-weight:700;}
+
+  /* balance sheet */
+  .bs{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .bs .col{border-radius:12px;padding:16px 18px;border:1px solid var(--line);}
+  .bs .col.asset{background:var(--teal-l);border-color:#cfe6e2;}
+  .bs .col.debt{background:var(--coral-l);border-color:#eed7cc;}
+  .bs .col h3{margin:0 0 8px;font-size:14px;}
+  .bs .col.asset h3{color:var(--teal);}
+  .bs .col.debt h3{color:var(--coral);}
+  .bs .row{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed rgba(0,0,0,.12);}
+  .bs .row:last-child{border-bottom:0;font-weight:800;color:var(--ink);}
+
+  .steps{display:flex;flex-direction:column;gap:12px;}
+  .st{display:flex;gap:16px;align-items:flex-start;border-bottom:1px dashed var(--line);padding-bottom:12px;}
+  .st:last-child{border-bottom:0;}
+  .st .num{flex:0 0 52px;height:52px;border-radius:50%;background:linear-gradient(160deg,var(--teal),var(--teal2));color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;}
+  .st .num small{font-size:9px;letter-spacing:.16em;color:var(--gold-l);}
+  .st .num b{font-family:"Times New Roman",serif;font-size:22px;line-height:1;}
+  .st .b h3{margin:0 0 3px;font-size:16px;color:var(--teal);font-weight:800;}
+  .st .b p{margin:0;font-size:13px;color:var(--sub);}
+
+  .lifeflow{display:flex;align-items:stretch;gap:0;margin:6px 0;flex-wrap:wrap;}
+  .lifeflow .f{flex:1;min-width:90px;background:var(--cream);border:1px solid var(--sand);border-radius:10px;padding:12px 8px;text-align:center;}
+  .lifeflow .f b{display:block;color:var(--teal);font-size:13px;font-weight:800;}
+  .lifeflow .f span{font-size:10.5px;color:var(--sub);}
+  .lifeflow .arw{flex:0 0 18px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-weight:800;}
+
+  .cta{background:linear-gradient(160deg,#0f5a52,#14746a);color:#fff;border-radius:16px;padding:28px 32px;}
+  .cta h2{margin:0 0 8px;color:#fff;font-size:23px;font-weight:800;}
+  .cta p{color:#c9e2dd;margin:0 0 16px;font-size:14px;}
+  .cta .btn{display:inline-block;background:var(--gold);color:#241a06;font-weight:800;padding:12px 28px;border-radius:8px;font-size:15px;}
+  .contact{display:grid;grid-template-columns:1fr 1fr;gap:9px 24px;margin-top:18px;font-size:13.5px;}
+  .contact .row{display:flex;gap:10px;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:7px;}
+  .contact .row .k{color:var(--gold-l);flex:0 0 74px;font-size:12px;letter-spacing:.05em;}
+  .contact .row .v{color:#eaf4f1;}
+
+  .note{font-size:11px;color:#8a938f;}
+  .flag{color:var(--red);font-weight:700;font-size:11px;}
+  .src{font-size:10px;color:#9aa29e;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+
+  @media print{
+    body{background:#fff;}
+    #bar{display:none;}
+    .stage{padding:0;}
+    .page{box-shadow:none;margin:0;width:100%;height:296mm;min-height:auto;page-break-after:always;}
+    .page:last-child{page-break-after:auto;}
+    @page{size:A4;margin:0;}
+  }
+  @media screen and (max-width:760px){ .page{width:100%;} .pad{padding:26px 20px;} .cover h1{font-size:34px;} .grid2,.grid3,.dom,.bs{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <b>FPと始めるライフプランニング資料</b>
+  <span class="hint">クリックで文字を直接編集（会社名・連絡先など）</span>
+  <span class="sp"></span>
+  <button onclick="window.print()">🖨 PDF / 印刷で保存</button>
+  <button class="ghost" id="editBtn" onclick="toggleEdit()">✎ 編集ON</button>
+  <button class="ghost" onclick="resetAll()">↺ 初期化</button>
+</div>
+
+<div class="stage">
+
+  <!-- COVER -->
+  <section class="page cover">
+    <div class="pad">
+      <div class="brandrow">
+        <div class="logo"><span class="dot"></span><span contenteditable="true" data-k="brand">株式会社ジャパンマネジメント</span></div>
+        <div contenteditable="true" data-k="coverdate">FINANCIAL PLANNING 2026</div>
+      </div>
+      <div class="mid">
+        <div class="eyebrow" contenteditable="true" data-k="eyebrow">LIFE PLANNING WITH FP</div>
+        <h1 class="serif" contenteditable="true" data-k="cover_h1">お金の不安を、<br><span class="g">地図</span>に変える。</h1>
+        <p class="sub" contenteditable="true" data-k="cover_sub">「なんとなく不安」の正体は、お金の全体像が見えていないこと。ファイナンシャル・プランニング（FP）は、あなたの収入・支出・資産・夢を一枚の地図にして、いつ・何を・いくら準備すればいいかを明らかにします。生涯にわたる、お金の羅針盤を。</p>
+        <div class="pills">
+          <span>家計の見える化</span><span>教育・住宅・老後</span><span>資産形成</span><span>中立のプロ</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <div>
+          <b contenteditable="true" data-k="cover_tag">自己責任の時代の、お金の羅針盤</b>
+          <span contenteditable="true" data-k="cover_note">日本FP協会の実務データに基づくライフプランニング・ガイド</span>
+        </div>
+        <div style="text-align:right">
+          <b contenteditable="true" data-k="cover_web">japan-mgmt.co.jp</b>
+          <span contenteditable="true" data-k="cover_tel">無料相談：0120-〇〇〇-〇〇〇</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- P1 なぜ今 -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Why now</p>
+      <h1 class="title" contenteditable="true" data-k="p1_h1">なぜ今、ライフプランニングか</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p1_lead">「貯蓄から投資へ」「自己責任の時代」——お金のことを、自分で調べ、考え、決める必要が高まっています。だからこそ、専門家と一緒に“全体像”を描くことに価値があります。</p>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card cream"><h3>❶ インフレと可処分所得の減少</h3><p>物価は上がる一方、社会保険料や税の負担は増加傾向。「貯めているだけ」では実質的な価値が目減りするリスクがあります。</p></div>
+        <div class="card cream"><h3>❷ 人口減少・超高齢社会</h3><p>2050年には約3人に1人が高齢者に。公的年金や雇用のあり方も変わる中、自分の備えを設計する必要があります。</p></div>
+        <div class="card cream"><h3>❸ 「貯蓄から投資」への流れ</h3><p>NISA・iDeCoなど制度は広がる一方、金融商品は複雑化。正しい知識で選ぶ力が問われています。</p></div>
+        <div class="card teal"><h3>だから、FPの出番</h3><p>収入・支出・資産・保険・税・相続——バラバラに考えがちなお金を、<b style="color:#fff">一つのライフプランに束ねて</b>最適化する。それがファイナンシャル・プランニングです。</p></div>
+      </div>
+
+      <div class="card tealbg" style="margin-top:16px">
+        <h3 style="color:var(--teal)">ライフプラン＝「ライフデザイン」×「ライフイベント」</h3>
+        <p style="font-size:13px">生きがい・健康・お金（ライフデザイン）を土台に、誕生・成長・自立・成熟・老後・相続（ライフイベント）を見通す。そのために使う道具が、次ページからの<b>キャッシュフロー分析</b>と<b>バランスシート分析</b>です。</p>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」。本資料は情報提供のみを目的とし、特定の金融商品等の勧誘を目的とするものではありません。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf1">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　01</span></div>
+  </section>
+
+  <!-- P2 データで見る現実 -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Reality in data</p>
+      <h1 class="title" contenteditable="true" data-k="p2_h1">データで見る「お金の現実」</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p2_lead">感覚ではなく、事実から始めましょう。日本FP協会の実務データ集から、今の日本のお金の現実を3つの数字で。</p>
+
+      <div class="stat" style="margin-top:22px">
+        <div class="s"><div class="n">459.5<em>万円</em></div><div class="l">給与所得者の平均給与（男女計・2023年）。男性568.5万円／女性315.8万円と差も大きい。</div></div>
+        <div class="s"><div class="n">約55<em>%</em></div><div class="l">金融リテラシー（お金の知識・判断力）の正答率（全体・25問）。“なんとなく”が多い現実。</div></div>
+        <div class="s"><div class="n">36.9<em>%</em></div><div class="l">財形貯蓄制度を実施する企業割合（2024年）。勤め先の制度を使えていない人も多い。</div></div>
+      </div>
+
+      <div class="grid2" style="margin-top:24px">
+        <div class="card cream">
+          <h3>平均給与は横ばい、格差は拡大</h3>
+          <p>平均給与は2014年の約421万円から2023年の約460万円へ緩やかに増加。ただし物価上昇を差し引くと実感は乏しく、<b>男女差（約253万円）</b>も大きいのが実態です。世帯の設計は“自分の数字”で。</p>
+        </div>
+        <div class="card cream">
+          <h3>知識の差が、備えの差になる</h3>
+          <p>金融リテラシーの正答率は分野・男女で差があり、<b>保険・資産形成・生活設計</b>で苦手意識が目立ちます。知らないまま選ぶより、専門家と一緒に判断する価値がここにあります。</p>
+        </div>
+      </div>
+      <p class="src">出典：国税庁「民間給与実態統計調査（令和5年分）」／金融広報中央委員会「金融リテラシー調査（2022年）」／厚生労働省「就労条件総合調査（令和6年）」。いずれも日本FP協会「FP実務の基本データ集」より作成。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf2">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　02</span></div>
+  </section>
+
+  <!-- P3 6分野 -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">FP</span> ／ お金の全体像</p>
+      <h1 class="title" contenteditable="true" data-k="p3_h1">FPがカバーする「お金の6分野」</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p3_lead">お金の悩みは、実は6つの分野に整理できます。バラバラに考えず、横断的に見るのがFPの仕事です。</p>
+
+      <div class="dom" style="margin-top:20px">
+        <div class="d"><div class="ic">🧭</div><div><h3>① ライフプランニングと資金計画</h3><p>教育・住宅資金、社会保険、年金（リタイアメントプランニング）。</p></div></div>
+        <div class="d"><div class="ic">📈</div><div><h3>② 金融資産運用</h3><p>預貯金・株式・債券・投資信託、NISA/iDeCo、金融商品の基礎。</p></div></div>
+        <div class="d"><div class="ic">🛡</div><div><h3>③ リスク管理</h3><p>生命保険・医療保険・損害保険。必要保障額と見直し。</p></div></div>
+        <div class="d"><div class="ic">🧾</div><div><h3>④ タックスプランニング</h3><p>所得税の計算・申告、住宅ローン控除、消費税・住民税など。</p></div></div>
+        <div class="d"><div class="ic">🏠</div><div><h3>⑤ 不動産</h3><p>権利と価格、借地・借家、運用と投資、売却・相続の税金と特例。</p></div></div>
+        <div class="d"><div class="ic">🌿</div><div><h3>⑥ 相続・事業承継</h3><p>相続税・贈与税、遺言と遺産分割、事業承継の手法。</p></div></div>
+      </div>
+
+      <div class="card teal" style="margin-top:20px">
+        <h3>“横断”で見るから、最適化できる</h3>
+        <p>たとえば「住宅ローンを繰上げ返済すべきか」は、税（控除）・運用（NISA）・保険（団信）・老後（年金）を横断して初めて答えが出ます。単品ではなく<b style="color:#fff">全体最適</b>——それがFPの価値です。</p>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」（FP技能検定の学習範囲＝6分野）。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf3">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　03</span></div>
+  </section>
+
+  <!-- P4 キャッシュフロー -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">Tool 01</span> ／ 見える化</p>
+      <h1 class="title" contenteditable="true" data-k="p4_h1">FPの武器①：キャッシュフロー表</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p4_lead">将来の収入・支出・貯蓄残高を年ごとに並べる表。「いつ、いくら足りなくなるか」が一目で分かり、対策を前倒しできます。</p>
+
+      <div style="margin-top:18px;overflow-x:auto">
+        <table class="tbl">
+          <tr><th>項目</th><th>今年</th><th>+5年</th><th>+10年<br>教育ピーク</th><th>+20年</th><th>+30年<br>退職期</th></tr>
+          <tr><td class="h">収入</td><td>500</td><td>540</td><td>560</td><td>600</td><td>年金中心</td></tr>
+          <tr><td class="h">支出</td><td>420</td><td>470</td><td>580</td><td>520</td><td>480</td></tr>
+          <tr><td class="h">年間収支</td><td class="pos">+80</td><td class="pos">+70</td><td class="neg">−20</td><td class="pos">+80</td><td class="neg">−</td></tr>
+          <tr><td class="h">貯蓄残高</td><td>400</td><td>760</td><td class="neg">720↓</td><td>1,400</td><td>取崩し</td></tr>
+        </table>
+      </div>
+      <p class="note" style="margin-top:6px">※ 数値はイメージ（万円）。実際は年収・家族構成・目標に合わせて作成します。</p>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card cream"><h3>「教育費のピーク」が見える</h3><p>子どもの進学が重なる時期に収支が赤字化しやすいことが事前に分かれば、貯蓄の前倒し・保険や住宅ローンの調整で乗り切れます。</p></div>
+        <div class="card cream"><h3>「老後の取り崩し」も試算できる</h3><p>退職後は収入が年金中心に。いつから貯蓄を取り崩し、何歳まで持つか。繰下げ受給やiDeCo・NISAの効果も数字で比較します。</p></div>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」（キャッシュフロー分析）。数値はイメージです。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf4">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　04</span></div>
+  </section>
+
+  <!-- P5 バランスシート -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">Tool 02</span> ／ 棚卸し</p>
+      <h1 class="title" contenteditable="true" data-k="p5_h1">FPの武器②：バランスシート</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p5_lead">ある時点の「資産」と「負債」を並べ、差額＝純資産を出す家計の健康診断。キャッシュフロー（流れ）に対して、こちらは残高（ストック）を見ます。</p>
+
+      <div class="bs" style="margin-top:20px">
+        <div class="col asset">
+          <h3>資産（持っているもの）</h3>
+          <div class="row"><span>預貯金</span><span>600</span></div>
+          <div class="row"><span>株式・投信・NISA</span><span>300</span></div>
+          <div class="row"><span>保険（解約返戻金）</span><span>150</span></div>
+          <div class="row"><span>自宅（時価）</span><span>2,500</span></div>
+          <div class="row"><span>資産合計</span><span>3,550</span></div>
+        </div>
+        <div class="col debt">
+          <h3>負債（返すもの）</h3>
+          <div class="row"><span>住宅ローン残高</span><span>2,000</span></div>
+          <div class="row"><span>自動車ローン</span><span>80</span></div>
+          <div class="row"><span>その他</span><span>20</span></div>
+          <div class="row"><span>負債合計</span><span>2,100</span></div>
+        </div>
+      </div>
+      <div class="card teal" style="margin-top:16px">
+        <h3>純資産 ＝ 資産 − 負債 ＝ 1,450万円（イメージ）</h3>
+        <p>プラスなら健全、マイナスなら要注意。<b style="color:#fff">資産の置き場所（現金・自宅・金融資産）の偏り</b>や、保険の過不足もここで見えます。年に一度の棚卸しが、家計を強くします。</p>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」（バランスシート分析）。数値はイメージ（万円）です。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf5">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　05</span></div>
+  </section>
+
+  <!-- P6 ライフイベントとお金 -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">Life</span> ／ お金の一生</p>
+      <h1 class="title" contenteditable="true" data-k="p6_h1">ライフイベントと、お金の一生</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p6_lead">人生の節目には、まとまったお金が動きます。誕生から相続まで——先に見通しておけば、あわてずに準備できます。</p>
+
+      <div class="lifeflow" style="margin-top:20px">
+        <div class="f"><b>誕生</b><span>出産・育児</span></div><div class="arw">›</div>
+        <div class="f"><b>成長</b><span>教育資金</span></div><div class="arw">›</div>
+        <div class="f"><b>自立</b><span>就職・結婚</span></div><div class="arw">›</div>
+        <div class="f"><b>成熟</b><span>住宅・保険</span></div><div class="arw">›</div>
+        <div class="f"><b>老後</b><span>年金・介護</span></div><div class="arw">›</div>
+        <div class="f"><b>相続</b><span>承継・遺言</span></div>
+      </div>
+
+      <h2 class="hd" style="font-size:18px;margin:26px 0 10px">とくに大きい「3大資金」</h2>
+      <div class="grid3">
+        <div class="card coral"><h3 style="color:var(--coral)">住宅資金</h3><p>頭金・ローン・維持費。人生最大の買い物であり資産。</p></div>
+        <div class="card coral"><h3 style="color:var(--coral)">教育資金</h3><p>進路により子1人 約1,000万円〜。ピークの時期に注意。 <span class="flag">〔要確認〕</span></p></div>
+        <div class="card coral"><h3 style="color:var(--coral)">老後資金</h3><p>公的年金＋自助（退職金・iDeCo・NISA）。長生きリスクに備える。</p></div>
+      </div>
+
+      <div class="card tealbg" style="margin-top:20px">
+        <h3 style="color:var(--teal)">「生きがい・健康・お金」を一緒に描く</h3>
+        <p style="font-size:13px">お金は目的ではなく手段。どう生きたいか（ライフデザイン）から逆算して、必要な資金と時期を決める——それがFP流のライフプランニングです。</p>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」（ライフイベント／ライフデザイン）。教育資金の目安は進路等により変動します。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf6">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　06</span></div>
+  </section>
+
+  <!-- P7 相談の進め方 -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">Process</span> ／ 進め方</p>
+      <h1 class="title" contenteditable="true" data-k="p7_h1">相談は、この4ステップ</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p7_lead">一度きりではなく、ライフイベントに合わせて見直していく——PDCAで回すのがライフプランニングです。</p>
+
+      <div class="steps" style="margin-top:20px">
+        <div class="st"><div class="num"><small>STEP</small><b>1</b></div><div class="b"><h3>現状把握（見える化）</h3><p>収入・支出・資産・負債・保険をヒアリング。キャッシュフロー表とバランスシートを作成します。</p></div></div>
+        <div class="st"><div class="num"><small>STEP</small><b>2</b></div><div class="b"><h3>目標設定</h3><p>いつ・何に・いくら必要か。住宅・教育・老後の希望と、譲れない価値観（ライフデザイン）を言葉に。</p></div></div>
+        <div class="st"><div class="num"><small>STEP</small><b>3</b></div><div class="b"><h3>プラン作成・提案</h3><p>6分野を横断して、貯蓄・運用（NISA/iDeCo）・保険見直し・住宅ローン・税・相続の打ち手を組み立てます。</p></div></div>
+        <div class="st"><div class="num"><small>STEP</small><b>4</b></div><div class="b"><h3>実行・定期見直し</h3><p>実行を伴走し、ライフイベントや制度改正に合わせて毎年アップデート。プランは“生きた地図”です。</p></div></div>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」（FPによる包括的アプローチ・実行援助）。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf7">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　07</span></div>
+  </section>
+
+  <!-- P8 FPとは -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">About FP</span> ／ 信頼の裏づけ</p>
+      <h1 class="title" contenteditable="true" data-k="p8_h1">「FP」って、どんな専門家？</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p8_lead">ファイナンシャル・プランナーは、家計とお金の全体像を扱う専門家。中立的な立場で、あなたのライフプラン実現を手助けします。</p>
+
+      <h2 class="hd" style="font-size:18px;margin:22px 0 8px">FP資格の体系</h2>
+      <table class="tbl" style="text-align:left">
+        <tr><th style="text-align:left">資格</th><th style="text-align:left">区分</th><th style="text-align:left">位置づけ</th></tr>
+        <tr><td class="h">3級FP技能士</td><td>国家資格</td><td>お金の基礎を習得。生活者としての知識を整理。</td></tr>
+        <tr><td class="h">2級FP技能士 / AFP</td><td>国家 / 民間</td><td>実務レベル。相談・提案の必携資格。</td></tr>
+        <tr><td class="h">1級FP技能士 / CFP®</td><td>国家 / 国際</td><td>高い専門性。CFPは世界に通用する国際ライセンス。</td></tr>
+      </table>
+      <p class="note" style="margin-top:6px">CFP®・AFPはNPO法人日本FP協会、FP技能士は国家資格（厚生労働省）。</p>
+
+      <div class="grid2" style="margin-top:20px">
+        <div class="card cream"><h3>中立という価値</h3><p>特定の商品を売るためでなく、<b>あなたにとっての最適</b>を一緒に考える。必要に応じて税理士・社労士など専門家とも連携します。</p></div>
+        <div class="card teal"><h3>私たちがご一緒します</h3><p>年金・住宅・保険・資産形成まで、暮らしに根ざした相談を。「どんな人でも、お金の不安を安心に」——それが私たちの役割です。</p></div>
+      </div>
+      <p class="src">出典：日本FP協会「FP初級向けガイダンス」（資格制度・FPの役割）。CFP®は日本FP協会の登録商標です。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf8">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　08</span></div>
+  </section>
+
+  <!-- P9 CTA -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Next action</p>
+      <h1 class="title" contenteditable="true" data-k="p9_h1">まずは、お金の地図を描きに。</h1>
+      <div class="rule"></div>
+
+      <div class="grid2" style="margin-top:6px">
+        <div>
+          <h2 class="hd" style="font-size:17px;margin-bottom:8px">相談前にあると便利なもの</h2>
+          <ul class="check">
+            <li>毎月の収入・支出のおおよその額</li>
+            <li>預貯金・投資（NISA/iDeCo）の残高</li>
+            <li>加入中の保険（生命・医療・損害）</li>
+            <li>住宅ローンなど借入の残高</li>
+            <li>ねんきんネットの年金見込額（あれば）</li>
+            <li>叶えたい夢・不安に思っていること</li>
+          </ul>
+          <p class="note" style="margin-top:10px">そろっていなくても大丈夫。分かる範囲でお持ちください。</p>
+        </div>
+        <div class="card cream">
+          <h3>私たちができること</h3>
+          <ul class="check" style="margin-top:4px">
+            <li>キャッシュフロー表・バランスシートの<b>作成</b></li>
+            <li>教育・住宅・老後の<b>資金計画</b></li>
+            <li>NISA・iDeCo・保険の<b>見直し提案</b></li>
+            <li>毎年の<b>定期メンテナンス</b></li>
+          </ul>
+          <p class="note" style="margin-top:8px">中立的な立場で、あなたの数字に寄り添います。</p>
+        </div>
+      </div>
+
+      <div class="cta" style="margin-top:24px">
+        <h2 contenteditable="true" data-k="cta_h">無料のライフプラン相談へ。</h2>
+        <p contenteditable="true" data-k="cta_p">「うちの家計、大丈夫？」——その一言から始めましょう。お金の全体像を一枚の地図にして、これからの安心を一緒に設計します。オンライン相談も可能です。</p>
+        <span class="btn" contenteditable="true" data-k="cta_btn">▶ 無料相談を予約する</span>
+        <div class="contact">
+          <div class="row"><span class="k">会社名</span><span class="v" contenteditable="true" data-k="c_name">株式会社ジャパンマネジメント</span></div>
+          <div class="row"><span class="k">電話</span><span class="v" contenteditable="true" data-k="c_tel">0120-〇〇〇-〇〇〇</span></div>
+          <div class="row"><span class="k">受付</span><span class="v" contenteditable="true" data-k="c_hours">平日 9:00–18:00</span></div>
+          <div class="row"><span class="k">Web</span><span class="v" contenteditable="true" data-k="c_web">http://japan-mgmt.co.jp/</span></div>
+          <div class="row"><span class="k">Email</span><span class="v" contenteditable="true" data-k="c_mail">info@japan-mgmt.co.jp</span></div>
+          <div class="row"><span class="k">LINE</span><span class="v" contenteditable="true" data-k="c_line">公式アカウントで簡単予約</span></div>
+        </div>
+      </div>
+
+      <p class="src">【重要】本資料は家計・資産形成・ライフプランニングに関する一般的な情報提供を目的としたもので、特定の金融商品の勧誘や個別の投資・税務・法務助言ではありません。掲載の数値・制度は調査年次・制度改正により変わります。実行前に、日本FP協会・金融庁・国税庁・日本年金機構等の公式情報および専門家の確認を行ってください。〔要確認〕の項目は面談時に最新値へ更新します。／ データ出典：日本FP協会「FP実務の基本データ集」「FP初級向けガイダンス」（国税庁 民間給与実態統計調査 令和5年分／金融広報中央委員会 金融リテラシー調査2022／厚生労働省 就労条件総合調査 令和6年 ほか）。CFP®は日本FP協会の登録商標です。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf9">株式会社ジャパンマネジメント</span><span>FPと始めるライフプランニング　—　09</span></div>
+  </section>
+
+</div>
+
+<script>
+  const KEY='fp_planning_kit_v1';
+  const editBtn=document.getElementById('editBtn');
+  let editing=false;
+  function load(){
+    let data={};
+    try{ data=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+    document.querySelectorAll('[data-k]').forEach(el=>{ const k=el.getAttribute('data-k'); if(data[k]!=null) el.innerHTML=data[k]; });
+  }
+  function save(){
+    const data={};
+    document.querySelectorAll('[data-k]').forEach(el=>{ data[el.getAttribute('data-k')]=el.innerHTML; });
+    localStorage.setItem(KEY,JSON.stringify(data));
+  }
+  function setEditable(on){
+    document.querySelectorAll('[data-k]').forEach(el=>el.setAttribute('contenteditable',on?'true':'false'));
+    document.body.classList.toggle('editing',on);
+    editBtn.textContent=on?'✓ 編集OFF':'✎ 編集ON';
+  }
+  function toggleEdit(){ editing=!editing; setEditable(editing); }
+  function resetAll(){ if(confirm('編集内容をすべて初期状態に戻しますか？')){ localStorage.removeItem(KEY); location.reload(); } }
+  document.addEventListener('input',e=>{ if(e.target.getAttribute && e.target.getAttribute('data-k')!=null) save(); });
+  load(); setEditable(false);
+</script>
+</body>
+</html>
