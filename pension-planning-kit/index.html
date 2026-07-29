@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>年金 × ライフプランニング資料 ｜ 将来を、数字で見える化する</title>
+<style>
+  :root{
+    --navy:#0d2440;      /* 信頼のネイビー */
+    --navy2:#12365e;
+    --gold:#b8925a;      /* 上品なゴールド */
+    --gold-l:#cdae7d;
+    --ink:#1b2432;
+    --sub:#5b6675;
+    --line:#e4ded2;
+    --paper:#ffffff;
+    --cream:#f6f3ec;
+    --mint:#eef4f1;
+    --accent:#0f6b5c;    /* 行動を促すグリーン */
+    --red:#b23b3b;
+  }
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#3a3f47;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,"IPAGothic",sans-serif;
+    color:var(--ink);
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:"Times New Roman",Georgia,"Yu Mincho","Hiragino Mincho ProN",serif;}
+
+  /* ===== toolbar ===== */
+  #bar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(13,36,64,.96);color:#fff;
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    padding:10px 18px;font-size:13px;border-bottom:2px solid var(--gold);
+  }
+  #bar b{color:var(--gold-l);letter-spacing:.06em;}
+  #bar .sp{flex:1;}
+  #bar button{
+    background:var(--gold);color:#1a1400;border:0;border-radius:7px;
+    padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;
+  }
+  #bar button.ghost{background:transparent;color:#dfe6ef;border:1px solid #40597a;}
+  #bar button:hover{filter:brightness(1.08);}
+  #bar .hint{color:#9fb2c9;font-size:12px;}
+
+  /* ===== page ===== */
+  .stage{padding:26px 10px 60px;}
+  .page{
+    width:794px;min-height:1123px;margin:0 auto 26px;
+    background:var(--paper);position:relative;overflow:hidden;
+    box-shadow:0 12px 40px rgba(0,0,0,.35);
+    display:flex;flex-direction:column;
+  }
+  .pad{padding:52px 58px;flex:1;display:flex;flex-direction:column;}
+
+  /* editable affordance */
+  [contenteditable="true"]{outline:0;transition:background .15s;border-radius:3px;}
+  body.editing [contenteditable="true"]:hover{background:rgba(184,146,90,.14);}
+  body.editing [contenteditable="true"]:focus{background:rgba(184,146,90,.20);box-shadow:0 0 0 2px rgba(184,146,90,.5);}
+
+  /* ===== headers ===== */
+  .kicker{font-size:12px;letter-spacing:.34em;color:var(--gold);font-weight:700;text-transform:uppercase;margin:0 0 10px;}
+  .sec-no{font-family:"Times New Roman",serif;font-size:15px;color:var(--gold);letter-spacing:.1em;}
+  h1.title{font-size:33px;line-height:1.35;margin:0 0 6px;font-weight:800;color:var(--navy);letter-spacing:.01em;}
+  h2.hd{font-size:25px;margin:0 0 4px;font-weight:800;color:var(--navy);letter-spacing:.01em;}
+  .lead{color:var(--sub);font-size:14.5px;margin:6px 0 0;}
+  .rule{height:3px;width:54px;background:var(--gold);border-radius:2px;margin:14px 0 22px;}
+
+  .foot{
+    display:flex;justify-content:space-between;align-items:center;
+    border-top:1px solid var(--line);padding:12px 58px;font-size:11px;color:var(--sub);
+  }
+  .foot .bt{color:var(--navy);font-weight:700;}
+
+  /* ============ COVER ============ */
+  .cover{background:
+      radial-gradient(1200px 600px at 78% -8%, rgba(184,146,90,.28), transparent 60%),
+      linear-gradient(160deg,#0b2039 0%, #0d2440 42%, #123a63 100%);
+      color:#eaf0f7;}
+  .cover .pad{padding:64px 58px;}
+  .cover .brandrow{display:flex;justify-content:space-between;align-items:center;color:#c9d6e6;font-size:12.5px;letter-spacing:.08em;}
+  .cover .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.14em;}
+  .cover .logo .dot{width:11px;height:11px;background:var(--gold);border-radius:50%;box-shadow:0 0 0 4px rgba(184,146,90,.28);}
+  .cover .mid{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .cover .eyebrow{color:var(--gold-l);letter-spacing:.4em;font-size:13px;font-weight:700;margin-bottom:22px;}
+  .cover h1{font-size:53px;line-height:1.28;font-weight:900;margin:0;color:#fff;letter-spacing:.01em;}
+  .cover h1 .g{color:var(--gold-l);}
+  .cover .sub{font-size:17px;color:#c6d4e6;margin-top:26px;max-width:560px;line-height:1.9;}
+  .cover .tags{display:flex;gap:10px;margin-top:34px;flex-wrap:wrap;}
+  .cover .tags span{border:1px solid rgba(205,174,125,.55);color:var(--gold-l);border-radius:30px;padding:7px 17px;font-size:12.5px;letter-spacing:.05em;}
+  .cover .bottom{border-top:1px solid rgba(255,255,255,.16);padding-top:20px;display:flex;justify-content:space-between;align-items:flex-end;font-size:13px;color:#c9d6e6;}
+  .cover .bottom b{color:#fff;font-size:15px;display:block;letter-spacing:.06em;}
+
+  /* ============ generic blocks ============ */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  .card{border:1px solid var(--line);border-radius:12px;padding:20px 20px;background:#fff;}
+  .card.cream{background:var(--cream);border-color:#e7ddca;}
+  .card.navy{background:linear-gradient(160deg,#0d2440,#123a63);color:#eaf0f7;border:0;}
+  .card h3{margin:0 0 8px;font-size:16px;color:var(--navy);font-weight:800;}
+  .card.navy h3{color:#fff;}
+  .card p{margin:0;font-size:13px;color:var(--sub);}
+  .card.navy p{color:#c6d4e6;}
+
+  .stat{display:flex;gap:20px;flex-wrap:wrap;}
+  .stat .s{flex:1;min-width:150px;background:var(--cream);border:1px solid #e7ddca;border-radius:12px;padding:18px 20px;}
+  .stat .s .n{font-family:"Times New Roman",serif;font-size:38px;font-weight:800;color:var(--navy);line-height:1;}
+  .stat .s .n em{font-style:normal;font-size:19px;color:var(--gold);}
+  .stat .s .l{font-size:12.5px;color:var(--sub);margin-top:8px;}
+
+  .step{display:flex;gap:18px;align-items:flex-start;padding:18px 0;border-bottom:1px dashed var(--line);}
+  .step:last-child{border-bottom:0;}
+  .step .num{flex:0 0 58px;height:58px;border-radius:50%;
+    background:linear-gradient(160deg,var(--navy),var(--navy2));color:#fff;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;}
+  .step .num small{font-size:9px;letter-spacing:.18em;color:var(--gold-l);}
+  .step .num b{font-family:"Times New Roman",serif;font-size:24px;line-height:1;}
+  .step .b h3{margin:0 0 4px;font-size:18px;color:var(--navy);font-weight:800;}
+  .step .b p{margin:0;font-size:13.5px;color:var(--sub);}
+  .step .b .chip{display:inline-block;margin-top:8px;margin-right:6px;font-size:11.5px;background:var(--mint);color:var(--accent);border:1px solid #cfe6df;padding:3px 10px;border-radius:20px;font-weight:700;}
+
+  ul.check{list-style:none;padding:0;margin:0;}
+  ul.check li{position:relative;padding:8px 0 8px 30px;font-size:13.5px;border-bottom:1px solid var(--line);}
+  ul.check li:before{content:"";position:absolute;left:2px;top:13px;width:15px;height:15px;border-radius:4px;background:var(--gold);}
+  ul.check li:after{content:"✓";position:absolute;left:4.5px;top:8px;color:#fff;font-size:11px;font-weight:900;}
+
+  .qa{border:1px solid var(--line);border-radius:11px;padding:15px 18px;margin-bottom:12px;background:#fff;}
+  .qa .q{font-weight:800;color:var(--navy);font-size:14px;margin:0 0 6px;padding-left:26px;position:relative;}
+  .qa .q:before{content:"Q";position:absolute;left:0;top:-2px;background:var(--navy);color:#fff;width:19px;height:19px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:center;font-family:serif;}
+  .qa .a{font-size:13px;color:var(--sub);margin:0;padding-left:26px;position:relative;}
+  .qa .a:before{content:"A";position:absolute;left:0;top:-1px;color:var(--gold);width:19px;height:19px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:serif;background:#faf4ea;}
+
+  .lever{display:flex;gap:14px;align-items:flex-start;background:var(--cream);border:1px solid #e7ddca;border-radius:12px;padding:16px 18px;}
+  .lever .ic{flex:0 0 42px;height:42px;border-radius:10px;background:#fff;border:1px solid #e7ddca;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .lever h3{margin:0 0 3px;font-size:15px;color:var(--navy);font-weight:800;}
+  .lever p{margin:0;font-size:12.5px;color:var(--sub);}
+
+  .note{font-size:11px;color:#8a93a2;}
+  .flag{color:var(--red);font-weight:700;font-size:11px;}
+
+  .cta{background:linear-gradient(160deg,#0d2440,#12365e);color:#fff;border-radius:16px;padding:30px 34px;}
+  .cta h2{margin:0 0 8px;color:#fff;font-size:24px;font-weight:800;}
+  .cta p{color:#c6d4e6;margin:0 0 18px;font-size:14px;}
+  .cta .btn{display:inline-block;background:var(--gold);color:#1a1400;font-weight:800;padding:13px 30px;border-radius:30px;font-size:15px;letter-spacing:.04em;}
+  .contact{display:grid;grid-template-columns:1fr 1fr;gap:10px 26px;margin-top:20px;font-size:13.5px;}
+  .contact .row{display:flex;gap:10px;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:8px;}
+  .contact .row .k{color:var(--gold-l);flex:0 0 78px;font-size:12px;letter-spacing:.06em;}
+  .contact .row .v{color:#eef3f9;}
+
+  .flow{display:flex;align-items:stretch;gap:0;margin:6px 0;}
+  .flow .f{flex:1;background:var(--cream);border:1px solid #e7ddca;border-radius:10px;padding:14px 12px;text-align:center;}
+  .flow .f b{display:block;color:var(--navy);font-size:13.5px;font-weight:800;}
+  .flow .f span{font-size:11px;color:var(--sub);}
+  .flow .arw{flex:0 0 26px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:20px;font-weight:800;}
+
+  .src{font-size:10px;color:#9aa2ad;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+
+  /* two-story pension diagram */
+  .tower{display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:stretch;margin:6px 0;}
+  .tower .lbl{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;border-radius:10px;}
+  .tower .f2 .lbl{background:linear-gradient(160deg,var(--gold),#a07d45);}
+  .tower .f1 .lbl{background:linear-gradient(160deg,var(--navy),var(--navy2));}
+  .tower .row{display:contents;}
+  .tower .box{border:1px solid var(--line);border-radius:10px;padding:12px 16px;background:#fff;}
+  .tower .box b{color:var(--navy);font-size:14px;}
+  .tower .box span{display:block;font-size:12px;color:var(--sub);margin-top:2px;}
+  .tower .f2 .box{background:#fbf6ee;border-color:#e7ddca;}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+  table.tbl th,table.tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  table.tbl th{background:var(--navy);color:#fff;font-weight:700;font-size:12px;}
+  table.tbl td.h{background:var(--cream);font-weight:700;color:var(--navy);white-space:nowrap;}
+  table.tbl tr:nth-child(even) td{background:#fbfaf7;}
+
+  @media print{
+    body{background:#fff;}
+    #bar{display:none;}
+    .stage{padding:0;}
+    .page{box-shadow:none;margin:0;width:100%;height:296mm;min-height:auto;page-break-after:always;}
+    .page:last-child{page-break-after:auto;}
+    @page{size:A4;margin:0;}
+  }
+  @media screen and (max-width:840px){
+    .page{width:100%;}
+    .pad{padding:26px 20px;}
+    .cover h1{font-size:36px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <b>年金 × ライフプランニング資料</b>
+  <span class="hint">クリックで文字を直接編集できます（会社名・連絡先など）</span>
+  <span class="sp"></span>
+  <button onclick="window.print()">🖨 PDF / 印刷で保存</button>
+  <button class="ghost" id="editBtn" onclick="toggleEdit()">✎ 編集ON</button>
+  <button class="ghost" onclick="resetAll()">↺ 初期化</button>
+</div>
+
+<div class="stage">
+
+  <!-- ============ PAGE 1: COVER ============ -->
+  <section class="page cover">
+    <div class="pad">
+      <div class="brandrow">
+        <div class="logo"><span class="dot"></span><span contenteditable="true" data-k="brand">株式会社ジャパンマネジメント</span></div>
+        <div contenteditable="true" data-k="coverdate">2026 ライフプランニング資料</div>
+      </div>
+      <div class="mid">
+        <div class="eyebrow" contenteditable="true" data-k="eyebrow">FOR YOUR FUTURE</div>
+        <h1 class="serif" contenteditable="true" data-k="cover_h1">将来を、<span class="g">数字</span>で<br>見える化する。</h1>
+        <p class="sub" contenteditable="true" data-k="cover_sub">「老後にいくら必要か」は、まず“自分の年金”を知ることから始まります。国が用意した「ねんきんネット」で現状を把握し、将来を試算し、不足を埋めるプランを立てる——その3ステップを、この一冊にまとめました。</p>
+        <div class="tags">
+          <span>① 現状を知る</span><span>② 将来を試算する</span><span>③ プランを立てる</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <div>
+          <b contenteditable="true" data-k="cover_tag">人生100年時代の、はじめの一歩</b>
+          <span contenteditable="true" data-k="cover_note">公的年金の“見える化”ガイド ＋ 資産形成プランニング</span>
+        </div>
+        <div style="text-align:right">
+          <b contenteditable="true" data-k="cover_web">japan-mgmt.co.jp</b>
+          <span contenteditable="true" data-k="cover_tel">お問い合わせ：0120-〇〇〇-〇〇〇</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PAGE 2: WHY ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Why now</p>
+      <h1 class="title" contenteditable="true" data-k="p2_h1">なぜ今、“自分の年金”を知るべきか</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p2_lead">「なんとなく不安」を「具体的な数字」に変えるだけで、対策の打ち手は驚くほど明確になります。漠然とした不安の正体は、“自分がいくら受け取れるか知らない”ことにあります。</p>
+
+      <div class="stat" style="margin:26px 0 8px">
+        <div class="s"><div class="n">1,599<em>万人</em></div><div class="l">「ねんきんネット」利用者数（令和7年度）。8年前の約3倍に。</div></div>
+        <div class="s"><div class="n">5<em>パターン</em></div><div class="l">将来の年金見込額を最大5件まで試算・登録して、グラフで比較できる。</div></div>
+        <div class="s"><div class="n">24<em>時間</em></div><div class="l">スマホ・PCから、いつでも自分の年金記録を確認できる。</div></div>
+      </div>
+
+      <div class="grid2" style="margin-top:24px">
+        <div class="card cream">
+          <h3>❶ 公的年金だけで足りるとは限らない</h3>
+          <p>受け取れる年金額は、働き方・加入期間・納付状況で一人ひとり違います。「平均」ではなく“あなたの数字”を知ることが出発点です。</p>
+        </div>
+        <div class="card cream">
+          <h3>❷ 納め漏れ・記録の抜けは取り戻せる</h3>
+          <p>転職や退職のたびに記録は分散します。未納・未加入期間は、追納や後払いで将来の受取額を増やせる可能性があります。</p>
+        </div>
+        <div class="card cream">
+          <h3>❸ 早く知るほど、打てる手が多い</h3>
+          <p>iDeCo・NISA・繰下げ受給・就労延長——選択肢はどれも“時間”が効きます。50代・40代・30代、それぞれに最適解があります。</p>
+        </div>
+        <div class="card navy">
+          <h3>本資料のゴール</h3>
+          <p>ねんきんネットで<b style="color:#fff">現状を把握</b>し、将来を<b style="color:#fff">試算</b>し、不足額を埋める<b style="color:#fff">プラン</b>を持ち帰ること。無料相談で、あなた専用の数字に落とし込みます。</p>
+        </div>
+      </div>
+
+      <p class="src">出典：日本年金機構「ねんきんネットの概要」（利用者数・試算件数等）。本資料は公的年金制度の理解を目的とした一般的な情報提供であり、個別の投資・税務助言ではありません。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f2">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　01</span></div>
+  </section>
+
+  <!-- ============ PAGE 3: OVERVIEW 3 STEPS ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">The 3 steps</p>
+      <h1 class="title" contenteditable="true" data-k="p3_h1">プランニングは、この3ステップ</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p3_lead">難しいことはありません。「知る → 試す → 決める」。すべて“無料のオンラインサービス”から始められます。</p>
+
+      <div style="margin-top:18px">
+        <div class="step">
+          <div class="num"><small>STEP</small><b>1</b></div>
+          <div class="b">
+            <h3>現状を把握する ― ねんきんネットに登録</h3>
+            <p>これまでの加入記録・納付額・持ち主不明記録を確認。まずは“今の自分”を正確に知ります。</p>
+            <span class="chip">年金記録の確認</span><span class="chip">納付漏れチェック</span><span class="chip">電子版ねんきん定期便</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"><small>STEP</small><b>2</b></div>
+          <div class="b">
+            <h3>将来を試算する ― 見込額シミュレーション</h3>
+            <p>「かんたん試算」で自動計算、「詳細試算」で働き方・受給開始年齢を変えて比較。数字で未来を描きます。</p>
+            <span class="chip">かんたん試算</span><span class="chip">詳細な条件で試算</span><span class="chip">最大5件をグラフ比較</span>
+          </div>
+        </div>
+        <div class="step">
+          <div class="num"><small>STEP</small><b>3</b></div>
+          <div class="b">
+            <h3>不足を埋めるプランを立てる ― 4つのレバー</h3>
+            <p>「追納」「繰下げ受給」「iDeCo・NISA」「就労延長・保険」。ギャップを埋める打ち手を組み合わせます。</p>
+            <span class="chip">追納・後払い</span><span class="chip">繰下げ受給</span><span class="chip">iDeCo / NISA</span><span class="chip">就労・保険</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card navy" style="margin-top:22px">
+        <h3>“見える化”の全体フロー</h3>
+        <div class="flow" style="margin-top:12px">
+          <div class="f"><b>登録</b><span>マイナポータル / アクセスキー</span></div>
+          <div class="arw">›</div>
+          <div class="f"><b>確認</b><span>記録・定期便・通知書</span></div>
+          <div class="arw">›</div>
+          <div class="f"><b>試算</b><span>将来の受取額</span></div>
+          <div class="arw">›</div>
+          <div class="f"><b>相談</b><span>プランに落とす</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f3">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　02</span></div>
+  </section>
+
+  <!-- ============ PAGE 4: STEP1 ねんきんネット ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">STEP 01</span> ／ 現状把握</p>
+      <h1 class="title" contenteditable="true" data-k="p4_h1">ねんきんネットに登録する</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p4_lead">スマホ・PCから、これまでの年金記録と将来の見込額を確認できる、日本年金機構の公式無料サービス。登録方法は3通りあります。</p>
+
+      <div class="grid3" style="margin-top:20px">
+        <div class="card">
+          <h3>Ⓐ マイナンバーカードあり</h3>
+          <p>マイナポータル経由で“認証連携”すればすぐ利用可能。確定申告・年末調整用の通知書も電子データで受け取れます。</p>
+          <p class="note" style="margin-top:8px">※初回連携は平日8〜23時。</p>
+        </div>
+        <div class="card">
+          <h3>Ⓑ アクセスキーあり</h3>
+          <p>「ねんきん定期便」に記載の<b>17桁のアクセスキー</b>で申込。オンライン手続きだけでユーザIDが<b>即時発行</b>されます。</p>
+          <p class="note" style="margin-top:8px">※年金事務所でも発行可。</p>
+        </div>
+        <div class="card">
+          <h3>Ⓒ アクセスキーなし</h3>
+          <p>基礎年金番号とメールアドレスで申込。後日、ユーザIDを記載したハガキが<b>5営業日程度</b>で郵送されます。</p>
+          <p class="note" style="margin-top:8px">※すぐ使いたい方はⒶ・Ⓑが便利。</p>
+        </div>
+      </div>
+
+      <h2 class="hd" style="font-size:19px;margin:26px 0 4px">登録後、こんなことが確認できます</h2>
+      <div class="grid2" style="margin-top:12px">
+        <ul class="check">
+          <li>月別・制度別の<b>年金記録</b>（国民年金・厚生年金・船員保険）</li>
+          <li>電子版「<b>ねんきん定期便</b>」の閲覧・ダウンロード</li>
+          <li>国民年金保険料の<b>追納可能な月数と金額</b></li>
+        </ul>
+        <ul class="check">
+          <li>将来受け取る<b>年金見込額の試算</b>（STEP2へ）</li>
+          <li>年金振込通知書・<b>源泉徴収票</b>・控除証明書など</li>
+          <li><b>持ち主不明記録</b>の検索（記録の抜けチェック）</li>
+        </ul>
+      </div>
+
+      <div class="lever" style="margin-top:22px;background:var(--mint);border-color:#cfe6df">
+        <div class="ic">💡</div>
+        <div>
+          <h3 style="color:var(--accent)">ワンポイント：まず「アクセスキー」を探そう</h3>
+          <p>お手元の「ねんきん定期便」に17桁のアクセスキーが記載されています。これがあれば<b>その場で即日</b>登録完了。見当たらなければマイナンバーカード（Ⓐ）が最短ルートです。</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f4">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　03</span></div>
+  </section>
+
+  <!-- ============ PAGE 5: STEP2 試算 ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">STEP 02</span> ／ 将来試算</p>
+      <h1 class="title" contenteditable="true" data-k="p5_h1">将来の年金額を試算する</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p5_lead">2つの試算方法で、将来の受取額を“自分の条件”で描きます。結果は最大5パターン登録して、グラフで見比べられます。</p>
+
+      <div class="grid2" style="margin-top:20px">
+        <div class="card cream">
+          <h3>かんたん試算</h3>
+          <p>現在の加入条件が60歳まで続くと仮定して、見込額を<b>自動で試算</b>。ログインしてすぐ、目安が分かります。</p>
+        </div>
+        <div class="card cream">
+          <h3>詳細な条件で試算</h3>
+          <p>今後の職業・収入、<b>受給開始年齢の変更</b>、未納保険料を納付した場合など、条件を細かく設定して試算します。</p>
+        </div>
+      </div>
+
+      <h2 class="hd" style="font-size:19px;margin:26px 0 4px">「受給開始年齢」で受取額は大きく動く</h2>
+      <p class="lead" style="margin-bottom:12px" contenteditable="true" data-k="p5_lead2">同じ年金でも、いつから受け取るかで生涯の受取額が変わります。詳細試算で自分のケースを必ず確認しましょう。</p>
+      <div class="grid3">
+        <div class="card"><h3 style="color:var(--red)">繰上げ（早く受給）</h3><p>60歳〜。1か月あたり<b>0.4%減額</b>、一度決めると生涯続きます。 <span class="flag">〔最新の率は要確認〕</span></p></div>
+        <div class="card"><h3>通常（65歳）</h3><p>原則の受給開始年齢。まずはここを基準に、前後の選択肢を比較します。</p></div>
+        <div class="card"><h3 style="color:var(--accent)">繰下げ（遅く受給）</h3><p>最大75歳まで。1か月<b>0.7%増額</b>＝最大<b>84%増</b>。長く働ける人に有効。 <span class="flag">〔要確認〕</span></p></div>
+      </div>
+
+      <div class="card navy" style="margin-top:22px">
+        <h3>試算結果は“持ち歩ける”</h3>
+        <p>試算結果はデータ（CSV）でマイナポータルへ電子送付でき、面談時にそのまま活用できます。<b style="color:#fff">「試算結果を印刷 or 保存して、無料相談にお持ちください」</b>——ここからが、私たちの出番です。</p>
+      </div>
+      <p class="src">※減額率・増額率・受給開始年齢の上限等は制度改正で変わる場合があります。試算・相談時に日本年金機構の最新情報をご確認ください。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f5">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　04</span></div>
+  </section>
+
+  <!-- ============ PAGE 6: STEP3 4 levers ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">STEP 03</span> ／ プランを立てる</p>
+      <h1 class="title" contenteditable="true" data-k="p6_h1">不足を埋める、4つのレバー</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p6_lead">試算で見えた「理想と現実のギャップ」。それを埋める打ち手は、大きく4つ。組み合わせ方はあなたの年齢・家計しだいです。</p>
+
+      <div style="display:flex;flex-direction:column;gap:14px;margin-top:20px">
+        <div class="lever">
+          <div class="ic">🧾</div>
+          <div><h3>① 追納・後払いで“土台”を厚くする</h3>
+          <p>免除・未納期間があれば、追納で将来の年金額を増やせます。ねんきんネットで<b>追納可能な月数と金額</b>を確認 → 納付。社会保険料控除で節税にもつながります。</p></div>
+        </div>
+        <div class="lever">
+          <div class="ic">⏳</div>
+          <div><h3>② 繰下げ受給で“増やして”受け取る</h3>
+          <p>受給開始を遅らせるほど月額は増えます（最大75歳・84%増）。長く働く予定なら、生涯受取額を底上げする強力な選択肢。 <span class="flag">〔増額率は要確認〕</span></p></div>
+        </div>
+        <div class="lever">
+          <div class="ic">📈</div>
+          <div><h3>③ iDeCo・NISAで“自分年金”を作る</h3>
+          <p>公的年金の上乗せは、税制優遇のある制度から。iDeCoは掛金が全額所得控除、NISAは運用益が非課税。掛金上限・非課税枠は<span class="flag">〔最新の制度を要確認〕</span>。</p></div>
+        </div>
+        <div class="lever">
+          <div class="ic">🛡</div>
+          <div><h3>④ 就労延長・保険で“リスク”に備える</h3>
+          <p>働き方の見直し（厚生年金加入の継続）や、万一に備える保障の最適化。「増やす」だけでなく「守る」もプランの両輪です。</p></div>
+        </div>
+      </div>
+
+      <div class="card cream" style="margin-top:20px">
+        <h3>あなたのプランは、年代で変わります</h3>
+        <div class="flow" style="margin-top:10px">
+          <div class="f"><b>30代</b><span>時間を味方に。NISA中心＋記録整備</span></div>
+          <div class="arw">·</div>
+          <div class="f"><b>40代</b><span>iDeCo併用・追納で土台強化</span></div>
+          <div class="arw">·</div>
+          <div class="f"><b>50代</b><span>繰下げ設計・出口戦略・保障見直し</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f6">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　05</span></div>
+  </section>
+
+  <!-- ============ PAGE: 年金の基本と数字 ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Reference ／ 基本と数字</p>
+      <h1 class="title" contenteditable="true" data-k="pr1_h1">30秒でわかる、年金の基本と数字</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="pr1_lead">プランを立てる前に、土台となる「かたち」と「今の数字」を押さえておきましょう。日本の公的年金は2階建て、加入者は3つの種別に分かれます。</p>
+
+      <h2 class="hd" style="font-size:18px;margin:22px 0 8px">公的年金は「2階建て」構造</h2>
+      <div class="tower">
+        <div class="row f2"><div class="lbl">2階</div><div class="box"><b>厚生年金保険</b><span>会社員・公務員などが加入。過去の報酬（給与）と加入期間に応じた「報酬比例部分」が基礎年金に上乗せされます。</span></div></div>
+        <div class="row f1"><div class="lbl">1階</div><div class="box"><b>国民年金（基礎年金）</b><span>国内に住む20歳以上60歳未満の全員が加入。65歳から、加入期間や納付額に応じて受け取れます。</span></div></div>
+      </div>
+
+      <h2 class="hd" style="font-size:18px;margin:22px 0 8px">加入者は3つの「種別」</h2>
+      <table class="tbl">
+        <tr><th>種別</th><th>第1号被保険者</th><th>第2号被保険者</th><th>第3号被保険者</th></tr>
+        <tr><td class="h">対象</td><td>学生・自営業者・農林漁業 等</td><td>会社員・公務員 等</td><td>第2号に扶養される配偶者</td></tr>
+        <tr><td class="h">保険料</td><td>各自が納付（月17,920円）</td><td>給与から天引き（労使折半）</td><td>自己負担なし</td></tr>
+        <tr><td class="h">手続き</td><td>市区町村へ本人が届出</td><td>勤め先が年金事務所へ届出</td><td>配偶者の勤め先へ届出</td></tr>
+      </table>
+      <p class="note" style="margin-top:6px">※ 結婚・就職・退職などで種別が変わったときは<b>14日以内</b>に手続きが必要です。</p>
+
+      <h2 class="hd" style="font-size:18px;margin:22px 0 10px">押さえておきたい「今の数字」（令和8年度）</h2>
+      <div class="stat">
+        <div class="s"><div class="n">17,920<em>円</em></div><div class="l">国民年金保険料（第1号・月額）。2年前納で約1か月分が割引に。</div></div>
+        <div class="s"><div class="n">847,300<em>円</em></div><div class="l">老齢基礎年金の満額（年額／40年=480月納付）。月額 約70,610円。</div></div>
+        <div class="s"><div class="n">10<em>年</em></div><div class="l">老齢年金の受給資格期間。納付＋免除・猶予の合算で最低10年。</div></div>
+        <div class="s"><div class="n">61.2<em>%</em></div><div class="l">標準的な夫婦世帯の所得代替率（令和6年度）。現役収入に対する年金割合。</div></div>
+      </div>
+      <p class="src">出典：日本年金機構「国民年金・厚生年金保険 被保険者のしおり」「退職後の年金手続きガイド」「知っておきたい年金のはなし」（いずれも令和8年度時点）。金額・料率は制度改正で変わります。最新値は面談時に確認します。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_fr1">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　06</span></div>
+  </section>
+
+  <!-- ============ PAGE: こんなときどうする ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Reference ／ ライフイベント</p>
+      <h1 class="title" contenteditable="true" data-k="pr2_h1">こんなとき、どうする？</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="pr2_lead">退職・転職・働き方の変化・もしものとき——年金は人生の転機と深く関わります。手続きの抜けは、将来の受取額に直結します。</p>
+
+      <div class="grid2" style="margin-top:18px">
+        <div class="lever"><div class="ic">🏢</div><div><h3>退職・転職したとき</h3><p>退職日の翌日から<b>14日以内</b>に国民年金の加入手続きを（扶養していた配偶者も同様）。再就職先が厚生年金なら勤め先が手続きします。忘れると年金額が減る・受け取れない恐れ。</p></div></div>
+        <div class="lever"><div class="ic">🕒</div><div><h3>短時間で働くとき</h3><p>令和6年10月から、<b>従業員51人以上・週20時間以上</b>など一定条件でパート・アルバイトも厚生年金の加入対象に。2階部分が増える＝将来の受取増につながります。</p></div></div>
+        <div class="lever"><div class="ic">💸</div><div><h3>保険料が厳しいとき</h3><p>放置＝未納は最悪の選択。<b>免除・納付猶予・学生納付特例</b>を申請すれば、受給資格期間に算入され、いざのときの障害・遺族年金も守れます。後から<b>10年以内に追納</b>可能。</p></div></div>
+        <div class="lever"><div class="ic">🔁</div><div><h3>60歳以降も増やしたいとき</h3><p>満額に満たない・受給資格が足りない場合、65歳まで（不足時は70歳まで）<b>任意加入</b>できます。第1号は<b>付加保険料 月400円</b>で「200円×納付月数」を終身上乗せも。</p></div></div>
+        <div class="lever"><div class="ic">👷</div><div><h3>働きながら受け取るとき</h3><p>在職老齢年金では給与と年金の合計により一部停止の場合が。受給開始を遅らせる<b>繰下げ（最大75歳・84%増）</b>と組み合わせ、生涯手取りで最適化します。 <span class="flag">〔支給停止基準は要確認〕</span></p></div></div>
+        <div class="lever"><div class="ic">🛡</div><div><h3>もしものとき（障害・遺族）</h3><p>年金は老後だけではありません。障害基礎年金は1級<b>年額1,059,125円</b>／2級年額847,300円、遺族基礎年金は<b>年額847,300円＋子の加算</b>（第1・2子は各 月約20,320円、第3子以降は各 月約6,780円）。“今”の備えでもあります。</p></div></div>
+      </div>
+
+      <div class="card cream" style="margin-top:18px">
+        <h3>迷ったら「ねんきんダイヤル」／私たちへ</h3>
+        <p style="font-size:13px;color:var(--sub);margin:0">一般的な問い合わせは <b>ねんきんダイヤル 0570-05-1165</b>（受付：平日8:30〜17:15 ほか）。「自分の場合はどうか」は、ねんきんネットの試算結果を持って、無料相談でお確かめください。</p>
+      </div>
+      <p class="src">出典：日本年金機構「退職後の年金手続きガイド」「被保険者のしおり」（令和8年度時点）。金額・要件・支給停止の基準は改正されることがあります。個別のケースは面談・公式情報で確認します。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_fr2">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　07</span></div>
+  </section>
+
+  <!-- ============ PAGE 7: Q&A ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">FAQ</p>
+      <h1 class="title" contenteditable="true" data-k="p7_h1">年金まるわかり Q&amp;A</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p7_lead">相談前によく聞かれる質問をまとめました。数字は制度改正で変わるため、最新情報は面談時に確認します。</p>
+
+      <div style="margin-top:18px">
+        <div class="qa"><p class="q">ねんきんネットの利用は本当に無料ですか？</p><p class="a">はい。登録・利用ともに無料です。日本年金機構の公式サービスで、スマホ・PCから24時間利用できます。</p></div>
+        <div class="qa"><p class="q">「アクセスキー」はどこに書いてありますか？</p><p class="a">郵送される「ねんきん定期便」に記載の17桁の番号です。年金事務所でも発行できます。あればオンラインだけで即日登録が完了します。</p></div>
+        <div class="qa"><p class="q">昔の勤め先の記録が抜けている気がします。</p><p class="a">「持ち主不明記録検索」機能で確認できます。転職の多い方ほど記録が分散しがちなので、一度の総点検をおすすめします。</p></div>
+        <div class="qa"><p class="q">確定申告や年末調整にも使えますか？</p><p class="a">はい。「各種設定」でペーパーレス化を選ぶと、控除証明書や公的年金等の源泉徴収票をマイナポータルで電子データ受取でき、e-Taxや年末調整に使えます。</p></div>
+        <div class="qa"><p class="q">受給は65歳からでないとダメですか？</p><p class="a">60〜75歳の間で選べます。早めれば減額、遅らせれば増額。詳細試算で複数パターンを比較し、家計とあわせて最適解を決めます。 <span class="flag">〔率・上限は要確認〕</span></p></div>
+        <div class="qa"><p class="q">結局、何から始めればいいですか？</p><p class="a">①ねんきんネット登録 → ②かんたん試算で現状把握 → ③結果を持って無料相談。この順番で、あなた専用のプランに落とし込みます。</p></div>
+      </div>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f7">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　08</span></div>
+  </section>
+
+  <!-- ============ PAGE 8: checklist + CTA ============ -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Next action</p>
+      <h1 class="title" contenteditable="true" data-k="p8_h1">今日からの、はじめの一歩</h1>
+      <div class="rule"></div>
+
+      <div class="grid2" style="margin-top:6px">
+        <div>
+          <h2 class="hd" style="font-size:18px;margin-bottom:8px">3分でできるチェックリスト</h2>
+          <ul class="check">
+            <li>手元の「ねんきん定期便」を用意した</li>
+            <li>ねんきんネット（またはマイナポータル）に登録した</li>
+            <li>「かんたん試算」で見込額を確認した</li>
+            <li>納付漏れ・記録の抜けをチェックした</li>
+            <li>試算結果を印刷 / 保存した</li>
+            <li>無料相談を予約した</li>
+          </ul>
+          <p class="note" style="margin-top:10px">ねんきんネット：nenkin.go.jp／「ねんきんチャットボット」は24時間対応。</p>
+        </div>
+        <div class="card cream">
+          <h3>私たちができること</h3>
+          <ul class="check" style="margin-top:4px">
+            <li>試算結果をもとにした<b>家計・老後資金の見える化</b></li>
+            <li>iDeCo・NISAを含む<b>資産形成プラン</b>の設計</li>
+            <li>繰下げ・追納・保障の<b>組み合わせ最適化</b></li>
+            <li>ライフイベントに合わせた<b>定期見直し</b></li>
+          </ul>
+          <p class="note" style="margin-top:8px">中立的な立場で、あなたの数字に寄り添います。</p>
+        </div>
+      </div>
+
+      <div class="cta" style="margin-top:26px">
+        <h2 contenteditable="true" data-k="cta_h">まずは無料相談から。</h2>
+        <p contenteditable="true" data-k="cta_p">「自分の年金っていくら？」——その問いに、具体的な数字とプランでお答えします。オンライン相談も可能です。</p>
+        <span class="btn" contenteditable="true" data-k="cta_btn">▶ 無料相談を予約する</span>
+        <div class="contact">
+          <div class="row"><span class="k">会社名</span><span class="v" contenteditable="true" data-k="c_name">株式会社ジャパンマネジメント</span></div>
+          <div class="row"><span class="k">電話</span><span class="v" contenteditable="true" data-k="c_tel">0120-〇〇〇-〇〇〇</span></div>
+          <div class="row"><span class="k">受付時間</span><span class="v" contenteditable="true" data-k="c_hours">平日 9:00–18:00</span></div>
+          <div class="row"><span class="k">Web</span><span class="v" contenteditable="true" data-k="c_web">http://japan-mgmt.co.jp/</span></div>
+          <div class="row"><span class="k">Email</span><span class="v" contenteditable="true" data-k="c_mail">info@japan-mgmt.co.jp</span></div>
+          <div class="row"><span class="k">LINE</span><span class="v" contenteditable="true" data-k="c_line">公式アカウントで簡単予約</span></div>
+        </div>
+      </div>
+
+      <p class="src">【重要】本資料は公的年金・資産形成に関する一般的な情報提供を目的としたものであり、特定の金融商品の勧誘や個別の投資・税務・法務助言ではありません。年金額・税制・各制度の要件は改正されることがあります。制度の詳細・最新情報は日本年金機構（nenkin.go.jp）・金融庁・国税庁等の公式情報をご確認ください。〔要確認〕の数値は面談時に最新値へ更新します。／ 出典：日本年金機構「ねんきんネットの概要」。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="brand_f8">株式会社ジャパンマネジメント</span><span>年金 × ライフプランニング　—　09</span></div>
+  </section>
+
+</div>
+
+<script>
+  const KEY='pension_planning_kit_v1';
+  const editBtn=document.getElementById('editBtn');
+  let editing=false;
+
+  // load saved edits
+  function load(){
+    let data={};
+    try{ data=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+    document.querySelectorAll('[data-k]').forEach(el=>{
+      const k=el.getAttribute('data-k');
+      if(data[k]!=null) el.innerHTML=data[k];
+    });
+  }
+  function save(){
+    const data={};
+    document.querySelectorAll('[data-k]').forEach(el=>{ data[el.getAttribute('data-k')]=el.innerHTML; });
+    localStorage.setItem(KEY,JSON.stringify(data));
+  }
+  function setEditable(on){
+    document.querySelectorAll('[data-k]').forEach(el=>el.setAttribute('contenteditable',on?'true':'false'));
+    document.body.classList.toggle('editing',on);
+    editBtn.textContent=on?'✓ 編集OFF':'✎ 編集ON';
+  }
+  function toggleEdit(){ editing=!editing; setEditable(editing); }
+  function resetAll(){
+    if(confirm('編集内容をすべて初期状態に戻しますか？')){ localStorage.removeItem(KEY); location.reload(); }
+  }
+  document.addEventListener('input',e=>{ if(e.target.getAttribute && e.target.getAttribute('data-k')!=null) save(); });
+
+  load();
+  setEditable(false); // start in view mode; click 編集ON to edit
+</script>
+</body>
+</html>

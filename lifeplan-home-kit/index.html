@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>マイホーム × 年金 ライフプラン資料 ｜ 住まいから始める、生涯の資産設計</title>
+<style>
+  :root{
+    --ink:#23262c;        /* チャコール */
+    --ink2:#33373f;
+    --gold:#b1863f;       /* ブラス／ゴールド */
+    --gold-l:#cca767;
+    --sub:#636975;
+    --line:#e7e0d3;
+    --paper:#ffffff;
+    --cream:#f6f2ea;
+    --sand:#efe8db;
+    --teal:#155e57;       /* データ・信頼のグリーン */
+    --teal-l:#eaf3f1;
+    --brick:#a4502f;      /* マイホームのアクセント */
+    --brick-l:#f7ede8;
+    --red:#a83a3a;
+  }
+  *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  html,body{margin:0;padding:0;}
+  body{background:#3a3d44;color:var(--ink);line-height:1.75;
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,"IPAGothic",sans-serif;-webkit-font-smoothing:antialiased;}
+  .serif{font-family:"Times New Roman",Georgia,"Yu Mincho","Hiragino Mincho ProN",serif;}
+
+  /* toolbar */
+  #bar{position:sticky;top:0;z-index:50;background:rgba(35,38,44,.97);color:#fff;
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:10px 18px;font-size:13px;border-bottom:2px solid var(--gold);}
+  #bar b{color:var(--gold-l);letter-spacing:.05em;}
+  #bar .sp{flex:1;}
+  #bar .hint{color:#a9b0bd;font-size:12px;}
+  #bar button{background:var(--gold);color:#20180a;border:0;border-radius:7px;padding:8px 15px;font-size:13px;font-weight:700;cursor:pointer;}
+  #bar button.ghost{background:transparent;color:#e2e6ec;border:1px solid #4a4f59;}
+  #bar button:hover{filter:brightness(1.08);}
+
+  .stage{padding:26px 10px 60px;}
+  .page{width:794px;min-height:1123px;margin:0 auto 26px;background:var(--paper);position:relative;overflow:hidden;
+    box-shadow:0 12px 40px rgba(0,0,0,.35);display:flex;flex-direction:column;}
+  .pad{padding:50px 56px;flex:1;display:flex;flex-direction:column;}
+
+  [contenteditable="true"]{outline:0;transition:background .15s;border-radius:3px;}
+  body.editing [contenteditable="true"]:hover{background:rgba(177,134,63,.14);}
+  body.editing [contenteditable="true"]:focus{background:rgba(177,134,63,.20);box-shadow:0 0 0 2px rgba(177,134,63,.5);}
+
+  .kicker{font-size:12px;letter-spacing:.32em;color:var(--gold);font-weight:700;text-transform:uppercase;margin:0 0 10px;}
+  .sec-no{font-family:"Times New Roman",serif;letter-spacing:.1em;color:var(--gold);}
+  h1.title{font-size:32px;line-height:1.34;margin:0 0 6px;font-weight:800;color:var(--ink);}
+  h2.hd{font-size:20px;margin:0 0 4px;font-weight:800;color:var(--ink);}
+  .lead{color:var(--sub);font-size:14.5px;margin:6px 0 0;}
+  .rule{height:3px;width:54px;background:var(--gold);border-radius:2px;margin:14px 0 20px;}
+
+  .foot{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding:12px 56px;font-size:11px;color:var(--sub);}
+  .foot .bt{color:var(--ink);font-weight:700;}
+
+  /* cover */
+  .cover{background:
+      radial-gradient(1100px 560px at 80% -10%, rgba(177,134,63,.30), transparent 60%),
+      linear-gradient(160deg,#1d2025 0%, #23262c 45%, #2c3038 100%);color:#eef0f4;}
+  .cover .pad{padding:60px 56px;}
+  .cover .brandrow{display:flex;justify-content:space-between;align-items:center;color:#c7ccd6;font-size:12.5px;letter-spacing:.08em;}
+  .cover .logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.12em;}
+  .cover .logo .dot{width:11px;height:11px;background:var(--gold);border-radius:2px;transform:rotate(45deg);box-shadow:0 0 0 4px rgba(177,134,63,.25);}
+  .cover .mid{flex:1;display:flex;flex-direction:column;justify-content:center;}
+  .cover .eyebrow{color:var(--gold-l);letter-spacing:.38em;font-size:13px;font-weight:700;margin-bottom:22px;}
+  .cover h1{font-size:49px;line-height:1.3;font-weight:900;margin:0;color:#fff;}
+  .cover h1 .g{color:var(--gold-l);}
+  .cover .sub{font-size:16.5px;color:#c9cfda;margin-top:24px;max-width:580px;line-height:1.95;}
+  .cover .pills{display:flex;gap:10px;margin-top:32px;flex-wrap:wrap;}
+  .cover .pills span{border:1px solid rgba(204,167,103,.5);color:var(--gold-l);border-radius:4px;padding:7px 16px;font-size:12.5px;letter-spacing:.04em;}
+  .cover .bottom{border-top:1px solid rgba(255,255,255,.15);padding-top:20px;display:flex;justify-content:space-between;align-items:flex-end;font-size:13px;color:#c7ccd6;}
+  .cover .bottom b{color:#fff;font-size:15px;display:block;letter-spacing:.05em;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+  .card{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:#fff;}
+  .card.cream{background:var(--cream);border-color:var(--sand);}
+  .card.ink{background:linear-gradient(160deg,#23262c,#33373f);color:#eef0f4;border:0;}
+  .card.teal{background:var(--teal-l);border-color:#cfe6e2;}
+  .card.brick{background:var(--brick-l);border-color:#efd9cf;}
+  .card h3{margin:0 0 7px;font-size:15.5px;color:var(--ink);font-weight:800;}
+  .card.ink h3{color:#fff;}
+  .card p{margin:0;font-size:13px;color:var(--sub);}
+  .card.ink p{color:#c9cfda;}
+
+  .stat{display:flex;gap:16px;flex-wrap:wrap;}
+  .stat .s{flex:1;min-width:150px;background:var(--cream);border:1px solid var(--sand);border-radius:12px;padding:16px 18px;}
+  .stat .s .n{font-family:"Times New Roman",serif;font-size:34px;font-weight:800;color:var(--ink);line-height:1;}
+  .stat .s .n em{font-style:normal;font-size:17px;color:var(--gold);}
+  .stat .s .l{font-size:12px;color:var(--sub);margin-top:8px;}
+
+  /* 3大資金 bars */
+  .fund{display:flex;flex-direction:column;gap:12px;margin:6px 0;}
+  .fund .f{display:grid;grid-template-columns:120px 1fr;align-items:center;gap:14px;}
+  .fund .f .t{font-weight:800;color:var(--ink);font-size:14px;}
+  .fund .f .t small{display:block;color:var(--sub);font-weight:600;font-size:11px;}
+  .fund .f .bar{height:34px;border-radius:8px;display:flex;align-items:center;padding:0 14px;color:#fff;font-size:12.5px;font-weight:700;}
+  .fund .f .h{background:linear-gradient(90deg,var(--brick),#c06a45);}
+  .fund .f .e{background:linear-gradient(90deg,var(--gold),var(--gold-l));}
+  .fund .f .r{background:linear-gradient(90deg,var(--teal),#2a8177);}
+
+  ul.check{list-style:none;padding:0;margin:0;}
+  ul.check li{position:relative;padding:8px 0 8px 30px;font-size:13.5px;border-bottom:1px solid var(--line);}
+  ul.check li:last-child{border-bottom:0;}
+  ul.check li:before{content:"";position:absolute;left:2px;top:13px;width:15px;height:15px;border-radius:4px;background:var(--gold);}
+  ul.check li:after{content:"✓";position:absolute;left:4.5px;top:8px;color:#fff;font-size:11px;font-weight:900;}
+
+  .vs{display:grid;grid-template-columns:1fr 44px 1fr;gap:0;align-items:stretch;margin-top:4px;}
+  .vs .col{border:1px solid var(--line);border-radius:12px;padding:16px 18px;}
+  .vs .col.rent{background:#fbfaf7;}
+  .vs .col.buy{background:var(--brick-l);border-color:#efd9cf;}
+  .vs .col h3{margin:0 0 8px;font-size:15px;color:var(--ink);}
+  .vs .col.buy h3{color:var(--brick);}
+  .vs .mid{display:flex;align-items:center;justify-content:center;font-family:serif;font-weight:800;color:var(--gold);font-size:17px;}
+  .vs ul{margin:0;padding-left:18px;}
+  .vs li{font-size:12.5px;color:var(--sub);margin-bottom:5px;}
+
+  .lever{display:flex;gap:14px;align-items:flex-start;background:var(--cream);border:1px solid var(--sand);border-radius:12px;padding:15px 17px;}
+  .lever .ic{flex:0 0 42px;height:42px;border-radius:10px;background:#fff;border:1px solid var(--sand);display:flex;align-items:center;justify-content:center;font-size:21px;}
+  .lever h3{margin:0 0 3px;font-size:15px;color:var(--ink);font-weight:800;}
+  .lever p{margin:0;font-size:12.5px;color:var(--sub);}
+
+  .qa{border:1px solid var(--line);border-radius:11px;padding:14px 18px;margin-bottom:11px;background:#fff;}
+  .qa .q{font-weight:800;color:var(--ink);font-size:14px;margin:0 0 6px;padding-left:26px;position:relative;}
+  .qa .q:before{content:"Q";position:absolute;left:0;top:-2px;background:var(--ink);color:#fff;width:19px;height:19px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:center;font-family:serif;}
+  .qa .a{font-size:13px;color:var(--sub);margin:0;padding-left:26px;position:relative;}
+  .qa .a:before{content:"A";position:absolute;left:0;top:-1px;color:var(--gold);width:19px;height:19px;border-radius:5px;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-family:serif;background:#faf4ea;}
+
+  .flow{display:flex;align-items:stretch;gap:0;margin:4px 0;}
+  .flow .f{flex:1;background:var(--cream);border:1px solid var(--sand);border-radius:10px;padding:13px 12px;text-align:center;}
+  .flow .f b{display:block;color:var(--ink);font-size:13.5px;font-weight:800;}
+  .flow .f span{font-size:11px;color:var(--sub);}
+  .flow .arw{flex:0 0 26px;display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:19px;font-weight:800;}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px;}
+  table.tbl th,table.tbl td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  table.tbl th{background:var(--ink);color:#fff;font-weight:700;}
+  table.tbl td.h{background:var(--cream);font-weight:700;color:var(--ink);white-space:nowrap;}
+  table.tbl tr:nth-child(even) td{background:#fbfaf7;}
+
+  .note{font-size:11px;color:#8a93a2;}
+  .flag{color:var(--red);font-weight:700;font-size:11px;}
+
+  .cta{background:linear-gradient(160deg,#23262c,#33373f);color:#fff;border-radius:16px;padding:28px 32px;}
+  .cta h2{margin:0 0 8px;color:#fff;font-size:23px;font-weight:800;}
+  .cta p{color:#c9cfda;margin:0 0 16px;font-size:14px;}
+  .cta .btn{display:inline-block;background:var(--gold);color:#20180a;font-weight:800;padding:12px 28px;border-radius:8px;font-size:15px;letter-spacing:.03em;}
+  .contact{display:grid;grid-template-columns:1fr 1fr;gap:9px 24px;margin-top:18px;font-size:13.5px;}
+  .contact .row{display:flex;gap:10px;border-bottom:1px solid rgba(255,255,255,.14);padding-bottom:7px;}
+  .contact .row .k{color:var(--gold-l);flex:0 0 74px;font-size:12px;letter-spacing:.05em;}
+  .contact .row .v{color:#eef0f4;}
+
+  .src{font-size:10px;color:#9aa2ad;margin-top:auto;padding-top:14px;border-top:1px solid var(--line);}
+
+  @media print{
+    body{background:#fff;}
+    #bar{display:none;}
+    .stage{padding:0;}
+    .page{box-shadow:none;margin:0;width:100%;height:296mm;min-height:auto;page-break-after:always;}
+    .page:last-child{page-break-after:auto;}
+    @page{size:A4;margin:0;}
+  }
+  @media screen and (max-width:760px){ .page{width:100%;} .pad{padding:26px 20px;} .cover h1{font-size:34px;} .grid2,.grid3,.vs{grid-template-columns:1fr;} .vs .mid{display:none;} }
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <b>マイホーム × 年金 ライフプラン資料</b>
+  <span class="hint">クリックで文字を直接編集（会社名・連絡先など）</span>
+  <span class="sp"></span>
+  <button onclick="window.print()">🖨 PDF / 印刷で保存</button>
+  <button class="ghost" id="editBtn" onclick="toggleEdit()">✎ 編集ON</button>
+  <button class="ghost" onclick="resetAll()">↺ 初期化</button>
+</div>
+
+<div class="stage">
+
+  <!-- ===== COVER ===== -->
+  <section class="page cover">
+    <div class="pad">
+      <div class="brandrow">
+        <div class="logo"><span class="dot"></span><span contenteditable="true" data-k="brand">株式会社 Martial Arts</span></div>
+        <div contenteditable="true" data-k="coverdate">LIFE PLAN 2026</div>
+      </div>
+      <div class="mid">
+        <div class="eyebrow" contenteditable="true" data-k="eyebrow">HOME &amp; ASSET LIFE PLAN</div>
+        <h1 class="serif" contenteditable="true" data-k="cover_h1">住まいから始める、<br><span class="g">生涯</span>の資産設計。</h1>
+        <p class="sub" contenteditable="true" data-k="cover_sub">マイホームは、人生でいちばん大きな買い物であり、いちばん大きな「資産」であり、家族を守る「保険」でもあります。住宅・教育・老後——人生の3大資金を一枚のライフプランで見渡し、年金まで見据えて、後悔しない住まいの選び方を。</p>
+        <div class="pills">
+          <span>住宅資金</span><span>教育資金</span><span>老後・年金</span><span>資産形成</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <div>
+          <b contenteditable="true" data-k="cover_tag">賃貸か購入か、で終わらせない。</b>
+          <span contenteditable="true" data-k="cover_note">公的年金データ（日本年金機構 令和8年度）に基づく生涯設計ガイド</span>
+        </div>
+        <div style="text-align:right">
+          <b contenteditable="true" data-k="cover_web">martialarts.co.jp</b>
+          <span contenteditable="true" data-k="cover_tel">無料相談：0120-〇〇〇-〇〇〇</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== P1 3大資金 ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Overview ／ 人生の3大資金</p>
+      <h1 class="title" contenteditable="true" data-k="p1_h1">住宅・教育・老後を、一枚で見渡す</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p1_lead">マイホームは単体で決めるものではありません。人生の「3大資金」の中でバランスを取り、収入が年金に切り替わる老後まで見通して初めて、無理のない住まいの計画になります。</p>
+
+      <h2 class="hd" style="font-size:18px;margin:24px 0 10px">人生の3大資金</h2>
+      <div class="fund">
+        <div class="f"><div class="t">住宅資金<small>マイホーム</small></div><div class="bar h">数千万円 — 頭金・ローン・維持費・リフォーム</div></div>
+        <div class="f"><div class="t">教育資金<small>子ども</small></div><div class="bar e">子1人あたり 約1,000万円〜 〔進路で変動・要確認〕</div></div>
+        <div class="f"><div class="t">老後資金<small>リタイア後</small></div><div class="bar r">公的年金 ＋ 自助（退職金・iDeCo・NISA・資産）</div></div>
+      </div>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card cream">
+          <h3>収入の柱は、いずれ「年金」に変わる</h3>
+          <p>現役時代の給与から、老後は年金が主な収入に。標準的な世帯で年金は現役収入の約6割（所得代替率61.2%／令和6年度）。この“収入の段差”を、住居費を下げて埋めるのが住まいの計画です。</p>
+        </div>
+        <div class="card cream">
+          <h3>「いつ・いくら」を見える化する</h3>
+          <p>キャッシュフロー表で、収入・支出・貯蓄残高を将来にわたって並べると、いくらの家なら安全に買えるか、教育費のピークと重ならないかが一目で分かります。</p>
+        </div>
+      </div>
+
+      <div class="card ink" style="margin-top:16px">
+        <h3>この資料のゴール</h3>
+        <p>「賃貸 vs 購入」で止まらず、<b style="color:#fff">住宅ローン・団信・住宅ローン控除・年金・資産形成</b>までを一本のライフプランでつなぎ、あなたに合った“住まいと資産の最適解”を持ち帰ること。</p>
+      </div>
+      <p class="src">年金の数値出典：日本年金機構「知っておきたい年金のはなし」「被保険者のしおり」（令和8年度）。住宅・教育の金額は一般的な目安で、条件により変動します。本資料は一般的な情報提供であり、個別の投資・税務・法務助言ではありません。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf1">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　01</span></div>
+  </section>
+
+  <!-- ===== P2 賃貸 vs 購入 ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">01</span> ／ 賃貸か、購入か</p>
+      <h1 class="title" contenteditable="true" data-k="p2_h1">賃貸 vs 購入 ― 生涯で比べる</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p2_lead">どちらが「得」かは金利・期間・住み方で変わります。大事なのは月々の家賃だけでなく、<b>生涯コスト</b>と、老後に「資産が残るか・住居費が下がるか」で比べることです。</p>
+
+      <div class="vs" style="margin-top:20px">
+        <div class="col rent">
+          <h3>賃貸のまま</h3>
+          <ul>
+            <li>初期費用が軽く、住み替えが自由</li>
+            <li>設備の修繕・固定資産税は貸主負担</li>
+            <li>家賃は生涯払い続け、<b>資産は残らない</b></li>
+            <li>更新料・高齢期は<b>借りにくくなる</b>ことも</li>
+            <li>老後も家賃負担が続く＝年金を圧迫</li>
+          </ul>
+        </div>
+        <div class="mid">VS</div>
+        <div class="col buy">
+          <h3>購入する</h3>
+          <ul>
+            <li>ローン完済後は<b>住居費が大幅に下がる</b></li>
+            <li>団信で「もしも」に備えられる（次頁）</li>
+            <li>売却・賃貸・住み替えができる<b>資産</b>に</li>
+            <li>金利上昇・維持費・修繕は自己責任</li>
+            <li>立地次第で資産価値が保たれる／上がる</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card teal" style="margin-top:20px">
+        <h3 style="color:var(--teal)">判断のものさし ― 「老後の住居費」で考える</h3>
+        <p style="font-size:13px">年金生活に入ったとき、住居費がローン完済で軽いか、家賃で重いかは家計を大きく左右します。所得代替率が約6割に下がる老後こそ、固定費の差が効きます。<b>購入は「老後の家計対策」でもある</b>——ここを軸に、キャッシュフローで数字を比べましょう。</p>
+      </div>
+      <p class="src">生涯コストは金利・物件・期間の前提で大きく変わります。実際の比較は個別のキャッシュフロー試算で行います。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf2">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　02</span></div>
+  </section>
+
+  <!-- ===== P3 資金計画 ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">02</span> ／ 資金計画</p>
+      <h1 class="title" contenteditable="true" data-k="p3_h1">「借りられる額」より「返せる額」</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p3_lead">住宅購入の失敗の多くは、資金計画の入口で決まります。頭金・諸費用・返済負担率——この3つを押さえれば、生涯にわたって安全な借入額が見えてきます。</p>
+
+      <div class="grid3" style="margin-top:20px">
+        <div class="card brick"><h3 style="color:var(--brick)">頭金の目安</h3><p>物件価格の<b>1〜2割</b>が一つの目安。自己資金ゼロでも組めますが、借入が増え総返済も増えます。 <span class="flag">〔要確認〕</span></p></div>
+        <div class="card brick"><h3 style="color:var(--brick)">諸費用</h3><p>新築で価格の<b>3〜7%</b>、中古で<b>6〜10%</b>程度（登記・仲介手数料・ローン事務費・各種税）。 <span class="flag">〔要確認〕</span></p></div>
+        <div class="card brick"><h3 style="color:var(--brick)">返済負担率</h3><p>手取り年収の<b>20〜25%以内</b>が安全圏。金融機関の審査上限（30〜35%）とは別物です。 <span class="flag">〔要確認〕</span></p></div>
+      </div>
+
+      <h2 class="hd" style="font-size:18px;margin:26px 0 8px">安全な借入額を決める順番</h2>
+      <div class="flow">
+        <div class="f"><b>①手取り把握</b><span>年収でなく可処分所得</span></div>
+        <div class="arw">›</div>
+        <div class="f"><b>②返せる月額</b><span>家賃＋貯蓄額が上限目安</span></div>
+        <div class="arw">›</div>
+        <div class="f"><b>③借入額を逆算</b><span>金利・期間から算出</span></div>
+        <div class="arw">›</div>
+        <div class="f"><b>④諸費用・頭金</b><span>手元資金を残す</span></div>
+      </div>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card cream"><h3>手元資金は使い切らない</h3><p>頭金に全額を投じると、教育費・病気・失業などの急な出費に耐えられません。生活費の<b>6か月〜1年分</b>は現金で残しましょう。</p></div>
+        <div class="card cream"><h3>将来の支出と重ねて見る</h3><p>教育費のピーク、車の買い替え、リフォーム（15〜20年目）を返済計画に重ね、いちばん苦しい年でも回るかを確認します。</p></div>
+      </div>
+      <p class="src">頭金・諸費用・返済負担率の割合は一般的な目安で、物件・金融機関・年度により異なります。実際の数値は個別試算で確認します。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf3">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　03</span></div>
+  </section>
+
+  <!-- ===== P4 住宅ローン ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">03</span> ／ 住宅ローン</p>
+      <h1 class="title" contenteditable="true" data-k="p4_h1">ローンは「金利」と「保障」で選ぶ</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p4_lead">住宅ローンは金利タイプの選択に目が行きがちですが、実は<b>団体信用生命保険（団信）</b>という強力な保障がセットになっています。ここを理解すると、生命保険の見直しにもつながります。</p>
+
+      <h2 class="hd" style="font-size:18px;margin:22px 0 8px">金利タイプの違い</h2>
+      <table class="tbl">
+        <tr><th>タイプ</th><th>特徴</th><th>向いている人</th></tr>
+        <tr><td class="h">変動金利</td><td>当初の金利が低い。半年ごとに見直され、上昇リスクを負う。</td><td>金利上昇に対応できる余力・貯蓄がある人</td></tr>
+        <tr><td class="h">固定期間選択</td><td>一定期間（10年等）固定、その後は再選択。バランス型。</td><td>当面の返済を安定させたい人</td></tr>
+        <tr><td class="h">全期間固定<br>（フラット35等）</td><td>完済まで金利一定。返済額が読め、計画が立てやすい。</td><td>教育費と重なる時期を確実に見通したい人</td></tr>
+      </table>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card teal">
+          <h3 style="color:var(--teal)">団信 ＝ 住まいと家族を守る保険</h3>
+          <p>契約者が死亡・高度障害になった場合、<b>ローン残高が0円</b>に。遺族には無借金の住まいが残ります。がん団信など保障を上乗せできる商品も。<b>今入っている生命保険と重複していないか</b>、購入を機に見直しを。</p>
+        </div>
+        <div class="card cream">
+          <h3>住宅ローン控除</h3>
+          <p>年末のローン残高の<b>0.7%</b>を、原則最大<b>13年間</b>、所得税・住民税から控除（省エネ基準への適合が要件、借入限度は住宅の性能で区分）。<span class="flag">〔控除率・限度額・要件は年度で変動。要確認〕</span></p>
+        </div>
+      </div>
+
+      <div class="card cream" style="margin-top:16px">
+        <h3>繰上げ返済という選択</h3>
+        <p style="font-size:13px">余裕資金でローンを前倒し返済すると総利息を圧縮できます。ただし低金利のローンなら、<b>手元資金・運用（次頁）・団信の保障</b>とのバランスで判断を。「返す」か「増やす」かは、金利と期待リターンの比較で決めます。</p>
+      </div>
+      <p class="src">金利・住宅ローン控除の内容は制度改正・金融機関により異なります。最新の適用条件は面談・公式情報で確認します。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf4">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　04</span></div>
+  </section>
+
+  <!-- ===== P5 老後の土台＝年金 ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">04</span> ／ 老後の土台</p>
+      <h1 class="title" contenteditable="true" data-k="p5_h1">老後の家計は、年金＋“完済した住まい”</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p5_lead">住まいの計画は、老後の計画そのものです。公的年金の「今の数字」を知り、その上でローンを完済していれば、老後の固定費はぐっと軽くなります。</p>
+
+      <h2 class="hd" style="font-size:18px;margin:22px 0 10px">公的年金の「今の数字」（令和8年度）</h2>
+      <div class="stat">
+        <div class="s"><div class="n">847,300<em>円</em></div><div class="l">老齢基礎年金の満額（年額／40年納付）。月額 約70,610円。</div></div>
+        <div class="s"><div class="n">61.2<em>%</em></div><div class="l">標準世帯の所得代替率（令和6年度）。現役収入の約6割に。</div></div>
+        <div class="s"><div class="n">84<em>%増</em></div><div class="l">受給を75歳まで繰下げた場合の増額（65歳比／最大）。</div></div>
+      </div>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card cream">
+          <h3>年金は2階建て・受給資格は10年</h3>
+          <p>1階は全員加入の国民年金（基礎年金）、2階は会社員・公務員の厚生年金。老齢年金を受け取るには原則<b>10年</b>の加入期間が必要です。共働きか片働きかで世帯の受取額は変わります。</p>
+        </div>
+        <div class="card cream">
+          <h3>受け取り方で増やせる</h3>
+          <p>受給開始は60〜75歳で選択可。遅らせるほど増額（繰下げ最大84%増）、早めれば減額（繰上げ0.4%/月）。長く働くなら繰下げで生涯手取りを底上げできます。 <span class="flag">〔率は要確認〕</span></p>
+        </div>
+      </div>
+
+      <div class="card teal" style="margin-top:16px">
+        <h3 style="color:var(--teal)">だから「完済した住まい」が効く</h3>
+        <p style="font-size:13px">収入が現役の約6割に下がる老後、<b>家賃を払い続ける</b>のと<b>ローン完済で住居費が固定資産税・維持費だけ</b>とでは、家計の余裕がまったく違います。マイホームの返済計画は、退職時期・繰下げ設計と一体で描くのが正解です。</p>
+      </div>
+      <p class="src">出典：日本年金機構「被保険者のしおり」「退職後の年金手続きガイド」「知っておきたい年金のはなし」（令和8年度）。金額・料率・繰上げ/繰下げ率は制度改正で変わります。個別の見込額はねんきんネットの試算で確認します。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf5">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　05</span></div>
+  </section>
+
+  <!-- ===== P6 不動産で資産形成 ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">05</span> ／ 資産形成</p>
+      <h1 class="title" contenteditable="true" data-k="p6_h1">マイホームは「住まい・資産・保険」の三役</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p6_lead">不動産は、住む場所であると同時に、資産であり、団信という保険でもあります。現金・自宅・金融資産にバランスよく置くことで、老後の“自分年金”を厚くできます。</p>
+
+      <div style="display:flex;flex-direction:column;gap:13px;margin-top:20px">
+        <div class="lever"><div class="ic">🏠</div><div><h3>① 住まい＝資産として持つ</h3><p>立地の良い住まいは、売却・賃貸・住み替えができる資産。ローン完済後は“家賃のかからない住まい”そのものが老後の安心につながります。</p></div></div>
+        <div class="lever"><div class="ic">🛡</div><div><h3>② 団信＝生命保険の代わり</h3><p>住宅ローンの団信で「もしも」に残債0。購入を機に既存の生命保険を見直せば、保険料の“払い過ぎ”を家計改善に回せます。</p></div></div>
+        <div class="lever"><div class="ic">📈</div><div><h3>③ iDeCo・NISAで“自分年金”を上乗せ</h3><p>公的年金の不足は税制優遇のある制度で。iDeCoは掛金が全額所得控除、NISAは運用益が非課税。住宅ローン返済と並行して少額から。 <span class="flag">〔枠・掛金上限は要確認〕</span></p></div></div>
+        <div class="lever"><div class="ic">🔑</div><div><h3>④ 「返す」か「増やす」かを設計する</h3><p>低金利ローンなら、繰上返済より運用が有利な場合も。金利・期待リターン・手元資金の3点で、繰上げ返済と資産運用の配分を決めます。</p></div></div>
+      </div>
+
+      <div class="card ink" style="margin-top:18px">
+        <h3>資産は“置き場所”を分ける</h3>
+        <p>現金（すぐ使える安心）／自宅（住まい＋資産）／金融資産（iDeCo・NISAで増やす）の3つに分散。どれか一つに偏らせないことが、住宅ローンを抱えながら老後に備える王道です。</p>
+      </div>
+      <p class="src">投資・運用にはリスクが伴い、元本は保証されません。iDeCo・NISAの制度内容は改正されます。本資料は一般的情報であり、特定商品の勧誘や個別助言ではありません。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf6">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　06</span></div>
+  </section>
+
+  <!-- ===== P7 ねんきんネット 見える化 ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">06</span> ／ 現状把握</p>
+      <h1 class="title" contenteditable="true" data-k="p7_h1">まず“自分の年金額”を知る</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p7_lead">住宅ローンの返済計画も、老後設計も、出発点は「自分がいくら年金を受け取れるか」。日本年金機構の無料サービス「ねんきんネット」で、スマホから今すぐ確認できます。</p>
+
+      <div class="flow" style="margin-top:20px">
+        <div class="f"><b>① 登録</b><span>マイナポータル／アクセスキー（定期便の17桁）</span></div>
+        <div class="arw">›</div>
+        <div class="f"><b>② 確認</b><span>加入記録・納付漏れ・受給資格</span></div>
+        <div class="arw">›</div>
+        <div class="f"><b>③ 試算</b><span>かんたん／詳細で将来額</span></div>
+        <div class="arw">›</div>
+        <div class="f"><b>④ 相談</b><span>住まい＋老後のプランへ</span></div>
+      </div>
+
+      <div class="grid2" style="margin-top:22px">
+        <div class="card cream"><h3>3通りの登録方法</h3><p>Ⓐマイナンバーカード（マイナポータル連携）／Ⓑアクセスキーあり（<b>即時発行</b>）／Ⓒアクセスキーなし（ハガキ郵送・5営業日程度）。アクセスキーは「ねんきん定期便」に記載。</p></div>
+        <div class="card cream"><h3>できること</h3><p>月別・制度別の年金記録、電子版ねんきん定期便、追納可能額、<b>将来見込額の試算（最大5件比較）</b>、通知書の電子受取・確定申告連携まで。</p></div>
+      </div>
+
+      <div class="card teal" style="margin-top:16px">
+        <h3 style="color:var(--teal)">試算結果を、相談にお持ちください</h3>
+        <p style="font-size:13px">「かんたん試算」で出た将来の年金額を印刷・保存して無料相談へ。<b>年金額 → 老後の住居費 → 無理のない借入額</b>を、あなたの数字で一気通貫に設計します。</p>
+      </div>
+      <p class="src">出典：日本年金機構「ねんきんネットの概要」（登録方法・試算・通知書電子化 等、令和8年度）。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf7">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　07</span></div>
+  </section>
+
+  <!-- ===== P8 ステージ別チェック ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker"><span class="sec-no">07</span> ／ 年代別プラン</p>
+      <h1 class="title" contenteditable="true" data-k="p8_h1">年代別・住まいと資産のチェック</h1>
+      <div class="rule"></div>
+      <p class="lead" contenteditable="true" data-k="p8_lead">やるべきことは年代で変わります。今の自分に当てはまる項目から始めましょう。</p>
+
+      <div class="grid3" style="margin-top:20px;align-items:start">
+        <div class="card">
+          <h3>20〜30代｜土台づくり</h3>
+          <ul class="check" style="margin-top:4px">
+            <li>頭金の積立を開始</li>
+            <li>NISAで少額から運用</li>
+            <li>年金記録の整備・確認</li>
+            <li>無理のない借入額を把握</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>30〜40代｜購入・実行</h3>
+          <ul class="check" style="margin-top:4px">
+            <li>購入と資金計画の実行</li>
+            <li>団信で生命保険を見直し</li>
+            <li>教育費ピークと返済の調整</li>
+            <li>iDeCo併用で老後準備</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>50代〜｜完済と出口</h3>
+          <ul class="check" style="margin-top:4px">
+            <li>完済計画・繰上げ返済</li>
+            <li>年金の繰下げ設計</li>
+            <li>住み替え・資産の組み替え</li>
+            <li>相続・名義の整理</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 class="hd" style="font-size:18px;margin:26px 0 8px">よくある質問</h2>
+      <div class="qa"><p class="q">年収がいくらなら、いくらの家を買えますか？</p><p class="a">目安は「手取りの20〜25%を返済に」。ただし教育費・老後まで含めたキャッシュフローで見ないと安全額は出ません。ねんきんネットの試算と合わせて設計します。</p></div>
+      <div class="qa"><p class="q">頭金は多いほど良いですか？</p><p class="a">総返済は減りますが、手元資金を使い切るのは危険。生活費6か月〜1年分は現金で残し、団信・運用とのバランスで決めます。</p></div>
+      <div class="qa"><p class="q">変動と固定、どちらが正解ですか？</p><p class="a">正解は人それぞれ。金利上昇に耐えられる貯蓄があるなら変動、教育費と重なり返済を固定したいなら全期間固定が安心です。</p></div>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf8">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　08</span></div>
+  </section>
+
+  <!-- ===== P9 CTA ===== -->
+  <section class="page">
+    <div class="pad">
+      <p class="kicker">Next action</p>
+      <h1 class="title" contenteditable="true" data-k="p9_h1">あなたの数字で、設計しませんか</h1>
+      <div class="rule"></div>
+
+      <div class="grid2" style="margin-top:6px">
+        <div>
+          <h2 class="hd" style="font-size:17px;margin-bottom:8px">相談前の3ステップ</h2>
+          <ul class="check">
+            <li>ねんきんネットで将来の年金額を試算</li>
+            <li>手取り年収と毎月の貯蓄額を把握</li>
+            <li>気になる物件・エリアをメモ</li>
+            <li>教育・車・リフォームの予定を書き出す</li>
+          </ul>
+          <p class="note" style="margin-top:10px">試算結果と家計メモがあれば、初回相談でかなり具体的なプランが描けます。</p>
+        </div>
+        <div class="card cream">
+          <h3>私たちができること</h3>
+          <ul class="check" style="margin-top:4px">
+            <li>年金試算を踏まえた<b>ライフプラン設計</b></li>
+            <li>無理のない<b>借入額・資金計画</b>の作成</li>
+            <li>物件提案から<b>住宅ローン・団信</b>の最適化</li>
+            <li>iDeCo・NISAを含む<b>資産形成</b>の伴走</li>
+          </ul>
+          <p class="note" style="margin-top:8px">不動産・建設の実務と、年金データに基づく設計を一社で。</p>
+        </div>
+      </div>
+
+      <div class="cta" style="margin-top:24px">
+        <h2 contenteditable="true" data-k="cta_h">無料のライフプラン相談へ。</h2>
+        <p contenteditable="true" data-k="cta_p">「今の年収で、いくらの家なら安心か」「老後まで大丈夫か」——あなたの数字で、住まいと資産をまとめて設計します。オンライン相談も可能です。</p>
+        <span class="btn" contenteditable="true" data-k="cta_btn">▶ 無料相談を予約する</span>
+        <div class="contact">
+          <div class="row"><span class="k">会社名</span><span class="v" contenteditable="true" data-k="c_name">株式会社 Martial Arts</span></div>
+          <div class="row"><span class="k">電話</span><span class="v" contenteditable="true" data-k="c_tel">0120-〇〇〇-〇〇〇</span></div>
+          <div class="row"><span class="k">受付</span><span class="v" contenteditable="true" data-k="c_hours">平日 9:00–18:00</span></div>
+          <div class="row"><span class="k">Web</span><span class="v" contenteditable="true" data-k="c_web">https://martialarts.co.jp/</span></div>
+          <div class="row"><span class="k">事業</span><span class="v" contenteditable="true" data-k="c_biz">不動産（買取・販売）／建築・リフォーム</span></div>
+          <div class="row"><span class="k">LINE</span><span class="v" contenteditable="true" data-k="c_line">公式アカウントで簡単予約</span></div>
+        </div>
+      </div>
+
+      <p class="src">【重要】本資料は住宅・年金・資産形成に関する一般的な情報提供を目的としたもので、特定の金融商品の勧誘や個別の投資・税務・法務助言ではありません。住宅ローン控除・iDeCo・NISA・年金の金額や要件、頭金・諸費用・返済負担率の目安は、制度改正や物件・金融機関・個人の状況により変わります。実行前に、日本年金機構（nenkin.go.jp）・金融庁・国税庁等の公式情報および専門家の確認を行ってください。〔要確認〕の項目は面談時に最新値へ更新します。／ 年金データ出典：日本年金機構（令和8年度）「ねんきんネットの概要」「被保険者のしおり」「退職後の年金手続きガイド」「知っておきたい年金のはなし」。</p>
+    </div>
+    <div class="foot"><span class="bt" contenteditable="true" data-k="bf9">株式会社 Martial Arts</span><span>マイホーム × 年金 ライフプラン　—　09</span></div>
+  </section>
+
+</div>
+
+<script>
+  const KEY='lifeplan_home_kit_v1';
+  const editBtn=document.getElementById('editBtn');
+  let editing=false;
+  function load(){
+    let data={};
+    try{ data=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+    document.querySelectorAll('[data-k]').forEach(el=>{ const k=el.getAttribute('data-k'); if(data[k]!=null) el.innerHTML=data[k]; });
+  }
+  function save(){
+    const data={};
+    document.querySelectorAll('[data-k]').forEach(el=>{ data[el.getAttribute('data-k')]=el.innerHTML; });
+    localStorage.setItem(KEY,JSON.stringify(data));
+  }
+  function setEditable(on){
+    document.querySelectorAll('[data-k]').forEach(el=>el.setAttribute('contenteditable',on?'true':'false'));
+    document.body.classList.toggle('editing',on);
+    editBtn.textContent=on?'✓ 編集OFF':'✎ 編集ON';
+  }
+  function toggleEdit(){ editing=!editing; setEditable(editing); }
+  function resetAll(){ if(confirm('編集内容をすべて初期状態に戻しますか？')){ localStorage.removeItem(KEY); location.reload(); } }
+  document.addEventListener('input',e=>{ if(e.target.getAttribute && e.target.getAttribute('data-k')!=null) save(); });
+  load(); setEditable(false);
+</script>
+</body>
+</html>
