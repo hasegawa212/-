@@ -23,6 +23,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── martialarts-line-bot/     # Node + Express LINE webhook: 株式会社 Martial Arts business line — brand-designed (clean white × gold) Flex messages + rich menu + rule-based FAQ over 6 業態 (JP UI, no AI); preview.html for LINE-less design preview
 ├── pension-planning-kit/     # Zero-dep single-HTML 年金×ライフプランニング資料 (client-facing A4 10-page brochure from 4 日本年金機構 令和8年度 docs: ねんきんネット/しおり/退職ガイド/知っておきたい) → 3-step 現状把握→試算→プラン + 資料編(基本と数字/こんなとき), print/PDF, in-browser editable (contenteditable + localStorage), JP UI
 ├── lifeplan-home-kit/        # Zero-dep single-HTML マイホーム×年金 ライフプラン資料 (client-facing A4 9-page brochure for 不動産/建設, defaults 株式会社 Martial Arts) → 住宅×教育×老後の3大資金を1本に: 賃貸vs購入/資金計画/住宅ローン・団信/老後=年金+完済した住まい(令和8年度 年金数字)/iDeCo・NISA/ねんきんネット, print/PDF, contenteditable+localStorage, JP UI
+├── sales-org-1on1/           # Zero-dep single-HTML 営業部 1on1・立ち位置分析ボード for 株式会社 Martial Arts → 6-axis rubric auto-recommends role/次の役割, org-chart + member cards, localStorage, print/PDF (JP UI); + markdown analysis of the 2026/7/27 1on1 (sensitive HR content)
 ├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
@@ -154,6 +155,14 @@ Zero-dependency single-file vanilla-JS app (no build step — same family as `pe
 - **In-browser editing**: `data-k` text is `contenteditable` (toolbar 「✎ 編集ON」), autosaved to localStorage (`lifeplan_home_kit_v1`); 「↺ 初期化」 restores. Starts in view mode.
 - **Facts discipline**: pension numbers come from the same 4 日本年金機構 令和8年度 docs as `pension-planning-kit` (満額847,300円・所得代替率61.2%・繰下げ84%増・受給資格10年); housing figures (頭金1〜2割・諸費用3〜10%・返済負担率20〜25%・住宅ローン控除0.7%×13年・iDeCo/NISA枠) are general targets marked `〔要確認〕`, with a source line + disclaimer per page and a full disclaimer on the last page.
 - **Layout gotcha**: the `賃貸 vs 購入` block is a 3-col `.vs` grid; the mobile collapse uses `@media screen and (max-width:760px)` (below the 794px page width) so print keeps it side-by-side — do NOT widen that breakpoint past ~780px or the PDF stacks the columns. No tests/lint/build. See `lifeplan-home-kit/README.md` (Japanese).
+
+### `sales-org-1on1/` — 営業部 1on1・立ち位置分析ボード
+Zero-dependency single-file vanilla-JS app (no build step — like `construction-book`/`echo-interview-console`) for 株式会社 Martial Arts, supporting **来期・営業部組織図づくり** from 1on1面談. Turns a face-to-face hearing into a defensible **役職・次の役割** recommendation.
+
+- Run: `cd sales-org-1on1 && python3 -m http.server 5183` → http://localhost:5183 (or open `index.html` directly; fully client-side).
+- **`index.html`** is the tool: score each person on **6 axes (0–5)** — ①実績 ②統率 ③育成 ④当事者 ⑤胆力 ⑥定着 — and `recommend()` maps the scores to a role (代表格 / プレイングリーダー / メンター / 管理No.2 / 育成トレーナー / 2番手候補 / プレイヤー) via an ordered priority table. Renders an **org chart + member cards**, add/edit via modal, persists to **localStorage** (`martialarts_1on1_board_v1`), JSON import/export, print/PDF. **5 members from the 2026/7/27 memo are seeded** as defaults.
+- **The `recommend()` logic in `index.html` and the 対応表 in `組織設計_来期営業部.md` must stay in sync** — edit both together. `分析_酒井かいと_20260727.md` is the deep-dive on the interviewed top-seller.
+- **Sensitive HR content**: contains named evaluations of real sales-team members; the numbers/人名 are transcription-based 参考値. No tests/lint/build. See `sales-org-1on1/README.md` (Japanese).
 
 ### `n8n-workflows/` — n8n workflow exports
 Contains `telegram-to-sheets-slack.json`, an importable n8n workflow (Telegram trigger → Google Sheets append → Slack notify → Telegram ack). Not executable code — it is imported via the n8n UI. Before reuse, the consumer must replace placeholders in the JSON: `REPLACE_WITH_TELEGRAM_CREDENTIAL_ID`, `REPLACE_WITH_GOOGLE_SHEET_ID`, `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID`, `REPLACE_WITH_SLACK_CHANNEL_ID`, `REPLACE_WITH_SLACK_CREDENTIAL_ID`. Setup details and Google Sheets header schema (`timestamp | chat_id | chat_title | user_id | username | text | message_id`) are in `n8n-workflows/README.md` (Japanese).

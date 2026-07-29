@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>営業部 1on1・立ち位置分析ボード｜株式会社 Martial Arts</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --panel2:#1e242c; --line:#2a323c;
+    --ink:#eef2f6; --sub:#9aa7b4; --gold:#c9a24b; --gold2:#e6c877;
+    --ok:#4ea36b; --warn:#d08a3e; --bad:#c05b5b; --accent:#5b8bd0;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP","IPAGothic",Meiryo,sans-serif;
+    line-height:1.7;font-size:15px}
+  a{color:var(--gold2)}
+  header{padding:26px 24px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#12161b,#0f1216)}
+  header .brand{font-size:12px;letter-spacing:.22em;color:var(--gold);font-weight:700}
+  header h1{margin:6px 0 4px;font-size:22px;font-weight:800;letter-spacing:.02em}
+  header p{margin:0;color:var(--sub);font-size:13px}
+  .wrap{max-width:1120px;margin:0 auto;padding:22px 20px 80px}
+  .row{display:grid;gap:18px}
+  @media(min-width:900px){.two{grid-template-columns:1fr 1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px}
+  .card h2{margin:0 0 12px;font-size:16px;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+  .card h2::before{content:"";width:8px;height:18px;background:var(--gold);border-radius:2px;display:inline-block}
+  .muted{color:var(--sub);font-size:13px}
+  .pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--line)}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+  button{font-family:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);padding:9px 15px;font-size:14px;font-weight:600;transition:.15s}
+  button:hover{border-color:var(--gold)}
+  button.primary{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#211a08;border:none}
+  button.ghost{background:transparent}
+  button.danger:hover{border-color:var(--bad);color:#f0b4b4}
+
+  /* org chart */
+  .org{display:flex;flex-direction:column;align-items:center;gap:0;padding:6px 0}
+  .node{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:center;min-width:180px;max-width:260px}
+  .node .t{font-weight:800}
+  .node .s{font-size:12px;color:var(--sub);margin-top:2px}
+  .node.top{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .node.exec{background:#20262d}
+  .connector{width:2px;height:16px;background:var(--line)}
+  .tier{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+  /* member grid */
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+  .m{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px;position:relative}
+  .m .role{font-size:12px;font-weight:800;color:var(--gold2);letter-spacing:.03em}
+  .m .name{font-size:18px;font-weight:800;margin:2px 0 8px}
+  .m .rec{background:var(--panel2);border:1px dashed var(--line);border-radius:10px;padding:9px 11px;margin:10px 0;font-size:13px}
+  .m .rec b{color:var(--gold2)}
+  .m .next{font-size:13px;color:var(--sub)}
+  .m .next b{color:var(--ink)}
+  .bars{margin:10px 0 6px;display:grid;gap:5px}
+  .bar{display:grid;grid-template-columns:96px 1fr 22px;align-items:center;gap:8px;font-size:11px;color:var(--sub)}
+  .track{height:7px;background:#0c0f13;border-radius:5px;overflow:hidden}
+  .fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2))}
+  .mcta{display:flex;gap:8px;margin-top:10px}
+  .mcta button{padding:5px 10px;font-size:12px}
+
+  /* form / modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal.on{display:flex}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:20px}
+  .sheet h3{margin:0 0 14px;font-size:17px}
+  label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}
+  input[type=text],textarea{width:100%;background:#0c0f13;border:1px solid var(--line);border-radius:9px;color:var(--ink);padding:9px 11px;font-family:inherit;font-size:14px}
+  textarea{min-height:60px;resize:vertical}
+  .slider{display:grid;grid-template-columns:1fr 34px;align-items:center;gap:10px}
+  input[type=range]{width:100%}
+  .axis{margin:9px 0}
+  .axis .lab{display:flex;justify-content:space-between;font-size:13px}
+  .axis .lab .h{color:var(--ink);font-weight:600}
+  .axis .lab .v{color:var(--gold2);font-weight:800}
+  .axis .hint{font-size:11px;color:var(--sub)}
+  .preview{margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:11px}
+  .preview .p-role{color:var(--gold2);font-weight:800}
+  .sheet-cta{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+
+  table.rub{width:100%;border-collapse:collapse;font-size:13px}
+  table.rub th,table.rub td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+  table.rub th{background:var(--panel2);color:var(--gold2)}
+  details{border:1px solid var(--line);border-radius:10px;padding:6px 12px;margin-top:10px;background:var(--panel)}
+  summary{cursor:pointer;font-weight:700}
+  .foot{color:var(--sub);font-size:12px;margin-top:26px;border-top:1px solid var(--line);padding-top:14px}
+
+  @media print{
+    body{background:#fff;color:#111}
+    header,.toolbar,.mcta,.card.norprint,#addBtn{display:none!important}
+    .m,.card,.node{border-color:#bbb;background:#fff;box-shadow:none}
+    .wrap{padding:0}
+    .role,.m .rec b{color:#8a6d1f}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">株式会社 MARTIAL ARTS ／ 営業部</div>
+  <h1>1on1・立ち位置分析ボード</h1>
+  <p>来期・営業部組織図に向けた本音ヒアリングの結果を、6軸で評価 → 推奨役割を自動算出。1on1のたびに1人ずつ追加できます。</p>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <button class="primary" id="addBtn">＋ 1on1結果を追加</button>
+    <button class="ghost" onclick="window.print()">🖨 印刷 / PDF</button>
+    <button class="ghost" id="exportBtn">⬇ データ書き出し(JSON)</button>
+    <button class="ghost" id="importBtn">⬆ 読み込み</button>
+    <button class="ghost danger" id="resetBtn">初期化</button>
+    <input type="file" id="importFile" accept="application/json" hidden>
+  </div>
+
+  <!-- ORG CHART -->
+  <div class="card norprint" style="margin-bottom:18px">
+    <h2>来期 営業部 組織図（案）</h2>
+    <div class="org" id="org"></div>
+    <p class="muted" style="margin-top:12px">狙いは「頂点を1人決める」ことではなく、<b style="color:var(--gold2)">2番手・3番手を設計して育成が回る構造</b>を作ること（上長：「まず2番を埋めないと」）。</p>
+  </div>
+
+  <!-- MEMBERS -->
+  <h2 style="font-size:16px;margin:6px 0 12px;color:var(--gold2)">メンバー別 立ち位置</h2>
+  <div class="grid" id="grid"></div>
+
+  <!-- RUBRIC -->
+  <div class="card" style="margin-top:22px">
+    <h2>立ち位置の見極めフレーム（6軸ルーブリック）</h2>
+    <table class="rub">
+      <tr><th>軸</th><th>見るポイント（1on1での質問例）</th></tr>
+      <tr><td><b>① 実績</b></td><td>本数・売上・伸び代。「本来もっと売れたか？」</td></tr>
+      <tr><td><b>② 統率</b></td><td>カリスマ・まとめる力。「メンバーは自然についてくるか？」</td></tr>
+      <tr><td><b>③ 育成</b></td><td>教えた経験・2番手を育てた実績。「誰かを育てて数字を出させたか？」</td></tr>
+      <tr><td><b>④ 当事者</b></td><td>責任を取りにいくか。「“どの立場でもいい” になっていないか？」</td></tr>
+      <tr><td><b>⑤ 胆力</b></td><td>大義名分なしに自発的に緊張感・感情を出せるか。「会議で自分から言えるか？」</td></tr>
+      <tr><td><b>⑥ 定着</b></td><td>周囲の信頼、辞めさせない力。「この人がいると人が残るか？」</td></tr>
+    </table>
+    <details>
+      <summary>採点 → 推奨役割の対応ロジック（上から優先判定）</summary>
+      <table class="rub" style="margin-top:10px">
+        <tr><th>条件（目安）</th><th>推奨する立ち位置</th></tr>
+        <tr><td>①≥4 かつ ②≥4 かつ ④≥3 かつ ⑤≥3</td><td>代表格／営業責任者</td></tr>
+        <tr><td>①≥4 かつ ②≥4 だが ④&lt;3 または ⑤&lt;3</td><td>プレイングリーダー／代表格候補（2番手を付けて育成前提）</td></tr>
+        <tr><td>③≥3 かつ ⑥≥3・②中程度・⑤&lt;3</td><td>管理・仕組みNo.2（代弁・調整・型づくり）</td></tr>
+        <tr><td>③≥3 だが ②&lt;3</td><td>新人育成トレーナー（統率ラインに乗せない）</td></tr>
+        <tr><td>①≥4 かつ ⑥≥4 だが ④・⑤中程度</td><td>同格チームリーダー／メンター（人材ケア）</td></tr>
+        <tr><td>②・⑥は○だが ①・⑤不足</td><td>2番手候補（試用・証明期間）</td></tr>
+        <tr><td>上記いずれも満たない</td><td>プレイヤー（底上げ・実績づくり）</td></tr>
+      </table>
+    </details>
+  </div>
+
+  <div class="foot">
+    一次情報：2026/7/27 酒井かいと氏 1on1面談メモ。数字・固有名詞は自動文字起こしに基づく参考値であり、重要事項は原音源・正式資料での確認を推奨します。データはこのブラウザの localStorage にのみ保存されます（サーバー送信なし）。
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3 id="sheetTitle">1on1結果を追加</h3>
+    <label>氏名</label>
+    <input type="text" id="f_name" placeholder="例：山田 太郎">
+    <label>面談メモ / 特記（任意）</label>
+    <textarea id="f_note" placeholder="本音・気になった発言・数字など"></textarea>
+    <div id="axes"></div>
+    <div class="preview">
+      <div>推奨される立ち位置：<span class="p-role" id="p_role">—</span></div>
+      <div class="muted" id="p_reason" style="margin-top:4px"></div>
+      <div class="muted" id="p_next" style="margin-top:4px"></div>
+    </div>
+    <div class="sheet-cta">
+      <button class="ghost" id="cancelBtn">キャンセル</button>
+      <button class="primary" id="saveBtn">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KEY='martialarts_1on1_board_v1';
+const AXES=[
+  {k:'perf', h:'① 実績',  hint:'本数・売上・伸び代'},
+  {k:'lead', h:'② 統率',  hint:'人を扱う・カリスマ・まとめる'},
+  {k:'edu',  h:'③ 育成',  hint:'人を教える・2番手を育てた経験'},
+  {k:'owner',h:'④ 当事者', hint:'責任を取りにいく／“どの立場でもいい”を脱せるか'},
+  {k:'guts', h:'⑤ 胆力',  hint:'嫌われる勇気・自発的に緊張感を出せるか'},
+  {k:'stay', h:'⑥ 定着',  hint:'信頼・辞めさせない力'},
+];
+
+// ---- recommendation engine (mirrors 組織設計_来期営業部.md) ----
+function recommend(s){
+  const {perf,lead,edu,owner,guts,stay}=s;
+  // 上から優先判定（対応表は 組織設計_来期営業部.md と一致）
+  if(perf>=4 && lead>=4 && owner>=3 && guts>=3)
+    return {role:'代表格／営業責任者',
+      reason:'実績・統率・当事者意識・胆力がそろい、頂点を任せられる水準。',
+      next:'部門全体の意思決定と、次世代リーダーの育成に責任を持つ。'};
+  if(perf>=4 && lead>=4)
+    return {role:'プレイングリーダー／代表格候補',
+      reason:'実績と統率は最高峰。ただし '+[owner<3?'当事者意識':null,guts<3?'嫌われる勇気':null].filter(Boolean).join('・')+' が未成熟。',
+      next:'2番手・3番手を任命して育てる／会議で自発的に緊張感を出す／「ここのトップは自分だ」と当事者宣言する。'};
+  if(perf>=4 && stay>=5)
+    return {role:'同格チームリーダー／メンター',
+      reason:'トップ級の実績と、人をよく見る力。代表格ではないが人材ケア・離脱防止の要。',
+      next:'“人を見る力”でメンバーのケア・離脱防止。もう一つのチームを持つ。緊張感役は担わせない。'};
+  if(edu>=3 && lead>=3 && guts<3 && stay>=3)
+    return {role:'管理・仕組みNo.2',
+      reason:'堅実で信頼が厚く、代弁・調整・型づくりが得意。自発的な緊張感役は不向き。',
+      next:'育成や面接フローの「形づくり」、部下の声の吸い上げ。筆頭リーダーの堅さを補完。'};
+  if(edu>=3 && lead<3)
+    return {role:'新人育成トレーナー',
+      reason:'育成には向くが統率ラインには早い（“子供”と見られる懸念）。',
+      next:'新人オンボーディングの現場担当。結果と責任姿勢の証明が昇格の条件。'};
+  if(lead>=3 && stay>=3 && (perf<4 || guts<3))
+    return {role:'2番手候補（試用）',
+      reason:'扱いやすく要領も良いが、実績と押し出し（言い切る力）の決め手が不足。',
+      next:'筆頭リーダーの管理補佐として、実績と“言い切る力”を証明する期間。'};
+  return {role:'プレイヤー（底上げ）',
+    reason:'まずは実績づくりに専念するフェーズ。',
+    next:'数字で信頼を積み、次の1on1で統率・当事者性を再評価。'};
+}
+
+// ---- seed data (from 2026/7/27 1on1 memo) ----
+const SEED=[
+  {name:'酒井 かいと', tag:'トップセールス', note:'今季18本(SS含む)/マイホーム12+投資6。カリスマ・代表向き。「どの立場でもいい」。教えるは要練習、2番手を置いた経験なし。緊張感スイッチは部長と本人のみ。',
+   s:{perf:5,lead:5,edu:2,owner:2,guts:2,stay:5}},
+  {name:'上田', tag:'今季1位・役職就任済', note:'下に優しく気遣い型。部下を背負って代弁は得意。強く言う/自発的に緊張感を出すのが弱い。ちゃんと形を作る=堅実。',
+   s:{perf:4,lead:3,edu:3,owner:3,guts:1,stay:4}},
+  {name:'赤西', tag:'トップ級', note:'優しく人をめちゃくちゃよく見る。酒井を気にかける。“代表向き”は酒井の方、という上長評。',
+   s:{perf:4,lead:3,edu:3,owner:3,guts:2,stay:5}},
+  {name:'俊彦（シュン）', tag:'2番手候補', note:'厚い人・扱いやすい・要領もいい。「厚い/扱いやすい」以上の決め手が弱く、押し出しの一言が今は響かない。',
+   s:{perf:3,lead:3,edu:2,owner:2,guts:2,stay:4}},
+  {name:'犬塚', tag:'育成向き', note:'新人育成には向く。まとめ役・2番手には不向き(“子供”と見られる懸念)。責任を取りにくる姿勢が弱い。',
+   s:{perf:3,lead:2,edu:4,owner:2,guts:2,stay:3}},
+];
+
+let data=load();
+function load(){ try{const v=JSON.parse(localStorage.getItem(KEY));if(Array.isArray(v)&&v.length)return v;}catch(e){} return structuredClone(SEED);}
+function save(){ localStorage.setItem(KEY,JSON.stringify(data)); }
+
+// ---- render members ----
+function starbars(s){
+  return '<div class="bars">'+AXES.map(a=>{
+    const v=s[a.k]||0, pct=(v/5*100).toFixed(0);
+    return `<div class="bar"><span>${a.h}</span><div class="track"><div class="fill" style="width:${pct}%"></div></div><span>${v}</span></div>`;
+  }).join('')+'</div>';
+}
+function renderGrid(){
+  const g=document.getElementById('grid');
+  g.innerHTML=data.map((m,i)=>{
+    const r=recommend(m.s);
+    return `<div class="m">
+      <div class="role">${m.tag||''}</div>
+      <div class="name">${esc(m.name)}</div>
+      ${starbars(m.s)}
+      <div class="rec">推奨：<b>${esc(r.role)}</b><br><span class="muted">${esc(r.reason)}</span></div>
+      <div class="next"><b>次の役割：</b>${esc(r.next)}</div>
+      ${m.note?`<div class="muted" style="margin-top:8px;font-size:12px">📝 ${esc(m.note)}</div>`:''}
+      <div class="mcta">
+        <button onclick="editItem(${i})">編集</button>
+        <button class="danger" onclick="delItem(${i})">削除</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderOrg(){
+  const o=document.getElementById('org');
+  const byRole=r=>data.find(m=>recommend(m.s).role.startsWith(r));
+  const top=byRole('プレイングリーダー')||byRole('代表格');
+  const tier2=data.filter(m=>m!==top);
+  o.innerHTML=`
+    <div class="node exec"><div class="t">経営層／代表（長谷川）</div></div>
+    <div class="connector"></div>
+    <div class="node exec"><div class="t">部長・上長（面談者）</div><div class="s">※徐々に現場を離れる方向</div></div>
+    <div class="connector"></div>
+    ${top?`<div class="node top"><div class="t">${esc(top.name)}</div><div class="s">${esc(recommend(top.s).role)}</div></div>
+    <div class="connector"></div>`:''}
+    <div class="tier">
+      ${tier2.map(m=>`<div class="node"><div class="t">${esc(m.name)}</div><div class="s">${esc(recommend(m.s).role)}</div></div>`).join('')}
+    </div>`;
+}
+function renderAll(){renderGrid();renderOrg();}
+
+// ---- modal / form ----
+let editIndex=-1;
+function buildAxes(vals){
+  document.getElementById('axes').innerHTML=AXES.map(a=>`
+    <div class="axis">
+      <div class="lab"><span class="h">${a.h}</span><span class="v" id="v_${a.k}">${vals[a.k]??3}</span></div>
+      <input type="range" min="0" max="5" step="1" id="r_${a.k}" value="${vals[a.k]??3}">
+      <div class="hint">${a.hint}</div>
+    </div>`).join('');
+  AXES.forEach(a=>{
+    const r=document.getElementById('r_'+a.k);
+    r.addEventListener('input',()=>{document.getElementById('v_'+a.k).textContent=r.value;updatePreview();});
+  });
+}
+function readForm(){
+  const s={}; AXES.forEach(a=>s[a.k]=+document.getElementById('r_'+a.k).value);
+  return {name:document.getElementById('f_name').value.trim(),
+          note:document.getElementById('f_note').value.trim(), s};
+}
+function updatePreview(){
+  const {s}=readForm(); const r=recommend(s);
+  document.getElementById('p_role').textContent=r.role;
+  document.getElementById('p_reason').textContent=r.reason;
+  document.getElementById('p_next').textContent='次の役割：'+r.next;
+}
+function openModal(i){
+  editIndex=(typeof i==='number')?i:-1;
+  const m=editIndex>=0?data[editIndex]:{name:'',note:'',s:{perf:3,lead:3,edu:3,owner:3,guts:3,stay:3}};
+  document.getElementById('sheetTitle').textContent=editIndex>=0?'1on1結果を編集':'1on1結果を追加';
+  document.getElementById('f_name').value=m.name||'';
+  document.getElementById('f_note').value=m.note||'';
+  buildAxes(m.s); updatePreview();
+  document.getElementById('modal').classList.add('on');
+}
+function closeModal(){document.getElementById('modal').classList.remove('on');}
+window.editItem=openModal;
+window.delItem=i=>{ if(confirm('「'+data[i].name+'」を削除しますか？')){data.splice(i,1);save();renderAll();} };
+
+document.getElementById('addBtn').onclick=()=>openModal();
+document.getElementById('cancelBtn').onclick=closeModal;
+document.getElementById('saveBtn').onclick=()=>{
+  const f=readForm();
+  if(!f.name){alert('氏名を入力してください');return;}
+  const rec=recommend(f.s);
+  const item={name:f.name,note:f.note,tag:editIndex>=0?(data[editIndex].tag||''):rec.role,s:f.s};
+  if(editIndex>=0){item.tag=data[editIndex].tag||rec.role;data[editIndex]=item;}
+  else data.push(item);
+  save();renderAll();closeModal();
+};
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal();});
+
+// ---- import / export / reset ----
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='martialarts_1on1.json';a.click();
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+  rd.onload=()=>{try{const v=JSON.parse(rd.result);if(Array.isArray(v)){data=v;save();renderAll();}}catch(err){alert('読み込みに失敗しました');}};
+  rd.readAsText(f);
+};
+document.getElementById('resetBtn').onclick=()=>{
+  if(confirm('初期状態（面談メモの5名）に戻しますか？現在のデータは失われます。')){
+    data=structuredClone(SEED);save();renderAll();}
+};
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+renderAll();
+</script>
+</body>
+</html>
