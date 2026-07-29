@@ -24,6 +24,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── pension-planning-kit/     # Zero-dep single-HTML 年金×ライフプランニング資料 (client-facing A4 10-page brochure from 4 日本年金機構 令和8年度 docs: ねんきんネット/しおり/退職ガイド/知っておきたい) → 3-step 現状把握→試算→プラン + 資料編(基本と数字/こんなとき), print/PDF, in-browser editable (contenteditable + localStorage), JP UI
 ├── lifeplan-home-kit/        # Zero-dep single-HTML マイホーム×年金 ライフプラン資料 (client-facing A4 10-page brochure for 不動産/建設, defaults 株式会社 Martial Arts) → 住宅×教育×老後の3大資金を1本に: 賃貸vs購入/資金計画/住宅ローン・団信/老後=年金+完済した住まい(令和8年度 年金数字)/iDeCo・NISA/ねんきんネット, print/PDF, contenteditable+localStorage, JP UI
 ├── sales-org-1on1/           # Zero-dep single-HTML 営業部 1on1・立ち位置分析ボード for 株式会社 Martial Arts → 6-axis rubric auto-recommends role/次の役割, org-chart + member cards, localStorage, print/PDF (JP UI); + markdown analysis of the 2026/7/27 1on1 (sensitive HR content)
+├── admin-ops/                # Markdown-only 管理部(バックオフィス)議事録・運用ルール for 株式会社 Martial Arts (承認/小口現金/住民税/支払い/在宅/書類管理/掃除). No code. Secrets (bank card, passwords) are masked as 〔社内で別途管理〕 — never commit them
 ├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
