@@ -21,6 +21,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── japan-mgmt-line-bot/      # Node + Express LINE Messaging API webhook: rule-based FAQ bot for 株式会社ジャパンマネジメント (JP UI, no AI)
 ├── financial-literacy-line-bot/ # Node + Express LINE webhook: rule-based 金融リテラシー FAQ bot for 株式会社ジャパンマネジメント (follows fp repo topics, JP UI, no AI)
 ├── martialarts-line-bot/     # Node + Express LINE webhook: 株式会社 Martial Arts business line — brand-designed (clean white × gold) Flex messages + rich menu + rule-based FAQ over 6 業態 (JP UI, no AI); preview.html for LINE-less design preview
+├── sales-org-1on1/           # Zero-dep single-HTML 営業部 1on1・立ち位置分析ボード for 株式会社 Martial Arts → 6-axis rubric auto-recommends role/次の役割, org-chart + member cards, localStorage, print/PDF (JP UI); + markdown analysis of the 2026/7/27 1on1 (sensitive HR content)
 ├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
@@ -135,6 +136,14 @@ Node + Express ES Modules app (dependency: `express` only; Node 18+ global `fetc
 - **Knowledge base**: `faq.js` also carries `KNOWLEDGE` (11 real-estate Q&As — 仲介手数料/住宅ローン控除/売却の流れ/査定の種類/建ぺい率/再建築不可/契約不適合/税金/相続登記/住み替え/売電, year-sensitive figures marked `〔要確認〕`) unshifted to the FAQ front so specific pro keywords win over service/CTA rules, plus `TIPS`/`randomTip()` (12 不動産トリビア). `専門知識`→`knowledgeMenu` flex (8 tap-to-learn buttons), `豆知識`→`tipCard` flex (random, "もう1つみる" loops).
 - **Rich menu**: `richmenu.js` (6-cell object + `setupRichMenu()`), `assets/richmenu.svg` (2500×1686 design) with a **pre-built `assets/richmenu.png` committed** (turn-key), `npm run setup:richmenu` uploads + sets default. **`preview.html`** renders the whole conversation (hero / carousel / cards / quick-reply / rich menu) in-browser for a LINE-less design review — open it directly.
 - **Deploy**: `martialarts-line-bot/render.yaml` is a self-contained Render Blueprint (`rootDir: martialarts-line-bot`, `NODE_ENV=production`, health check `/health`, `LINE_*` secrets `sync:false`). No tests/lint/build. `.env` is gitignored. `〔要確認〕` values (esp. 代表電話) in `faq.js` must be replaced with official info. See `martialarts-line-bot/README.md` (Japanese) for the 4-step go-live guide.
+
+### `sales-org-1on1/` — 営業部 1on1・立ち位置分析ボード
+Zero-dependency single-file vanilla-JS app (no build step — like `construction-book`/`echo-interview-console`) for 株式会社 Martial Arts, supporting **来期・営業部組織図づくり** from 1on1面談. Turns a face-to-face hearing into a defensible **役職・次の役割** recommendation.
+
+- Run: `cd sales-org-1on1 && python3 -m http.server 5183` → http://localhost:5183 (or open `index.html` directly; fully client-side).
+- **`index.html`** is the tool: score each person on **6 axes (0–5)** — ①実績 ②統率 ③育成 ④当事者 ⑤胆力 ⑥定着 — and `recommend()` maps the scores to a role (代表格 / プレイングリーダー / メンター / 管理No.2 / 育成トレーナー / 2番手候補 / プレイヤー) via an ordered priority table. Renders an **org chart + member cards**, add/edit via modal, persists to **localStorage** (`martialarts_1on1_board_v1`), JSON import/export, print/PDF. **5 members from the 2026/7/27 memo are seeded** as defaults.
+- **The `recommend()` logic in `index.html` and the 対応表 in `組織設計_来期営業部.md` must stay in sync** — edit both together. `分析_酒井かいと_20260727.md` is the deep-dive on the interviewed top-seller.
+- **Sensitive HR content**: contains named evaluations of real sales-team members; the numbers/人名 are transcription-based 参考値. No tests/lint/build. See `sales-org-1on1/README.md` (Japanese).
 
 ### `n8n-workflows/` — n8n workflow exports
 Contains `telegram-to-sheets-slack.json`, an importable n8n workflow (Telegram trigger → Google Sheets append → Slack notify → Telegram ack). Not executable code — it is imported via the n8n UI. Before reuse, the consumer must replace placeholders in the JSON: `REPLACE_WITH_TELEGRAM_CREDENTIAL_ID`, `REPLACE_WITH_GOOGLE_SHEET_ID`, `REPLACE_WITH_GOOGLE_SHEETS_CREDENTIAL_ID`, `REPLACE_WITH_SLACK_CHANNEL_ID`, `REPLACE_WITH_SLACK_CREDENTIAL_ID`. Setup details and Google Sheets header schema (`timestamp | chat_id | chat_title | user_id | username | text | message_id`) are in `n8n-workflows/README.md` (Japanese).
