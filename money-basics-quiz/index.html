@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>お金の超基本 理解度チェック｜金融リテラシー診断＆学習アプリ</title>
+<style>
+  :root{
+    --gold:#b8912f; --gold-2:#d8b451; --gold-soft:#f3ead2;
+    --ink:#1c2430; --ink-2:#41505f; --line:#e4e0d6; --bg:#f7f5f0;
+    --paper:#ffffff; --ok:#1f7a4d; --ok-bg:#e6f4ec; --ng:#c0392b; --ng-bg:#fbeae7;
+    --shadow:0 10px 34px rgba(28,36,48,.10);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","YuGothic","Noto Sans JP","IPAGothic",system-ui,sans-serif;
+    color:var(--ink);background:var(--bg);line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px;margin:0 auto;padding:0 18px 96px}
+
+  /* header */
+  header.top{
+    background:linear-gradient(180deg,#fff, #fbf9f4);
+    border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40;
+    backdrop-filter:saturate(1.2) blur(4px);
+  }
+  .top-in{max-width:880px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:11px;min-width:0}
+  .logo{
+    width:40px;height:40px;border-radius:10px;flex:0 0 auto;
+    background:linear-gradient(135deg,var(--gold),var(--gold-2));
+    display:grid;place-items:center;color:#fff;font-weight:800;font-size:17px;
+    box-shadow:0 4px 12px rgba(184,145,47,.35);
+  }
+  .brand b{font-size:15px;letter-spacing:.02em;display:block;line-height:1.25}
+  .brand small{color:var(--ink-2);font-size:11.5px}
+  .top-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+  .navbtn{
+    border:1px solid var(--line);background:#fff;color:var(--ink);
+    padding:8px 13px;border-radius:999px;font-size:13px;cursor:pointer;font-weight:700;
+    transition:.15s;white-space:nowrap;
+  }
+  .navbtn:hover{border-color:var(--gold);color:var(--gold)}
+  .navbtn.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+  h1,h2,h3{line-height:1.35;margin:0}
+  .kicker{color:var(--gold);font-weight:800;letter-spacing:.16em;font-size:12px}
+
+  /* hero */
+  .hero{padding:40px 0 8px;text-align:center}
+  .hero h1{font-size:30px;margin:10px 0 6px;letter-spacing:.01em}
+  .hero .lead{color:var(--ink-2);font-size:15px;max-width:620px;margin:0 auto}
+  .badges{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
+  .badge{
+    background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 16px;
+    min-width:120px;box-shadow:var(--shadow)
+  }
+  .badge b{display:block;font-size:22px;color:var(--gold)}
+  .badge span{font-size:12px;color:var(--ink-2)}
+
+  .card{
+    background:var(--paper);border:1px solid var(--line);border-radius:16px;
+    padding:22px;box-shadow:var(--shadow);margin:18px 0;
+  }
+  .card h2{font-size:19px;display:flex;align-items:center;gap:9px}
+  .card h2 .no{
+    background:var(--gold-soft);color:var(--gold);border-radius:8px;
+    width:30px;height:30px;display:grid;place-items:center;font-size:14px;flex:0 0 auto;
+  }
+  p.note{color:var(--ink-2);font-size:13px}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:none;border-radius:12px;cursor:pointer;font-weight:800;font-size:15px;
+    padding:14px 22px;transition:.15s;
+  }
+  .btn.primary{background:linear-gradient(135deg,var(--gold),var(--gold-2));color:#fff;box-shadow:0 8px 20px rgba(184,145,47,.32)}
+  .btn.primary:hover{filter:brightness(1.04);transform:translateY(-1px)}
+  .btn.ghost{background:#fff;border:1px solid var(--line);color:var(--ink)}
+  .btn.ghost:hover{border-color:var(--gold);color:var(--gold)}
+  .btn.block{width:100%}
+  .btn.sm{padding:10px 16px;font-size:14px;border-radius:10px}
+
+  /* mode select */
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+  .mode{
+    text-align:left;border:1.5px solid var(--line);border-radius:14px;padding:16px;background:#fff;cursor:pointer;transition:.15s
+  }
+  .mode:hover{border-color:var(--gold);box-shadow:var(--shadow);transform:translateY(-2px)}
+  .mode .ic{font-size:22px}
+  .mode b{display:block;margin:6px 0 3px;font-size:15.5px}
+  .mode small{color:var(--ink-2);font-size:12.5px;line-height:1.6}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .chip{
+    border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px;
+    cursor:pointer;background:#fff;font-weight:700;transition:.15s
+  }
+  .chip:hover{border-color:var(--gold);color:var(--gold)}
+
+  .toggle-row{display:flex;align-items:center;gap:10px;margin:14px 0 2px;flex-wrap:wrap}
+  .switch{position:relative;display:inline-block;width:46px;height:26px;flex:0 0 auto}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;background:#d7d2c6;border-radius:999px;transition:.2s;cursor:pointer}
+  .slider::before{content:"";position:absolute;height:20px;width:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .switch input:checked + .slider{background:var(--gold)}
+  .switch input:checked + .slider::before{transform:translateX(20px)}
+
+  /* quiz */
+  .qbar{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .progress{flex:1;height:8px;background:#eae5da;border-radius:999px;overflow:hidden}
+  .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-2));width:0;transition:width .25s}
+  .qmeta{font-size:12.5px;color:var(--ink-2);white-space:nowrap;font-weight:700}
+  .qchapter{color:var(--gold);font-weight:800;font-size:12.5px;letter-spacing:.04em}
+  .qtext{font-size:19px;font-weight:800;margin:8px 0 16px;line-height:1.55}
+  .opts{display:grid;gap:10px}
+  .opt{
+    display:flex;gap:12px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;
+    padding:14px 16px;cursor:pointer;background:#fff;transition:.12s;font-size:15px;text-align:left;width:100%
+  }
+  .opt:hover{border-color:var(--gold-2);background:#fffdf7}
+  .opt .mark{
+    width:26px;height:26px;border-radius:50%;border:2px solid var(--line);flex:0 0 auto;
+    display:grid;place-items:center;font-weight:800;font-size:13px;color:var(--ink-2);transition:.12s
+  }
+  .opt.sel{border-color:var(--gold);background:var(--gold-soft)}
+  .opt.sel .mark{border-color:var(--gold);background:var(--gold);color:#fff}
+  .opt.correct{border-color:var(--ok);background:var(--ok-bg)}
+  .opt.correct .mark{border-color:var(--ok);background:var(--ok);color:#fff}
+  .opt.wrong{border-color:var(--ng);background:var(--ng-bg)}
+  .opt.wrong .mark{border-color:var(--ng);background:var(--ng);color:#fff}
+  .opt[disabled]{cursor:default}
+  .explain{
+    margin-top:14px;border-left:4px solid var(--gold);background:#fbf8f0;border-radius:0 10px 10px 0;
+    padding:12px 15px;font-size:14px;display:none
+  }
+  .explain.show{display:block}
+  .explain b{color:var(--gold)}
+  .qnav{display:flex;gap:10px;margin-top:18px}
+  .qnav .btn{flex:1}
+
+  /* result */
+  .score-hero{text-align:center;padding:8px 0 4px}
+  .ring{position:relative;width:180px;height:180px;margin:6px auto 10px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .val{position:absolute;inset:0;display:grid;place-content:center;text-align:center}
+  .ring .val b{font-size:44px;line-height:1;color:var(--ink)}
+  .ring .val span{font-size:13px;color:var(--ink-2)}
+  .rank{
+    display:inline-block;margin-top:4px;padding:7px 18px;border-radius:999px;font-weight:800;font-size:15px
+  }
+  .chbars{display:grid;gap:12px;margin-top:6px}
+  .chrow{display:grid;grid-template-columns:150px 1fr 54px;align-items:center;gap:12px}
+  .chrow .lbl{font-size:13px;font-weight:700}
+  .chrow .lbl small{display:block;color:var(--ink-2);font-weight:500;font-size:11px}
+  .track{height:12px;background:#eae5da;border-radius:999px;overflow:hidden}
+  .track > i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--gold-2))}
+  .chrow .pct{font-size:13px;font-weight:800;text-align:right}
+  @media(max-width:560px){.chrow{grid-template-columns:96px 1fr 46px;gap:8px}.chrow .lbl small{display:none}}
+
+  .review-q{border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:12px 0}
+  .review-q .rh{display:flex;gap:8px;align-items:center;font-weight:800;font-size:14px;margin-bottom:6px}
+  .tagok{color:var(--ok);font-size:12px;border:1px solid var(--ok);border-radius:6px;padding:1px 7px}
+  .tagng{color:var(--ng);font-size:12px;border:1px solid var(--ng);border-radius:6px;padding:1px 7px}
+  .review-q .ans{font-size:13.5px;margin:3px 0}
+  .review-q .ans .you{color:var(--ng);font-weight:700}
+  .review-q .ans .cor{color:var(--ok);font-weight:700}
+  .review-q .exp{font-size:13px;color:var(--ink-2);margin-top:6px}
+
+  /* study */
+  .study-card{border:1px solid var(--line);border-radius:14px;padding:0;margin:14px 0;overflow:hidden;background:#fff}
+  .study-head{
+    display:flex;gap:12px;align-items:center;padding:14px 18px;cursor:pointer;
+    background:linear-gradient(180deg,#fff,#fbf9f3)
+  }
+  .study-head .n{width:30px;height:30px;border-radius:8px;background:var(--gold-soft);color:var(--gold);display:grid;place-items:center;font-weight:800;flex:0 0 auto}
+  .study-head b{font-size:16px}
+  .study-head .arw{margin-left:auto;transition:.2s;color:var(--ink-2)}
+  .study-card.open .arw{transform:rotate(180deg)}
+  .study-body{display:none;padding:4px 18px 18px}
+  .study-card.open .study-body{display:block}
+  .study-body h4{margin:14px 0 4px;font-size:14.5px;color:var(--gold)}
+  .study-body ul{margin:4px 0 4px 2px;padding-left:18px}
+  .study-body li{margin:3px 0;font-size:14px}
+  .kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+  .kv .box{background:#faf8f2;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px}
+  .kv .box b{color:var(--ink)}
+  .rule503020{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
+  .rule503020 .seg{flex:1;min-width:120px;border-radius:10px;padding:10px 12px;color:#fff;font-size:13px}
+  .rule503020 .seg b{display:block;font-size:18px}
+
+  .disc{font-size:11.5px;color:#8a8574;border-top:1px dashed var(--line);padding-top:12px;margin-top:20px;line-height:1.7}
+  .src{font-size:11.5px;color:var(--ink-2);background:#faf8f2;border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:10px}
+  footer.foot{text-align:center;color:var(--ink-2);font-size:12px;padding:26px 0 0}
+
+  .hidden{display:none!important}
+
+  /* print: result sheet */
+  @media print{
+    header.top,.top-actions,.qnav,.no-print,.navbtn{display:none!important}
+    body{background:#fff}
+    .wrap{padding:0}
+    .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+    .review-q{break-inside:avoid}
+    a[href]:after{content:""}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <div class="logo">MA</div>
+      <div>
+        <b data-k="co">株式会社 Martial Arts</b>
+        <small data-k="tag">お金の超基本 理解度チェック</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="navbtn active" data-view="home" onclick="go('home')">ホーム</button>
+      <button class="navbtn" data-view="study" onclick="go('study')">学習（資料編）</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== HOME ===== -->
+  <section id="view-home">
+    <div class="hero">
+      <div class="kicker">FINANCIAL LITERACY CHECK</div>
+      <h1>今更聞けない「お金の超基本」<br>理解度チェック 全50問</h1>
+      <p class="lead">家計管理・税金・インフレ/金利・投資の基本を、6章50問でセルフ診断。自動採点で弱点章がひと目でわかり、解説付きで復習できます。不動産経営者・営業の実務知識の底上げに。</p>
+      <div class="badges">
+        <div class="badge"><b>50</b><span>問（6章構成）</span></div>
+        <div class="badge"><b>自動</b><span>採点・章別スコア</span></div>
+        <div class="badge"><b>全問</b><span>解説つき復習</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="no">▶</span>診断をはじめる</h2>
+      <p class="note">出題範囲を選んでください。挑戦後に総合スコアと章別の正答率、間違えた問題の解説が表示されます。</p>
+
+      <div class="toggle-row">
+        <label class="switch"><input type="checkbox" id="instant"><span class="slider"></span></label>
+        <div><b style="font-size:14px">即時採点モード</b><br><small class="note">ONにすると回答直後に正誤と解説を表示（学習向け）。OFFは最後にまとめて採点（テスト向け）。</small></div>
+      </div>
+
+      <div class="mode-grid" style="margin-top:14px">
+        <button class="mode" onclick="startQuiz('all')">
+          <div class="ic">🎯</div>
+          <b>全50問に挑戦</b>
+          <small>6章すべてを通しで診断。総合的な金融リテラシーを測ります。</small>
+        </button>
+        <button class="mode" onclick="startQuiz('random10')">
+          <div class="ic">⚡</div>
+          <b>ランダム10問</b>
+          <small>50問から10問を無作為出題。すきま時間のクイックチェックに。</small>
+        </button>
+      </div>
+
+      <p class="note" style="margin:16px 0 6px;font-weight:700">章別に挑戦</p>
+      <div class="chips" id="chapterChips"></div>
+
+      <div id="lastResult" class="src hidden" style="margin-top:16px"></div>
+    </div>
+
+    <div class="src">
+      出典：本アプリの設問・解答は配布教材「今更聞けないお金の超基本 理解度チェック問題集（全50問）」および解説教材「金融リテラシー実践的ガイド」に基づき作成。金融リテラシースコア等の統計は金融広報中央委員会・OECD調査等を参照した教材記載値です。
+    </div>
+    <p class="disc">
+      ※本アプリは金融教育・自己学習を目的とした情報提供であり、特定の金融商品の勧誘・投資助言ではありません。税率・控除額・NISA/iDeCoの制度枠・インフレ率などの数値は改正・変動があり、教材作成時点の参考値です。実際の手続き・判断にあたっては国税庁・金融庁・日本年金機構等の一次情報および専門家にご確認ください。
+    </p>
+  </section>
+
+  <!-- ===== QUIZ ===== -->
+  <section id="view-quiz" class="hidden">
+    <div class="card">
+      <div class="qbar">
+        <span class="qchapter" id="qChapter">第1章</span>
+        <div class="progress"><i id="qProg"></i></div>
+        <span class="qmeta" id="qMeta">1 / 50</span>
+      </div>
+      <div class="qtext" id="qText">—</div>
+      <div class="opts" id="qOpts"></div>
+      <div class="explain" id="qExplain"></div>
+      <div class="qnav">
+        <button class="btn ghost" id="btnPrev" onclick="prevQ()">← 前へ</button>
+        <button class="btn primary" id="btnNext" onclick="nextQ()">次へ →</button>
+      </div>
+      <div style="text-align:center;margin-top:12px">
+        <button class="navbtn" onclick="quitQuiz()">中断してホームへ</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== RESULT ===== -->
+  <section id="view-result" class="hidden">
+    <div class="card">
+      <div class="score-hero">
+        <div class="kicker" id="rScope">全50問</div>
+        <div class="ring">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="78" fill="none" stroke="#eae5da" stroke-width="16"/>
+            <circle id="rRing" cx="90" cy="90" r="78" fill="none" stroke="url(#g)" stroke-width="16" stroke-linecap="round" stroke-dasharray="490" stroke-dashoffset="490"/>
+            <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b8912f"/><stop offset="1" stop-color="#d8b451"/></linearGradient></defs>
+          </svg>
+          <div class="val"><b id="rPct">0%</b><span id="rFrac">0 / 0 問正解</span></div>
+        </div>
+        <div class="rank" id="rRank">—</div>
+        <p class="note" id="rMsg" style="max-width:560px;margin:10px auto 0"></p>
+      </div>
+    </div>
+
+    <div class="card" id="chapterBreakdown">
+      <h2><span class="no">📊</span>章別の正答率</h2>
+      <div class="chbars" id="chBars"></div>
+    </div>
+
+    <div class="card">
+      <h2><span class="no">📝</span>解答と解説（全問復習）</h2>
+      <p class="note">×印の設問を中心に、解説を読んで知識を補強しましょう。定期的に再挑戦して定着を図るのが効果的です。</p>
+      <div id="reviewList"></div>
+    </div>
+
+    <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+      <button class="btn primary" onclick="retryQuiz()">もう一度挑戦</button>
+      <button class="btn ghost" onclick="window.print()">🖨 結果を印刷 / PDF保存</button>
+      <button class="btn ghost" onclick="go('study')">📚 資料編で復習</button>
+      <button class="btn ghost" onclick="go('home')">ホームへ</button>
+    </div>
+  </section>
+
+  <!-- ===== STUDY ===== -->
+  <section id="view-study" class="hidden">
+    <div class="hero" style="padding:28px 0 4px">
+      <div class="kicker">STUDY GUIDE</div>
+      <h1 style="font-size:24px">金融リテラシー実践ガイド（資料編）</h1>
+      <p class="lead">クイズの土台となる「お金の超基本」6テーマの要点まとめ。読んでから挑戦、または復習にお使いください。</p>
+    </div>
+    <div id="studyList"></div>
+    <div class="src">出典：配布教材「金融リテラシー実践的ガイド：主要テーマと重要事項」。統計値は金融広報中央委員会・OECD等の教材記載値。</div>
+    <p class="disc">※情報提供のみを目的とし、投資勧誘・投資助言ではありません。制度・税率・数値は改正/変動があります。最新情報は国税庁・金融庁等でご確認ください。</p>
+    <div style="text-align:center;margin-top:18px">
+      <button class="btn primary" onclick="go('home');startQuiz('all')">理解度チェックに挑戦する →</button>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span data-k="co2">株式会社 Martial Arts</span> ｜ お金の超基本 理解度チェック<br>
+    金融教育・自己学習用ツール（情報提供のみ・投資助言ではありません）
+  </footer>
+</div>
+
+<script>
+/* ============================ DATA ============================ */
+const CHAPTERS = [
+  {no:1, title:"金融リテラシーの重要性", desc:"なぜ学ぶのか"},
+  {no:2, title:"家計管理の基礎",       desc:"収支管理・予算作成"},
+  {no:3, title:"税金の基本",           desc:"所得税・住民税・控除"},
+  {no:4, title:"インフレと金利",       desc:"2025年の経済環境"},
+  {no:5, title:"投資の基本原則",       desc:"分散・長期・低コスト"},
+  {no:6, title:"金融リテラシー向上",   desc:"現実的アクション"},
+];
+
+/* ans は 0=a,1=b,2=c,3=d */
+const QUIZ = [
+  // 第1章：金融リテラシーの重要性（問1-7）
+  {ch:1,q:1,text:"日本の金融リテラシースコアは何%でしょうか？",opts:["25%","43%","57%","66%"],ans:1,exp:"日本の金融リテラシースコアは約43%で、国際的に見て低水準とされています。"},
+  {ch:1,q:2,text:"基礎的な金融知識を持つ日本人の割合は約何%でしょうか？",opts:["10%","25%","40%","50%"],ans:1,exp:"金融広報中央委員会の調査では、基礎的な金融知識を持つ人はわずか25%程度に留まっています。"},
+  {ch:1,q:3,text:"OECD調査（2020年）で金融リテラシースコアが最も高い国はどこでしょうか？",opts:["カナダ（68%）","ドイツ（66%）","フランス（71%）","米国（57%）"],ans:2,exp:"OECD2020年調査ではフランスが71%で最も高いスコアでした。"},
+  {ch:1,q:4,text:"金融リテラシー向上の3つの主要メリットのうち、正しくないものはどれでしょうか？",opts:["リスク回避と資産保全","資産形成の効率化","事業経営の安定化","借金の増加"],ans:3,exp:"メリットは「リスク回避・資産保全」「資産形成の効率化」「事業経営の安定化」。借金の増加はメリットではありません。"},
+  {ch:1,q:5,text:"不動産経営者にとって財務知識が重要な理由は何でしょうか？",opts:["節税対策","事業の安定化と拡大","投資判断の精度向上","すべて正しい"],ans:3,exp:"節税・事業の安定/拡大・投資判断の精度向上、いずれも重要です。"},
+  {ch:1,q:6,text:"金融知識不足により発生しやすいリスクはどれでしょうか？",opts:["詐欺被害","不適切な商品選択","非効率な資産形成","すべて正しい"],ans:3,exp:"知識不足は詐欺被害・不適切な商品選択・非効率な資産形成のいずれも招きます。"},
+  {ch:1,q:7,text:"複利の力を最大限活用するために必要な期間の考え方は？",opts:["短期集中投資","中期分散投資","長期継続投資","タイミング重視投資"],ans:2,exp:"複利は運用期間が長いほど効果が大きくなるため、長期継続投資が鍵です。"},
+
+  // 第2章：家計管理の基礎（問8-17）
+  {ch:2,q:8,text:"50/30/20ルールの「50%」は何に割り当てるべきでしょうか？",opts:["貯蓄・投資","自由裁量","生活必需品","緊急資金"],ans:2,exp:"50%は生活必需品（住居費・食費・光熱費・通信費など）に充てます。"},
+  {ch:2,q:9,text:"50/30/20ルールの「30%」に含まれるものはどれでしょうか？",opts:["住居費","趣味・外食・娯楽","光熱費","通信費"],ans:1,exp:"30%は自由裁量（趣味・外食・娯楽）に配分します。"},
+  {ch:2,q:10,text:"50/30/20ルールで推奨される貯蓄・投資の割合は？",opts:["10%","20%","30%","50%"],ans:1,exp:"20%を貯蓄・投資（将来の資産形成）に回すのが目安です。"},
+  {ch:2,q:11,text:"先取り貯蓄の最適なタイミングはいつでしょうか？",opts:["月末","給料日","ボーナス時","年末"],ans:1,exp:"使う前に貯める「先取り貯蓄」は給料日が最適です。"},
+  {ch:2,q:12,text:"家計管理で推奨される月次振り返りの時間は？",opts:["5分","15分","30分","1時間"],ans:1,exp:"月に15分程度、収支を振り返る習慣が推奨されています。"},
+  {ch:2,q:13,text:"収支の見える化により、貯蓄率はどの程度改善するでしょうか？",opts:["1.2倍","1.5倍","2倍","3倍"],ans:2,exp:"「何となく」ではなく「見える化」することで、貯蓄率が平均2倍に向上するとされます。"},
+  {ch:2,q:14,text:"家計管理で約40%の世帯が抱える問題は何でしょうか？",opts:["借金過多","収支を把握していない","投資未経験","保険未加入"],ans:1,exp:"収支を把握せず家計管理をしている世帯が約40%に上るとされます。"},
+  {ch:2,q:15,text:"家計簿アプリの主なメリットは？",opts:["自動連携機能","手間削減","リアルタイム管理","すべて正しい"],ans:3,exp:"自動連携・手間削減・リアルタイム管理、いずれもアプリの利点です。"},
+  {ch:2,q:16,text:"複数口座活用の目的は何でしょうか？",opts:["金利優遇","目的別管理","手数料削減","投資分散"],ans:1,exp:"生活費・貯蓄・投資などを口座で分ける「目的別管理」が狙いです。"},
+  {ch:2,q:17,text:"家計管理の5ステップに含まれないものはどれでしょうか？",opts:["収支把握","予算作成","投資開始","定期見直し"],ans:2,exp:"5ステップは①現状把握②目標設定③予算作成④記録・管理⑤定期見直し。「投資開始」は含まれません。"},
+
+  // 第3章：税金の基本（問18-27）
+  {ch:3,q:18,text:"所得税の税率範囲は何%でしょうか？",opts:["3～40%","5～45%","10～50%","15～55%"],ans:1,exp:"所得税は5～45%の累進課税です。"},
+  {ch:3,q:19,text:"住民税の税率は約何%でしょうか？",opts:["5%","10%","15%","20%"],ans:1,exp:"住民税はおおむね一律約10%です。"},
+  {ch:3,q:20,text:"所得税は何税でしょうか？",opts:["地方税","国税","市町村税","都道府県税"],ans:1,exp:"所得税は国に納める国税です。"},
+  {ch:3,q:21,text:"住民税は何税でしょうか？",opts:["国税","地方税","法人税","消費税"],ans:1,exp:"住民税は都道府県・市区町村に納める地方税です。"},
+  {ch:3,q:22,text:"基礎控除の金額（所得税）は？",opts:["38万円","43万円","48万円","53万円"],ans:2,exp:"所得税の基礎控除は48万円です（住民税は43万円）。"},
+  {ch:3,q:23,text:"基礎控除の金額（住民税）は？",opts:["38万円","43万円","48万円","53万円"],ans:1,exp:"住民税の基礎控除は43万円です（所得税は48万円）。"},
+  {ch:3,q:24,text:"所得税の確定申告期限は？",opts:["2月末","3月15日","3月末","4月末"],ans:1,exp:"所得税の確定申告期限は原則3月15日です。"},
+  {ch:3,q:25,text:"住民税の納付回数は年何回でしょうか？",opts:["2回","4回","6回","12回"],ans:1,exp:"普通徴収の住民税は年4回に分けて納付します。"},
+  {ch:3,q:26,text:"課税所得金額の計算式は？",opts:["収入－必要経費","所得金額－所得控除","課税所得×税率","税額－税額控除"],ans:1,exp:"課税所得金額＝所得金額－所得控除。ここに税率を掛けて税額を求めます。"},
+  {ch:3,q:27,text:"扶養控除の対象となるのは？",opts:["すべての納税者","扶養家族がいる場合","高所得者のみ","事業者のみ"],ans:1,exp:"扶養控除は扶養家族がいる場合に受けられる控除です。"},
+
+  // 第4章：インフレと金利（問28-37）
+  {ch:4,q:28,text:"2025年初頭のインフレ率は約何%でしょうか？",opts:["1%","2%","3%","4%"],ans:2,exp:"教材では2025年初頭のインフレ率を約3%としています。"},
+  {ch:4,q:29,text:"2023年のインフレ率は約何%でしょうか？",opts:["1%","2%","3%","4%"],ans:2,exp:"2023年のインフレ率も約3%とされています。"},
+  {ch:4,q:30,text:"インフレが進行すると、現金の価値はどうなりますか？",opts:["上昇する","変わらない","下落する","不明"],ans:2,exp:"物価が上がるとお金の価値は相対的に下がる＝現金の価値は下落します。"},
+  {ch:4,q:31,text:"中央銀行がインフレ抑制のために行う政策は？",opts:["金利引き下げ","金利引き上げ","通貨発行","税率変更"],ans:1,exp:"中央銀行はインフレ抑制のため金利を引き上げます。"},
+  {ch:4,q:32,text:"インフレ時の債券価格への影響は？",opts:["上昇","下落","変化なし","予測不可能"],ans:1,exp:"金利上昇局面では既発債の魅力が下がり、債券価格は下落する傾向です。"},
+  {ch:4,q:33,text:"2025年の金利環境の特徴は？",opts:["金利低下","金利上昇","金利安定","金利不明"],ans:1,exp:"低金利政策からの脱却（金利正常化）が進み、金利は緩やかに上昇傾向です。"},
+  {ch:4,q:34,text:"日米金利差の縮小により、円相場はどうなる傾向でしょうか？",opts:["円高進行","円安進行","安定傾向","不安定化"],ans:0,exp:"日米金利差の縮小は円買い要因となり、円高方向に働く傾向があります。"},
+  {ch:4,q:35,text:"インフレが資産運用に与える影響で正しいものは？",opts:["投資機会増加","預金金利向上","現金価値低下","すべて正しい"],ans:3,exp:"投資機会の増加・預金金利の向上・現金価値の低下、いずれも起こり得ます。"},
+  {ch:4,q:36,text:"給与が上がらないインフレ下での購買力はどうなりますか？",opts:["向上","維持","低下","倍増"],ans:2,exp:"物価だけ上がり給与が上がらないと、実質的な購買力は低下します。"},
+  {ch:4,q:37,text:"景気刺激のために中央銀行が行う政策は？",opts:["金利引き上げ","金利引き下げ","税率上昇","規制強化"],ans:1,exp:"景気刺激のためには金利を引き下げ、お金を借りやすくします。"},
+
+  // 第5章：投資の基本原則（問38-44）
+  {ch:5,q:38,text:"投資の3原則に含まれないものはどれでしょうか？",opts:["分散投資","長期投資","低コスト投資","短期売買"],ans:3,exp:"投資の3原則は「分散・長期・低コスト」。短期売買は含まれません。"},
+  {ch:5,q:39,text:"「卵を一つのカゴに盛るな」の原則が示すのは？",opts:["長期投資","分散投資","低コスト投資","積立投資"],ans:1,exp:"資産クラスや地域を分けてリスクを抑える「分散投資」の格言です。"},
+  {ch:5,q:40,text:"NISAの年間非課税投資枠は最大いくらでしょうか？",opts:["120万円","240万円","360万円","480万円"],ans:2,exp:"新NISAの年間投資枠は最大360万円（つみたて120万＋成長240万）です。※制度改正で変わる場合あり。"},
+  {ch:5,q:41,text:"投資で避けるべき行動はどれでしょうか？",opts:["余剰資金での投資","理解できない商品への投資","長期保有","分散投資"],ans:1,exp:"仕組みを理解できない商品への投資は避けるべきです。"},
+  {ch:5,q:42,text:"複利の力を最大化するために重要なことは？",opts:["短期売買","長期投資","高リスク投資","タイミング投資"],ans:1,exp:"複利は時間を味方につける長期投資で最大化します。"},
+  {ch:5,q:43,text:"iDeCoのメリットは何でしょうか？",opts:["掛金所得控除","運用益非課税","受取時の税制優遇","すべて正しい"],ans:3,exp:"iDeCoは掛金の所得控除・運用益非課税・受取時の税制優遇、いずれもメリットです。"},
+  {ch:5,q:44,text:"投資における手数料の影響は？",opts:["無視できる","資産を確実に減らす","プラス要因","関係ない"],ans:1,exp:"手数料・運用コストは確実に資産を減らす要因。低コスト商品の選択が有利です。"},
+
+  // 第6章：金融リテラシー向上（問45-50）
+  {ch:6,q:45,text:"家計収支把握のステップで推奨される期間は？",opts:["3日","1週間","1ヶ月","3ヶ月"],ans:2,exp:"収支の全体像をつかむには、1ヶ月程度の記録が目安とされています。"},
+  {ch:6,q:46,text:"資産状況の棚卸しで確認すべきでないものは？",opts:["銀行口座","投資","保険","他人の資産"],ans:3,exp:"棚卸しは自分の資産・負債が対象。他人の資産は含めません。"},
+  {ch:6,q:47,text:"資産形成計画立案の推奨期間は？",opts:["1週間","1ヶ月","3ヶ月","1年"],ans:2,exp:"NISA・iDeCoの活用検討や目標設定を含め、3ヶ月程度で計画を立てるのが目安です。"},
+  {ch:6,q:48,text:"金融知識アップデートで推奨される読書頻度は？",opts:["週1冊","月1冊","四半期1冊","年1冊"],ans:1,exp:"継続的な学習として、月1冊の読書が推奨されています。"},
+  {ch:6,q:49,text:"固定費と変動費の区分が重要な理由は？",opts:["税務申告","効率的な節約","投資判断","借入審査"],ans:1,exp:"固定費・変動費を分けることで、効率的な節約ポイントが見えます。"},
+  {ch:6,q:50,text:"金融リテラシー向上の最終目的は？",opts:["知識の蓄積","資格取得","実践的な資産形成と生活改善","専門家になること"],ans:2,exp:"知識そのものではなく、実践的な資産形成と生活改善が最終目的です。"},
+];
+
+const STUDY = [
+  {n:1,title:"金融リテラシーの重要性",html:`
+    <p>日本の金融リテラシーは国際的に低水準で、金融広報中央委員会の調査では「基礎的な金融知識を持つ人はわずか<b>25%程度</b>」に留まります。金融知識は「詐欺や不適切な商品選択のリスクから身を守れる」だけでなく、「複利の力や税制優遇制度を理解することで、効率的な資産形成が可能に」なります。</p>
+    <h4>向上がもたらすメリット</h4>
+    <ul><li>より良い意思決定</li><li>資産の効率的な運用</li><li>リスク管理能力の向上</li><li>経済変化への対応力</li></ul>`},
+  {n:2,title:"家計管理の基礎（収支管理・予算作成）",html:`
+    <p>最も重要なのは<b>収支把握</b>。「収支を把握せず家計管理をしている世帯は約<b>40%</b>」に上り、「見える化することで貯蓄率が平均<b>2倍</b>に向上」するとされます。</p>
+    <h4>家計管理の5ステップ</h4>
+    <ul><li>①現状把握（収入・支出を記録）</li><li>②目標設定（短期・中期・長期）</li><li>③予算作成（50/30/20ルール）</li><li>④記録・管理（家計簿アプリ等）</li><li>⑤定期的見直し（毎月の調整）</li></ul>
+    <h4>50/30/20ルール</h4>
+    <div class="rule503020">
+      <div class="seg" style="background:#5a6b7d"><b>50%</b>生活必需品（住居・食費・光熱・通信）</div>
+      <div class="seg" style="background:#b8912f"><b>30%</b>自由裁量（趣味・外食・娯楽）</div>
+      <div class="seg" style="background:#1f7a4d"><b>20%</b>貯蓄・投資（将来の資産形成）</div>
+    </div>
+    <p class="note">実践のコツ：先取り貯蓄／家計簿アプリ活用／複数口座の活用／月次振り返り。</p>`},
+  {n:3,title:"税金の基本（所得税・住民税・控除）",html:`
+    <div class="kv">
+      <div class="box"><b>所得税</b>：国税／1～12月の所得に課税／確定申告・年末調整で納付／税率<b>5～45%</b>（累進）</div>
+      <div class="box"><b>住民税</b>：地方税／前年所得に基づき課税／給与天引き・個人納付／税率一律<b>約10%</b></div>
+    </div>
+    <h4>課税の流れ</h4>
+    <p>収入金額 → 所得金額（収入－必要経費）→ 課税所得金額（所得金額－所得控除）→ 税額（課税所得×税率－税額控除）</p>
+    <h4>知っておきたい控除</h4>
+    <p>「基礎控除」はすべての納税者が受けられる控除で、所得税<b>48万円</b>／住民税<b>43万円</b>と金額が異なります。</p>`},
+  {n:4,title:"インフレと金利の関係（2025年の経済環境）",html:`
+    <p>インフレは「物価が持続的に上昇し、お金の価値が下がる経済現象」。給与が上がらないと実質的な購買力が低下します。中央銀行は通常、<b>インフレ抑制のため利上げ</b>、<b>景気刺激のため利下げ</b>を行います。</p>
+    <h4>家計・資産運用への影響</h4>
+    <ul><li>預金金利の上昇／住宅ローン金利の上昇</li><li>物価上昇による生活費増加</li><li>債券価格の下落・株式市場の変動</li><li>現金保有の実質的価値の減少</li></ul>
+    <h4>2025年 日本経済の特徴</h4>
+    <ul><li>賃金上昇を伴う「良いインフレ」への移行が進行中</li><li>金利正常化（低金利政策からの脱却）</li><li>日米金利差縮小により円相場が安定傾向</li><li>預金金利向上・債券市場に新たな投資機会</li></ul>
+    <p class="note">※クイズの問34は解答一覧に基づき「円高進行」を正解としています（本ガイド本文は「安定傾向」と記載）。為替は複数要因で動くため参考として扱ってください。</p>`},
+  {n:5,title:"投資の基本原則（分散・長期・低コスト）",html:`
+    <h4>成功する投資の3原則</h4>
+    <ul>
+      <li><b>分散投資</b>：「卵を一つのカゴに盛るな」。資産クラス・地域を分けてリスク軽減。</li>
+      <li><b>長期投資</b>：短期変動に左右されず、複利の力で効果を最大化。</li>
+      <li><b>低コスト投資</b>：手数料は確実に資産を減らす要因。低コスト商品が長期リターンを改善。</li>
+    </ul>
+    <h4>失敗しない心得</h4>
+    <ul><li>余剰資金で投資を行う</li><li>理解できない商品には手を出さない</li><li>値動きに一喜一憂せず冷静に対応する</li></ul>`},
+  {n:6,title:"金融リテラシー向上と現実的アクション",html:`
+    <p>金融リテラシーは「一度の学習で終わりではなく、継続的なアップデートが必要」です。今日から始めるアクションプラン：</p>
+    <ul>
+      <li><b>家計の収支を把握する（1週間）</b>：アプリ導入、固定費と変動費の明確な区分</li>
+      <li><b>資産状況の棚卸し（1ヶ月）</b>：全資産の洗い出し、負債と返済計画の確認</li>
+      <li><b>具体的な資産形成計画（3ヶ月）</b>：NISA・iDeCo等の税制優遇の活用検討、長期目標の設定</li>
+      <li><b>知識のアップデート（継続）</b>：金融関連書籍の購読、信頼できる情報源からのニュースチェック</li>
+    </ul>
+    <p class="note">継続的な学習と実践を通じて、より良い金融判断力を身につけましょう。</p>`},
+];
+
+/* ============================ STATE ============================ */
+const LS_KEY = "ma_money_quiz_v1";
+let session = null; // {scope, items:[qref...], answers:[idx|null], idx, instant, revealed:Set}
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const LETTERS = ["A","B","C","D"];
+
+/* ============================ NAV ============================ */
+function go(view){
+  ["home","quiz","result","study"].forEach(v=>$("#view-"+v).classList.toggle("hidden", v!==view));
+  $$(".navbtn[data-view]").forEach(b=>b.classList.toggle("active", b.dataset.view===view));
+  window.scrollTo({top:0,behavior:"instant"});
+}
+
+/* ============================ HOME ============================ */
+function renderHome(){
+  const chips = CHAPTERS.map(c=>{
+    const n = QUIZ.filter(q=>q.ch===c.no).length;
+    return `<button class="chip" onclick="startQuiz('ch${c.no}')">第${c.no}章 ${c.title}（${n}問）</button>`;
+  }).join("");
+  $("#chapterChips").innerHTML = chips;
+
+  const last = loadLast();
+  const box = $("#lastResult");
+  if(last){
+    box.classList.remove("hidden");
+    box.innerHTML = `前回の結果：<b>${last.scopeLabel}</b>　${last.correct}/${last.total}問正解（${last.pct}%）　${last.rank}　<span class="note">${last.date}</span>`;
+  } else {
+    box.classList.add("hidden");
+  }
+}
+
+/* ============================ QUIZ ============================ */
+function startQuiz(scope){
+  let items;
+  if(scope==="all") items = QUIZ.slice();
+  else if(scope==="random10") items = shuffle(QUIZ.slice()).slice(0,10);
+  else if(scope.startsWith("ch")){
+    const ch = +scope.slice(2);
+    items = QUIZ.filter(q=>q.ch===ch);
+  } else items = QUIZ.slice();
+
+  session = {
+    scope, scopeLabel: scopeLabel(scope),
+    items,
+    answers: new Array(items.length).fill(null),
+    idx:0,
+    instant: $("#instant").checked,
+    revealed: new Set(),
+  };
+  go("quiz");
+  renderQ();
+}
+
+function scopeLabel(scope){
+  if(scope==="all") return "全50問";
+  if(scope==="random10") return "ランダム10問";
+  if(scope.startsWith("ch")){ const c=CHAPTERS.find(x=>x.no===+scope.slice(2)); return `第${c.no}章 ${c.title}`; }
+  return "診断";
+}
+
+function renderQ(){
+  const s = session, i = s.idx, item = s.items[i];
+  const ch = CHAPTERS.find(c=>c.no===item.ch);
+  $("#qChapter").textContent = `第${ch.no}章 ${ch.title}`;
+  $("#qMeta").textContent = `${i+1} / ${s.items.length}`;
+  $("#qProg").style.width = ((i)/(s.items.length))*100 + "%";
+  $("#qText").textContent = `問${item.q}. ${item.text}`;
+
+  const chosen = s.answers[i];
+  const revealed = s.instant && s.revealed.has(i);
+  const opts = item.opts.map((o,oi)=>{
+    let cls = "opt";
+    if(revealed){
+      if(oi===item.ans) cls+=" correct";
+      else if(oi===chosen) cls+=" wrong";
+    } else if(oi===chosen) cls+=" sel";
+    const dis = revealed ? "disabled" : "";
+    return `<button class="${cls}" ${dis} onclick="choose(${oi})">
+      <span class="mark">${LETTERS[oi]}</span><span>${o}</span></button>`;
+  }).join("");
+  $("#qOpts").innerHTML = opts;
+
+  const ex = $("#qExplain");
+  if(revealed){
+    const ok = chosen===item.ans;
+    ex.className = "explain show";
+    ex.innerHTML = `<b>${ok?"正解 ○":"不正解 ×"}</b>　正解は <b>${LETTERS[item.ans]}. ${item.opts[item.ans]}</b><br>${item.exp}`;
+  } else {
+    ex.className = "explain";
+    ex.innerHTML = "";
+  }
+
+  $("#btnPrev").style.visibility = i===0 ? "hidden":"visible";
+  const isLast = i===s.items.length-1;
+  $("#btnNext").textContent = isLast ? "採点する →" : "次へ →";
+  $("#btnNext").disabled = false;
+}
+
+function choose(oi){
+  const s = session;
+  s.answers[s.idx] = oi;
+  if(s.instant && !s.revealed.has(s.idx)){
+    s.revealed.add(s.idx);
+  }
+  renderQ();
+}
+
+function nextQ(){
+  const s = session;
+  if(s.idx < s.items.length-1){ s.idx++; renderQ(); }
+  else finishQuiz();
+}
+function prevQ(){ if(session.idx>0){ session.idx--; renderQ(); } }
+
+function quitQuiz(){ if(confirm("診断を中断してホームに戻ります。よろしいですか？")){ session=null; go("home"); renderHome(); } }
+function retryQuiz(){ if(session) startQuiz(session.scope); }
+
+/* ============================ RESULT ============================ */
+function finishQuiz(){
+  const s = session;
+  const total = s.items.length;
+  let correct = 0;
+  s.items.forEach((it,i)=>{ if(s.answers[i]===it.ans) correct++; });
+  const pct = Math.round(correct/total*100);
+  const rk = rankOf(pct);
+
+  $("#rScope").textContent = s.scopeLabel;
+  $("#rPct").textContent = pct + "%";
+  $("#rFrac").textContent = `${correct} / ${total} 問正解`;
+  const ring = $("#rRing"), circ = 2*Math.PI*78;
+  ring.style.strokeDasharray = circ;
+  ring.style.strokeDashoffset = circ*(1-pct/100);
+  const rankEl = $("#rRank");
+  rankEl.textContent = rk.label;
+  rankEl.style.background = rk.bg; rankEl.style.color = rk.color;
+  $("#rMsg").textContent = rk.msg;
+
+  // chapter breakdown
+  const chData = {};
+  s.items.forEach((it,i)=>{
+    (chData[it.ch] ??= {c:0,t:0});
+    chData[it.ch].t++;
+    if(s.answers[i]===it.ans) chData[it.ch].c++;
+  });
+  const chKeys = Object.keys(chData).map(Number).sort((a,b)=>a-b);
+  $("#chapterBreakdown").style.display = chKeys.length>1 ? "" : "none";
+  $("#chBars").innerHTML = chKeys.map(k=>{
+    const c = CHAPTERS.find(x=>x.no===k), d = chData[k], p = Math.round(d.c/d.t*100);
+    return `<div class="chrow">
+      <div class="lbl">第${k}章<small>${c.title}</small></div>
+      <div class="track"><i style="width:${p}%"></i></div>
+      <div class="pct">${d.c}/${d.t}</div>
+    </div>`;
+  }).join("");
+
+  // review
+  $("#reviewList").innerHTML = s.items.map((it,i)=>{
+    const you = s.answers[i], ok = you===it.ans;
+    const yourTxt = you==null ? "（無回答）" : `${LETTERS[you]}. ${it.opts[you]}`;
+    return `<div class="review-q">
+      <div class="rh"><span>問${it.q}</span> ${ok?'<span class="tagok">正解</span>':'<span class="tagng">不正解</span>'} <span style="font-weight:600;color:var(--ink-2);font-size:12px">第${it.ch}章</span></div>
+      <div style="font-weight:700;font-size:14.5px;margin-bottom:4px">${it.text}</div>
+      ${ok?'':`<div class="ans">あなたの回答：<span class="you">${yourTxt}</span></div>`}
+      <div class="ans">正解：<span class="cor">${LETTERS[it.ans]}. ${it.opts[it.ans]}</span></div>
+      <div class="exp">💡 ${it.exp}</div>
+    </div>`;
+  }).join("");
+
+  // persist
+  saveLast({
+    scope:s.scope, scopeLabel:s.scopeLabel, total, correct, pct,
+    rank:rk.label, date: fmtDate()
+  });
+
+  go("result");
+}
+
+function rankOf(pct){
+  if(pct>=90) return {label:"S ｜ マスター級", bg:"#1f7a4d", color:"#fff", msg:"素晴らしい理解度です。お金の超基本はしっかり身についています。定期的な再挑戦で知識を維持しましょう。"};
+  if(pct>=75) return {label:"A ｜ 上級", bg:"#b8912f", color:"#fff", msg:"実務で使えるレベルです。間違えた設問の解説を確認し、弱点章を補強すればさらに盤石に。"};
+  if(pct>=60) return {label:"B ｜ 中級", bg:"#e2b53a", color:"#3a2f10", msg:"基礎は押さえています。章別スコアの低いテーマを資料編で復習しましょう。"};
+  if(pct>=40) return {label:"C ｜ 初級", bg:"#e08a3c", color:"#fff", msg:"要点の取りこぼしがあります。資料編を一読してから再挑戦するのがおすすめです。"};
+  return {label:"D ｜ これから", bg:"#c0392b", color:"#fff", msg:"まずは資料編で全体像をつかみましょう。学習→再挑戦を繰り返すと着実に伸びます。"};
+}
+
+/* ============================ STUDY ============================ */
+function renderStudy(){
+  $("#studyList").innerHTML = STUDY.map((s,i)=>`
+    <div class="study-card${i===0?' open':''}">
+      <div class="study-head" onclick="this.parentNode.classList.toggle('open')">
+        <span class="n">${s.n}</span><b>${s.title}</b><span class="arw">▾</span>
+      </div>
+      <div class="study-body">${s.html}</div>
+    </div>`).join("");
+}
+
+/* ============================ STORAGE ============================ */
+function saveLast(obj){ try{ localStorage.setItem(LS_KEY, JSON.stringify(obj)); }catch(e){} }
+function loadLast(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)); }catch(e){ return null; } }
+
+/* ============================ UTIL ============================ */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+function fmtDate(){ const d=new Date(); const p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+/* ============================ INIT ============================ */
+renderHome();
+renderStudy();
+go("home");
+</script>
+</body>
+</html>
