@@ -1,0 +1,46 @@
+{
+  "months": [
+    {"m":"令和7年8月","short":"R7/8","shibo":300,"ken":null,"rieki":1995,"memo":""},
+    {"m":"令和7年9月","short":"R7/9","shibo":1700,"ken":null,"rieki":3108,"memo":"不動産/4本"},
+    {"m":"令和7年10月","short":"R7/10","shibo":null,"ken":null,"rieki":1943,"memo":""},
+    {"m":"令和7年11月","short":"R7/11","shibo":200,"ken":null,"rieki":3279,"memo":""},
+    {"m":"令和7年12月","short":"R7/12","shibo":1200,"ken":12,"rieki":7955,"memo":"12本 / 5586万"},
+    {"m":"令和8年1月","short":"R8/1","shibo":200,"ken":null,"rieki":2367,"memo":"（原本に記載なし）"},
+    {"m":"令和8年2月","short":"R8/2","shibo":1648,"ken":null,"rieki":2994,"memo":""},
+    {"m":"令和8年3月","short":"R8/3","shibo":400,"ken":null,"rieki":3339,"memo":""},
+    {"m":"令和8年4月","short":"R8/4","shibo":1000,"ken":null,"rieki":3672,"memo":""},
+    {"m":"令和8年5月","short":"R8/5","shibo":945,"ken":null,"rieki":3197,"memo":""},
+    {"m":"令和8年6月","short":"R8/6","shibo":1000,"ken":10,"rieki":2796,"memo":"売上8360万 / 私募債1000万（検証済）"},
+    {"m":"令和8年7月","short":"R8/7","shibo":null,"ken":null,"rieki":3399,"memo":"自社1億7067万 / 東亞様2000万"},
+    {"m":"令和8年8月","short":"R8/8","shibo":null,"ken":null,"rieki":1662,"memo":"売り上げ1億2920万"}
+  ],
+  "total": {"uriage":8360,"shibo":8593,"ken":22,"rieki":41706},
+  "average": {"uriage":8360,"shibo":859,"ken":11,"rieki":3208},
+  "june": {
+    "uriage":8360, "shibo":1000, "rieki":2797,
+    "jisha":[
+      {"name":"渡邉様","status":"決済","bank":"栃木銀行","yushi":2290,"haba":490,"buai":101.3,"rieki":389},
+      {"name":"佐藤拓","status":"本承認","bank":"中労金銀座支店","yushi":2180,"haba":455,"buai":94.1,"rieki":355},
+      {"name":"綱川様","status":"決済","bank":"中央労金宇都宮ローンプラザ","yushi":2950,"haba":550,"buai":110.0,"rieki":440},
+      {"name":"池田様","status":"決済","bank":"FGH","yushi":600,"haba":600,"buai":110.0,"rieki":490}
+    ],
+    "jishaSub":{"yushi":8020,"haba":2095,"rieki":1674},
+    "other":[
+      {"name":"宮崎様","type":"リフォーム","status":"完工","yushi":350,"haba":206,"buai":35.0,"rieki":171},
+      {"name":"佐竹様","type":"私募債","status":"-","yushi":200,"haba":200,"buai":9.0,"rieki":191},
+      {"name":"大枝様","type":"私募債","status":"-","yushi":300,"haba":300,"buai":14.0,"rieki":286},
+      {"name":"山本様","type":"私募債","status":"-","yushi":100,"haba":100,"buai":5.0,"rieki":95},
+      {"name":"米川様","type":"私募債","status":"-","yushi":200,"haba":200,"buai":10.0,"rieki":190},
+      {"name":"鈴木様","type":"私募債","status":"-","yushi":200,"haba":200,"buai":9.0,"rieki":190}
+    ],
+    "otherSub":{"yushi":1350,"haba":1206,"rieki":1123}
+  },
+  "ledger": {
+    "total":328,
+    "rank":[{"k":"S（契約・有力）","v":51,"p":15.5},{"k":"A（現金・短期）","v":4,"p":1.2},{"k":"B","v":2,"p":0.6},{"k":"C（見込・追客）","v":271,"p":82.6}],
+    "owner":[{"k":"坂本","v":41},{"k":"菊池","v":39},{"k":"上田","v":33},{"k":"三浦","v":26},{"k":"武田","v":18},{"k":"専務","v":5},{"k":"青木","v":3},{"k":"長谷川徹","v":2},{"k":"CEO","v":1},{"k":"退職者","v":85}],
+    "supplier":[{"k":"MA売主","v":26},{"k":"武蔵野","v":10},{"k":"RE","v":5},{"k":"住まいのアシスト","v":5},{"k":"アップリンクス","v":4}],
+    "supplierTotal":56,
+    "status":[{"k":"契約済み","v":17},{"k":"未提案","v":34},{"k":"否決","v":23},{"k":"打ち切り","v":49},{"k":"再アタック候補","v":22}]
+  }
+}
