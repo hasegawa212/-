@@ -1,0 +1,19 @@
+{
+  "month":"令和8年9月",
+  "kotei":3000,
+  "jishaTotal":1114, "shiboTotal":1009, "total":2123, "shushi":-877,
+  "kakutei":389, "mikakutei":1734,
+  "jisha":[
+    {"no":1,"name":"角様","status":"本審査中","branch":"東京","yushi":1499,"haba":349,"buai":76.78,"rieki":272,"fix":false,"log":"角宙明"},
+    {"no":2,"name":"三原様","status":"事前承認・本審査準備","branch":"東京","yushi":3349,"haba":499,"buai":109.78,"rieki":389,"fix":true,"log":"三原慎"},
+    {"no":3,"name":"木村様","status":"申込","branch":"愛知","yushi":350,"haba":260,"buai":57.2,"rieki":203,"fix":false,"log":null},
+    {"no":4,"name":"富地様","status":"—","branch":"—","yushi":null,"haba":250,"buai":0,"rieki":250,"fix":false,"log":null}
+  ],
+  "shibo":[
+    {"no":1,"name":"吉村様","yushi":330,"haba":150,"buai":27,"rieki":123,"log":"吉村拓哉"},
+    {"no":2,"name":"関様","yushi":700,"haba":550,"buai":99,"rieki":451,"log":"関健"},
+    {"no":3,"name":"本田様","yushi":175,"haba":100,"buai":18,"rieki":82,"log":"本田彬"},
+    {"no":4,"name":"小池様","yushi":265,"haba":180,"buai":32,"rieki":148,"log":"小池雅広"},
+    {"no":5,"name":"松倉様","yushi":400,"haba":250,"buai":45,"rieki":205,"log":"松倉僚哉"}
+  ]
+}

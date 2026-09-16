@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ja"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>第6期 営業・案件ダッシュボード｜株式会社 Martial Arts</title>
+<style>
+:root{
+  --surface-0:#eef1f6; --surface-1:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#7a7973;
+  --line:#e3e5e2; --line2:#f0efec;
+  --s1:#2a78d6; --s2:#eb6834;
+  --good:#008300; --warn:#eda100; --critical:#e34948;
+  --seq1:#86b6ef; --seq2:#5598e7; --seq3:#2a78d6; --seq4:#1c5cab; --seq5:#104281;
+  --hero:#0d366b;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(180deg,var(--hero) 0,#184f95 300px,var(--surface-0) 300px,var(--surface-0) 100%);
+  color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased;
+  font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,IPAGothic,sans-serif;}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 20px 72px}
+header.hero{color:#fff;padding:12px 4px 26px}
+.eyebrow{font-size:11px;letter-spacing:.2em;font-weight:800;color:#9ec5f4}
+h1{font-size:29px;font-weight:800;margin:7px 0 8px;letter-spacing:.01em}
+.sub{color:#cde2fb;font-size:13.5px;max-width:820px}
+.tag{display:inline-block;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  color:#e8eef7;font-size:11px;padding:3px 10px;border-radius:999px;margin:11px 6px 0 0}
+.grid{display:grid;gap:15px}
+.k4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:860px){.k4{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--surface-1);border:1px solid var(--line);border-radius:15px;padding:17px 18px;
+  box-shadow:0 10px 28px -20px rgba(13,54,107,.4)}
+.kpi .lab{font-size:11.5px;color:var(--ink2);font-weight:700}
+.kpi .num{font-size:27px;font-weight:800;letter-spacing:-.02em;margin-top:3px;font-variant-numeric:tabular-nums}
+.kpi .num small{font-size:13px;font-weight:700;color:var(--ink2);margin-left:3px}
+.kpi .note{font-size:11.5px;color:var(--muted);margin-top:2px}
+section{margin-top:30px}
+h2{font-size:17.5px;font-weight:800;margin:0 0 3px;display:flex;align-items:center;gap:9px}
+h2 .dot{width:9px;height:9px;border-radius:3px;background:var(--s1)}
+.lead{color:var(--ink2);font-size:12.5px;margin:0 0 13px}
+.panel{background:var(--surface-1);border:1px solid var(--line);border-radius:15px;padding:19px 20px;
+  box-shadow:0 10px 28px -22px rgba(13,54,107,.35)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+@media(max-width:860px){.two{grid-template-columns:1fr}}
+.src{font-size:11px;color:var(--muted);margin-top:11px;border-top:1px solid var(--line2);padding-top:8px}
+/* 縦棒 */
+.vchart{padding-top:20px}
+.vplot{position:relative;display:flex;gap:6px;align-items:flex-end;height:198px;
+  border-bottom:1px solid var(--line);padding:0 2px}
+.vcol{flex:1;display:flex;align-items:flex-end;justify-content:center;height:100%;border-radius:6px 6px 0 0;
+  cursor:default;outline:none}
+.vcol:hover,.vcol:focus-visible{background:var(--line2)}
+.vbar{position:relative;width:74%;border-radius:4px 4px 0 0;min-height:2px}
+.vval{position:absolute;left:50%;transform:translateX(-50%);top:-16px;font-size:10.5px;font-weight:800;
+  color:var(--ink2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vlabs{display:flex;gap:6px;padding:6px 2px 0}
+.vlab{flex:1;text-align:center;font-size:10.5px;color:var(--muted);white-space:nowrap}
+.refline{position:absolute;left:0;right:0;border-top:2px dashed;z-index:2;pointer-events:none}
+.refline span{position:absolute;left:2px;top:-16px;font-size:10.5px;font-weight:800;
+  background:var(--surface-1);padding:0 5px}
+/* 横棒 */
+.hchart{display:flex;flex-direction:column;gap:7px}
+.hrow{display:grid;grid-template-columns:132px 1fr 74px;align-items:center;gap:11px;border-radius:7px;outline:none}
+.hrow:hover,.hrow:focus-visible{background:var(--line2)}
+.hlab{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hlab .grp{font-size:10px;font-weight:700;color:var(--muted);margin-left:6px}
+.htrack{background:var(--line2);border-radius:6px;height:19px;overflow:hidden}
+.hfill{height:100%;border-radius:4px;display:block}
+.hval{font-size:12.5px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+.hval .hsub{font-size:10px;font-weight:700;color:var(--muted);margin-left:2px}
+/* ファネル */
+.funnel{display:flex;flex-direction:column;gap:7px}
+.frow{display:grid;grid-template-columns:96px 1fr 108px;align-items:center;gap:11px}
+.fbar{height:38px;border-radius:7px;display:flex;align-items:center;padding:0 13px;color:#fff;
+  font-weight:800;font-size:13px;min-width:54px}
+.fname{font-size:12.5px;font-weight:700}
+.fmeta{font-size:11px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums}
+/* テーブル */
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{padding:8px 9px;border-bottom:1px solid var(--line2);text-align:left;vertical-align:top}
+thead th{font-size:10.5px;color:var(--ink2);font-weight:800;border-bottom:2px solid var(--line);white-space:nowrap;
+  position:sticky;top:0;background:var(--surface-1);cursor:pointer;user-select:none}
+thead th:hover{color:var(--s1)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+td.nm{font-weight:700;white-space:nowrap}
+td.sm{font-size:11.5px;color:var(--ink2);max-width:250px}
+.seq{font-size:9.5px;font-weight:800;color:#fff;background:var(--s2);border-radius:4px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+.pill{display:inline-block;font-size:11px;font-weight:800;color:#fff;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.p1{background:var(--seq1);color:#0d366b}.p2{background:var(--seq2);color:#0d366b}.p3{background:var(--seq3)}
+.p4{background:var(--seq4)}.p5{background:var(--seq5)}.p6{background:var(--seq5)}
+.st{font-weight:800;font-size:11.5px;white-space:nowrap}
+.st-good{color:var(--good)}.st-warn{color:#8a5d00}.st-critical{color:#b3201f}
+.filters{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
+.fbtn{font:inherit;font-size:11.5px;font-weight:700;border:1px solid var(--line);background:var(--surface-1);
+  color:var(--ink2);border-radius:999px;padding:4px 12px;cursor:pointer}
+.fbtn[aria-pressed="true"]{background:var(--s1);border-color:var(--s1);color:#fff}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--ink2);margin-bottom:11px;font-weight:700}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.callout{border-left:3px solid var(--s2);background:#fff6f1;border-radius:0 9px 9px 0;padding:12px 15px;font-size:12.5px;margin-top:14px}
+.callout b{color:#a8380e}
+.mini{font-size:11.5px;color:var(--ink2)}
+ul.tight{margin:6px 0 0;padding-left:1.2em}ul.tight li{margin:3px 0;font-size:12.5px}
+#tip{position:fixed;z-index:99;pointer-events:none;background:#111;color:#fff;font-size:11.5px;font-weight:600;
+  padding:6px 10px;border-radius:7px;max-width:330px;opacity:0;transition:opacity .1s;line-height:1.5}
+@media print{
+  body{background:#fff}.wrap{max-width:none;padding:0}
+  header.hero{color:#0b0b0b;background:#fff}.eyebrow{color:var(--s1)}.sub{color:var(--ink2)}
+  .tag{background:#f0efec;color:var(--ink2);border-color:var(--line)}
+  .card,.panel{box-shadow:none;break-inside:avoid}section{break-inside:avoid}
+  .filters,#tip{display:none}thead th{position:static}
+}
+</style></head><body>
+<div class="wrap">
+<header class="hero">
+  <div class="eyebrow">MARTIAL ARTS ／ 第6期 経営ダッシュボード</div>
+  <h1>営業・案件ダッシュボード</h1>
+  <p class="sub">報告ログ（110件 / 39案件・2026-03-22〜2026-08-21）と「第6期目 利益表」（令和7年8月〜令和8年8月）・令和8年9月の利益管理ダッシュボードを突き合わせ、<b>案件がいまどこで止まっているか</b>と<b>それがいくらの利益になったか</b>、<b>固定費に届いているか</b>を1枚で見るためのボードです。</p>
+  <span class="tag">報告ログ 110件</span><span class="tag">案件 39件</span>
+  <span class="tag">顧客 37名</span><span class="tag">利益表 13ヶ月</span>
+  <span class="tag">データ最終日 2026-08-21</span><span class="tag" style="background:rgba(227,73,72,.25);border-color:rgba(227,73,72,.5)">令和8年9月 収支 ▲877万</span>
+</header>
+
+<div class="grid k4">
+  <div class="card kpi"><div class="lab">令和8年9月 収支見込</div><div class="num" style="color:var(--critical)">▲877<small>万円</small></div><div class="note">利益 2,123万 − 固定費 3,000万</div></div>
+  <div class="card kpi"><div class="lab">うち確定している利益</div><div class="num">389<small>万円</small></div><div class="note">見込2,123万の18%／未確定 1,734万</div></div>
+  <div class="card kpi"><div class="lab">第6期 利益合計</div><div class="num">41,706<small>万円</small></div><div class="note">13ヶ月・月平均 3,208万円</div></div>
+  <div class="card kpi"><div class="lab">稼働中の案件</div><div class="num">32<small>件</small></div><div class="note">報告ログ全39案件中・完了 7件</div></div>
+</div>
+
+<div class="callout" style="margin-top:15px;border-left-color:var(--critical);background:#fdf2f2">
+  <b>固定費 3,000万円／月を下回った月が、第6期13ヶ月のうち6ヶ月あります。</b>
+  直近は令和8年8月 1,662万円（▲1,338万）、令和8年9月見込 2,123万円（▲877万）で<b>2ヶ月連続の固定費割れ</b>。
+  さらに9月見込のうち確定は389万円のみで、残り1,734万円は審査・契約の結果次第です。
+</div>
+
+<section>
+  <h2><span class="dot"></span>月次 利益推移（第6期）</h2>
+  <p class="lead">各月の利益表「利益」欄の合計。単位：万円。</p>
+  <div class="panel">
+    <div class="legend"><span><i style="background:var(--s1)"></i>実績（利益表）</span><span><i style="background:var(--s2)"></i>令和8年9月 見込</span><span><i style="width:14px;height:0;border-top:2px dashed var(--critical);border-radius:0"></i>固定費 3,000万円／月</span></div>
+    <div class="vchart">
+  <div class="vplot">
+    <div class="refline" style="bottom:33.67%;border-color:var(--critical)"><span style="color:var(--critical)">固定費 3,000万</span></div>
+    <div class="vcol" tabindex="0" data-tip="令和7年8月｜1,995万円">
+      <div class="vbar" style="height:22.39%;background:var(--s1)"><span class="vval">1,995</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年9月｜3,108万円　不動産/4本">
+      <div class="vbar" style="height:34.88%;background:var(--s1)"><span class="vval">3,108</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年10月｜1,943万円">
+      <div class="vbar" style="height:21.81%;background:var(--s1)"><span class="vval">1,943</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年11月｜3,279万円">
+      <div class="vbar" style="height:36.80%;background:var(--s1)"><span class="vval">3,279</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年12月｜7,955万円　12本 / 5586万">
+      <div class="vbar" style="height:89.29%;background:var(--s1)"><span class="vval">7,955</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年1月｜2,367万円　（原本に記載なし）">
+      <div class="vbar" style="height:26.57%;background:var(--s1)"><span class="vval">2,367</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年2月｜2,994万円">
+      <div class="vbar" style="height:33.60%;background:var(--s1)"><span class="vval">2,994</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年3月｜3,339万円">
+      <div class="vbar" style="height:37.48%;background:var(--s1)"><span class="vval">3,339</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年4月｜3,672万円">
+      <div class="vbar" style="height:41.21%;background:var(--s1)"><span class="vval">3,672</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年5月｜3,197万円">
+      <div class="vbar" style="height:35.88%;background:var(--s1)"><span class="vval">3,197</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年6月｜2,796万円　売上8360万 / 私募債1000万（検証済）">
+      <div class="vbar" style="height:31.38%;background:var(--s1)"><span class="vval">2,796</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年7月｜3,399万円　自社1億7067万 / 東亞様2000万">
+      <div class="vbar" style="height:38.15%;background:var(--s1)"><span class="vval">3,399</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年8月｜1,662万円　売り上げ1億2920万">
+      <div class="vbar" style="height:18.65%;background:var(--s1)"><span class="vval">1,662</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年9月（見込）｜2,123万円　9月ダッシュボード見込">
+      <div class="vbar" style="height:23.83%;background:var(--s2)"><span class="vval">2,123</span></div>
+    </div>
+  </div>
+  <div class="vlabs"><div class="vlab">R7/8</div><div class="vlab">R7/9</div><div class="vlab">R7/10</div><div class="vlab">R7/11</div><div class="vlab">R7/12</div><div class="vlab">R8/1</div><div class="vlab">R8/2</div><div class="vlab">R8/3</div><div class="vlab">R8/4</div><div class="vlab">R8/5</div><div class="vlab">R8/6</div><div class="vlab">R8/7</div><div class="vlab">R8/8</div><div class="vlab">R8/9</div></div>
+</div>
+    <div class="callout"><b>令和7年12月が突出（7,955万円／12本）</b>。月平均3,208万円に対して約2.5倍で、この1ヶ月が第6期全体の19%を占めます。直近の令和8年8月は1,662万円と13ヶ月で最低。</div>
+    <div class="src">出典：⭐️第6期目 利益表（担当：武田）／「第6期 月次推移サマリー」シート。売上欄は原本が自由記述のため、集計対象は利益のみ。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot"></span>私募債 調達推移</h2>
+  <p class="lead">月次推移サマリーの私募債欄（判明分）。単位：万円。</p>
+  <div class="panel">
+    <div class="vchart">
+  <div class="vplot">
+    
+    <div class="vcol" tabindex="0" data-tip="令和7年8月｜300万円">
+      <div class="vbar" style="height:15.76%;background:var(--s2)"><span class="vval">300</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年9月｜1,700万円">
+      <div class="vbar" style="height:89.29%;background:var(--s2)"><span class="vval">1,700</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年10月｜0万円">
+      <div class="vbar" style="height:0.00%;background:var(--s2)"><span class="vval">0</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年11月｜200万円">
+      <div class="vbar" style="height:10.50%;background:var(--s2)"><span class="vval">200</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和7年12月｜1,200万円">
+      <div class="vbar" style="height:63.03%;background:var(--s2)"><span class="vval">1,200</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年1月｜200万円">
+      <div class="vbar" style="height:10.50%;background:var(--s2)"><span class="vval">200</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年2月｜1,648万円">
+      <div class="vbar" style="height:86.55%;background:var(--s2)"><span class="vval">1,648</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年3月｜400万円">
+      <div class="vbar" style="height:21.01%;background:var(--s2)"><span class="vval">400</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年4月｜1,000万円">
+      <div class="vbar" style="height:52.52%;background:var(--s2)"><span class="vval">1,000</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年5月｜945万円">
+      <div class="vbar" style="height:49.63%;background:var(--s2)"><span class="vval">945</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年6月｜1,000万円">
+      <div class="vbar" style="height:52.52%;background:var(--s2)"><span class="vval">1,000</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年7月｜0万円">
+      <div class="vbar" style="height:0.00%;background:var(--s2)"><span class="vval">0</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="令和8年8月｜0万円">
+      <div class="vbar" style="height:0.00%;background:var(--s2)"><span class="vval">0</span></div>
+    </div>
+  </div>
+  <div class="vlabs"><div class="vlab">R7/8</div><div class="vlab">R7/9</div><div class="vlab">R7/10</div><div class="vlab">R7/11</div><div class="vlab">R7/12</div><div class="vlab">R8/1</div><div class="vlab">R8/2</div><div class="vlab">R8/3</div><div class="vlab">R8/4</div><div class="vlab">R8/5</div><div class="vlab">R8/6</div><div class="vlab">R8/7</div><div class="vlab">R8/8</div></div>
+</div>
+    <div class="src">出典：同上。R7/10・R8/7・R8/8 は原本に記載がないため 0 として描画（実績ゼロとは限りません）。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot"></span>案件パイプライン</h2>
+  <p class="lead">報告ログ110件を顧客ごとの案件（39件）にまとめ、到達した最上位ステージで分類。</p>
+  <div class="panel">
+    <div class="funnel">
+      <div class="frow" tabindex="0" data-tip="事前承認まで到達：39件（100%）／このステージで滞留：2件">
+        <div class="fname">事前承認</div>
+        <div><div class="fbar" style="width:100.0%;background:#86b6ef;color:#0d366b">39件</div></div>
+        <div class="fmeta">到達 100％<br>滞留 2件</div></div><div class="frow" tabindex="0" data-tip="契約完了まで到達：37件（95%）／このステージで滞留：10件">
+        <div class="fname">契約完了</div>
+        <div><div class="fbar" style="width:94.9%;background:#5598e7;color:#0d366b">37件</div></div>
+        <div class="fmeta">到達 95％<br>滞留 10件</div></div><div class="frow" tabindex="0" data-tip="本承認まで到達：27件（69%）／このステージで滞留：2件">
+        <div class="fname">本承認</div>
+        <div><div class="fbar" style="width:69.2%;background:#2a78d6;">27件</div></div>
+        <div class="fmeta">到達 69％<br>滞留 2件</div></div><div class="frow" tabindex="0" data-tip="金消契約まで到達：25件（64%）／このステージで滞留：18件">
+        <div class="fname">金消契約</div>
+        <div><div class="fbar" style="width:64.1%;background:#1c5cab;">25件</div></div>
+        <div class="fmeta">到達 64％<br>滞留 18件</div></div><div class="frow" tabindex="0" data-tip="決済完了まで到達：7件（18%）／このステージで滞留：3件">
+        <div class="fname">決済完了</div>
+        <div><div class="fbar" style="width:17.9%;background:#104281;">7件</div></div>
+        <div class="fmeta">到達 18％<br>滞留 3件</div></div><div class="frow" tabindex="0" data-tip="案件完了まで到達：4件（10%）／このステージで滞留：4件">
+        <div class="fname">案件完了</div>
+        <div><div class="fbar" style="width:10.3%;background:#104281;">4件</div></div>
+        <div class="fmeta">到達 10％<br>滞留 4件</div></div>
+    </div>
+    <div class="callout"><b>「金消契約」に18件が滞留して見えますが、大半は実際には着地しています。</b>利益表では綱川様・池田様・渡邉様が令和8年6月に決済して利益計上され、関様・本田様・小池様・松倉様・吉村様は令和8年9月に私募債案件として計上されています。それでも報告ログ側に「決済完了」の投稿はありません。<b>詰まっているのは案件ではなく報告</b>で、ログだけを見ると金消で止まって見えます。</div>
+    <div class="src">ステージ順：事前承認→契約完了→本承認→金消契約→決済完了→案件完了。到達＝そのステージ以上に到達した案件数、滞留＝そこが最終到達点の案件数。完了案件の平均リードタイム 34日（初回報告→最終報告）。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot"></span>稼働中案件 32件（最終報告からの経過日数順）</h2>
+  <p class="lead">決済完了・案件完了の報告が無い案件。経過日数は<b>データ最終日 2026-08-21 基準</b>です。</p>
+  <div class="panel">
+    <div class="filters" id="filters">
+      <button class="fbtn" aria-pressed="true" data-f="all">すべて（32）</button>
+      <button class="fbtn" aria-pressed="false" data-f="critical">要再確認（60日〜）（16）</button><button class="fbtn" aria-pressed="false" data-f="warn">停滞（30〜59日）（3）</button><button class="fbtn" aria-pressed="false" data-f="good">進行中（〜29日）（13）</button>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--critical)"></i>要再確認 60日〜</span>
+      <span><i style="background:var(--warn)"></i>停滞 30〜59日</span>
+      <span><i style="background:var(--good)"></i>進行中 〜29日</span>
+      <span class="mini">列見出しをクリックで並べ替え</span>
+    </div>
+    <div class="tblwrap"><table id="livetbl"><thead><tr>
+      <th>お客様</th><th>最終ステージ</th><th>担当</th><th>金融機関</th><th>次回予定</th><th>予定日時</th>
+      <th class="num">報告数</th><th class="num">最終報告</th><th class="num">経過</th><th>状態</th>
+    </tr></thead><tbody><tr data-stage="金消契約" data-owner="武田" data-alert="critical">
+  <td class="nm">板敷磨歩</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>武田</td><td class="sm">楽天銀行</td>
+  <td class="sm">決済</td><td class="sm">3/31(本人確認13-15時)</td>
+  <td class="num">1</td><td class="num">03-22</td>
+  <td class="num"><span class="st st-critical">152日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="三浦" data-alert="critical">
+  <td class="nm">大西翼</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>三浦</td><td class="sm">楽天銀行</td>
+  <td class="sm">決済</td><td class="sm">4/24(金)</td>
+  <td class="num">2</td><td class="num">04-12</td>
+  <td class="num"><span class="st st-critical">131日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="契約完了" data-owner="三浦" data-alert="critical">
+  <td class="nm">佐藤俊樹(AB間)</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>三浦</td><td class="sm">なし</td>
+  <td class="sm">—</td><td class="sm">—</td>
+  <td class="num">1</td><td class="num">04-18</td>
+  <td class="num"><span class="st st-critical">125日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="犬塚" data-alert="critical">
+  <td class="nm">菊池嘉彦</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>犬塚</td><td class="sm">楽天銀行</td>
+  <td class="sm">本人確認→決済4/30(金)</td><td class="sm">4/20(月) 9-12時 本人確認</td>
+  <td class="num">4</td><td class="num">04-19</td>
+  <td class="num"><span class="st st-critical">124日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="契約完了" data-owner="坂本" data-alert="critical">
+  <td class="nm">大田尚登</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>坂本</td><td class="sm">水戸信用金庫</td>
+  <td class="sm">金消契約</td><td class="sm">—</td>
+  <td class="num">2</td><td class="num">04-23</td>
+  <td class="num"><span class="st st-critical">120日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="犬塚" data-alert="critical">
+  <td class="nm">小泉龍平</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>犬塚</td><td class="sm">結城信用金庫</td>
+  <td class="sm">決済</td><td class="sm">4月27日（月）10時30分</td>
+  <td class="num">2</td><td class="num">04-24</td>
+  <td class="num"><span class="st st-critical">119日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="事前承認" data-owner="酒井" data-alert="critical">
+  <td class="nm">會澤廣希</td>
+  <td><span class="pill p1">事前承認</span></td>
+  <td>酒井</td><td class="sm">福島銀行</td>
+  <td class="sm">—</td><td class="sm">—</td>
+  <td class="num">1</td><td class="num">04-24</td>
+  <td class="num"><span class="st st-critical">119日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="契約完了" data-owner="坂本" data-alert="critical">
+  <td class="nm">梅津匡芳</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>坂本</td><td class="sm">鹿沼信用金庫</td>
+  <td class="sm">金消契約</td><td class="sm">—</td>
+  <td class="num">2</td><td class="num">04-27</td>
+  <td class="num"><span class="st st-critical">116日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="酒井" data-alert="critical">
+  <td class="nm">髙橋拓也</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>酒井</td><td class="sm">楽天銀行</td>
+  <td class="sm">決済</td><td class="sm">5月29日(金)</td>
+  <td class="num">4</td><td class="num">05-16</td>
+  <td class="num"><span class="st st-critical">97日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="坂本" data-alert="critical">
+  <td class="nm">木間塚真大</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>坂本</td><td class="sm">中央労金</td>
+  <td class="sm">決済</td><td class="sm">4月26日（火）</td>
+  <td class="num">3</td><td class="num">05-18</td>
+  <td class="num"><span class="st st-critical">95日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="菊池" data-alert="critical">
+  <td class="nm">綱川大悟</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>菊池</td><td class="sm">中央労金</td>
+  <td class="sm">決済（立会）</td><td class="sm">6月8日(月)午前中</td>
+  <td class="num">3</td><td class="num">05-24</td>
+  <td class="num"><span class="st st-critical">89日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="坂本" data-alert="critical">
+  <td class="nm">佐藤諒茉</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>坂本</td><td class="sm">栃木銀行</td>
+  <td class="sm">決済（不立会）</td><td class="sm">5月29日(金)</td>
+  <td class="num">2</td><td class="num">05-24</td>
+  <td class="num"><span class="st st-critical">89日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="酒井" data-alert="critical">
+  <td class="nm">吉名正徳</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>酒井</td><td class="sm">筑波銀行</td>
+  <td class="sm">決済</td><td class="sm">4/30</td>
+  <td class="num">4</td><td class="num">06-13</td>
+  <td class="num"><span class="st st-critical">69日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="事前承認" data-owner="坂本" data-alert="critical">
+  <td class="nm">内堀陽生</td>
+  <td><span class="pill p1">事前承認</span></td>
+  <td>坂本</td><td class="sm">中央労金</td>
+  <td class="sm">契約・本申込み</td><td class="sm">6/27(土)10時～ ※お持物につきましては別途ご案内させていただきます！</td>
+  <td class="num">1</td><td class="num">06-14</td>
+  <td class="num"><span class="st st-critical">68日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="菊池" data-alert="critical">
+  <td class="nm">佐藤拓夢</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>菊池</td><td class="sm">中央労金</td>
+  <td class="sm">決済</td><td class="sm">4月29日（月）12時～ 中央労金 銀座支店</td>
+  <td class="num">6</td><td class="num">06-20</td>
+  <td class="num"><span class="st st-critical">62日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="金消契約" data-owner="小林" data-alert="critical">
+  <td class="nm">渡邊裕也</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>小林</td><td class="sm">栃木銀行</td>
+  <td class="sm">不立会決済</td><td class="sm">6月26日(金)10時～</td>
+  <td class="num">5</td><td class="num">06-21</td>
+  <td class="num"><span class="st st-critical">61日</span></td>
+  <td class="sm"><span class="st st-critical">要再確認</span></td></tr><tr data-stage="本承認" data-owner="坂本" data-alert="warn">
+  <td class="nm">蛇嶋春仁</td>
+  <td><span class="pill p3">本承認</span></td>
+  <td>坂本</td><td class="sm">水戸信用金庫</td>
+  <td class="sm">金消契約</td><td class="sm">7月6日OR９日</td>
+  <td class="num">3</td><td class="num">06-30</td>
+  <td class="num"><span class="st st-warn">52日</span></td>
+  <td class="sm"><span class="st st-warn">停滞</span></td></tr><tr data-stage="金消契約" data-owner="酒井" data-alert="warn">
+  <td class="nm">松倉僚哉</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>酒井</td><td class="sm">中央労金</td>
+  <td class="sm">次回決済</td><td class="sm">7月24日(金)10時〜</td>
+  <td class="num">3</td><td class="num">07-11</td>
+  <td class="num"><span class="st st-warn">41日</span></td>
+  <td class="sm"><span class="st st-warn">停滞</span></td></tr><tr data-stage="金消契約" data-owner="酒井" data-alert="warn">
+  <td class="nm">高浜優</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>酒井</td><td class="sm">中央労金</td>
+  <td class="sm">決済</td><td class="sm">7月30日13時立会</td>
+  <td class="num">5</td><td class="num">07-17</td>
+  <td class="num"><span class="st st-warn">35日</span></td>
+  <td class="sm"><span class="st st-warn">停滞</span></td></tr><tr data-stage="金消契約" data-owner="犬塚" data-alert="good">
+  <td class="nm">池田好希<span class="seq">案件2</span></td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>犬塚</td><td class="sm">楽天銀行</td>
+  <td class="sm">決済</td><td class="sm">7/31</td>
+  <td class="num">4</td><td class="num">07-23</td>
+  <td class="num"><span class="st st-good">29日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="金消契約" data-owner="坂本" data-alert="good">
+  <td class="nm">原田鉄平</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>坂本</td><td class="sm">大光銀行</td>
+  <td class="sm">中間金消費</td><td class="sm">９月上旬</td>
+  <td class="num">1</td><td class="num">07-23</td>
+  <td class="num"><span class="st st-good">29日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="上田" data-alert="good">
+  <td class="nm">斎藤理央</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>上田</td><td class="sm">水戸信用金庫</td>
+  <td class="sm">8月初旬(本申込)</td><td class="sm">2026/7/23</td>
+  <td class="num">1</td><td class="num">07-23</td>
+  <td class="num"><span class="st st-good">29日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="金消契約" data-owner="犬塚" data-alert="good">
+  <td class="nm">本田彬</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>犬塚</td><td class="sm">東邦銀行</td>
+  <td class="sm">決済（不立会）</td><td class="sm">7月31日</td>
+  <td class="num">5</td><td class="num">07-24</td>
+  <td class="num"><span class="st st-good">28日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="菊池" data-alert="good">
+  <td class="nm">関健</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>菊池</td><td class="sm">結城信用金庫</td>
+  <td class="sm">金消契約</td><td class="sm">—</td>
+  <td class="num">2</td><td class="num">07-24</td>
+  <td class="num"><span class="st st-good">28日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="菊池" data-alert="good">
+  <td class="nm">角宙明</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>菊池</td><td class="sm">鹿沼信用金庫</td>
+  <td class="sm">本申込</td><td class="sm">—</td>
+  <td class="num">1</td><td class="num">07-26</td>
+  <td class="num"><span class="st st-good">26日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="犬塚" data-alert="good">
+  <td class="nm">原田博喜</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>犬塚</td><td class="sm">東邦銀行</td>
+  <td class="sm">本申込</td><td class="sm">—</td>
+  <td class="num">1</td><td class="num">07-26</td>
+  <td class="num"><span class="st st-good">26日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="酒井" data-alert="good">
+  <td class="nm">村木勇斗</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>酒井</td><td class="sm">栃木銀行</td>
+  <td class="sm">本審査</td><td class="sm">—</td>
+  <td class="num">2</td><td class="num">07-31</td>
+  <td class="num"><span class="st st-good">21日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="坂本" data-alert="good">
+  <td class="nm">加来嵩時</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>坂本</td><td class="sm">足利小山信用金庫</td>
+  <td class="sm">本申し込み</td><td class="sm">8月12日(水)10時～</td>
+  <td class="num">3</td><td class="num">08-06</td>
+  <td class="num"><span class="st st-good">15日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="契約完了" data-owner="菊池" data-alert="good">
+  <td class="nm">岡潤佑</td>
+  <td><span class="pill p2">契約完了</span></td>
+  <td>菊池</td><td class="sm">JA</td>
+  <td class="sm">本申込</td><td class="sm">8月17日17時</td>
+  <td class="num">2</td><td class="num">08-08</td>
+  <td class="num"><span class="st st-good">13日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="金消契約" data-owner="小林" data-alert="good">
+  <td class="nm">吉村拓哉</td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>小林</td><td class="sm">東邦銀行</td>
+  <td class="sm">次回決済</td><td class="sm">8月21日(金) 10:00〜</td>
+  <td class="num">4</td><td class="num">08-13</td>
+  <td class="num"><span class="st st-good">8日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="本承認" data-owner="坂本" data-alert="good">
+  <td class="nm">三原慎</td>
+  <td><span class="pill p3">本承認</span></td>
+  <td>坂本</td><td class="sm">群馬銀行</td>
+  <td class="sm">本申し込み</td><td class="sm">8月17日（確認中）</td>
+  <td class="num">3</td><td class="num">08-20</td>
+  <td class="num"><span class="st st-good">1日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr><tr data-stage="金消契約" data-owner="坂本" data-alert="good">
+  <td class="nm">小池雅広<span class="seq">案件2</span></td>
+  <td><span class="pill p4">金消契約</span></td>
+  <td>坂本</td><td class="sm">水戸信用金庫</td>
+  <td class="sm">金消契約</td><td class="sm">7月13日AM</td>
+  <td class="num">5</td><td class="num">08-21</td>
+  <td class="num"><span class="st st-good">0日</span></td>
+  <td class="sm"><span class="st st-good">進行中</span></td></tr></tbody></table></div>
+    <div class="src">出典：営業報告ログ（Slack 報告一覧）。同一顧客で決済完了・案件完了の後に新しい報告が始まる場合は別案件（案件2）として分離しています。</div>
+  </div>
+</section>
+
+<div class="two">
+  <section style="margin-top:30px"><h2><span class="dot"></span>担当者別 案件数</h2>
+    <p class="lead">報告ログ上の主担当（最新報告基準）。</p>
+    <div class="panel"><div class="hchart"><div class="hrow" tabindex="0" data-tip="坂本｜12件">
+    <div class="hlab">坂本</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+    <div class="hval">12</div></div><div class="hrow" tabindex="0" data-tip="酒井｜7件">
+    <div class="hlab">酒井</div>
+    <div class="htrack"><div class="hfill" style="width:58.3%;background:var(--s1)"></div></div>
+    <div class="hval">7</div></div><div class="hrow" tabindex="0" data-tip="犬塚｜6件">
+    <div class="hlab">犬塚</div>
+    <div class="htrack"><div class="hfill" style="width:50.0%;background:var(--s1)"></div></div>
+    <div class="hval">6</div></div><div class="hrow" tabindex="0" data-tip="菊池｜5件">
+    <div class="hlab">菊池</div>
+    <div class="htrack"><div class="hfill" style="width:41.7%;background:var(--s1)"></div></div>
+    <div class="hval">5</div></div><div class="hrow" tabindex="0" data-tip="武田｜2件">
+    <div class="hlab">武田</div>
+    <div class="htrack"><div class="hfill" style="width:16.7%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="三浦｜2件">
+    <div class="hlab">三浦</div>
+    <div class="htrack"><div class="hfill" style="width:16.7%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="小林｜2件">
+    <div class="hlab">小林</div>
+    <div class="htrack"><div class="hfill" style="width:16.7%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="退職者｜1件">
+    <div class="hlab">退職者</div>
+    <div class="htrack"><div class="hfill" style="width:8.3%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div><div class="hrow" tabindex="0" data-tip="藪｜1件">
+    <div class="hlab">藪</div>
+    <div class="htrack"><div class="hfill" style="width:8.3%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div><div class="hrow" tabindex="0" data-tip="上田｜1件">
+    <div class="hlab">上田</div>
+    <div class="htrack"><div class="hfill" style="width:8.3%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div></div>
+    <div class="src">役職表記（係長代理・課長・部長・CMO）は氏名に統合。</div></div>
+  </section>
+  <section style="margin-top:30px"><h2><span class="dot"></span>金融機関別 案件数</h2>
+    <p class="lead">表記ゆれ（信金／信用金庫、支店名）を統合。</p>
+    <div class="panel"><div class="hchart"><div class="hrow" tabindex="0" data-tip="楽天銀行｜6件">
+    <div class="hlab">楽天銀行</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+    <div class="hval">6</div></div><div class="hrow" tabindex="0" data-tip="水戸信用金庫｜6件">
+    <div class="hlab">水戸信用金庫</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+    <div class="hval">6</div></div><div class="hrow" tabindex="0" data-tip="中央労金｜6件">
+    <div class="hlab">中央労金</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+    <div class="hval">6</div></div><div class="hrow" tabindex="0" data-tip="栃木銀行｜3件">
+    <div class="hlab">栃木銀行</div>
+    <div class="htrack"><div class="hfill" style="width:50.0%;background:var(--s1)"></div></div>
+    <div class="hval">3</div></div><div class="hrow" tabindex="0" data-tip="東邦銀行｜3件">
+    <div class="hlab">東邦銀行</div>
+    <div class="htrack"><div class="hfill" style="width:50.0%;background:var(--s1)"></div></div>
+    <div class="hval">3</div></div><div class="hrow" tabindex="0" data-tip="結城信用金庫｜2件">
+    <div class="hlab">結城信用金庫</div>
+    <div class="htrack"><div class="hfill" style="width:33.3%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="鹿沼信用金庫｜2件">
+    <div class="hlab">鹿沼信用金庫</div>
+    <div class="htrack"><div class="hfill" style="width:33.3%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="アルヒ｜1件">
+    <div class="hlab">アルヒ</div>
+    <div class="htrack"><div class="hfill" style="width:16.7%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div><div class="hrow" tabindex="0" data-tip="現金｜1件">
+    <div class="hlab">現金</div>
+    <div class="htrack"><div class="hfill" style="width:16.7%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div><div class="hrow" tabindex="0" data-tip="アプラス｜1件">
+    <div class="hlab">アプラス</div>
+    <div class="htrack"><div class="hfill" style="width:16.7%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div></div>
+    <div class="src">上位10件を表示。全18区分。</div></div>
+  </section>
+</div>
+
+<div class="two">
+  <section style="margin-top:30px"><h2><span class="dot"></span>仕入・仲介業者別</h2>
+    <p class="lead">報告ログの業者②（仲介）優先、無ければ業者①（売主）。</p>
+    <div class="panel"><div class="hchart"><div class="hrow" tabindex="0" data-tip="増子建設｜20件">
+    <div class="hlab">増子建設</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+    <div class="hval">20</div></div><div class="hrow" tabindex="0" data-tip="仲介なし（直接）｜8件">
+    <div class="hlab">仲介なし（直接）</div>
+    <div class="htrack"><div class="hfill" style="width:40.0%;background:var(--s1)"></div></div>
+    <div class="hval">8</div></div><div class="hrow" tabindex="0" data-tip="東洋建設ホーム｜5件">
+    <div class="hlab">東洋建設ホーム</div>
+    <div class="htrack"><div class="hfill" style="width:25.0%;background:var(--s1)"></div></div>
+    <div class="hval">5</div></div><div class="hrow" tabindex="0" data-tip="(未記入)｜2件">
+    <div class="hlab">(未記入)</div>
+    <div class="htrack"><div class="hfill" style="width:10.0%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="Martial Arts｜2件">
+    <div class="hlab">Martial Arts</div>
+    <div class="htrack"><div class="hfill" style="width:10.0%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="Success｜1件">
+    <div class="hlab">Success</div>
+    <div class="htrack"><div class="hfill" style="width:5.0%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div><div class="hrow" tabindex="0" data-tip="東亜地所｜1件">
+    <div class="hlab">東亜地所</div>
+    <div class="htrack"><div class="hfill" style="width:5.0%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div></div></div>
+  </section>
+  <section style="margin-top:30px"><h2><span class="dot"></span>月別 報告件数</h2>
+    <p class="lead">報告ログの投稿数。単位：件。</p>
+    <div class="panel"><div class="vchart">
+  <div class="vplot">
+    
+    <div class="vcol" tabindex="0" data-tip="2026-03｜11件">
+      <div class="vbar" style="height:30.69%;background:var(--s1)"><span class="vval">11</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="2026-04｜32件">
+      <div class="vbar" style="height:89.29%;background:var(--s1)"><span class="vval">32</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="2026-05｜12件">
+      <div class="vbar" style="height:33.48%;background:var(--s1)"><span class="vval">12</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="2026-06｜23件">
+      <div class="vbar" style="height:64.17%;background:var(--s1)"><span class="vval">23</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="2026-07｜25件">
+      <div class="vbar" style="height:69.75%;background:var(--s1)"><span class="vval">25</span></div>
+    </div><div class="vcol" tabindex="0" data-tip="2026-08｜7件">
+      <div class="vbar" style="height:19.53%;background:var(--s1)"><span class="vval">7</span></div>
+    </div>
+  </div>
+  <div class="vlabs"><div class="vlab">03月</div><div class="vlab">04月</div><div class="vlab">05月</div><div class="vlab">06月</div><div class="vlab">07月</div><div class="vlab">08月</div></div>
+</div>
+    <div class="src">2026-03は3/22以降のみ、2026-08は8/21まで。</div></div>
+  </section>
+</div>
+
+<section>
+  <h2><span class="dot"></span>令和8年9月 パイプライン（9件）</h2>
+  <p class="lead">最新月の利益管理ダッシュボードより。単位：万円。<b>確定は三原様の389万円のみ</b>で、残りはステータス上まだ動いています。</p>
+  <div class="panel">
+    <div class="legend"><span><i style="background:var(--s1)"></i>自社案件</span><span><i style="background:var(--s2)"></i>私募債案件</span>
+      <span class="mini">⭕️＝確定</span></div>
+    <div class="hchart"><div class="hrow" tabindex="0" data-tip="関様（私募債）｜利益 451万円・物件巾 550万円　報告ログ：関健">
+        <div class="hlab">関様<span class="grp">私募債</span></div>
+        <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s2)"></div></div>
+        <div class="hval">451<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="三原様（自社）｜利益 389万円・物件巾 499万円・事前承認・本審査準備　報告ログ：三原慎">
+        <div class="hlab">三原様<span class="grp" style="color:var(--good)">⭕️確定</span><span class="grp">自社</span></div>
+        <div class="htrack"><div class="hfill" style="width:86.3%;background:var(--s1)"></div></div>
+        <div class="hval">389<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="角様（自社）｜利益 272万円・物件巾 349万円・本審査中　報告ログ：角宙明">
+        <div class="hlab">角様<span class="grp">自社</span></div>
+        <div class="htrack"><div class="hfill" style="width:60.3%;background:var(--s1)"></div></div>
+        <div class="hval">272<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="富地様（自社）｜利益 250万円・物件巾 250万円　報告ログに該当なし">
+        <div class="hlab">富地様<span class="grp">自社</span></div>
+        <div class="htrack"><div class="hfill" style="width:55.4%;background:var(--s1)"></div></div>
+        <div class="hval">250<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="松倉様（私募債）｜利益 205万円・物件巾 250万円　報告ログ：松倉僚哉">
+        <div class="hlab">松倉様<span class="grp">私募債</span></div>
+        <div class="htrack"><div class="hfill" style="width:45.5%;background:var(--s2)"></div></div>
+        <div class="hval">205<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="木村様（自社）｜利益 203万円・物件巾 260万円・申込　報告ログに該当なし">
+        <div class="hlab">木村様<span class="grp">自社</span></div>
+        <div class="htrack"><div class="hfill" style="width:45.0%;background:var(--s1)"></div></div>
+        <div class="hval">203<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="小池様（私募債）｜利益 148万円・物件巾 180万円　報告ログ：小池雅広">
+        <div class="hlab">小池様<span class="grp">私募債</span></div>
+        <div class="htrack"><div class="hfill" style="width:32.8%;background:var(--s2)"></div></div>
+        <div class="hval">148<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="吉村様（私募債）｜利益 123万円・物件巾 150万円　報告ログ：吉村拓哉">
+        <div class="hlab">吉村様<span class="grp">私募債</span></div>
+        <div class="htrack"><div class="hfill" style="width:27.3%;background:var(--s2)"></div></div>
+        <div class="hval">123<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="本田様（私募債）｜利益 82万円・物件巾 100万円　報告ログ：本田彬">
+        <div class="hlab">本田様<span class="grp">私募債</span></div>
+        <div class="htrack"><div class="hfill" style="width:18.2%;background:var(--s2)"></div></div>
+        <div class="hval">82<span class="hsub">万円</span></div></div></div>
+    <div class="two" style="margin-top:16px">
+      <div class="card"><div class="kpi"><div class="lab">自社 合計</div><div class="num">1,114<small>万円</small></div><div class="note">4件</div></div></div>
+      <div class="card"><div class="kpi"><div class="lab">私募債 合計</div><div class="num">1,009<small>万円</small></div><div class="note">5件／合計利益の48%</div></div></div>
+    </div>
+    <div class="callout"><b>9件のうち7件は、報告ログの案件がそのまま9月に着地したものです。</b>
+      角様＝角宙明／三原様＝三原慎／吉村様＝吉村拓哉／関様＝関健／本田様＝本田彬／小池様＝小池雅広／松倉様＝松倉僚哉。
+      報告ログ側で「金消契約」止まりに見えていた案件の多くは、実際には私募債案件として9月の利益に載っています。
+      残る2件（木村様・富地様）は報告ログに対応する投稿がありません（木村様は愛知支社）。</div>
+    <div class="src">出典：利益管理ダッシュボード（Martial Arts）令和8年9月。固定費 3,000万円／月は同シートの記載値。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot"></span>令和8年6月 案件別 利益内訳</h2>
+  <p class="lead">利益表で案件単位の内訳が取れている唯一の月。合計 2,797万円（売上 8,360万円）。単位：万円。</p>
+  <div class="panel">
+    <div class="legend"><span><i style="background:var(--s1)"></i>自社案件</span><span><i style="background:var(--s2)"></i>私募債・リフォーム</span></div>
+    <div class="hchart"><div class="hrow" tabindex="0" data-tip="池田様｜利益 490万円・物件巾 600万円・決済">
+  <div class="hlab">池田様<span class="grp">自社</span></div>
+  <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+  <div class="hval">490<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="綱川様｜利益 440万円・物件巾 550万円・決済">
+  <div class="hlab">綱川様<span class="grp">自社</span></div>
+  <div class="htrack"><div class="hfill" style="width:89.8%;background:var(--s1)"></div></div>
+  <div class="hval">440<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="渡邉様｜利益 389万円・物件巾 490万円・決済">
+  <div class="hlab">渡邉様<span class="grp">自社</span></div>
+  <div class="htrack"><div class="hfill" style="width:79.4%;background:var(--s1)"></div></div>
+  <div class="hval">389<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="佐藤拓｜利益 355万円・物件巾 455万円・本承認">
+  <div class="hlab">佐藤拓<span class="grp">自社</span></div>
+  <div class="htrack"><div class="hfill" style="width:72.4%;background:var(--s1)"></div></div>
+  <div class="hval">355<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="大枝様｜利益 286万円・物件巾 300万円・-">
+  <div class="hlab">大枝様<span class="grp">私募債</span></div>
+  <div class="htrack"><div class="hfill" style="width:58.4%;background:var(--s2)"></div></div>
+  <div class="hval">286<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="佐竹様｜利益 191万円・物件巾 200万円・-">
+  <div class="hlab">佐竹様<span class="grp">私募債</span></div>
+  <div class="htrack"><div class="hfill" style="width:39.0%;background:var(--s2)"></div></div>
+  <div class="hval">191<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="米川様｜利益 190万円・物件巾 200万円・-">
+  <div class="hlab">米川様<span class="grp">私募債</span></div>
+  <div class="htrack"><div class="hfill" style="width:38.8%;background:var(--s2)"></div></div>
+  <div class="hval">190<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="鈴木様｜利益 190万円・物件巾 200万円・-">
+  <div class="hlab">鈴木様<span class="grp">私募債</span></div>
+  <div class="htrack"><div class="hfill" style="width:38.8%;background:var(--s2)"></div></div>
+  <div class="hval">190<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="宮崎様｜利益 171万円・物件巾 206万円・完工">
+  <div class="hlab">宮崎様<span class="grp">リフォーム</span></div>
+  <div class="htrack"><div class="hfill" style="width:34.9%;background:var(--s2)"></div></div>
+  <div class="hval">171<span class="hsub">万円</span></div></div><div class="hrow" tabindex="0" data-tip="山本様｜利益 95万円・物件巾 100万円・-">
+  <div class="hlab">山本様<span class="grp">私募債</span></div>
+  <div class="htrack"><div class="hfill" style="width:19.4%;background:var(--s2)"></div></div>
+  <div class="hval">95<span class="hsub">万円</span></div></div></div>
+    <div class="two" style="margin-top:16px">
+      <div class="card"><div class="kpi"><div class="lab">自社案件 小計</div><div class="num">1,674<small>万円</small></div>
+        <div class="note">4件／融資 8,020万円・物件巾 2,095万円</div></div></div>
+      <div class="card"><div class="kpi"><div class="lab">私募債・リフォーム 小計</div><div class="num">1,123<small>万円</small></div>
+        <div class="note">6件／私募債5件 952万円・リフォーム1件 171万円</div></div></div>
+    </div>
+    <div class="callout">利益の<b>40%が私募債・リフォーム</b>から出ています。自社不動産4件（1,674万円）と拮抗しており、6月に限れば<b>不動産以外の収益が利益を支えた月</b>と読めます。</div>
+    <div class="src">出典：利益表「令和8年6月 利益サマリー」。客名は原本表記（渡邉様＝報告ログの渡邊裕也、佐藤拓＝佐藤拓夢、綱川様＝綱川大悟、池田様＝池田好希、宮崎様＝宮﨑定規）。</div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot"></span>顧客台帳サマリー（総顧客 328名）</h2>
+  <p class="lead">利益表ブックの「顧客台帳サマリー（自動集計）」より。報告ログの39案件は、この台帳の一部が動いている姿です。</p>
+  <div class="two">
+    <div class="panel"><div class="mini" style="font-weight:800;margin-bottom:9px">ランク別</div>
+      <div class="hchart"><div class="hrow" tabindex="0" data-tip="S（契約・有力）｜51件">
+    <div class="hlab">S（契約・有力）</div>
+    <div class="htrack"><div class="hfill" style="width:18.8%;background:#104281"></div></div>
+    <div class="hval">51<span class="hsub">15.5%</span></div></div><div class="hrow" tabindex="0" data-tip="A（現金・短期）｜4件">
+    <div class="hlab">A（現金・短期）</div>
+    <div class="htrack"><div class="hfill" style="width:1.5%;background:#2a78d6"></div></div>
+    <div class="hval">4<span class="hsub">1.2%</span></div></div><div class="hrow" tabindex="0" data-tip="B｜2件">
+    <div class="hlab">B</div>
+    <div class="htrack"><div class="hfill" style="width:1.5%;background:#5598e7"></div></div>
+    <div class="hval">2<span class="hsub">0.6%</span></div></div><div class="hrow" tabindex="0" data-tip="C（見込・追客）｜271件">
+    <div class="hlab">C（見込・追客）</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:#86b6ef"></div></div>
+    <div class="hval">271<span class="hsub">82.6%</span></div></div></div>
+      <div class="src">S（契約・有力）51名に対し C（見込・追客）が271名＝82.6%。母数の大半は追客フェーズ。</div></div>
+    <div class="panel"><div class="mini" style="font-weight:800;margin-bottom:9px">ステータス・フラグ</div>
+      <div class="hchart"><div class="hrow" tabindex="0" data-tip="契約済み｜17件">
+    <div class="hlab">契約済み</div>
+    <div class="htrack"><div class="hfill" style="width:34.7%;background:var(--good)"></div></div>
+    <div class="hval">17</div></div><div class="hrow" tabindex="0" data-tip="未提案｜34件">
+    <div class="hlab">未提案</div>
+    <div class="htrack"><div class="hfill" style="width:69.4%;background:var(--s1)"></div></div>
+    <div class="hval">34</div></div><div class="hrow" tabindex="0" data-tip="否決｜23件">
+    <div class="hlab">否決</div>
+    <div class="htrack"><div class="hfill" style="width:46.9%;background:var(--critical)"></div></div>
+    <div class="hval">23</div></div><div class="hrow" tabindex="0" data-tip="打ち切り｜49件">
+    <div class="hlab">打ち切り</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--critical)"></div></div>
+    <div class="hval">49</div></div><div class="hrow" tabindex="0" data-tip="再アタック候補｜22件">
+    <div class="hlab">再アタック候補</div>
+    <div class="htrack"><div class="hfill" style="width:44.9%;background:var(--warn)"></div></div>
+    <div class="hval">22</div></div></div>
+      <div class="src">打ち切り49・否決23に対し、再アタック候補22が明示されています。</div></div>
+  </div>
+  <div class="two" style="margin-top:15px">
+    <div class="panel"><div class="mini" style="font-weight:800;margin-bottom:9px">担当者別 関与件数（台帳ベース）</div>
+      <div class="hchart"><div class="hrow" tabindex="0" data-tip="坂本｜41件">
+    <div class="hlab">坂本</div>
+    <div class="htrack"><div class="hfill" style="width:48.2%;background:var(--s1)"></div></div>
+    <div class="hval">41</div></div><div class="hrow" tabindex="0" data-tip="菊池｜39件">
+    <div class="hlab">菊池</div>
+    <div class="htrack"><div class="hfill" style="width:45.9%;background:var(--s1)"></div></div>
+    <div class="hval">39</div></div><div class="hrow" tabindex="0" data-tip="上田｜33件">
+    <div class="hlab">上田</div>
+    <div class="htrack"><div class="hfill" style="width:38.8%;background:var(--s1)"></div></div>
+    <div class="hval">33</div></div><div class="hrow" tabindex="0" data-tip="三浦｜26件">
+    <div class="hlab">三浦</div>
+    <div class="htrack"><div class="hfill" style="width:30.6%;background:var(--s1)"></div></div>
+    <div class="hval">26</div></div><div class="hrow" tabindex="0" data-tip="武田｜18件">
+    <div class="hlab">武田</div>
+    <div class="htrack"><div class="hfill" style="width:21.2%;background:var(--s1)"></div></div>
+    <div class="hval">18</div></div><div class="hrow" tabindex="0" data-tip="専務｜5件">
+    <div class="hlab">専務</div>
+    <div class="htrack"><div class="hfill" style="width:5.9%;background:var(--s1)"></div></div>
+    <div class="hval">5</div></div><div class="hrow" tabindex="0" data-tip="青木｜3件">
+    <div class="hlab">青木</div>
+    <div class="htrack"><div class="hfill" style="width:3.5%;background:var(--s1)"></div></div>
+    <div class="hval">3</div></div><div class="hrow" tabindex="0" data-tip="長谷川徹｜2件">
+    <div class="hlab">長谷川徹</div>
+    <div class="htrack"><div class="hfill" style="width:2.4%;background:var(--s1)"></div></div>
+    <div class="hval">2</div></div><div class="hrow" tabindex="0" data-tip="CEO｜1件">
+    <div class="hlab">CEO</div>
+    <div class="htrack"><div class="hfill" style="width:1.5%;background:var(--s1)"></div></div>
+    <div class="hval">1</div></div><div class="hrow" tabindex="0" data-tip="退職者｜85件">
+    <div class="hlab">退職者</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--critical)"></div></div>
+    <div class="hval">85</div></div></div>
+      <div class="src">最大が「退職者」85件。担当者不在の顧客が台帳の約26%を占め、再配分の対象になります。複数記載を含むため合計は総顧客数と一致しません。</div></div>
+    <div class="panel"><div class="mini" style="font-weight:800;margin-bottom:9px">仕入業者別（記入あり 56件）</div>
+      <div class="hchart"><div class="hrow" tabindex="0" data-tip="MA売主｜26件">
+    <div class="hlab">MA売主</div>
+    <div class="htrack"><div class="hfill" style="width:100.0%;background:var(--s1)"></div></div>
+    <div class="hval">26</div></div><div class="hrow" tabindex="0" data-tip="武蔵野｜10件">
+    <div class="hlab">武蔵野</div>
+    <div class="htrack"><div class="hfill" style="width:38.5%;background:var(--s1)"></div></div>
+    <div class="hval">10</div></div><div class="hrow" tabindex="0" data-tip="RE｜5件">
+    <div class="hlab">RE</div>
+    <div class="htrack"><div class="hfill" style="width:19.2%;background:var(--s1)"></div></div>
+    <div class="hval">5</div></div><div class="hrow" tabindex="0" data-tip="住まいのアシスト｜5件">
+    <div class="hlab">住まいのアシスト</div>
+    <div class="htrack"><div class="hfill" style="width:19.2%;background:var(--s1)"></div></div>
+    <div class="hval">5</div></div><div class="hrow" tabindex="0" data-tip="アップリンクス｜4件">
+    <div class="hlab">アップリンクス</div>
+    <div class="htrack"><div class="hfill" style="width:15.4%;background:var(--s1)"></div></div>
+    <div class="hval">4</div></div></div>
+      <div class="src">台帳328名のうち仕入業者の記入は56件のみ。</div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="dot"></span>データ品質メモ</h2>
+  <p class="lead">このボードを作る過程で見つかった、元データ側で直すべき点。</p>
+  <div class="panel">
+    <div class="two">
+      <div>
+        <div class="mini" style="font-weight:800">1. お客様名の表記ゆれ（同一人物・7組を統合）</div>
+        <ul class="tight"><li><code>綱川大吾</code> → <b>綱川大悟</b></li><li><code>吉村拓也</code> → <b>吉村拓哉</b></li><li><code>加來嵩時</code> → <b>加来嵩時</b></li><li><code>岡潤祐</code> → <b>岡潤佑</b></li><li><code>渡邉裕也</code> → <b>渡邊裕也</b></li><li><code>小池雅弘</code> → <b>小池雅広</b></li><li><code>宮崎定規</code> → <b>宮﨑定規</b></li></ul>
+      </div>
+      <div>
+        <div class="mini" style="font-weight:800">2. 決済完了の報告が抜けている</div>
+        <p class="mini">利益表では令和8年6月に決済済みの案件（綱川・池田・渡邉）に、報告ログの「決済完了」投稿がありません。<b>決済完了の報告を必須化</b>すれば、このボードは着地まで自動で追えます。</p>
+        <div class="mini" style="font-weight:800;margin-top:11px">3. 項目の欠落・ラベル混入</div>
+        <p class="mini">7件の報告で金融機関または担当が空欄。また <code>:tada:</code> <code>:spiralnotepad:備考：</code> などSlackのテンプレート文字列が同行②・日時欄に流れ込んでおり、集計時に除去しています。報告フォーム側での入力位置の固定を推奨します。</p>
+      </div>
+    </div>
+    <div class="callout"><b>示唆：</b>報告ログは「契約が取れた」までは丁寧に、「お金になった」の手前で途切れています。利益表とログを繋ぐ鍵は<b>お客様名の統一</b>と<b>決済完了の報告</b>の2点だけです。</div>
+  </div>
+</section>
+
+<div class="panel" style="margin-top:26px;font-size:11.5px;color:var(--ink2)">
+  <b>出典・注記</b>／① 営業報告ログ 110件（2026-03-22〜2026-08-21）。② ⭐️第6期目 利益表（担当：武田）＝月次推移サマリー・令和8年6月利益サマリー・顧客台帳サマリー。③ 利益管理ダッシュボード（Martial Arts）令和8年9月。金額は原本どおり<b>万円単位</b>。<br>
+  経過日数は実日付ではなく<b>データ最終日 2026-08-21</b> を基準に算出しています（それ以降の報告は未反映）。件数は報告ログから機械的に導出した参考値で、会計上の確定値ではありません。<br>
+  顧客台帳の年収・勤務先・預金額・与信履歴は個人情報のため、このボードには一切含めていません（集計値のみ利用）。
+</div>
+</div>
+<div id="tip" role="status"></div>
+<script>
+(function(){
+  var tip=document.getElementById('tip');
+  function show(e,t){tip.textContent=t;tip.style.opacity='1';move(e);}
+  function move(e){var x=(e.clientX||0)+14,y=(e.clientY||0)+16;
+    var r=tip.getBoundingClientRect();
+    if(x+r.width>innerWidth-8)x=innerWidth-r.width-8;
+    if(y+r.height>innerHeight-8)y=(e.clientY||0)-r.height-12;
+    tip.style.left=x+'px';tip.style.top=y+'px';}
+  function hide(){tip.style.opacity='0';}
+  document.addEventListener('mouseover',function(e){var t=e.target.closest('[data-tip]');if(t)show(e,t.dataset.tip);});
+  document.addEventListener('mousemove',function(e){if(tip.style.opacity==='1')move(e);});
+  document.addEventListener('mouseout',function(e){if(e.target.closest('[data-tip]'))hide();});
+  document.addEventListener('focusin',function(e){var t=e.target.closest('[data-tip]');
+    if(t){var r=t.getBoundingClientRect();show({clientX:r.left+r.width/2,clientY:r.top},t.dataset.tip);}});
+  document.addEventListener('focusout',hide);
+
+  var f=document.getElementById('filters'),tb=document.querySelector('#livetbl tbody');
+  f.addEventListener('click',function(e){var b=e.target.closest('.fbtn');if(!b)return;
+    [].forEach.call(f.querySelectorAll('.fbtn'),function(x){x.setAttribute('aria-pressed',String(x===b));});
+    var k=b.dataset.f;
+    [].forEach.call(tb.rows,function(r){r.hidden=!(k==='all'||r.dataset.alert===k);});});
+
+  var th=document.querySelectorAll('#livetbl thead th'),dir={};
+  [].forEach.call(th,function(h,i){h.addEventListener('click',function(){
+    dir[i]=!dir[i];var rows=[].slice.call(tb.rows);
+    rows.sort(function(a,b){
+      var x=a.cells[i].textContent.trim(),y=b.cells[i].textContent.trim();
+      var nx=parseFloat(x.replace(/[^0-9.-]/g,'')),ny=parseFloat(y.replace(/[^0-9.-]/g,''));
+      var c=(!isNaN(nx)&&!isNaN(ny))?nx-ny:x.localeCompare(y,'ja');
+      return dir[i]?c:-c;});
+    rows.forEach(function(r){tb.appendChild(r);});});});
+})();
+</script>
+</body></html>
