@@ -27,6 +27,7 @@ This repo (`hasegawa212/-`) is **not a single application** — it is a loose co
 ├── sales-org-1on1/           # Zero-dep single-HTML 営業部 1on1・立ち位置分析ボード for 株式会社 Martial Arts → 6-axis rubric auto-recommends role/次の役割, org-chart + member cards, localStorage, print/PDF (JP UI); + markdown analyses of the 2026/7/27 (酒井) & 2026/7/24 (小林駿) 1on1s (sensitive HR content)
 ├── money-basics-quiz/        # Zero-dep single-HTML 金融リテラシー診断＆学習アプリ「お金の超基本」理解度チェック for 不動産経営者/営業 (defaults 株式会社 Martial Arts) → interactive 50-question quiz (6 chapters) + auto-scoring + 章別スコア + per-question explanations + 学習(資料編); instant/test modes, random10, localStorage, print/PDF (JP UI)
 ├── admin-ops/                # Markdown-only 管理部(バックオフィス)議事録・運用ルール for 株式会社 Martial Arts (承認/小口現金/住民税/支払い/在宅/書類管理/掃除). No code. Secrets (bank card, passwords) are masked as 〔社内で別途管理〕 — never commit them
+├── zaitaku-plan-sql/         # Supabase/Postgres SQL: zaitaku_plan(date) returns each 営業部 member's 在宅/出社 for a date (rule: 全員 毎週水曜が在宅, from the admin-ops 在宅=水曜 decision). zaitaku_members table + is_zaitaku_day()/zaitaku_plan()/zaitaku_days(). Verified on PG16. Not wired to a live DB in this repo — paste into Supabase SQL Editor
 ├── render.yaml              # Render Blueprint deploying financial-literacy-line-bot (the only root-level config; secrets via Render env, sync:false)
 └── テレアポ管理シート.csv     # Telemarketing tracking spreadsheet (data only)
 ```
