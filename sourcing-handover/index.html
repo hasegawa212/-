@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>仕入れ引き継ぎコンソール</title>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f6f5f1; --surface:#ffffff; --surface-2:#faf9f5;
+  --ink:#1a1a1a; --ink-2:#5c5a54; --ink-3:#8a877e;
+  --line:#e4e1d8; --line-2:#cfcabd;
+  --gold:#b8933f; --gold-soft:#f3ecdb;
+  --ok:#008300; --warn:#eda100; --bad:#e34948;
+  --series-1:#2a78d6; --track:#ece9e1;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#131311; --surface:#1e1e1c; --surface-2:#252523;
+    --ink:#f5f4f0; --ink-2:#c3c2b7; --ink-3:#8f8d84;
+    --line:#32312d; --line-2:#3f3e39;
+    --gold:#d9b662; --gold-soft:#2d2719;
+    --ok:#3fae5a; --warn:#c98500; --bad:#e66767;
+    --series-1:#3987e5; --track:#2b2b28;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",system-ui,sans-serif;
+  font-size:14px;line-height:1.7;-webkit-text-size-adjust:100%}
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{font-weight:700;font-size:15px;letter-spacing:.02em}
+.brand span{color:var(--gold)}
+.meta{color:var(--ink-3);font-size:12px}
+.spacer{flex:1}
+.tabs{display:flex;gap:4px;max-width:1080px;margin:0 auto;padding:0 16px 8px;flex-wrap:wrap}
+.tab{border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);
+  padding:6px 14px;border-radius:999px;cursor:pointer;font-size:13px;font-family:inherit}
+.tab[aria-selected="true"]{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:600}
+main{max-width:1080px;margin:0 auto;padding:18px 16px 80px}
+.panel[hidden]{display:none}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:16px 18px;margin:0 0 14px;box-shadow:var(--shadow)}
+h2{font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+h2 .key{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;
+  background:var(--gold-soft);color:var(--gold);font-weight:700;font-size:13px}
+.sub{color:var(--ink-2);font-size:12.5px;margin:0 0 10px}
+.prog{height:6px;border-radius:999px;background:var(--track);overflow:hidden;margin:8px 0 2px}
+.prog>i{display:block;height:100%;background:var(--gold);border-radius:999px;transition:width .25s}
+.q{border-top:1px solid var(--line);padding:12px 0 4px}
+.q:first-of-type{border-top:0}
+.qh{display:flex;gap:10px;align-items:flex-start}
+.qid{flex:none;font-size:11px;font-weight:700;color:var(--gold);background:var(--gold-soft);
+  border-radius:6px;padding:2px 7px;margin-top:3px;letter-spacing:.04em}
+.qt{flex:1;margin:0}
+.qn{color:var(--ink-3);font-size:12px;margin:2px 0 0}
+textarea{width:100%;margin-top:8px;min-height:60px;resize:vertical;padding:9px 11px;
+  border:1px solid var(--line-2);border-radius:8px;background:var(--surface-2);color:var(--ink);
+  font-family:inherit;font-size:13.5px;line-height:1.65}
+textarea:focus{outline:2px solid var(--gold);outline-offset:-1px;background:var(--surface)}
+.q.done .qid{background:var(--ok);color:#fff}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);
+  border-radius:999px;padding:5px 12px;font-size:12.5px;cursor:pointer;font-family:inherit}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+input[type=search],input[type=text],input[type=date],select{
+  padding:6px 9px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);
+  color:var(--ink);font-family:inherit;font-size:13px}
+.btn{border:1px solid var(--line-2);background:var(--surface);color:var(--ink);
+  padding:6px 13px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit}
+.btn:hover{border-color:var(--gold)}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:600}
+.btn.ghost{background:transparent}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+#tbl{min-width:1000px}
+#tbl th:nth-child(4),#tbl th:nth-child(5),#tbl th:nth-child(6),#tbl th:nth-child(8){width:84px}
+#tbl td select{min-width:72px}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:left;vertical-align:middle}
+th{background:var(--surface-2);color:var(--ink-2);font-weight:600;white-space:nowrap}
+td input,td select{width:100%;border:0;background:transparent;padding:3px 2px;font-size:12.5px}
+td input:focus,td select:focus{outline:1.5px solid var(--gold);border-radius:4px}
+.wrap{overflow-x:auto}
+.del{color:var(--ink-3);border:0;background:none;cursor:pointer;font-size:15px;line-height:1}
+.del:hover{color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:2px 0 16px}
+.stat{background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:24px;line-height:1.25;font-variant-numeric:tabular-nums}
+.stat span{color:var(--ink-2);font-size:11.5px}
+.fun{display:flex;flex-direction:column;gap:9px;margin:6px 0 4px}
+.frow{display:grid;grid-template-columns:104px 1fr 132px;gap:10px;align-items:center}
+.flab{color:var(--ink-2);font-size:12px;text-align:right}
+.ftrack{position:relative;height:26px;background:var(--track);border-radius:4px}
+.fbar{height:100%;background:var(--series-1);border-radius:4px;min-width:3px;transition:width .3s}
+.fval{display:flex;align-items:baseline;gap:6px;font-size:12px;
+  font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.fval em{font-style:normal;font-weight:700}
+.fval i{font-style:normal;color:var(--ink-3);font-size:11px}
+.frow:hover .ftrack{outline:2px solid var(--line-2);outline-offset:2px;border-radius:5px}
+.tip{position:fixed;z-index:50;pointer-events:none;background:var(--surface);color:var(--ink);
+  border:1px solid var(--line-2);border-radius:8px;padding:7px 10px;font-size:12px;
+  box-shadow:var(--shadow);opacity:0;transition:opacity .12s}
+.note{background:var(--gold-soft);border-left:3px solid var(--gold);border-radius:0 8px 8px 0;
+  padding:9px 12px;font-size:12.5px;color:var(--ink-2);margin:10px 0}
+.out{width:100%;min-height:280px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:12px;line-height:1.6}
+.reasons li{font-size:12.5px;color:var(--ink-2);margin:3px 0}
+.saved{color:var(--ok);font-size:12px;opacity:0;transition:opacity .3s}
+.saved.on{opacity:1}
+@media (max-width:640px){
+  .frow{grid-template-columns:76px 1fr 104px}
+  .fval{font-size:11.5px}
+  .stat b{font-size:20px}
+}
+@media print{
+  header,.tabs,.tools,.btn,.chip,.del,.tip{display:none!important}
+  body{background:#fff;font-size:10.5pt}
+  .panel[hidden]{display:block!important}
+  .card{box-shadow:none;border:1px solid #ccc;page-break-inside:avoid}
+  textarea{border:0;background:#fff;min-height:0;height:auto;resize:none}
+  main{padding:0;max-width:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">仕入れ引き継ぎ<span>コンソール</span></div>
+    <div class="meta" id="hmeta"></div>
+    <div class="spacer"></div>
+    <div class="saved" id="saved">保存しました</div>
+    <button class="btn ghost" id="print">印刷 / PDF</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" data-p="q" aria-selected="true">① 質問シート</button>
+    <button class="tab" role="tab" data-p="c" aria-selected="false">② 実績カウント</button>
+    <button class="tab" role="tab" data-p="o" aria-selected="false">③ 出力</button>
+  </div>
+</header>
+
+<main>
+  <section class="panel" id="p-q">
+    <div class="card">
+      <h2>当日の進め方</h2>
+      <p class="sub">上から順に聞いて、その場で回答欄を埋める。入力は自動保存されます。<strong>A・B・C が最優先</strong>、D以降は時間が足りなければ次回で構いません。</p>
+      <div class="prog"><i id="allprog"></i></div>
+      <p class="sub" id="alltxt" style="margin:6px 0 0"></p>
+    </div>
+    <div class="tools">
+      <button class="chip" data-f="all" aria-pressed="true">全部</button>
+      <button class="chip" data-f="abc" aria-pressed="false">最優先 A・B・C</button>
+      <button class="chip" data-f="todo" aria-pressed="false">未回答のみ</button>
+      <input type="search" id="search" placeholder="キーワードで絞り込み" style="flex:1;min-width:160px">
+    </div>
+    <div id="secs"></div>
+  </section>
+
+  <section class="panel" id="p-c" hidden>
+    <div class="card">
+      <h2>どこで落ちているか</h2>
+      <p class="sub">5月以降に出した物件を1行ずつ入れる。<strong>NGと言われた物件も必ず入れる</strong> — それが分母になります。</p>
+      <div class="stats" id="stats"></div>
+      <div class="fun" id="funnel"></div>
+      <p class="sub" id="funnote" style="margin-top:10px"></p>
+    </div>
+    <div class="card">
+      <h2>落ちた理由</h2>
+      <ul class="reasons" id="reasons"></ul>
+    </div>
+    <div class="card">
+      <h2>実績テーブル</h2>
+      <div class="tools">
+        <button class="btn primary" id="addrow">＋ 行を追加</button>
+        <button class="btn" id="csvout">CSV書き出し</button>
+        <label class="btn" style="display:inline-block">CSV読み込み
+          <input type="file" id="csvin" accept=".csv,text/csv" hidden></label>
+      </div>
+      <div class="wrap"><table id="tbl"></table></div>
+      <p class="sub" style="margin-top:8px">お客様名は<strong>イニシャルのみ</strong>。分からない欄は空欄でよい（埋まらない欄自体が「記録を取っていない」という発見）。</p>
+    </div>
+  </section>
+
+  <section class="panel" id="p-o" hidden>
+    <div class="card">
+      <h2>マニュアル反映用の原稿</h2>
+      <p class="sub">回答が入っている項目だけを整形して出力します。<code>物件仕入れマニュアル_再現性版.md</code> に貼って使えます。</p>
+      <div class="tools">
+        <button class="btn primary" id="gen">生成する</button>
+        <button class="btn" id="copy">コピー</button>
+        <button class="btn" id="dl">.md で保存</button>
+      </div>
+      <textarea class="out" id="md" placeholder="「生成する」を押すと、ここに出ます"></textarea>
+    </div>
+    <div class="card">
+      <h2>バックアップ / 復元</h2>
+      <p class="sub">データはこのブラウザの中だけに保存されます。別のPCで続けるときは書き出して持っていってください。</p>
+      <div class="tools">
+        <button class="btn" id="jsonout">JSON書き出し</button>
+        <label class="btn" style="display:inline-block">JSON読み込み
+          <input type="file" id="jsonin" accept=".json,application/json" hidden></label>
+        <button class="btn ghost" id="reset" style="color:var(--bad)">全消去</button>
+      </div>
+    </div>
+  </section>
+</main>
+<div class="tip" id="tip"></div>
+
+<script>
+const SECTIONS = {
+  "A": "業者ルート・未公開物件",
+  "B": "「どこまで言っていいか」の線引き",
+  "C": "物件チェックの基準値",
+  "D": "買い付け（申込）",
+  "E": "契約〜決済（連件・三為）",
+  "F": "銀行の入れ方（ローン付け）",
+  "G": "現状の答え合わせ"
+};
+const QUESTIONS = [
+ {
+  "id": "A-1",
+  "sec": "A",
+  "q": "引き継ぐ業者さんの一覧（会社名・担当者名・連絡先）を教えてください",
+  "note": ""
+ },
+ {
+  "id": "A-2",
+  "sec": "A",
+  "q": "それぞれ、どんな物件に強い会社ですか",
+  "note": ""
+ },
+ {
+  "id": "A-3",
+  "sec": "A",
+  "q": "各社とはどういう経緯で関係ができましたか（紹介か・どの案件がきっかけか）",
+  "note": ""
+ },
+ {
+  "id": "A-4",
+  "sec": "A",
+  "q": "未公開を出してもらうために、こちらから何を渡していますか（案件情報・実績・決済の速さ等）",
+  "note": ""
+ },
+ {
+  "id": "A-5",
+  "sec": "A",
+  "q": "未公開はどれくらいの頻度で出てきますか。向こうから来ますか、こちらから聞きますか",
+  "note": ""
+ },
+ {
+  "id": "A-6",
+  "sec": "A",
+  "q": "定期連絡の頻度・手段（電話／LINE／訪問）と、何を話していますか",
+  "note": ""
+ },
+ {
+  "id": "A-7",
+  "sec": "A",
+  "q": "取引してはいけない業者はどこですか。その理由も教えてください",
+  "note": ""
+ },
+ {
+  "id": "A-8",
+  "sec": "A",
+  "q": "エンドへの転売・紹介がNGの会社は、事前にどう見分けますか",
+  "note": ""
+ },
+ {
+  "id": "A-9",
+  "sec": "A",
+  "q": "大手業者に対して、対等に話すための材料は何ですか（「こちらも案件を持っている」の具体的な出し方）",
+  "note": ""
+ },
+ {
+  "id": "A-10",
+  "sec": "A",
+  "q": "初めての業者への1本目の電話で、言うこと／絶対に言わないことは",
+  "note": ""
+ },
+ {
+  "id": "A-11",
+  "sec": "A",
+  "q": "担当者の対応が悪いとき、どうしていますか（担当変更を頼む・引く・気にしない）",
+  "note": ""
+ },
+ {
+  "id": "A-12",
+  "sec": "A",
+  "q": "引き継ぎ後、こちらから挨拶の連絡を入れるべき先はどこですか。文面の型も教えてください",
+  "note": ""
+ },
+ {
+  "id": "B-1",
+  "sec": "B",
+  "q": "売主・仲介にお客様の属性（居住地／勤務先／年収／家族構成）を聞かれたら、どこまで答えますか",
+  "note": ""
+ },
+ {
+  "id": "B-2",
+  "sec": "B",
+  "q": "答える場合、具体的にどう言いますか（そのまま使える言い方で）",
+  "note": ""
+ },
+ {
+  "id": "B-3",
+  "sec": "B",
+  "q": "相手はなぜそれを聞くのですか。意図によって返し方は変わりますか",
+  "note": ""
+ },
+ {
+  "id": "B-4",
+  "sec": "B",
+  "q": "「価格を乗せてエンドのお客様へ売る」ことは、いつ・どこまで開示しますか",
+  "note": ""
+ },
+ {
+  "id": "B-5",
+  "sec": "B",
+  "q": "買い付けを入れる前に、こちらの手の内（出口価格・利益の幅・使う銀行）はどこまで見せていいですか",
+  "note": ""
+ },
+ {
+  "id": "B-6",
+  "sec": "B",
+  "q": "その場で言い切っていいことと、持ち帰るべきことはどう分けますか",
+  "note": ""
+ },
+ {
+  "id": "B-7",
+  "sec": "B",
+  "q": "濁すべき場面での定型の返し方を、いくつか教えてください",
+  "note": ""
+ },
+ {
+  "id": "B-8",
+  "sec": "B",
+  "q": "言ってしまうと会社が不利になるNGワードはありますか",
+  "note": ""
+ },
+ {
+  "id": "C-1",
+  "sec": "C",
+  "q": "土地面積：何㎡未満だと評価が付きませんか。エリアによって変わりますか",
+  "note": ""
+ },
+ {
+  "id": "C-2",
+  "sec": "C",
+  "q": "建物面積：延床何㎡以上が必要ですか",
+  "note": ""
+ },
+ {
+  "id": "C-3",
+  "sec": "C",
+  "q": "築年：社内は「基本20年以内」ですが、例外を認めてよい条件はありますか（ハウスメーカー・リフォーム済 等）",
+  "note": ""
+ },
+ {
+  "id": "C-4",
+  "sec": "C",
+  "q": "地勢：ひな壇・傾斜地・造成地を銀行はどう見ますか。どのレベルから避けるべきですか",
+  "note": ""
+ },
+ {
+  "id": "C-5",
+  "sec": "C",
+  "q": "地目：宅地以外（畑・雑種地等）はどこまで許容できますか。変更にどれくらいかかりますか",
+  "note": ""
+ },
+ {
+  "id": "C-6",
+  "sec": "C",
+  "q": "接道：幅員・接道長の下限は。私道で持分なし／通行掘削の承諾書なしは即撤退でよいですか",
+  "note": ""
+ },
+ {
+  "id": "C-7",
+  "sec": "C",
+  "q": "再建築不可：例外なくNGでよいですか。融資が出るケースはありますか",
+  "note": ""
+ },
+ {
+  "id": "C-8",
+  "sec": "C",
+  "q": "リフォーム歴：どの範囲のリフォームなら担保評価に効きますか。効かないものは",
+  "note": ""
+ },
+ {
+  "id": "C-9",
+  "sec": "C",
+  "q": "告知事項：許容できるもの／即撤退のものを分けてください",
+  "note": ""
+ },
+ {
+  "id": "C-10",
+  "sec": "C",
+  "q": "借地権：どういう条件なら扱えますか",
+  "note": ""
+ },
+ {
+  "id": "C-11",
+  "sec": "C",
+  "q": "（マンション）管理費・修繕積立金：月いくらを超えると厳しいですか",
+  "note": ""
+ },
+ {
+  "id": "C-12",
+  "sec": "C",
+  "q": "施工会社：飯田HD以外で、評価が付きにくい会社はありますか",
+  "note": ""
+ },
+ {
+  "id": "C-13",
+  "sec": "C",
+  "q": "物件を見たとき、一番最初に見る項目トップ3を順番に教えてください",
+  "note": ""
+ },
+ {
+  "id": "C-14",
+  "sec": "C",
+  "q": "「これは絶対にやめておけ」という物件の特徴を、直感的なものでいいので教えてください",
+  "note": ""
+ },
+ {
+  "id": "D-1",
+  "sec": "D",
+  "q": "買い付け証明に記載する項目と、それぞれの書き方を教えてください（価格・手付・融資特約・有効期限・特記事項）",
+  "note": ""
+ },
+ {
+  "id": "D-2",
+  "sec": "D",
+  "q": "契約日は買い付けから何日後に設定しますか",
+  "note": ""
+ },
+ {
+  "id": "D-3",
+  "sec": "D",
+  "q": "決済・引渡し日の決め方は。サイト3ヶ月の根拠と、3ヶ月が取れないときの最低ラインは",
+  "note": ""
+ },
+ {
+  "id": "D-4",
+  "sec": "D",
+  "q": "期間を延ばしたいとき、どう言いますか。何日まで延ばせますか。いつまでに申し出るべきですか",
+  "note": ""
+ },
+ {
+  "id": "D-5",
+  "sec": "D",
+  "q": "融資特約は付けますか、付けませんか。付けない場合のリスクの取り方は",
+  "note": ""
+ },
+ {
+  "id": "D-6",
+  "sec": "D",
+  "q": "手付金の相場と、下げてもらう交渉の仕方",
+  "note": ""
+ },
+ {
+  "id": "D-7",
+  "sec": "D",
+  "q": "指値：いくらから入れますか。根拠はどう作りますか（相場・修繕費・評価）",
+  "note": ""
+ },
+ {
+  "id": "D-8",
+  "sec": "D",
+  "q": "指値が通る幅の目安は。入れるタイミングは買い付けと同時ですか、確認後ですか",
+  "note": ""
+ },
+ {
+  "id": "D-9",
+  "sec": "D",
+  "q": "買い付けを出した後に引く場合、関係を壊さずにどう伝えますか",
+  "note": ""
+ },
+ {
+  "id": "D-10",
+  "sec": "D",
+  "q": "他に買い付けが入っているとき（一番手／二番手）はどう動きますか",
+  "note": ""
+ },
+ {
+  "id": "E-1",
+  "sec": "E",
+  "q": "連件決済が可能かは、いつ・誰に・どう確認しますか",
+  "note": ""
+ },
+ {
+  "id": "E-2",
+  "sec": "E",
+  "q": "連件がNGと言われたときの代替案は",
+  "note": ""
+ },
+ {
+  "id": "E-3",
+  "sec": "E",
+  "q": "決済がズレる典型パターンと、その予防策を教えてください",
+  "note": ""
+ },
+ {
+  "id": "E-4",
+  "sec": "E",
+  "q": "司法書士・売主業者・銀行の段取りは、誰がいつ動かしますか",
+  "note": ""
+ },
+ {
+  "id": "E-5",
+  "sec": "E",
+  "q": "売主の売却理由を聞く意味と、角が立たない聞き方",
+  "note": ""
+ },
+ {
+  "id": "F-1",
+  "sec": "F",
+  "q": "お客様の属性別（上場・公務員・中小・個人事業・勤続が短い）に、どの銀行から当てますか",
+  "note": ""
+ },
+ {
+  "id": "F-2",
+  "sec": "F",
+  "q": "物件属性別（ひな壇・私道・築古・借地）に、嫌う銀行／通る銀行はありますか",
+  "note": ""
+ },
+ {
+  "id": "F-3",
+  "sec": "F",
+  "q": "事前審査は契約前のどの段階で出しますか",
+  "note": ""
+ },
+ {
+  "id": "F-4",
+  "sec": "F",
+  "q": "「契約してからでないと」と言われたとき、どう突破しますか",
+  "note": ""
+ },
+ {
+  "id": "F-5",
+  "sec": "F",
+  "q": "審査に必要な書類を、売主側からいつ・どう集めますか",
+  "note": ""
+ },
+ {
+  "id": "F-6",
+  "sec": "F",
+  "q": "否決されたときの二の矢（別行に回す順番・条件の作り直し方）",
+  "note": ""
+ },
+ {
+  "id": "F-7",
+  "sec": "F",
+  "q": "返済比率の審査金利は、各行いくらで見ていますか",
+  "note": ""
+ },
+ {
+  "id": "G-1",
+  "sec": "G",
+  "q": "5月以降に出した物件の全件リスト（出した数／判定／審査結果／決済）",
+  "note": "出し方そのものが悪いのか、その先が悪いのか"
+ },
+ {
+  "id": "G-2",
+  "sec": "G",
+  "q": "否決になった案件の物件資料",
+  "note": "どこで気付くべきだったか"
+ },
+ {
+  "id": "G-3",
+  "sec": "G",
+  "q": "決済がズレた案件の経緯",
+  "note": "どの段取りが抜けたか"
+ },
+ {
+  "id": "G-4",
+  "sec": "G",
+  "q": "止まった案件の経緯",
+  "note": "どの判断で止まったか"
+ },
+ {
+  "id": "G-5",
+  "sec": "G",
+  "q": "社内で作った仕入れマニュアル（物件出し〜問合せまで）",
+  "note": "違うところ・抜けているところを指摘してください。 一から説明していただくより早いと思います"
+ }
+];
+
+const KEY = 'ma_sourcing_handover_v1';
+const STAGES = [
+  ['出した',   r => true],
+  ['徹さんOK', r => r.judge === 'OK'],
+  ['買付提出', r => r.offer === '済'],
+  ['審査申込', r => ['申込','通過','否決'].includes(r.screen)],
+  ['審査通過', r => r.screen === '通過'],
+  ['決済済',   r => r.settle === '済'],
+];
+const COLS = [
+  ['name','物件名／所在地','text'],
+  ['date','出した日','date'],
+  ['cust','客（イニシャル）','text'],
+  ['judge','徹さん判定',['','OK','NG','未']],
+  ['offer','買付',['','済','未']],
+  ['screen','事前審査',['','未申込','申込','通過','否決']],
+  ['bank','銀行','text'],
+  ['settle','決済',['','済','未']],
+  ['why','NG・否決・止まった理由','text'],
+];
+
+let state = load();
+function load(){
+  try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.answers) return s; } catch(e){}
+  return { answers:{}, rows:[] };
+}
+let saveTimer;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); flash(); } catch(e){}
+  }, 350);
+}
+function flash(){
+  const el = document.getElementById('saved');
+  el.classList.add('on'); setTimeout(() => el.classList.remove('on'), 900);
+}
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- ① 質問シート ---------- */
+let filter = 'all', query = '';
+
+function renderQuestions(){
+  const host = document.getElementById('secs');
+  host.innerHTML = '';
+  for (const [sec, title] of Object.entries(SECTIONS)){
+    const list = QUESTIONS.filter(q => q.sec === sec);
+    const shown = list.filter(visible);
+    const done = list.filter(q => (state.answers[q.id] || '').trim()).length;
+    if (!shown.length) continue;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML =
+      '<h2><span class="key">' + sec + '</span>' + esc(title) +
+      (['A','B','C'].includes(sec) ? ' <span class="meta">最優先</span>' : '') + '</h2>' +
+      '<div class="prog"><i style="width:' + (list.length ? done/list.length*100 : 0) + '%"></i></div>' +
+      '<p class="sub" style="margin:6px 0 2px">' + done + ' / ' + list.length + ' 回答済み</p>';
+    for (const q of shown){
+      const a = state.answers[q.id] || '';
+      const d = document.createElement('div');
+      d.className = 'q' + (a.trim() ? ' done' : '');
+      d.innerHTML =
+        '<div class="qh"><span class="qid">' + q.id + '</span><div style="flex:1">' +
+        '<p class="qt">' + esc(q.q) + '</p>' +
+        (q.note ? '<p class="qn">' + esc(q.note) + '</p>' : '') + '</div></div>';
+      const ta = document.createElement('textarea');
+      ta.value = a; ta.placeholder = '回答をここに';
+      ta.addEventListener('input', () => {
+        state.answers[q.id] = ta.value; save();
+        d.classList.toggle('done', !!ta.value.trim());
+        grow(ta); updateProgress();
+      });
+      d.appendChild(ta); card.appendChild(d); requestAnimationFrame(() => grow(ta));
+    }
+    host.appendChild(card);
+  }
+  updateProgress();
+}
+function grow(ta){ ta.style.height = 'auto'; ta.style.height = Math.max(60, ta.scrollHeight) + 'px'; }
+function visible(q){
+  if (filter === 'abc' && !['A','B','C'].includes(q.sec)) return false;
+  if (filter === 'todo' && (state.answers[q.id] || '').trim()) return false;
+  if (query && !(q.q + q.id).toLowerCase().includes(query)) return false;
+  return true;
+}
+function updateProgress(){
+  const total = QUESTIONS.length;
+  const done = QUESTIONS.filter(q => (state.answers[q.id] || '').trim()).length;
+  const abc = QUESTIONS.filter(q => ['A','B','C'].includes(q.sec));
+  const abcDone = abc.filter(q => (state.answers[q.id] || '').trim()).length;
+  document.getElementById('allprog').style.width = (done/total*100) + '%';
+  document.getElementById('alltxt').textContent =
+    '全体 ' + done + ' / ' + total + '　（最優先 A・B・C: ' + abcDone + ' / ' + abc.length + '）';
+  document.getElementById('hmeta').textContent = '回答 ' + done + '/' + total + '・物件 ' + state.rows.length + '件';
+}
+document.querySelectorAll('.chip[data-f]').forEach(b => b.addEventListener('click', () => {
+  filter = b.dataset.f;
+  document.querySelectorAll('.chip[data-f]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  renderQuestions();
+}));
+document.getElementById('search').addEventListener('input', e => {
+  query = e.target.value.trim().toLowerCase(); renderQuestions();
+});
+
+/* ---------- ② 実績カウント ---------- */
+function renderTable(){
+  const t = document.getElementById('tbl');
+  t.innerHTML = '<thead><tr>' + COLS.map(c => '<th>' + esc(c[1]) + '</th>').join('') +
+                '<th style="width:30px"></th></tr></thead>';
+  const tb = document.createElement('tbody');
+  state.rows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    COLS.forEach(([k, , type]) => {
+      const td = document.createElement('td');
+      let el;
+      if (Array.isArray(type)){
+        el = document.createElement('select');
+        type.forEach(o => { const op = document.createElement('option'); op.value = o; op.textContent = o || '—'; el.appendChild(op); });
+      } else {
+        el = document.createElement('input'); el.type = type;
+      }
+      el.value = row[k] || '';
+      el.addEventListener('input', () => { row[k] = el.value; save(); renderFunnel(); updateProgress(); });
+      td.appendChild(el); tr.appendChild(td);
+    });
+    const td = document.createElement('td');
+    const b = document.createElement('button');
+    b.className = 'del'; b.textContent = '×'; b.title = 'この行を削除';
+    b.addEventListener('click', () => { state.rows.splice(i,1); save(); renderTable(); renderFunnel(); updateProgress(); });
+    td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+  });
+  t.appendChild(tb);
+}
+function renderFunnel(){
+  const rows = state.rows.filter(r => Object.values(r).some(v => String(v || '').trim()));
+  const counts = STAGES.map(([label, f]) => [label, rows.filter(f).length]);
+  const base = counts[0][1] || 0;
+
+  const st = document.getElementById('stats');
+  const pass = base ? Math.round(counts[4][1] / base * 100) : 0;
+  const close = base ? Math.round(counts[5][1] / base * 100) : 0;
+  st.innerHTML =
+    stat(base, '出した物件（分母）') +
+    stat(counts[1][1], '徹さんOK') +
+    stat(counts[4][1], '審査通過') +
+    stat(counts[5][1], '決済まで到達') +
+    stat(base ? pass + '%' : '—', '出した→審査通過') +
+    stat(base ? close + '%' : '—', '出した→決済');
+
+  const host = document.getElementById('funnel');
+  host.innerHTML = '';
+  counts.forEach(([label, n], i) => {
+    const w = base ? n / base * 100 : 0;
+    const prev = i ? counts[i-1][1] : n;
+    const rate = prev ? Math.round(n / prev * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'frow';
+    row.innerHTML = '<div class="flab">' + esc(label) + '</div>' +
+      '<div class="ftrack"><div class="fbar" style="width:' + w + '%"></div></div>' +
+      '<div class="fval"><em>' + n + '</em>件' +
+      (i ? ' <i>前段比 ' + rate + '%</i>' : '') + '</div>';
+    const track = row.querySelector('.ftrack');
+    track.addEventListener('mouseenter', e => showTip(e,
+      label + '：' + n + '件' + (base ? '（全体の ' + Math.round(n/base*100) + '%' +
+      (i ? '／前段比 ' + rate + '%' : '') + '）' : '')));
+    track.addEventListener('mousemove', moveTip);
+    track.addEventListener('mouseleave', hideTip);
+    host.appendChild(row);
+  });
+  document.getElementById('funnote').textContent = base
+    ? '出した ' + base + '件 → 決済 ' + counts[5][1] + '件。一番大きく減っている段が、いま直すべきところ。'
+    : '行を追加すると、ここに「どの段で落ちているか」が出ます。';
+
+  const ul = document.getElementById('reasons');
+  const why = rows.filter(r => (r.why || '').trim());
+  ul.innerHTML = why.length
+    ? why.map(r => '<li><strong>' + esc(r.name || '(物件名なし)') + '</strong>：' + esc(r.why) + '</li>').join('')
+    : '<li style="color:var(--ink-3)">理由が1件も入っていません。落ちた案件ほど、ここが効きます。</li>';
+}
+const stat = (v, l) => '<div class="stat"><b>' + esc(v) + '</b><span>' + esc(l) + '</span></div>';
+
+const tip = document.getElementById('tip');
+function showTip(e, text){ tip.textContent = text; tip.style.opacity = 1; moveTip(e); }
+function moveTip(e){
+  const pad = 14;
+  tip.style.left = Math.min(e.clientX + pad, innerWidth - tip.offsetWidth - 8) + 'px';
+  tip.style.top = Math.max(8, e.clientY - tip.offsetHeight - 10) + 'px';
+}
+function hideTip(){ tip.style.opacity = 0; }
+
+document.getElementById('addrow').addEventListener('click', () => {
+  state.rows.push({}); save(); renderTable(); renderFunnel(); updateProgress();
+  document.querySelector('#tbl tbody tr:last-child input')?.focus();
+});
+
+/* ---------- CSV ---------- */
+function toCSV(){
+  const head = COLS.map(c => c[1]);
+  const lines = [head, ...state.rows.map(r => COLS.map(c => r[c[0]] || ''))];
+  return '﻿' + lines.map(l => l.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+}
+function parseCSV(text){
+  const t = text.replace(/^﻿/, '');
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < t.length; i++){
+    const ch = t[i];
+    if (q){
+      if (ch === '"' && t[i+1] === '"'){ cell += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cell += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ','){ row.push(cell); cell = ''; }
+    else if (ch === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch !== '\r') cell += ch;
+  }
+  if (cell || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(c => c.trim()));
+}
+document.getElementById('csvout').addEventListener('click', () =>
+  download('物件出し実績_' + today() + '.csv', toCSV(), 'text/csv'));
+document.getElementById('csvin').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rows = parseCSV(await f.text());
+  if (rows.length < 2){ alert('データ行が見つかりませんでした。'); return; }
+  const head = rows[0].map(h => h.trim());
+  const idx = COLS.map(c => head.findIndex(h => h.includes(c[1].split('／')[0].split('（')[0])));
+  const imported = rows.slice(1).map(r => {
+    const o = {};
+    COLS.forEach((c, i) => { if (idx[i] >= 0) o[c[0]] = (r[idx[i]] || '').trim(); });
+    return o;
+  }).filter(o => Object.values(o).some(v => v));
+  if (!imported.length){ alert('列名が一致しませんでした。CSV書き出しの形式に合わせてください。'); return; }
+  state.rows = state.rows.concat(imported);
+  save(); renderTable(); renderFunnel(); updateProgress();
+  alert(imported.length + '件を読み込みました。');
+  e.target.value = '';
+});
+
+/* ---------- ③ 出力 ---------- */
+function buildMarkdown(){
+  const d = new Date(), stamp = today();
+  let out = '# 仕入れ引き継ぎ 回答記録（' + stamp + '）\n\n';
+  out += '> 2026/9/24 長谷川徹さんからの引き継ぎで得た回答。マニュアルへ反映したら本文は移して構わない。\n\n';
+  const rows = state.rows.filter(r => Object.values(r).some(v => String(v || '').trim()));
+  if (rows.length){
+    const c = STAGES.map(([l, f]) => l + ' ' + rows.filter(f).length + '件');
+    out += '## 実績（' + rows.length + '件）\n\n' + c.join(' → ') + '\n\n';
+  }
+  for (const [sec, title] of Object.entries(SECTIONS)){
+    const list = QUESTIONS.filter(q => q.sec === sec && (state.answers[q.id] || '').trim());
+    if (!list.length) continue;
+    out += '## ' + sec + '. ' + title + '\n\n';
+    for (const q of list){
+      out += '### ' + q.id + ' ' + q.q + '\n\n' + state.answers[q.id].trim() + '\n\n';
+    }
+  }
+  const todo = QUESTIONS.filter(q => !(state.answers[q.id] || '').trim());
+  if (todo.length){
+    out += '## 未回答（次回に持ち越し）\n\n';
+    out += todo.map(q => '- ' + q.id + ' ' + q.q).join('\n') + '\n';
+  }
+  return out;
+}
+document.getElementById('gen').addEventListener('click', () => {
+  document.getElementById('md').value = buildMarkdown();
+});
+document.getElementById('copy').addEventListener('click', async () => {
+  const el = document.getElementById('md');
+  if (!el.value) el.value = buildMarkdown();
+  try { await navigator.clipboard.writeText(el.value); flash(); }
+  catch(e){ el.select(); document.execCommand('copy'); }
+});
+document.getElementById('dl').addEventListener('click', () => {
+  const el = document.getElementById('md');
+  if (!el.value) el.value = buildMarkdown();
+  download('仕入れ引き継ぎ回答記録_' + today() + '.md', el.value, 'text/markdown');
+});
+document.getElementById('jsonout').addEventListener('click', () =>
+  download('引き継ぎコンソール_' + today() + '.json', JSON.stringify(state, null, 2), 'application/json'));
+document.getElementById('jsonin').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const s = JSON.parse(await f.text());
+    if (!s || typeof s !== 'object' || !s.answers) throw 0;
+    state = { answers: s.answers || {}, rows: Array.isArray(s.rows) ? s.rows : [] };
+    save(); renderQuestions(); renderTable(); renderFunnel();
+    alert('読み込みました。');
+  } catch(err){ alert('このファイルは読み込めませんでした。'); }
+  e.target.value = '';
+});
+document.getElementById('reset').addEventListener('click', () => {
+  if (!confirm('入力した回答と実績を全部消します。よろしいですか？')) return;
+  state = { answers:{}, rows:[] };
+  localStorage.removeItem(KEY);
+  renderQuestions(); renderTable(); renderFunnel();
+});
+document.getElementById('print').addEventListener('click', () => window.print());
+function download(name, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: type + ';charset=utf-8'}));
+  a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function today(){
+  const d = new Date(), p = n => String(n).padStart(2,'0');
+  return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate());
+}
+
+/* ---------- tabs ---------- */
+function selectTab(id){
+  const t = document.querySelector('.tab[data-p="' + id + '"]');
+  if (!t) return;
+  document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  ['q','c','o'].forEach(p => document.getElementById('p-' + p).hidden = (p !== id));
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  selectTab(t.dataset.p); location.hash = t.dataset.p; scrollTo({top:0});
+}));
+addEventListener('hashchange', () => selectTab(location.hash.slice(1)));
+if (['#q','#c','#o'].includes(location.hash)) selectTab(location.hash.slice(1));
+
+renderQuestions(); renderTable(); renderFunnel();
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 ## 使い方
 
 ```bash
-cd cashflow-dashboard && python3 -m http.server 5187   # → http://localhost:5187
+cd cashflow-dashboard && python3 -m http.server 5188   # → http://localhost:5188
 ```
 
 インストール・ビルド不要。`index.html` をブラウザで直接開いても動作します（完全クライアントサイド）。
