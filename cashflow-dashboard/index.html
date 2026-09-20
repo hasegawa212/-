@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資金繰りダッシュボード｜株式会社 Martial Arts</title>
+<style>
+  :root{
+    --bg:#0f1216; --panel:#171b21; --panel2:#1e242c; --line:#2a323c;
+    --ink:#eef2f6; --sub:#9aa7b4; --muted:#7f8b98;
+    --gold:#c9a24b; --gold2:#e6c877;
+    /* data-viz roles — dark steps validated against surface #171b21 */
+    --s1:#3987e5;            /* 入金 / 主系列 */
+    --s2:#e66767;            /* 出金 */
+    --s1-soft:rgba(57,135,229,.16);
+    --mid:#383835;           /* diverging neutral */
+    --grid:#232a33; --axis:#2f3843;
+    --ok:#0ca30c; --warn:#fab219; --serious:#ec835a; --crit:#d03b3b;
+    --r:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP","IPAGothic",Meiryo,sans-serif;
+    line-height:1.7;font-size:15px;-webkit-font-smoothing:antialiased}
+  a{color:var(--gold2)}
+  h1,h2,h3{line-height:1.35}
+
+  header{padding:24px 24px 18px;border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,#12161b,#0f1216)}
+  header .inner{max-width:1240px;margin:0 auto}
+  header .brand{font-size:12px;letter-spacing:.22em;color:var(--gold);font-weight:700}
+  header h1{margin:6px 0 4px;font-size:22px;font-weight:800;letter-spacing:.02em}
+  header p{margin:0;color:var(--sub);font-size:13px}
+
+  .wrap{max-width:1240px;margin:0 auto;padding:20px 20px 90px}
+
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0 6px}
+  button{font-family:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+    background:var(--panel2);color:var(--ink);padding:9px 15px;font-size:14px;font-weight:600;transition:.15s}
+  button:hover{border-color:var(--gold)}
+  button:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+  button.primary{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#211a08;border:none}
+  button.ghost{background:transparent}
+  button.danger:hover{border-color:var(--crit);color:#f0b4b4}
+  button.sm{padding:5px 11px;font-size:12px;border-radius:8px}
+  button[aria-pressed="true"]{border-color:var(--gold);color:var(--gold2)}
+  input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink);background:#0c0f13;
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  label.chk{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--sub);cursor:pointer}
+  label.chk input{accent-color:var(--gold);width:16px;height:16px;padding:0}
+
+  /* ---- drop zone ---- */
+  .drop{border:1.5px dashed var(--line);border-radius:var(--r);padding:38px 22px;text-align:center;
+    background:var(--panel);transition:.15s;margin-top:18px}
+  .drop.on{border-color:var(--gold);background:#1b2028}
+  .drop h2{margin:0 0 6px;font-size:18px}
+  .drop p{margin:0 0 14px;color:var(--sub);font-size:13px}
+  .drop .note{font-size:12px;color:var(--muted);margin-top:14px}
+
+  /* ---- cards ---- */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px;margin-top:18px;min-width:0}
+  .card > h2{margin:0 0 4px;font-size:16px;letter-spacing:.04em;display:flex;align-items:center;gap:9px}
+  .card > h2::before{content:"";width:8px;height:18px;background:var(--gold);border-radius:2px;flex:none}
+  .card .cap{margin:0 0 14px;color:var(--sub);font-size:12.5px}
+  .card .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .two{display:grid;gap:18px}
+  .two > *{min-width:0}
+  @media(min-width:1000px){.two{grid-template-columns:1fr 1fr}}
+
+  /* ---- KPI ---- */
+  .kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-top:16px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 15px;min-width:0}
+  .kpi .k{font-size:12px;color:var(--sub);letter-spacing:.03em;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .kpi .v{font-size:20px;font-weight:800;margin:5px 0 3px;letter-spacing:-.02em;white-space:nowrap}
+  .kpi .s{font-size:11.5px;color:var(--muted);line-height:1.5}
+  .period{color:var(--sub);font-size:12.5px;margin:12px 0 0}
+  .kpi.hero{border-color:#3a3021;background:linear-gradient(180deg,#1c1d19,var(--panel))}
+  .kpi.hero .v{color:var(--gold2)}
+  .pos{color:#5fd07f}.neg{color:#f08a8a}
+
+  /* ---- alerts ---- */
+  .alerts{display:grid;gap:10px;margin-top:6px}
+  .al{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--line);border-left-width:4px;
+    border-radius:10px;padding:11px 13px;background:var(--panel2);font-size:13.5px}
+  .al .ic{font-weight:800;font-size:14px;flex:none;width:18px;text-align:center}
+  .al b{display:block;font-size:14px;margin-bottom:1px}
+  .al .d{color:var(--sub);font-size:12.5px}
+  .al.critical{border-left-color:var(--crit)}.al.critical .ic{color:var(--crit)}
+  .al.serious{border-left-color:var(--serious)}.al.serious .ic{color:var(--serious)}
+  .al.warning{border-left-color:var(--warn)}.al.warning .ic{color:var(--warn)}
+  .al.good{border-left-color:var(--ok)}.al.good .ic{color:var(--ok)}
+
+  /* ---- chart ---- */
+  .chartbox{position:relative}
+  .chartbox svg{display:block;width:100%;height:auto;overflow:visible}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--sub);margin:2px 0 10px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none}
+  .tip{position:absolute;pointer-events:none;opacity:0;transition:opacity .1s;
+    background:#0b0e12;border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:12.5px;
+    box-shadow:0 6px 22px rgba(0,0,0,.5);z-index:5;white-space:nowrap}
+  .tip b{display:block;color:var(--gold2);margin-bottom:3px;font-size:12px}
+  .tip .r{display:flex;justify-content:space-between;gap:16px}
+  .tip .r i{font-style:normal;color:var(--sub)}
+  .tip .r em{font-style:normal;font-variant-numeric:tabular-nums}
+
+  /* ---- table ---- */
+  .tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl th,.tbl td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  .tbl th{color:var(--sub);font-weight:700;font-size:12px;letter-spacing:.03em;white-space:nowrap;
+    position:sticky;top:0;background:var(--panel);z-index:1}
+  .tbl td.n,.tbl th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .tbl tbody tr:hover{background:var(--panel2)}
+  .scroll{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .tv{display:none}.tv.on{display:block;margin-top:12px}
+  .tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:700;
+    border:1px solid var(--line);color:var(--sub);white-space:nowrap}
+
+  .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+  .filters input[type=search]{min-width:220px;flex:1}
+  .hint{font-size:12px;color:var(--muted)}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:13px;color:var(--sub)}
+
+  /* ---- modal ---- */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.66);display:none;align-items:center;justify-content:center;padding:16px;z-index:50}
+  .modal.on{display:flex}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:660px;width:100%;
+    max-height:92vh;overflow:auto;padding:22px}
+  .sheet h3{margin:0 0 4px;font-size:18px}
+  .sheet .cap{color:var(--sub);font-size:12.5px;margin:0 0 16px}
+  .fld{margin-bottom:15px}
+  .fld label{display:block;font-size:12.5px;color:var(--sub);margin-bottom:5px;font-weight:600}
+  .fld input,.fld textarea{width:100%}
+  .fld textarea{min-height:170px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.6}
+  .fld .h{font-size:11.5px;color:var(--muted);margin-top:5px}
+  .sheet .acts{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+
+  footer{max-width:1240px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:12px}
+
+  .hide{display:none !important}
+
+  /* ---- print: light surfaces + light-mode palette (validated on #ffffff) ---- */
+  @media print{
+    :root{
+      --bg:#fff; --panel:#fff; --panel2:#f7f7f5; --line:#d8d8d2;
+      --ink:#0b0b0b; --sub:#52514e; --muted:#898781;
+      --s1:#2a78d6; --s2:#e34948; --s1-soft:rgba(42,120,214,.13);
+      --grid:#e1e0d9; --axis:#c3c2b7; --mid:#c3c2b7;
+      --ok:#006300; --warn:#b07500; --serious:#b4552a; --crit:#c02020;
+    }
+    @page{size:A4;margin:12mm}
+    body{font-size:11.5px;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+    .noprint,.toolbar,.drop,.pager,.filters{display:none !important}
+    /* 強調カードは暗色ベタ塗りのままにせず、明色に置き換える */
+    .kpi.hero{background:#fbfaf5;border-color:#e0d5b6}
+    .kpi.hero .v{color:#7d6118}
+    .pos{color:#006300}.neg{color:#a81f1f}
+    .tbl th{background:#fff}
+    .card,.kpi{break-inside:avoid;box-shadow:none}
+    .scroll{max-height:none;overflow:visible}
+    .tv{display:block !important;margin-top:10px}
+    .chartbox{break-inside:avoid}
+    header{border-bottom:1px solid var(--line);background:none;padding:0 0 12px}
+    .wrap{padding:0}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="inner">
+    <div class="brand">CASH FLOW DASHBOARD</div>
+    <h1>資金繰りダッシュボード</h1>
+    <p>銀行取引明細CSVを読み込んで、残高推移・月次収支・カテゴリ別支出・取引先ランキングを可視化します。<b>データはブラウザ内だけで処理され、外部に送信されません。</b></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===== 取込 ===== -->
+  <div id="drop" class="drop noprint">
+    <h2>CSVをここにドロップ</h2>
+    <p>楽天銀行「取引明細」形式（取引日／入出金(円)／残高(円)／入出金先内容）に対応。Shift_JIS・UTF-8 自動判別。複数ファイルをまとめて取り込めます。</p>
+    <button class="primary" id="pick">ファイルを選ぶ</button>
+    <button class="ghost" id="demo">サンプルで試す</button>
+    <input type="file" id="file" accept=".csv,text/csv" multiple hidden>
+    <div class="note">読み込んだ明細はこのページの中だけで集計されます。サーバー送信・外部API呼び出しは一切ありません。</div>
+  </div>
+
+  <div id="app" class="hide">
+
+    <div class="toolbar noprint">
+      <button class="primary" id="addcsv">＋ CSVを追加</button>
+      <button id="settings">⚙︎ 設定・分類ルール</button>
+      <button id="print">🖨 印刷 / PDF保存</button>
+      <button class="ghost danger" id="clear">✕ データを消す</button>
+      <label class="chk" title="ONにすると明細をこのブラウザのlocalStorageに保存します（個人情報を含むため既定はOFF）">
+        <input type="checkbox" id="persist"> このブラウザに保存する
+      </label>
+      <span class="hint" id="srcinfo"></span>
+    </div>
+
+    <p class="period" id="period"></p>
+
+    <!-- ===== KPI ===== -->
+    <div class="kpis" id="kpis"></div>
+
+    <!-- ===== アラート ===== -->
+    <div class="card">
+      <h2>アラート</h2>
+      <p class="cap" id="alertcap"></p>
+      <div class="alerts" id="alerts"></div>
+    </div>
+
+    <!-- ===== 残高推移 ===== -->
+    <div class="card">
+      <div class="head">
+        <div>
+          <h2>残高推移</h2>
+          <p class="cap">日次の最終残高。破線は危険水域ライン（設定で変更できます）。</p>
+        </div>
+        <button class="sm ghost noprint" data-tv="tv-bal" aria-pressed="false">表で見る</button>
+      </div>
+      <div class="chartbox" id="c-bal"></div>
+      <div class="tv" id="tv-bal"></div>
+    </div>
+
+    <div class="two">
+      <!-- ===== 月次 入出金 ===== -->
+      <div class="card">
+        <div class="head">
+          <div>
+            <h2>月次 入金・出金</h2>
+            <p class="cap">自社口座間の振替を除いた実額。出金は絶対額で並べています。</p>
+          </div>
+          <button class="sm ghost noprint" data-tv="tv-io" aria-pressed="false">表で見る</button>
+        </div>
+        <div class="legend">
+          <span><i class="swatch" style="background:var(--s1)"></i>入金</span>
+          <span><i class="swatch" style="background:var(--s2)"></i>出金</span>
+        </div>
+        <div class="chartbox" id="c-io"></div>
+        <div class="tv" id="tv-io"></div>
+      </div>
+
+      <!-- ===== 月次純収支 ===== -->
+      <div class="card">
+        <div class="head">
+          <div>
+            <h2>月次 純収支</h2>
+            <p class="cap">入金−出金。ゼロラインより上が黒字、下が赤字です。</p>
+          </div>
+          <button class="sm ghost noprint" data-tv="tv-net" aria-pressed="false">表で見る</button>
+        </div>
+        <div class="chartbox" id="c-net"></div>
+        <div class="tv" id="tv-net"></div>
+      </div>
+    </div>
+
+    <!-- ===== カテゴリ別支出 ===== -->
+    <div class="card">
+      <div class="head">
+        <div>
+          <h2>カテゴリ別 支出</h2>
+          <p class="cap">分類ルールは「⚙︎ 設定・分類ルール」で編集できます（上から順に、最初に当たったルールを採用）。<br><span id="catnote"></span></p>
+        </div>
+        <button class="sm ghost noprint" data-tv="tv-cat" aria-pressed="false">表で見る</button>
+      </div>
+      <div class="chartbox" id="c-cat"></div>
+      <div class="tv" id="tv-cat"></div>
+    </div>
+
+    <!-- ===== ランキング ===== -->
+    <div class="two">
+      <div class="card">
+        <h2>入金元 TOP20</h2>
+        <p class="cap">同一名義を合算。自社口座間の振替は除外しています。</p>
+        <div class="scroll" id="rank-in"></div>
+      </div>
+      <div class="card">
+        <h2>支払先 TOP20</h2>
+        <p class="cap">同一名義を合算。自社口座間の振替は除外しています。</p>
+        <div class="scroll" id="rank-out"></div>
+      </div>
+    </div>
+
+    <!-- ===== 明細 ===== -->
+    <div class="card">
+      <h2>取引明細</h2>
+      <p class="cap" id="dcap"></p>
+      <div class="filters noprint">
+        <input type="search" id="q" placeholder="相手先・摘要で検索">
+        <select id="fcat"><option value="">すべてのカテゴリ</option></select>
+        <select id="fdir">
+          <option value="">入出金すべて</option>
+          <option value="in">入金のみ</option>
+          <option value="out">出金のみ</option>
+        </select>
+        <input type="number" id="fmin" placeholder="金額下限（円）" style="width:150px">
+        <button class="sm ghost" id="freset">条件クリア</button>
+      </div>
+      <div class="scroll" id="detail"></div>
+      <div class="pager noprint" id="pager"></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  ゼロ依存・単一HTML。集計はすべてブラウザ内で完結します。金額は取り込んだCSVをそのまま集計した参考値です — 会計・税務の確定値としては会計帳簿と照合してください。
+</footer>
+
+<!-- ===== 設定モーダル ===== -->
+<div class="modal" id="mset">
+  <div class="sheet">
+    <h3>設定・分類ルール</h3>
+    <p class="cap">設定はこのブラウザに保存されます（明細データは含みません）。</p>
+    <div class="fld">
+      <label for="s-thr">危険水域ライン（円）</label>
+      <input type="number" id="s-thr" step="100000">
+      <div class="h">残高がこの額を下回った日をアラートに出します。</div>
+    </div>
+    <div class="fld">
+      <label for="s-self">自社口座キーワード（カンマ区切り）</label>
+      <input type="text" id="s-self">
+      <div class="h">ここに当たる入出金は「自社間振替」として収支から除外します。会社名・自社の他行口座番号などを入れてください。</div>
+    </div>
+    <div class="fld">
+      <label for="s-big">大口取引のしきい値（円）</label>
+      <input type="number" id="s-big" step="1000000">
+      <div class="h">これ以上の出金が同じ日に重なるとアラートを出します。</div>
+    </div>
+    <div class="fld">
+      <label for="s-rules">分類ルール（1行 = <code>カテゴリ名 , キーワード1 | キーワード2 …</code>）</label>
+      <textarea id="s-rules" spellcheck="false"></textarea>
+      <div class="h">上の行から順に判定し、最初に当たったカテゴリを採用します。半角カナ・濁点分離（例：セソ゛ン）は自動で正規化されるため「セゾン」と書けば一致します。</div>
+    </div>
+    <div class="acts">
+      <button class="ghost" id="s-reset">既定に戻す</button>
+      <button class="ghost" id="s-cancel">キャンセル</button>
+      <button class="primary" id="s-save">保存して再集計</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==========================================================================
+   資金繰りダッシュボード — ゼロ依存・単一HTML
+   データはすべてブラウザ内で処理する。外部送信は一切行わない。
+   ========================================================================== */
+
+const LS_CFG  = 'ma_cashflow_dashboard_v1';
+const LS_DATA = 'ma_cashflow_data_v1';
+
+/* ---------- 既定設定 ---------------------------------------------------- */
+const DEFAULT_RULES = [
+  ['自社間振替',   '__SELF__'],
+  ['振込手数料',   '手数料'],
+  ['調達・信販',   'セゾン|アプラス|ジャックス|オリエントコーポレーション|アメリカンエキスプレス|JCB|トヨタファイナンス|三井住友トラストクラブ|ライフカード|ビジネスパートナー|ファイナンス|リース'],
+  ['税金・公的',   '税務署|都税|県税|市民税|住民税|法人税|消費税|年金機構|労働保険|社会保険|健康保険|ネンキン|ゼイム'],
+  ['士業・専門',   '税理士|司法書士|行政書士|会計事務所|弁護士|ゼイリシ|シホウ'],
+  ['保険',         '損害保険|生命保険|海上火災|あいおい|東京海上|三井住友海上|損保|ホケン|ゼンホレン'],
+  ['通信・光熱',   '電気|電力|でんき|デンキ|ガス|水道|ソフトバンク|ドコモ|ＫＤＤＩ|KDDI|NTT|エヌティティ|楽天モバイル|ビッグローブ'],
+  ['家賃・地代',   '家賃|賃料|チンリヨウ|ヤチン|地代|管理費'],
+  ['広告・集客',   '広告|アドバ|リクルート|インディード|ポータル|スーモ|ホームズ|アットホーム'],
+  ['現金引出',     'カード出金|ATM|現金'],
+];
+const DEFAULT_CFG = {
+  threshold: 5000000,
+  big: 5000000,
+  self: 'マーシャルアーツ,マーシャル アーツ',
+  rules: DEFAULT_RULES.map(r => r.join(' , ')).join('\n'),
+  persist: false,
+};
+let CFG = { ...DEFAULT_CFG };
+
+/* ---------- カナ正規化 --------------------------------------------------
+   銀行CSVは半角カナ由来で「セソ゛ン」のように濁点が分離している。
+   基底文字＋濁点/半濁点を合成し、以降の突き合わせを人が書いたとおりにする。 */
+const KANA_BASE  = 'カキクケコサシスセソタチツテトハヒフヘホウワヰヱヲ';
+const KANA_VOICE = 'ガギグゲゴザジズゼゾダヂヅデドバビブベボヴヷヸヹヲ';
+const KANA_HB    = 'ハヒフヘホ';
+const KANA_HP    = 'パピプペポ';
+
+function normKana(s){
+  if(!s) return '';
+  // NFKC は単独の「゛」を「空白＋結合濁点」に分解するので、間の空白も許して合成する
+  let t = s.normalize('NFKC');
+  t = t.replace(/([^ ]) ?[゛゙ﾞ]/g, (m,c)=>{
+    const i = KANA_BASE.indexOf(c); return i >= 0 ? KANA_VOICE[i] : m;
+  });
+  t = t.replace(/([^ ]) ?[゜゚ﾟ]/g, (m,c)=>{
+    const i = KANA_HB.indexOf(c); return i >= 0 ? KANA_HP[i] : m;
+  });
+  return t.replace(/[　\s]+/g,' ').trim();
+}
+
+/* 突き合わせ用キー。表記ゆれ（長音・ハイフン、大書き/小書き、ひらがな、
+   括弧・記号・空白）を潰し、ルールを人が書いたとおりに当てられるようにする。
+   例）「マーシャルアーツ」で「カ）マ－シヤル　ア－ツ」に一致する。 */
+const KANA_SMALL = 'ァィゥェォャュョッヮヵヶ';
+const KANA_LARGE = 'アイウエオヤユヨツワカケ';
+function matchKey(s){
+  let t = normKana(s).toUpperCase();
+  t = t.replace(/[ぁ-ゖ]/g, c => String.fromCharCode(c.charCodeAt(0) + 0x60));
+  t = t.replace(/[ー‐‑‒–—―－゠-]/g, '');
+  t = t.replace(/[ァィゥェォャュョッヮヵヶ]/g, c => KANA_LARGE[KANA_SMALL.indexOf(c)]);
+  return t.replace(/[\s　()（）「」『』【】・,，.。:：;；\/／#＃、]/g, '');
+}
+
+/* ---------- CSV 読み込み ------------------------------------------------ */
+function decodeBytes(buf){
+  // BOM付き or 妥当なUTF-8ならUTF-8、そうでなければ Shift_JIS(CP932) とみなす。
+  const b = new Uint8Array(buf);
+  if(b[0] === 0xEF && b[1] === 0xBB && b[2] === 0xBF)
+    return new TextDecoder('utf-8').decode(buf.slice(3));
+  try { return new TextDecoder('utf-8', {fatal:true}).decode(buf); }
+  catch(e){ return new TextDecoder('shift_jis').decode(buf); }
+}
+
+function parseCSV(text){
+  const rows = []; let row = [], cur = '', q = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(q){
+      if(c === '"'){ if(text[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if(c === '"'){ q = true; }
+    else if(c === ','){ row.push(cur); cur = ''; }
+    else if(c === '\n'){ row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if(c === '\r'){ /* skip */ }
+    else cur += c;
+  }
+  if(cur !== '' || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ''));
+}
+
+const HEAD_MAP = {
+  date: ['取引日','日付','年月日','取引日付','date'],
+  amt:  ['入出金','金額','入出金(円)','入出金（円）','取引金額','amount'],
+  in:   ['入金','入金金額','お預かり金額','預入金額','deposit'],
+  out:  ['出金','出金金額','お支払金額','引出金額','payment','withdrawal'],
+  bal:  ['残高','残高(円)','残高（円）','balance'],
+  desc: ['入出金先内容','内容','摘要','お取引内容','取引内容','description','memo'],
+};
+function findCol(headers, keys){
+  const h = headers.map(x => normKana(x).replace(/[()（）\s]/g,'').toLowerCase());
+  for(const k of keys){
+    const kk = normKana(k).replace(/[()（）\s]/g,'').toLowerCase();
+    const i = h.findIndex(x => x === kk);
+    if(i >= 0) return i;
+  }
+  for(const k of keys){
+    const kk = normKana(k).replace(/[()（）\s]/g,'').toLowerCase();
+    const i = h.findIndex(x => x.includes(kk));
+    if(i >= 0) return i;
+  }
+  return -1;
+}
+function toNum(v){
+  if(v == null) return NaN;
+  const s = String(v).normalize('NFKC').replace(/[,¥￥\s　]/g, '');
+  if(s === '' || s === '-') return NaN;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : NaN;
+}
+function toDate(v){
+  const s = String(v).trim().replace(/[^\d]/g,'');
+  if(s.length === 8) return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+  const m = String(v).match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if(m) return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  return null;
+}
+
+/** CSVテキスト1本 → 取引レコード配列。形式が読めなければ例外を投げる。 */
+function readStatement(text, fname){
+  const rows = parseCSV(text);
+  if(!rows.length) throw new Error('空のファイルです');
+  // ヘッダ行は「取引日/日付」らしき列を持つ最初の行
+  let hi = rows.findIndex(r => findCol(r, HEAD_MAP.date) >= 0);
+  if(hi < 0) hi = 0;
+  const H = rows[hi];
+  const ci = {
+    date: findCol(H, HEAD_MAP.date),
+    amt:  findCol(H, HEAD_MAP.amt),
+    in:   findCol(H, HEAD_MAP.in),
+    out:  findCol(H, HEAD_MAP.out),
+    bal:  findCol(H, HEAD_MAP.bal),
+    desc: findCol(H, HEAD_MAP.desc),
+  };
+  // 「入出金(円)」のような符号付き1列は 出金 列にも部分一致する。符号付き列を優先する。
+  if(ci.amt >= 0){
+    if(ci.in  === ci.amt) ci.in  = -1;
+    if(ci.out === ci.amt) ci.out = -1;
+  }
+  if(ci.date < 0 || (ci.amt < 0 && ci.in < 0 && ci.out < 0))
+    throw new Error('「取引日」と「入出金(金額)」の列が見つかりませんでした');
+
+  const out = [];
+  for(let i = hi + 1; i < rows.length; i++){
+    const r = rows[i];
+    const d = toDate(r[ci.date] || '');
+    if(!d) continue;
+    let amt = NaN;
+    if(ci.amt >= 0) amt = toNum(r[ci.amt]);
+    if(!Number.isFinite(amt)){
+      const vi = ci.in  >= 0 ? toNum(r[ci.in])  : NaN;
+      const vo = ci.out >= 0 ? toNum(r[ci.out]) : NaN;
+      amt = (Number.isFinite(vi) ? vi : 0) - (Number.isFinite(vo) ? vo : 0);
+      if(!Number.isFinite(vi) && !Number.isFinite(vo)) continue;
+    }
+    if(!Number.isFinite(amt)) continue;
+    const bal = ci.bal >= 0 ? toNum(r[ci.bal]) : NaN;
+    const raw = ci.desc >= 0 ? (r[ci.desc] || '') : '';
+    out.push({ date:d, amt, bal: Number.isFinite(bal) ? bal : null, desc: normKana(raw), raw, src: fname });
+  }
+  if(!out.length) throw new Error('取引行を読み取れませんでした');
+  return out;
+}
+
+/* ---------- 相手先の抽出 ------------------------------------------------
+   「◯◯銀行 △△支店 普通預金 1234567 ナマエ（依頼人名：…）」から
+   受取人名だけを取り出す。振替系はそのまま短縮する。 */
+/** 「（依頼人名：…）」以降を落とした受取人側の文字列 */
+const headOf = desc => desc.split(/[(（]/)[0].trim();
+
+function counterparty(desc){
+  let s = headOf(desc);
+  const m = s.match(/(?:普通預金|当座預金|貯蓄預金)\s*\d+\s*(.+)$/);
+  s = m ? m[1].trim() : s.replace(/^(振込入金|振込|口座振替|自動振替)\s*/, '');
+  s = s.replace(/^[カｶ]\)\s*/, '㈱').replace(/\s*[（(][カｶ]$/, '㈱');
+  return s.slice(0, 28).trim() || '(不明)';
+}
+
+/* ---------- 分類 -------------------------------------------------------- */
+function parseRules(txt, selfKeys){
+  return txt.split('\n').map(l => l.trim()).filter(Boolean).map(l => {
+    const i = l.indexOf(',');
+    if(i < 0) return null;
+    const cat = l.slice(0, i).trim();
+    const body = l.slice(i + 1).trim();
+    const kws = (body === '__SELF__' ? selfKeys : body.split('|'))
+      .map(k => matchKey(k)).filter(Boolean);
+    return kws.length ? { cat, kws, self: body === '__SELF__' } : null;
+  }).filter(Boolean);
+}
+function classify(key, rules){
+  for(const r of rules)
+    for(const k of r.kws)
+      if(key.includes(k)) return r;
+  return null;
+}
+/** 銀行振込らしい摘要か（「◯◯支店 … 普通預金 口座番号 名義」形式） */
+const isTransfer = d => /(支店|営業部|出張所|支所|本店|営業所)/.test(d) && /預金/.test(d);
+
+/* ---------- 集計 -------------------------------------------------------- */
+const yen  = n => (n < 0 ? '-' : '') + '¥' + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+const sYen = n => (n > 0 ? '+' : n < 0 ? '-' : '') + '¥' + Math.abs(Math.round(n)).toLocaleString('ja-JP');
+function compact(n){
+  const a = Math.abs(n), s = n < 0 ? '-' : '';
+  if(a >= 1e8) return s + (a / 1e8).toFixed(a >= 1e9 ? 0 : 1).replace(/\.0$/,'') + '億';
+  if(a >= 1e4) return s + Math.round(a / 1e4).toLocaleString('ja-JP') + '万';
+  return s + Math.round(a).toLocaleString('ja-JP');
+}
+const ymOf  = d => d.slice(0, 7);
+const ymLbl = ym => `${Number(ym.slice(5,7))}月`;
+
+let TX = [];      // 正規化済み取引（日付昇順）
+let AGG = null;   // 集計結果
+
+function aggregate(){
+  const selfKeys = CFG.self.split(',').map(s => s.trim()).filter(Boolean);
+  const rules = parseRules(CFG.rules, selfKeys);
+
+  for(const t of TX){
+    const hit = classify(matchKey(headOf(t.desc)), rules);
+    t.self = !!(hit && hit.self);
+    t.cat  = hit ? hit.cat
+           : isTransfer(t.desc) ? (t.amt > 0 ? '入金（振込）' : '振込（仕入・外注等）')
+           : (t.amt > 0 ? 'その他入金' : 'その他出金');
+    t.cp   = counterparty(t.desc);
+  }
+
+  const biz = TX.filter(t => !t.self);
+  const inSum  = biz.filter(t => t.amt > 0).reduce((s,t) => s + t.amt, 0);
+  const outSum = biz.filter(t => t.amt < 0).reduce((s,t) => s + t.amt, 0);
+  const selfNet = TX.filter(t => t.self).reduce((s,t) => s + t.amt, 0);
+
+  // 月次
+  const mmap = new Map();
+  for(const t of biz){
+    const k = ymOf(t.date);
+    if(!mmap.has(k)) mmap.set(k, { ym:k, in:0, out:0, n:0 });
+    const m = mmap.get(k);
+    m.n++; t.amt > 0 ? m.in += t.amt : m.out += t.amt;
+  }
+  const months = [...mmap.values()].sort((a,b) => a.ym < b.ym ? -1 : 1);
+  months.forEach(m => m.net = m.in + m.out);
+
+  // 日次残高（残高列がある場合のみ：その日の最終行の残高）
+  const dmap = new Map();
+  for(const t of TX) if(t.bal != null) dmap.set(t.date, t.bal);
+  const daily = [...dmap.entries()].map(([date,bal]) => ({date,bal}))
+                  .sort((a,b) => a.date < b.date ? -1 : 1);
+
+  // カテゴリ別支出（自社間振替は除外）
+  const cmap = new Map();
+  for(const t of biz) if(t.amt < 0){
+    const c = cmap.get(t.cat) || { cat:t.cat, sum:0, n:0 };
+    c.sum += -t.amt; c.n++; cmap.set(t.cat, c);
+  }
+  const cats = [...cmap.values()].sort((a,b) => b.sum - a.sum);
+
+  // 相手先ランキング
+  const rank = dir => {
+    const m = new Map();
+    for(const t of biz){
+      if(dir === 'in' ? t.amt <= 0 : t.amt >= 0) continue;
+      const e = m.get(t.cp) || { cp:t.cp, sum:0, n:0, cat:t.cat };
+      e.sum += Math.abs(t.amt); e.n++; m.set(t.cp, e);
+    }
+    return [...m.values()].sort((a,b) => b.sum - a.sum).slice(0, 20);
+  };
+
+  const first = TX[0], last = TX[TX.length - 1];
+  const openBal = first.bal != null ? first.bal - first.amt : null;
+
+  AGG = {
+    from:first.date, to:last.date, n:TX.length,
+    inSum, outSum, net:inSum + outSum, selfNet,
+    rawNet: TX.reduce((s,t) => s + t.amt, 0),
+    openBal, lastBal: last.bal,
+    minBal: daily.length ? Math.min(...daily.map(d => d.bal)) : null,
+    minDay: null,
+    months, daily, cats,
+    rankIn: rank('in'), rankOut: rank('out'),
+    belowDays: daily.filter(d => d.bal < CFG.threshold),
+  };
+  if(AGG.minBal != null) AGG.minDay = daily.find(d => d.bal === AGG.minBal).date;
+  return AGG;
+}
+</script>
+
+<script>
+/* ==========================================================================
+   チャート — 依存ライブラリなしの手書きSVG
+   色は CSS カスタムプロパティ経由（印刷時に明色パレットへ差し替わる）
+   ========================================================================== */
+const NS = 'http://www.w3.org/2000/svg';
+const el = (t, a = {}) => { const e = document.createElementNS(NS, t);
+  for(const k in a) e.setAttribute(k, a[k]); return e; };
+const txt = (s, a = {}) => { const e = el('text', a); e.textContent = s; return e; };
+
+/** 上端（または下端・右端）だけ角丸にした棒のパス。data-end を 4px で丸める。 */
+function bar(x, y, w, h, r, dir){
+  r = Math.max(0, Math.min(r, w / 2, h));
+  if(dir === 'down') return `M${x},${y}h${w}v${h-r}a${r},${r} 0 0 1 ${-r},${r}h${-(w-2*r)}a${r},${r} 0 0 1 ${-r},${-r}z`;
+  if(dir === 'right') return `M${x},${y}h${w-r}a${r},${r} 0 0 1 ${r},${r}v${h-2*r}a${r},${r} 0 0 1 ${-r},${r}h${-(w-r)}z`;
+  return `M${x},${y+h}v${-(h-r)}a${r},${r} 0 0 1 ${r},${-r}h${w-2*r}a${r},${r} 0 0 1 ${r},${r}v${h-r}z`;
+}
+
+/** きりのよい目盛り値を返す */
+function ticks(min, max, count = 5){
+  if(min === max){ min = Math.min(0, min); max = max || 1; }
+  const span = (max - min) / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(Math.abs(span) || 1)));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= span) || mag * 10;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+  const out = [];
+  for(let v = lo; v <= hi + step / 2; v += step) out.push(Math.round(v));
+  return { vals: out, lo, hi };
+}
+
+/** ラベルが棒幅に収まるか。収まらないものは凡例・ツールチップ・表に任せる。 */
+const fits = (label, w, fs) => String(label).length * fs * 0.62 <= w + 8;
+
+function mkTip(box){
+  let t = box.querySelector('.tip');
+  if(!t){ t = document.createElement('div'); t.className = 'tip'; box.appendChild(t); }
+  return t;
+}
+function showTip(tip, box, px, py, html){
+  tip.innerHTML = html; tip.style.opacity = '1';
+  const bw = box.clientWidth, tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = Math.max(4, Math.min(px + 14, bw - tw - 4)) + 'px';
+  tip.style.top  = Math.max(4, py - th - 12) + 'px';
+}
+
+/* ---------- 残高推移（折れ線＋クロスヘア） ------------------------------ */
+function chartBalance(box, data, threshold){
+  box.querySelectorAll('svg').forEach(n => n.remove());
+  const W = Math.max(320, box.clientWidth), H = 300;
+  const M = { t: 16, r: 18, b: 30, l: 64 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const svg = el('svg', { viewBox:`0 0 ${W} ${H}`, width:W, height:H, role:'img',
+    'aria-label':'日次残高の推移' });
+
+  const xs = data.map(d => new Date(d.date + 'T00:00:00').getTime());
+  const x0 = Math.min(...xs), x1 = Math.max(...xs);
+  const yMax = Math.max(...data.map(d => d.bal), threshold);
+  const tk = ticks(0, yMax, 5);
+  const X = v => M.l + (x1 === x0 ? iw / 2 : (v - x0) / (x1 - x0) * iw);
+  const Y = v => M.t + ih - (v - tk.lo) / (tk.hi - tk.lo) * ih;
+
+  // グリッド（細いソリッド・目立たせない）
+  tk.vals.forEach(v => {
+    svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:Y(v), y2:Y(v),
+      stroke:'var(--grid)', 'stroke-width':1 }));
+    svg.appendChild(txt(compact(v), { x:M.l-10, y:Y(v)+4, 'text-anchor':'end',
+      fill:'var(--muted)', 'font-size':11, 'font-variant-numeric':'tabular-nums' }));
+  });
+  svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:M.t+ih, y2:M.t+ih,
+    stroke:'var(--axis)', 'stroke-width':1 }));
+
+  // 月の区切りラベル
+  let lastYm = '';
+  data.forEach(d => {
+    const ym = ymOf(d.date);
+    if(ym !== lastYm){
+      lastYm = ym;
+      svg.appendChild(txt(ymLbl(ym), { x:X(new Date(d.date+'T00:00:00').getTime()),
+        y:H-10, 'text-anchor':'middle', fill:'var(--muted)', 'font-size':11 }));
+    }
+  });
+
+  // 面＋線
+  const pts = data.map(d => [X(new Date(d.date+'T00:00:00').getTime()), Y(d.bal)]);
+  svg.appendChild(el('path', {
+    d:`M${pts[0][0]},${M.t+ih}` + pts.map(p => `L${p[0]},${p[1]}`).join('') + `L${pts[pts.length-1][0]},${M.t+ih}z`,
+    fill:'var(--s1-soft)', stroke:'none' }));
+  svg.appendChild(el('path', { d:'M' + pts.map(p => `${p[0]},${p[1]}`).join('L'),
+    fill:'none', stroke:'var(--s1)', 'stroke-width':2,
+    'stroke-linejoin':'round', 'stroke-linecap':'round' }));
+
+  // 危険水域ライン（破線＝しきい値の意味を担う）
+  if(threshold > 0 && threshold <= tk.hi){
+    svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:Y(threshold), y2:Y(threshold),
+      stroke:'var(--warn)', 'stroke-width':1.5, 'stroke-dasharray':'5 4' }));
+    svg.appendChild(txt(`危険水域 ${compact(threshold)}`, { x:M.l+6, y:Y(threshold)-7,
+      fill:'var(--warn)', 'font-size':11, 'font-weight':700 }));
+  }
+
+  // 最終残高を直接ラベル（唯一の系列なので凡例は不要）
+  const lastP = pts[pts.length-1], lastD = data[data.length-1];
+  svg.appendChild(el('circle', { cx:lastP[0], cy:lastP[1], r:4.5, fill:'var(--s1)',
+    stroke:'var(--panel)', 'stroke-width':2 }));
+  svg.appendChild(txt(compact(lastD.bal), { x:lastP[0]-8, y:lastP[1]-12,
+    'text-anchor':'end', fill:'var(--ink)', 'font-size':12, 'font-weight':700 }));
+
+  // クロスヘア＋ツールチップ
+  const cross = el('line', { y1:M.t, y2:M.t+ih, stroke:'var(--axis)', 'stroke-width':1, opacity:0 });
+  const dot = el('circle', { r:5, fill:'var(--s1)', stroke:'var(--panel)', 'stroke-width':2, opacity:0 });
+  svg.appendChild(cross); svg.appendChild(dot);
+  const hit = el('rect', { x:M.l, y:M.t, width:iw, height:ih, fill:'transparent' });
+  svg.appendChild(hit);
+  const tip = mkTip(box);
+  const move = e => {
+    const r = svg.getBoundingClientRect();
+    const mx = (e.clientX - r.left) * (W / r.width);
+    let bi = 0, bd = Infinity;
+    pts.forEach((p,i) => { const d = Math.abs(p[0] - mx); if(d < bd){ bd = d; bi = i; } });
+    const p = pts[bi], d = data[bi];
+    cross.setAttribute('x1', p[0]); cross.setAttribute('x2', p[0]); cross.setAttribute('opacity', 1);
+    dot.setAttribute('cx', p[0]); dot.setAttribute('cy', p[1]); dot.setAttribute('opacity', 1);
+    const warn = d.bal < threshold ? ' <i style="color:var(--warn)">⚠ 危険水域</i>' : '';
+    showTip(tip, box, p[0] * (r.width / W), p[1] * (r.height / H),
+      `<b>${d.date}</b><div class="r"><i>残高</i><em>${yen(d.bal)}</em></div>${warn}`);
+  };
+  hit.addEventListener('mousemove', move);
+  hit.addEventListener('mouseleave', () => {
+    tip.style.opacity = '0'; cross.setAttribute('opacity', 0); dot.setAttribute('opacity', 0);
+  });
+  box.appendChild(svg);
+}
+
+/* ---------- 月次 入金・出金（グループ棒） ------------------------------- */
+function chartInOut(box, months){
+  box.querySelectorAll('svg').forEach(n => n.remove());
+  const W = Math.max(300, box.clientWidth), H = 280;
+  const M = { t: 26, r: 12, b: 30, l: 58 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const svg = el('svg', { viewBox:`0 0 ${W} ${H}`, width:W, height:H, role:'img',
+    'aria-label':'月次の入金と出金' });
+
+  const tk = ticks(0, Math.max(...months.map(m => Math.max(m.in, -m.out)), 1), 4);
+  const Y = v => M.t + ih - (v - tk.lo) / (tk.hi - tk.lo) * ih;
+  const band = iw / months.length;
+  const bw = Math.max(6, Math.min(46, (band - 16) / 2 - 1)); // 中央に 2px の面ギャップ
+
+  tk.vals.forEach(v => {
+    svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:Y(v), y2:Y(v),
+      stroke:'var(--grid)', 'stroke-width':1 }));
+    svg.appendChild(txt(compact(v), { x:M.l-9, y:Y(v)+4, 'text-anchor':'end',
+      fill:'var(--muted)', 'font-size':11, 'font-variant-numeric':'tabular-nums' }));
+  });
+  svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:M.t+ih, y2:M.t+ih,
+    stroke:'var(--axis)', 'stroke-width':1 }));
+
+  const tip = mkTip(box);
+  months.forEach((m, i) => {
+    const cx = M.l + band * i + band / 2;
+    const pairs = [
+      { v:m.in,   c:'var(--s1)', x:cx - bw - 1, name:'入金' },
+      { v:-m.out, c:'var(--s2)', x:cx + 1,      name:'出金' },
+    ];
+    pairs.forEach(p => {
+      const h = Math.max(1, (M.t + ih) - Y(p.v));
+      const path = el('path', { d:bar(p.x, Y(p.v), bw, h, 4, 'up'), fill:p.c });
+      svg.appendChild(path);
+      if(fits(compact(p.v), bw, 10))
+        svg.appendChild(txt(compact(p.v), { x:p.x + bw/2, y:Y(p.v) - 7, 'text-anchor':'middle',
+          fill:'var(--sub)', 'font-size':10 }));
+      // 当たり判定は棒より広く取る
+      const hit = el('rect', { x:p.x - 4, y:M.t, width:bw + 8, height:ih, fill:'transparent' });
+      hit.addEventListener('mousemove', e => {
+        const r = svg.getBoundingClientRect();
+        showTip(tip, box, (e.clientX - r.left), Y(p.v) * (r.height / H),
+          `<b>${m.ym} ${p.name}</b><div class="r"><i>金額</i><em>${yen(p.v)}</em></div>` +
+          `<div class="r"><i>純収支</i><em>${sYen(m.net)}</em></div>` +
+          `<div class="r"><i>件数</i><em>${m.n}件</em></div>`);
+      });
+      hit.addEventListener('mouseleave', () => tip.style.opacity = '0');
+      svg.appendChild(hit);
+    });
+    svg.appendChild(txt(ymLbl(m.ym), { x:cx, y:H-10, 'text-anchor':'middle',
+      fill:'var(--muted)', 'font-size':11 }));
+  });
+  box.appendChild(svg);
+}
+
+/* ---------- 月次 純収支（ゼロ基準の発散棒） ---------------------------- */
+function chartNet(box, months){
+  box.querySelectorAll('svg').forEach(n => n.remove());
+  const W = Math.max(300, box.clientWidth), H = 280;
+  const M = { t: 26, r: 12, b: 30, l: 58 };
+  const iw = W - M.l - M.r, ih = H - M.t - M.b;
+  const svg = el('svg', { viewBox:`0 0 ${W} ${H}`, width:W, height:H, role:'img',
+    'aria-label':'月次の純収支' });
+
+  const nets = months.map(m => m.net);
+  const tk = ticks(Math.min(0, ...nets), Math.max(0, ...nets), 4);
+  const Y = v => M.t + ih - (v - tk.lo) / (tk.hi - tk.lo) * ih;
+  const band = iw / months.length, bw = Math.min(46, band - 18);
+  const zero = Y(0);
+
+  tk.vals.forEach(v => {
+    svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:Y(v), y2:Y(v),
+      stroke:'var(--grid)', 'stroke-width':1 }));
+    svg.appendChild(txt(compact(v), { x:M.l-9, y:Y(v)+4, 'text-anchor':'end',
+      fill:'var(--muted)', 'font-size':11, 'font-variant-numeric':'tabular-nums' }));
+  });
+  // ゼロライン＝中立（発散スケールの中点はグレー）
+  svg.appendChild(el('line', { x1:M.l, x2:M.l+iw, y1:zero, y2:zero,
+    stroke:'var(--axis)', 'stroke-width':1.5 }));
+
+  const tip = mkTip(box);
+  months.forEach((m, i) => {
+    const cx = M.l + band * i + band / 2, x = cx - bw / 2;
+    const up = m.net >= 0;
+    const h = Math.max(1, Math.abs(zero - Y(m.net)));
+    svg.appendChild(el('path', {
+      d: up ? bar(x, Y(m.net), bw, h, 4, 'up') : bar(x, zero, bw, h, 4, 'down'),
+      fill: up ? 'var(--s1)' : 'var(--s2)' }));
+    if(fits(compact(m.net), bw, 11.5))
+      svg.appendChild(txt(compact(m.net), { x:cx, y: up ? Y(m.net) - 8 : Y(m.net) + 15,
+        'text-anchor':'middle', fill:'var(--ink)', 'font-size':11.5, 'font-weight':700 }));
+    svg.appendChild(txt(ymLbl(m.ym), { x:cx, y:H-10, 'text-anchor':'middle',
+      fill:'var(--muted)', 'font-size':11 }));
+    const hit = el('rect', { x:cx - band/2, y:M.t, width:band, height:ih, fill:'transparent' });
+    hit.addEventListener('mousemove', e => {
+      const r = svg.getBoundingClientRect();
+      showTip(tip, box, (e.clientX - r.left), zero * (r.height / H),
+        `<b>${m.ym}</b><div class="r"><i>入金</i><em>${yen(m.in)}</em></div>` +
+        `<div class="r"><i>出金</i><em>${yen(m.out)}</em></div>` +
+        `<div class="r"><i>純収支</i><em>${sYen(m.net)}</em></div>`);
+    });
+    hit.addEventListener('mouseleave', () => tip.style.opacity = '0');
+    svg.appendChild(hit);
+  });
+  box.appendChild(svg);
+}
+
+/* ---------- カテゴリ別支出（横棒・単一系列） ----------------------------
+   仕入など1カテゴリが突出すると他が潰れるため、2位以上離れている場合は
+   2位を基準に目盛りを取り、その旨を画面に明記したうえで最大値の棒を伸ばし切る。 */
+function chartCats(box, cats, note){
+  box.querySelectorAll('svg').forEach(n => n.remove());
+  const top = cats.slice(0, 12);
+  if(!top.length) return;
+  const W = Math.max(320, box.clientWidth), rowH = 30;
+  const M = { t: 6, r: 112, b: 6, l: Math.min(160, Math.max(104, W * 0.26)) };
+  const H = M.t + M.b + top.length * rowH;
+  const iw = W - M.l - M.r;
+  const svg = el('svg', { viewBox:`0 0 ${W} ${H}`, width:W, height:H, role:'img',
+    'aria-label':'カテゴリ別の支出額' });
+
+  const scaled = top.length > 1 && top[0].sum > top[1].sum * 3;
+  const max = (scaled ? top[1].sum : top[0].sum) || 1;
+  const total = cats.reduce((s,c) => s + c.sum, 0) || 1;
+  if(note) note.textContent = scaled
+    ? `最大の「${top[0].cat}」が突出しているため、目盛りは2位の「${top[1].cat}」基準です（≫ は目盛り超過）。`
+    : '';
+  const tip = mkTip(box);
+
+  top.forEach((c, i) => {
+    const y = M.t + i * rowH, bh = rowH - 12;      // 行間に 2px 以上の面ギャップ
+    const over = c.sum > max;
+    const w = Math.max(2, Math.min(iw, c.sum / max * iw));
+    const name = c.cat.length > 11 ? c.cat.slice(0, 11) + '…' : c.cat;
+    svg.appendChild(txt(name, { x:M.l - 10, y:y + bh/2 + 4, 'text-anchor':'end',
+      fill:'var(--sub)', 'font-size':12 }));
+    svg.appendChild(el('path', { d:bar(M.l, y, w, bh, 4, 'right'), fill:'var(--s1)' }));
+    svg.appendChild(txt((over ? '≫ ' : '') + yen(c.sum), { x:M.l + w + 9, y:y + bh/2 + 4,
+      fill:'var(--ink)', 'font-size':11.5, 'font-variant-numeric':'tabular-nums' }));
+    const hit = el('rect', { x:0, y:y - 3, width:W, height:rowH, fill:'transparent' });
+    hit.addEventListener('mousemove', e => {
+      const r = svg.getBoundingClientRect();
+      showTip(tip, box, (e.clientX - r.left), (y + bh) * (r.height / H),
+        `<b>${c.cat}</b><div class="r"><i>支出</i><em>${yen(c.sum)}</em></div>` +
+        `<div class="r"><i>構成比</i><em>${(c.sum / total * 100).toFixed(1)}%</em></div>` +
+        `<div class="r"><i>件数</i><em>${c.n}件</em></div>`);
+    });
+    hit.addEventListener('mouseleave', () => tip.style.opacity = '0');
+    svg.appendChild(hit);
+  });
+  box.appendChild(svg);
+}
+</script>
+
+<script>
+/* ==========================================================================
+   画面の組み立て
+   ========================================================================== */
+const $ = s => document.querySelector(s);
+
+/* ---------- KPI --------------------------------------------------------- */
+function renderKPIs(a){
+  const days = Math.round((new Date(a.to) - new Date(a.from)) / 86400000) + 1;
+  const cls = n => n > 0 ? 'pos' : n < 0 ? 'neg' : '';
+  $('#period').textContent =
+    `対象期間 ${a.from} 〜 ${a.to}（${days}日・${a.n.toLocaleString()}件）`;
+  const cards = [
+    { k:'期末残高', v:a.lastBal != null ? yen(a.lastBal) : '—',
+      s:a.openBal != null ? `期首 ${yen(a.openBal)}` : '残高列なし', hero:true },
+    { k:'実質収支（振替除く）', v:sYen(a.net), s:`入金 ${compact(a.inSum)} − 出金 ${compact(-a.outSum)}`,
+      cls:cls(a.net), hero:true },
+    { k:'入金合計', v:yen(a.inSum), s:'自社間振替を除く' },
+    { k:'出金合計', v:yen(a.outSum), s:'自社間振替を除く' },
+    { k:'自社間振替（純）', v:sYen(a.selfNet),
+      s:a.selfNet < 0 ? '他口座へ移動した額' : a.selfNet > 0 ? '他口座から戻した額' : 'なし' },
+    { k:'期間中の最低残高', v:a.minBal != null ? yen(a.minBal) : '—',
+      s:a.minDay ? `${a.minDay}` : '', cls:(a.minBal != null && a.minBal < CFG.threshold) ? 'neg' : '' },
+  ];
+  $('#kpis').innerHTML = cards.map(c => `
+    <div class="kpi${c.hero ? ' hero' : ''}">
+      <div class="k">${c.k}</div>
+      <div class="v ${c.cls || ''}">${c.v}</div>
+      <div class="s">${c.s || ''}</div>
+    </div>`).join('');
+}
+
+/* ---------- アラート ---------------------------------------------------- */
+function renderAlerts(a){
+  const out = [];
+  const add = (lv, ic, t, d) => out.push({ lv, ic, t, d });
+
+  if(a.minBal != null && a.minBal < CFG.threshold)
+    add('critical','!','最低残高が危険水域を下回りました',
+      `${a.minDay} に ${yen(a.minBal)}（設定ライン ${yen(CFG.threshold)}）。` +
+      `期間中 ${a.belowDays.length}日がライン未満です。`);
+
+  // 直近から連続する赤字月
+  let run = 0;
+  for(let i = a.months.length - 1; i >= 0; i--){ if(a.months[i].net < 0) run++; else break; }
+  if(run >= 2)
+    add('serious','▼',`純収支が${run}か月連続でマイナスです`,
+      a.months.slice(-run).map(m => `${m.ym} ${sYen(m.net)}`).join(' → '));
+  else if(run === 1)
+    add('warning','▼','直近月の純収支がマイナスです',
+      `${a.months[a.months.length-1].ym} ${sYen(a.months[a.months.length-1].net)}`);
+
+  // 月次トレンドの悪化
+  if(a.months.length >= 3){
+    const t = a.months.slice(-3).map(m => m.net);
+    if(t[0] > t[1] && t[1] > t[2])
+      add('serious','↘','純収支が3か月連続で悪化しています',
+        a.months.slice(-3).map(m => `${m.ym} ${sYen(m.net)}`).join(' → '));
+  }
+
+  // 大口支払いが重なる日
+  const byDay = new Map();
+  for(const t of TX) if(!t.self && t.amt <= -CFG.big){
+    const l = byDay.get(t.date) || []; l.push(t); byDay.set(t.date, l);
+  }
+  const heavy = [...byDay.entries()].filter(([,l]) => l.length >= 2)
+    .map(([d,l]) => ({ d, n:l.length, sum:l.reduce((s,t) => s + t.amt, 0) }))
+    .sort((x,y) => x.sum - y.sum);
+  if(heavy.length)
+    add('warning','⧉',`大口支払いが同日に集中した日が${heavy.length}日あります`,
+      heavy.slice(0, 3).map(h => `${h.d} ${h.n}件 計 ${yen(h.sum)}`).join(' ／ ') +
+      (heavy.length > 3 ? ` ほか${heavy.length - 3}日` : '') +
+      `（${compact(CFG.big)}以上の出金）`);
+
+  // 調達・信販の重さ
+  const fin = a.cats.find(c => c.cat === '調達・信販');
+  const totalOut = -a.outSum;
+  if(fin && totalOut > 0 && fin.sum / totalOut >= 0.08)
+    add('warning','％','調達・信販への支払いが重くなっています',
+      `${yen(fin.sum)}（出金全体の ${(fin.sum / totalOut * 100).toFixed(1)}％・${fin.n}件）。` +
+      `元本返済と金利・手数料の内訳を切り分けてください。`);
+
+  if(!out.length)
+    add('good','✓','注意すべき兆候は検出されませんでした',
+      `最低残高 ${a.minBal != null ? yen(a.minBal) : '—'}／直近月の純収支 ` +
+      `${a.months.length ? sYen(a.months[a.months.length-1].net) : '—'}`);
+
+  $('#alertcap').textContent =
+    `危険水域 ${yen(CFG.threshold)}・大口しきい値 ${yen(CFG.big)}（設定で変更できます）`;
+  $('#alerts').innerHTML = out.map(o => `
+    <div class="al ${o.lv}"><div class="ic">${o.ic}</div>
+      <div><b>${o.t}</b><div class="d">${o.d}</div></div></div>`).join('');
+}
+
+/* ---------- 表ビュー（各チャートの等価表） ------------------------------ */
+const table = (cols, rows) => `<div class="scroll"><table class="tbl">
+  <thead><tr>${cols.map(c => `<th class="${c.n ? 'n' : ''}">${c.h}</th>`).join('')}</tr></thead>
+  <tbody>${rows.map(r => `<tr>${r.map((v,i) =>
+    `<td class="${cols[i].n ? 'n' : ''}">${v}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+
+function renderTableViews(a){
+  $('#tv-bal').innerHTML = table(
+    [{h:'日付'},{h:'残高',n:1},{h:'判定'}],
+    a.daily.map(d => [d.date, yen(d.bal), d.bal < CFG.threshold ? '<span class="tag">水域下</span>' : '—']));
+  const io = [{h:'月'},{h:'入金',n:1},{h:'出金',n:1},{h:'純収支',n:1},{h:'件数',n:1}];
+  const ioRows = a.months.map(m => [m.ym, yen(m.in), yen(m.out), sYen(m.net), m.n + '件']);
+  $('#tv-io').innerHTML  = table(io, ioRows);
+  $('#tv-net').innerHTML = table(io, ioRows);
+  const tot = a.cats.reduce((s,c) => s + c.sum, 0) || 1;
+  $('#tv-cat').innerHTML = table(
+    [{h:'カテゴリ'},{h:'支出',n:1},{h:'構成比',n:1},{h:'件数',n:1}],
+    a.cats.map(c => [c.cat, yen(c.sum), (c.sum / tot * 100).toFixed(1) + '%', c.n + '件']));
+}
+
+/* ---------- ランキング -------------------------------------------------- */
+function renderRanks(a){
+  const build = list => `<table class="tbl">
+    <thead><tr><th>#</th><th>相手先</th><th>カテゴリ</th><th class="n">金額</th><th class="n">件数</th></tr></thead>
+    <tbody>${list.map((e,i) => `<tr><td>${i+1}</td><td>${esc(e.cp)}</td>
+      <td><span class="tag">${esc(e.cat)}</span></td>
+      <td class="n">${yen(e.sum)}</td><td class="n">${e.n}</td></tr>`).join('')}</tbody></table>`;
+  $('#rank-in').innerHTML  = build(a.rankIn);
+  $('#rank-out').innerHTML = build(a.rankOut);
+}
+
+/* ---------- 明細 -------------------------------------------------------- */
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let page = 0;
+const PER = 100;
+
+function filtered(){
+  const q = matchKey($('#q').value);
+  const fc = $('#fcat').value, fd = $('#fdir').value;
+  const fm = Number($('#fmin').value) || 0;
+  return TX.filter(t => {
+    if(fc && t.cat !== fc) return false;
+    if(fd === 'in'  && t.amt <= 0) return false;
+    if(fd === 'out' && t.amt >= 0) return false;
+    if(fm && Math.abs(t.amt) < fm) return false;
+    if(q && !matchKey(t.desc).includes(q)) return false;
+    return true;
+  });
+}
+function renderDetail(){
+  const list = filtered();
+  const pages = Math.max(1, Math.ceil(list.length / PER));
+  page = Math.min(page, pages - 1);
+  const slice = list.slice(page * PER, page * PER + PER);
+  const sum = list.reduce((s,t) => s + t.amt, 0);
+  $('#dcap').textContent =
+    `${list.length.toLocaleString()}件 / 全${TX.length.toLocaleString()}件・抽出分の合計 ${sYen(sum)}`;
+  $('#detail').innerHTML = `<table class="tbl">
+    <thead><tr><th>日付</th><th class="n">入出金</th><th class="n">残高</th>
+      <th>カテゴリ</th><th>相手先・摘要</th></tr></thead>
+    <tbody>${slice.map(t => `<tr>
+      <td>${t.date}</td>
+      <td class="n ${t.amt > 0 ? 'pos' : 'neg'}">${sYen(t.amt)}</td>
+      <td class="n">${t.bal != null ? yen(t.bal) : '—'}</td>
+      <td><span class="tag">${esc(t.cat)}</span></td>
+      <td title="${esc(t.desc)}">${esc(t.desc.length > 54 ? t.desc.slice(0,54) + '…' : t.desc)}</td>
+    </tr>`).join('')}</tbody></table>`;
+  $('#pager').innerHTML = pages > 1
+    ? `<button class="sm ghost" ${page === 0 ? 'disabled' : ''} data-pg="-1">← 前</button>
+       <span>${page + 1} / ${pages}</span>
+       <button class="sm ghost" ${page >= pages - 1 ? 'disabled' : ''} data-pg="1">次 →</button>` : '';
+}
+
+/* ---------- 全体描画 ---------------------------------------------------- */
+function renderCharts(){
+  if(!AGG) return;
+  if(AGG.daily.length > 1) chartBalance($('#c-bal'), AGG.daily, CFG.threshold);
+  else $('#c-bal').innerHTML = '<p class="hint">残高列が無いため描画できません。</p>';
+  if(AGG.months.length){ chartInOut($('#c-io'), AGG.months); chartNet($('#c-net'), AGG.months); }
+  if(AGG.cats.length) chartCats($('#c-cat'), AGG.cats, $('#catnote'));
+}
+function renderAll(){
+  const a = aggregate();
+  renderKPIs(a); renderAlerts(a); renderTableViews(a); renderRanks(a); renderCharts();
+  const cats = [...new Set(TX.map(t => t.cat))].sort();
+  const keep = $('#fcat').value;
+  $('#fcat').innerHTML = '<option value="">すべてのカテゴリ</option>' +
+    cats.map(c => `<option${c === keep ? ' selected' : ''}>${esc(c)}</option>`).join('');
+  renderDetail();
+  const srcs = [...new Set(TX.map(t => t.src))];
+  $('#srcinfo').textContent = `読込: ${srcs.join(' / ')}`;
+  $('#drop').classList.add('hide'); $('#app').classList.remove('hide');
+  saveData();
+}
+
+/* ---------- 取込 -------------------------------------------------------- */
+function ingest(records){
+  const key = t => `${t.date}|${t.amt}|${t.bal}|${t.raw}`;
+  const seen = new Set(TX.map(key));
+  let added = 0;
+  for(const r of records) if(!seen.has(key(r))){ seen.add(key(r)); TX.push(r); added++; }
+  TX.sort((a,b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+  return added;
+}
+async function loadFiles(files){
+  const errs = []; let added = 0;
+  for(const f of files){
+    try { added += ingest(readStatement(decodeBytes(await f.arrayBuffer()), f.name)); }
+    catch(e){ errs.push(`${f.name}: ${e.message}`); }
+  }
+  if(errs.length) alert('読み込めなかったファイルがあります。\n\n' + errs.join('\n'));
+  if(added || TX.length) renderAll();
+}
+
+/* ---------- 保存（明示的にONにしたときだけ） ---------------------------- */
+function saveCfg(){ try { localStorage.setItem(LS_CFG, JSON.stringify(CFG)); } catch(e){} }
+function saveData(){
+  try {
+    if(CFG.persist) localStorage.setItem(LS_DATA, JSON.stringify(
+      TX.map(t => ({ date:t.date, amt:t.amt, bal:t.bal, raw:t.raw, desc:t.desc, src:t.src }))));
+    else localStorage.removeItem(LS_DATA);
+  } catch(e){ /* 容量超過時は保存を諦める */ }
+}
+function loadSaved(){
+  try {
+    const c = JSON.parse(localStorage.getItem(LS_CFG) || 'null');
+    if(c) CFG = { ...DEFAULT_CFG, ...c };
+  } catch(e){}
+  if(!CFG.persist) return false;
+  try {
+    const d = JSON.parse(localStorage.getItem(LS_DATA) || 'null');
+    if(d && d.length){ TX = d; return true; }
+  } catch(e){}
+  return false;
+}
+
+/* ---------- サンプル（架空データ・個人情報を含まない） ------------------ */
+function demoCSV(){
+  const names = ['ヤマダ タロウ','スス゛キ ハナコ','カ）サンフ゜ルフト゛ウサン','タナカ ジロウ',
+                 'カ）テストケンセツ','サトウ ミサキ','カ）テ゛モシヨウシ゛','イトウ ケンタ'];
+  const pay = ['セソ゛ン','ＡＰアフ゜ラス','トウテ゛ンテ゛ンキリヨウキン','ソフトハ゛ンク（カ',
+               'ＺＨセ゛イリシホウシユウ','アイオイニツセイト゛ウワソンカ゛イホケン','チンリヨウ　テストヒ゛ル'];
+  let bal = 18500000, rows = ['取引日,入出金(円),残高(円),入出金先内容'];
+  let seed = 7;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  for(let m = 0; m < 6; m++){
+    const ym = new Date(2026, 3 + m, 1);
+    for(let d = 1; d <= 28; d++){
+      const n = Math.floor(rnd() * 4);
+      for(let k = 0; k < n; k++){
+        const isIn = rnd() < 0.18;
+        const amt = isIn
+          ? Math.round((3 + rnd() * 27) * 1e6 / 1e4) * 1e4
+          : -Math.round((0.05 + rnd() * rnd() * 22) * 1e6 / 1e3) * 1e3;
+        bal += amt;
+        if(bal < 800000){ bal -= amt; continue; }
+        const who = isIn
+          ? names[Math.floor(rnd() * names.length)]
+          : (rnd() < 0.45
+              ? pay[Math.floor(rnd() * pay.length)]
+              : `テスト銀行　サンフ゜ル支店　普通預金　${1000000 + Math.floor(rnd()*8999999)}　${names[Math.floor(rnd()*names.length)]}（依頼人名：カ）サンフ゜ル）`);
+        const dt = `${ym.getFullYear()}${String(ym.getMonth()+1).padStart(2,'0')}${String(d).padStart(2,'0')}`;
+        rows.push(`${dt},${amt},${bal},"${who}"`);
+        if(!isIn && rnd() < 0.5){ bal -= 229; rows.push(`${dt},-229,${bal},"振込手数料（内消費税 ￥20）"`); }
+      }
+    }
+  }
+  return rows.join('\n');
+}
+</script>
+
+<script>
+/* ==========================================================================
+   イベント配線
+   ========================================================================== */
+
+/* ---- ドロップ / ファイル選択 ---- */
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); drop.classList.add('on');
+}));
+['dragleave','drop'].forEach(ev => document.addEventListener(ev, e => {
+  e.preventDefault(); if(ev === 'dragleave' && e.relatedTarget) return;
+  drop.classList.remove('on');
+}));
+document.addEventListener('drop', e => {
+  const fs = [...(e.dataTransfer?.files || [])].filter(f => /\.csv$/i.test(f.name));
+  if(fs.length) loadFiles(fs);
+});
+$('#pick').onclick   = () => $('#file').click();
+$('#addcsv').onclick = () => $('#file').click();
+$('#file').onchange  = e => { loadFiles([...e.target.files]); e.target.value = ''; };
+$('#demo').onclick   = () => { ingest(readStatement(demoCSV(), 'サンプル（架空データ）')); renderAll(); };
+
+/* ---- ツールバー ---- */
+$('#print').onclick = () => window.print();
+$('#clear').onclick = () => {
+  if(!confirm('読み込んだ明細をすべて消します。よろしいですか？')) return;
+  TX = []; AGG = null;
+  try { localStorage.removeItem(LS_DATA); } catch(e){}
+  $('#app').classList.add('hide'); $('#drop').classList.remove('hide');
+};
+$('#persist').onchange = e => {
+  CFG.persist = e.target.checked;
+  if(CFG.persist && !confirm(
+      '明細には取引先名など個人情報が含まれます。\nこのブラウザ（localStorage）に保存してよろしいですか？')){
+    e.target.checked = false; CFG.persist = false; return;
+  }
+  saveCfg(); saveData();
+};
+
+/* ---- 表ビューの切り替え ---- */
+document.querySelectorAll('[data-tv]').forEach(b => b.onclick = () => {
+  const t = $('#' + b.dataset.tv), on = t.classList.toggle('on');
+  b.setAttribute('aria-pressed', String(on));
+  b.textContent = on ? 'チャートに戻す' : '表で見る';
+});
+
+/* ---- 明細フィルタ ---- */
+['#q','#fcat','#fdir','#fmin'].forEach(s =>
+  $(s).addEventListener('input', () => { page = 0; renderDetail(); }));
+$('#freset').onclick = () => {
+  $('#q').value = ''; $('#fcat').value = ''; $('#fdir').value = ''; $('#fmin').value = '';
+  page = 0; renderDetail();
+};
+$('#pager').onclick = e => {
+  const b = e.target.closest('[data-pg]'); if(!b) return;
+  page += Number(b.dataset.pg); renderDetail();
+};
+
+/* ---- 設定モーダル ---- */
+const mset = $('#mset');
+function fillSettings(){
+  $('#s-thr').value   = CFG.threshold;
+  $('#s-big').value   = CFG.big;
+  $('#s-self').value  = CFG.self;
+  $('#s-rules').value = CFG.rules;
+}
+$('#settings').onclick = () => { fillSettings(); mset.classList.add('on'); };
+$('#s-cancel').onclick = () => mset.classList.remove('on');
+mset.onclick = e => { if(e.target === mset) mset.classList.remove('on'); };
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') mset.classList.remove('on');
+});
+$('#s-reset').onclick = () => {
+  if(!confirm('設定と分類ルールを既定値に戻します。よろしいですか？')) return;
+  CFG = { ...DEFAULT_CFG, persist: CFG.persist }; fillSettings();
+};
+$('#s-save').onclick = () => {
+  CFG.threshold = Number($('#s-thr').value) || 0;
+  CFG.big       = Number($('#s-big').value) || 0;
+  CFG.self      = $('#s-self').value;
+  CFG.rules     = $('#s-rules').value;
+  saveCfg(); mset.classList.remove('on');
+  if(TX.length) renderAll();
+};
+
+/* ---- リサイズでチャートを再描画（テキストを歪ませないため実寸で引き直す） ---- */
+let rt = null;
+new ResizeObserver(() => {
+  clearTimeout(rt); rt = setTimeout(renderCharts, 120);
+}).observe(document.querySelector('.wrap'));
+window.addEventListener('beforeprint', renderCharts);
+
+/* ---- 起動 ---- */
+if(loadSaved()){
+  $('#persist').checked = true;
+  renderAll();
+} else {
+  $('#persist').checked = CFG.persist;
+}
+</script>
+</body>
+</html>
