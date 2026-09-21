@@ -1,12 +1,13 @@
-name: Deploy construction sites to GitHub Pages
+name: Deploy static tools to GitHub Pages
 
-# construction-book（施工記録ブック作成ツール）と construction-portfolio
-# （施工事例パンフレット「WORKS」）を GitHub Pages へまとめて公開する。
+# ゼロ依存の単一HTMLツール群を GitHub Pages へまとめて公開する。
 # Netlify トークン不要（GITHUB_TOKEN のみ）。
-#   トップ:        https://hasegawa212.github.io/-/
-#   施工記録ブック: https://hasegawa212.github.io/-/construction-book/
-#   施工事例集:     https://hasegawa212.github.io/-/construction-portfolio/
+#   トップ:              https://hasegawa212.github.io/-/
+#   施工記録ブック:       https://hasegawa212.github.io/-/construction-book/
+#   施工事例集:           https://hasegawa212.github.io/-/construction-portfolio/
+#   資金繰りダッシュボード: https://hasegawa212.github.io/-/cashflow-dashboard/
 # ※ 事前に Settings → Pages → Source を「GitHub Actions」にしておくこと。
+# ※ ツールを増やすときは paths / cp / 下のランディングのカードの3箇所を足す。
 
 on:
   push:
@@ -14,6 +15,7 @@ on:
     paths:
       - "construction-book/**"
       - "construction-portfolio/**"
+      - "cashflow-dashboard/**"
       - ".github/workflows/pages-construction-book.yml"
   workflow_dispatch:
 
@@ -41,6 +43,7 @@ jobs:
           mkdir -p _site
           cp -r construction-book _site/construction-book
           cp -r construction-portfolio _site/construction-portfolio
+          cp -r cashflow-dashboard _site/cashflow-dashboard
           cat > _site/index.html <<'HTML'
           <!DOCTYPE html>
           <html lang="ja">
@@ -57,7 +60,7 @@ jobs:
             .sub{font-size:10px;letter-spacing:.34em;color:#c2a24c;margin-top:6px}
             h1{font-family:Georgia,serif;font-size:46px;letter-spacing:.04em;margin:34px 0 6px}
             .lead{font-size:13px;letter-spacing:.12em;color:rgba(244,240,232,.7);margin-bottom:42px}
-            .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:760px}
+            .cards{display:flex;gap:22px;flex-wrap:wrap;justify-content:center;max-width:1120px}
             a.card{display:block;width:340px;text-decoration:none;color:inherit;border:1px solid rgba(194,162,76,.4);
               border-radius:10px;padding:30px 28px;background:rgba(255,255,255,.03);transition:.2s}
             a.card:hover{background:rgba(194,162,76,.10);border-color:#c2a24c;transform:translateY(-3px)}
@@ -72,7 +75,7 @@ jobs:
             <div class="brand">Martial Arts</div>
             <div class="sub">REAL ESTATE &amp; CONSTRUCTION</div>
             <h1>WORKS &amp; TOOLS</h1>
-            <div class="lead">施工事例パンフレットと施工記録ブック作成ツール</div>
+            <div class="lead">営業・施工・経営の各ツール</div>
             <div class="cards">
               <a class="card" href="construction-portfolio/">
                 <div class="k">Brochure</div>
@@ -84,6 +87,12 @@ jobs:
                 <div class="k">Tool</div>
                 <div class="t">施工記録ブック作成ツール</div>
                 <div class="d">物件ごとに工程・写真を入力して、お客様にお渡しする施工記録ブックをA4 PDFで作成します。</div>
+                <div class="go">ひらく →</div>
+              </a>
+              <a class="card" href="cashflow-dashboard/">
+                <div class="k">Dashboard</div>
+                <div class="t">資金繰りダッシュボード</div>
+                <div class="d">銀行の取引明細CSVを読み込んで、残高推移・月次収支・カテゴリ別支出・資金繰りアラートを表示します。明細はブラウザ内だけで処理され、外部に送信されません。</div>
                 <div class="go">ひらく →</div>
               </a>
             </div>
