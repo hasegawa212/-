@@ -1,11 +1,14 @@
 # Netlify 設定
-# このリポジトリは複数サブプロジェクトの集合だが、Netlifyサイト
-# "hearing-martialarts" は echo-interview-console（反響面談コンソール）を公開する。
-# 静的サイト（ビルド不要）なので publish ディレクトリのみ指定する。
+# このリポジトリは複数サブプロジェクトの集合。Netlifyサイト "hearing-martialarts" は
+# echo-interview-console（反響面談コンソール）をルートに、その他の静的ツールを
+# サブディレクトリに公開する。いずれも依存ゼロなので、組み立ては cp だけ。
 [build]
-  publish = "echo-interview-console"
-  # ビルドコマンドは無し（バニラJS・依存ゼロ）
-  command = ""
+  # netlify/build.sh が _site を組み立てる。
+  # ルート = echo-interview-console（既存URLを変えない）、
+  # /cashflow-dashboard/ = 資金繰りダッシュボード。
+  # ツールを増やすときは build.sh に cp を1行足す。
+  publish = "_site"
+  command = "bash netlify/build.sh"
 
 # 同一オリジンの中継Function（ブラウザ→GASのPOST制約を回避）
 [functions]
@@ -14,5 +17,11 @@
 # キャッシュ事故防止：HTML は毎回最新を取得させる
 [[headers]]
   for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# サブディレクトリのツールにも同じ扱いを適用する
+[[headers]]
+  for = "/cashflow-dashboard/*"
   [headers.values]
     Cache-Control = "no-cache"

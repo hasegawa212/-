@@ -21,3 +21,6 @@ __pycache__/
 
 # 資金繰りダッシュボードに投入する銀行明細（氏名・口座番号を含む）
 cashflow-dashboard/*.csv
+
+# Netlify のビルド成果物（netlify/build.sh が生成）
+_site/

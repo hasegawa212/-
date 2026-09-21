@@ -16,6 +16,19 @@ cd cashflow-dashboard && python3 -m http.server 5188   # → http://localhost:51
 2. まず触ってみるなら **「サンプルで試す」**（架空データを生成。個人情報は含みません）。
 3. `🖨 印刷 / PDF保存` でブラウザの印刷ダイアログ → A4でPDF化。印刷時は自動で**明色パレット**に切り替わります（背景グラフィックをONにしてください）。
 
+## 公開URL
+
+`main` にマージされると、2か所へ自動デプロイされます（どちらも push 契機・手動操作なし）。
+
+| 配信先 | URL | 仕組み |
+|---|---|---|
+| GitHub Pages | `https://hasegawa212.github.io/-/cashflow-dashboard/` | `.github/workflows/pages-construction-book.yml` |
+| Netlify（hearing-martialarts） | サイトの `/cashflow-dashboard/` | ルートの `netlify.toml` → `netlify/build.sh` |
+
+**明細はブラウザ内だけで処理されるため、公開URLに置いても取引データが外部へ出ることはありません。**配信されるのはツール本体のHTMLだけです。スマホからも開けます。
+
+別の静的ツールを同じ2か所に載せるときは、**3箇所**を足します — Pages ワークフローの `paths` / `cp -r` / ランディングのカード、`netlify/build.sh` の `cp -R` 1行、`netlify.toml` の `no-cache` ヘッダ。`netlify/build.sh` は **echo-interview-console をルートに置く**ことで既存サイトのURLを維持しているので、最初の `cp` は動かさないでください。
+
 ## 対応CSV
 
 楽天銀行「取引明細」形式が既定です。
