@@ -1,7 +1,7 @@
 name: sales-engagement-platform CI
 
 # Merge gate for sales-engagement-platform/. Every step must pass:
-# format → lint → typecheck → unit/integration (with coverage thresholds) → build → dependency audit.
+# format → lint → typecheck → unit/integration (with coverage thresholds) → mutation smoke → build → dependency audit.
 on:
   pull_request:
     paths:
@@ -46,6 +46,9 @@ jobs:
 
       - name: Test (unit + integration, coverage gate)
         run: npm run test:coverage
+
+      - name: Mutation smoke (safety-critical domain)
+        run: npm run test:mutation
 
       - name: Build
         run: npm run build

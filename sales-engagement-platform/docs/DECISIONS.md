@@ -57,3 +57,21 @@
 - **Decision**: pino の `formatters.log`（構造化フィールド）と `hooks.logMethod`（メッセージ文字列）の両方で redaction を適用。電話番号は末尾 4 桁のみ、secret / transcript / email キーは値ごと除去。
 - **Reason**: 呼び出し側の注意に依存しない。全角数字・ハイフン揺れ・`+81` 表記も検出。
 - **Tradeoff**: 10–11 桁の 0 始まり数字列は電話番号として過剰マスクされうる（安全側の誤検知として許容）。
+
+## ADR-0008 — Guard pipeline で IDEMPOTENCY を TENANT 直後に置く
+
+- **Status**: Accepted (2026-10-04)
+- **Problem**: 仕様 13 の順序では Idempotency が Concurrency の後。だが元リクエストで作られた通話自体が「contact 通話中」になるため、正当な再送（同じ Idempotency-Key）が CONFLICT で拒否され、クライアントは結果を受け取れない。
+- **Old decision**: 仕様 13 の順序どおり（Concurrency → Idempotency）。
+- **New decision**: `AUTHENTICATION → AUTHORIZATION → TENANT → IDEMPOTENCY → …`。REPLAY は元の callId を返し、**発信しない**。IN_FLIGHT / PAYLOAD_MISMATCH は CONFLICT。
+- **Reason**: REPLAY は副作用ゼロ（既存レコードを返すだけ）なので、後続の guard（DNC 含む）を通さなくても安全性は落ちない。認証・認可・テナント分離は REPLAY にも適用。
+- **Tradeoff**: 元リクエスト後に DNC 化された contact でも REPLAY では元の call が返る（新規発信は起きない）。
+- **Migration impact**: なし（P1 時点の決定）。
+
+## ADR-0009 — Mutation testing は critical mutant smoke script で行う
+
+- **Status**: Accepted (2026-10-04)
+- **Problem**: Stryker 10 + `@stryker-mutator/vitest-runner` 10 を Vitest 5 で実行すると mutation score 15%。`return { decision: 'ALLOW' }` → `return {}` などが「生存」と報告されたが、同じ変異を手で入れると該当テストは確実に失敗した → runner 連携が変異を有効化できていない（偽の生存）。
+- **Decision**: Stryker は採用しない（依存も削除）。`scripts/mutation-smoke.mjs`（依存ゼロ）で、安全上重要な変異を明示列挙し全 kill を CI で要求する。
+- **Tradeoff**: 網羅的な自動変異ではない。変異リストの保守が必要（パターン不一致は STALE として失敗させ、腐敗を検出）。
+- **Revisit**: Stryker が Vitest 5 を正式サポートしたら再評価。

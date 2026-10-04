@@ -100,4 +100,30 @@ describe('error envelope', () => {
     expect(res.statusCode).toBe(400);
     expect(res.json<ErrorBody>().error.code).toBe('VALIDATION_ERROR');
   });
+
+  it('malformed JSON body → 400 VALIDATION_ERROR (not a 500)', async () => {
+    const a = make();
+    a.post('/echo', () => ({}));
+    const res = await a.inject({
+      method: 'POST',
+      url: '/echo',
+      payload: '{"n":',
+      headers: { 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json<ErrorBody>().error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('unsupported media type keeps its 4xx status and is reported as VALIDATION_ERROR', async () => {
+    const a = make();
+    a.post('/echo', () => ({}));
+    const res = await a.inject({
+      method: 'POST',
+      url: '/echo',
+      payload: 'x',
+      headers: { 'content-type': 'application/x-bogus' },
+    });
+    expect(res.statusCode).toBe(415);
+    expect(res.json<ErrorBody>().error.code).toBe('VALIDATION_ERROR');
+  });
 });

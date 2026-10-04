@@ -43,6 +43,14 @@ export function buildApp({ config }: AppDeps): FastifyInstance {
       };
       return reply.status(400).send(body);
     }
+    // Fastify's own client errors (malformed JSON, 413, 415, …) keep their 4xx status.
+    const status = (err as { statusCode?: unknown }).statusCode;
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      const body: ErrorBody = {
+        error: { code: 'VALIDATION_ERROR', message: 'Invalid request', requestId: req.id, retryable: false },
+      };
+      return reply.status(status).send(body);
+    }
     req.log.error({ err }, 'unhandled error');
     const body: ErrorBody = {
       error: {

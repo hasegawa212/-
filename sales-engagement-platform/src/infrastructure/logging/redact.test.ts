@@ -22,6 +22,8 @@ describe('redactText', () => {
     // Regression: a preceding row number must not hide the phone number from the matcher.
     ['No.3 090-1234-5678', 'No.3 ***5678'],
     ['(03) 1234-5678', '***5678'],
+    ['（０３）１２３４－５６７８', '***5678'],
+    ['+81 3 1234 5678', '***5678'],
   ])('%s', (input, expected) => {
     expect(redactText(input)).toBe(expected);
   });

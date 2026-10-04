@@ -158,3 +158,30 @@ P1 で Domain、P2–P8 で API/DB、P9–P10 で UI と E2E を通し、この 
 
 - Domain coverage: branches ≥ 95%、lint で Domain から外側レイヤ/ Node API の import を禁止。
 - Mutation 観点の自己レビュー（suppression 判定の反転を検出できるテストがあるか）を `TESTING.md` に記録。
+
+---
+
+## Phase 2 — Database（Specification, 次に着手）
+
+### Goal
+
+Phase 1 の判断に必要な事実を PostgreSQL 16 に永続化し、DNC が再起動・再試行を越えて残ることを保証する。
+
+### Scope
+
+- migration ツール: 素の SQL ファイル（`migrations/NNNN_*.sql`）+ 小さな runner（適用済み記録テーブル、forward-only、checksum 検証）。ORM は導入しない（ADR を追加）。
+- テーブル: `organizations`, `users`, `memberships`, `contacts`(phone_e164, organization_id, unique), `suppressions`, `campaigns`, `calls`(state, version), `call_events`, `idempotency_keys`, `outbox_events`, `follow_ups`。
+- index: `(organization_id, phone_e164)`, `suppressions(organization_id, phone_e164)`, `calls(organization_id, contact_id, state)`, `calls(campaign_id, created_at)`, `follow_ups(organization_id, due_at)`, `outbox_events(published_at NULLS FIRST, id)`。
+- Repository は application 層の port（interface）+ infrastructure 実装。
+
+### Acceptance criteria
+
+- 実 PostgreSQL に対する integration test（CI は service container、ローカルは `/usr/lib/postgresql/16`）。
+- DNC を書いた後に新しい接続プール（=再起動相当）から読んでも BLOCK。
+- `idempotency_keys` の一意制約で同一 key の同時 100 リクエストが 1 件だけ NEW になる。
+- 同一 contact への同時発信要求で 1 件だけ ALLOW（`SELECT … FOR UPDATE`）。
+- migration の再実行は no-op、適用済みファイルの改変は checksum 不一致で失敗。
+
+### Definition of Done
+
+上記 + `npm run verify` + CI に migration check を追加。

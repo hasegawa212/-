@@ -1,0 +1,26 @@
+[
+  {
+    "id": "objection-001",
+    "state": "DISCOVERY",
+    "utterance": "今は忙しいので",
+    "expect": {
+      "stop": false
+    }
+  },
+  {
+    "id": "objection-002",
+    "state": "QUALIFICATION",
+    "utterance": "不動産投資ってリスク高くないですか",
+    "expect": {
+      "stop": false
+    }
+  },
+  {
+    "id": "objection-003",
+    "state": "FAQ",
+    "utterance": "妻と相談しないと決められません",
+    "expect": {
+      "stop": false
+    }
+  }
+]

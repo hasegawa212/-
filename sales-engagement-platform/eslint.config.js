@@ -37,4 +37,13 @@ export default tseslint.config(
     },
   },
   { files: ['eslint.config.js'], ...tseslint.configs.disableTypeChecked },
+  {
+    files: ['scripts/**/*.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: {
+      parserOptions: { projectService: false, project: null },
+      globals: { console: 'readonly', process: 'readonly' },
+    },
+    rules: { ...tseslint.configs.disableTypeChecked.rules, 'no-console': 'off' },
+  },
 );

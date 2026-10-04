@@ -1,7 +1,7 @@
 import { Writable } from 'node:stream';
 import { pino } from 'pino';
 import { describe, expect, it } from 'vitest';
-import { loggerOptions } from './logger.js';
+import { createLogger, loggerOptions } from './logger.js';
 
 function capture() {
   const lines: string[] = [];
@@ -31,5 +31,11 @@ describe('logger PII redaction (end-to-end through pino)', () => {
     const out = lines.join('');
     expect(out).not.toContain('09012345678');
     expect(out).not.toContain('taro@example.jp');
+  });
+});
+
+describe('createLogger', () => {
+  it('builds a logger at the requested level', () => {
+    expect(createLogger('warn').level).toBe('warn');
   });
 });
