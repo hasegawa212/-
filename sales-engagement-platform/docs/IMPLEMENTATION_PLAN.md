@@ -185,3 +185,95 @@ Phase 1 の判断に必要な事実を PostgreSQL 16 に永続化し、DNC が�
 ### Definition of Done
 
 上記 + `npm run verify` + CI に migration check を追加。
+
+---
+
+## Implementation Task Graph（STEP 14, Mermaid, 2026-10-05）
+
+```mermaid
+flowchart TD
+  P0[P0 Foundation ✅] --> P1[P1 Domain ✅]
+  P1 --> P1d[P1 delta: TAC outcome mapping · PERMISSION · COMPLAINT · takeover · webhook reconcile]
+  P1d --> P2[P2 Database: migrations · repos · outbox · idempotency · partial unique index]
+  P2 --> P3[P3 Auth / Tenant / RBAC / Audit]
+  P3 --> P4[P4 Contacts / Leads / CSV import · dedupe]
+  P4 --> P5[P5 Suppression / Consent persistence · DNC admin]
+  P5 --> P6[P6 Campaign / Queue · NBA ordering · re-check at dial]
+  P6 --> P7[P7 Call API · Idempotency-Key · kill switch API]
+  P7 --> P8[P8 Fake telephony simulator · signed webhooks]
+  P8 --> P9[P9 Call Workspace UI · SSE]
+  P9 --> P10[P10 Outcome / Follow-up / Notes UI+API]
+  P10 --> VS{{First vertical slice DONE + Critical/DNC E2E}}
+  VS --> P11[P11 Production telephony adapter]
+  P11 --> P12[P12 Realtime AI voice + tool gateway]
+  P12 --> P13[P13 Human handoff]
+  VS --> P14[P14 Analytics]
+  P13 --> P15[P15 Observability]
+  P14 --> P15
+  P15 --> P16[P16 Security hardening]
+  P16 --> P17[P17 AI eval / E2E / Load]
+  P17 --> P18[P18 Deployment + runbooks]
+```
+
+## Phase 1 delta（新仕様・既存 TAC 監査から追加, Specification）
+
+### Goal
+
+2026-10-05 の要件と TAC 実ソース監査で判明した不足を Domain に追加する（純関数のみ）。
+
+### User stories / Domain rules
+
+1. 現行 TAC の 5 ボタン（成約/検討/折り返し/不在/拒否）をそのまま使える。`mapTacDisposition()` が CallOutcome に写像し、拒否は DO_NOT_CALL。未知ラベルは VALIDATION_ERROR（推測で写像しない）。
+2. TAC のフォロー分類（再調整希望/日程返答待ち/不在/要確認/連絡停止）を取り込める。連絡停止は STOP_REQUESTED suppression、要確認は HUMAN_REVIEW、残りは callable。
+3. 会話に PERMISSION 状態（DISCLOSURE → PERMISSION → IDENTIFICATION）。
+4. COMPLAINT（クレーム）検知で AI は停止し人へ（STOPPING ではなく HANDOFF、ただし営業継続は不可）。
+5. Human takeover 後は AI が発話できない（`canAiSpeak`）。
+6. Provider webhook の重複・順序逆転は call state を壊さない（`reconcileProviderEvent`: 後退・同値は no-op）。
+
+### Acceptance criteria / Tests
+
+上記各項目に RED → GREEN のテスト。critical mutant に追加（拒否→DNC 写像、takeover 後の AI 発話、後退イベント無視）。
+
+### Definition of Done
+
+`npm run verify` + `npm run test:mutation` 全 kill、DOMAIN.md 更新。
+
+## Phase 0 delta — Production safety limits in config（STEP 15, Specification）
+
+### Goal
+
+仕様 35 の安全上限（最大通話時間・日次上限・同時通話数・電話/AI 予算・発信時間帯・circuit breaker 閾値）を、**検証済みの設定値**として起動時に確定させる。現行 TAC の R4（既定 OFF / `0 = 無制限`）を構造的に再現させない。
+
+### User stories
+
+- 運用者として、設定を書き忘れても「無制限」にはならず、安全側の既定値で動いてほしい。
+- 運用者として、矛盾した設定（開始 ≥ 終了、上限 0）では起動しないでほしい。
+
+### Domain rules
+
+- 日次上限・同時通話数・最大通話時間は **1 以上の有限値**。`0 = 無制限` は存在しない。
+- 予算は既定 0 円 = 未設定。guard `BUDGET` は残額不足として発信を拒否する（fail closed）。
+- 発信時間帯は `0 ≤ start < end ≤ 24`。既定 9–20（`DEFAULT_CALLING_POLICY` と一致させる）。
+
+### Acceptance criteria
+
+1. `loadConfig({})` の `limits` が既定値になる（maxCallDurationSeconds 900, dailyCallLimit 100, maxConcurrentCalls 1, telephonyBudgetYenPerDay 0, aiBudgetYenPerDay 0, callingHours 9–20, providerFailureThreshold 5）。
+2. `DAILY_CALL_LIMIT=0`、負数、非整数、上限超過は ConfigError（キー名のみ報告）。
+3. `CALLING_HOURS_START >= CALLING_HOURS_END` は ConfigError。
+4. `limits` は client-safe 投影に含めない（運用値の露出を最小化）。
+
+### Failure cases
+
+`MAX_CALL_DURATION_SECONDS=abc` / `=99999`、`MAX_CONCURRENT_CALLS=0`、`CALLING_HOURS_END=25`。
+
+### Security considerations
+
+上限値は攻撃面（コスト暴走 T7）への防御。ブラウザには出さない。
+
+### Tests / Files
+
+`src/infrastructure/config.test.ts`、`src/infrastructure/config.ts`、README の env 表。
+
+### Definition of Done
+
+RED → GREEN → REFACTOR、`npm run verify` PASS、PROGRESS 更新。

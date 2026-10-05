@@ -1,31 +1,29 @@
 # PROGRESS
 
-> 実装状態の Single Source of Truth。作業再開時は必ず最初に読む。
+> 実装状態の Single Source of Truth。作業を再開するときは最初にこのファイルを読む。
 > ステータス語彙: DONE / IN PROGRESS / PARTIAL / BLOCKED / NOT IMPLEMENTED / MOCK ONLY。
 
 # Current Phase
 
-Phase 2 - Database (NOT STARTED — spec in IMPLEMENTATION_PLAN.md)
+Phase 1 delta DONE → **次の Phase 2 (Database) は ADR-0011（tac-next との統合判断）待ち**
 
 # Completed
 
 - Phase 0 Foundation — DONE
-  - tooling: TS strict / ESLint strictTypeChecked + layer boundary rule / Prettier / Vitest (shuffle) + coverage gate / build
-  - config + feature flags (zod, fail-fast, flags default OFF, kill switch default ENGAGED, prod guards)
-  - error taxonomy + retryable classification
-  - PII-safe logging (redact + pino hooks)
-  - HTTP: /health, /config (client-safe), x-request-id, error envelope
-  - CI: `.github/workflows/sales-engagement-platform.yml`
-- Phase 1 Domain — DONE (pure domain only; nothing persisted yet)
-  - phone normalization (JP → E.164)
-  - suppression policy (DNC, fail closed, no override path)
-  - calling window (TZ / weekday / holiday / contact preference)
-  - call state machine
-  - outbound guard pipeline (14 guards, fail closed, ADR-0008 ordering)
-  - outcome → follow-up / suppression (再勧誘禁止)
-  - conversation state machine + stop-intent detection
-  - evals/ dataset (8 categories, 35 cases) for the deterministic safety layer
-  - critical mutant smoke (19/19 killed)
+  - tooling: TS strict / ESLint（レイヤ境界ルール付き）/ Prettier / Vitest + coverage gate / CI
+  - config と feature flags。kill switch は既定で engaged
+  - error taxonomy、PII redaction、`/health` と `/config`、request id
+- Phase 0 delta（2026-10-05）— DONE: production safety limits を設定値として検証（`0 = 無制限` は存在しない、時間帯の矛盾は起動拒否、ブラウザには出さない）
+- Phase 1 Domain — DONE（純関数のみ）: 電話番号 / suppression（fail closed）/ calling window / call 状態機械 / guard pipeline / outcome / 会話状態機械と拒否検知 / evals
+- Phase 1 delta（2026-10-05）— DONE
+  - TAC 5 ボタン・フォロー 5 分類の写像（未知ラベルは拒否。連絡停止 → STOP_REQUESTED）
+  - outcome に WON と CONSIDERING を追加（検討は +3 日で FOLLOW_UP）
+  - 会話: PERMISSION 状態、COMPLAINT 検知 → HANDOFF（拒否を伴えば STOPPING が優先）、`takeOver` / `canAiSpeak`（人の引継ぎは不可逆）
+  - `reconcileProviderEvent`: webhook の重複・後退・終端後を無視し、欠けた中間状態を補完
+- Design（STEP 1–15, 2026-10-05）— DONE
+  - EXISTING_APP_AUDIT（現行 TAC のソース監査、Feature Audit Matrix、リスク R1–R15）
+  - Domain Model、Mermaid 図（状態機械・ERD・アーキテクチャ・task graph）、API Map
+  - Voice / AI アーキテクチャ、STRIDE 脅威モデル、TDD 戦略
 
 # In Progress
 
@@ -33,41 +31,44 @@ Phase 2 - Database (NOT STARTED — spec in IMPLEMENTATION_PLAN.md)
 
 # Blocked
 
-- Reference app `https://tac-martial-arts.fly.dev/tac/app` unreachable from the dev environment (egress blocked) — ADR-0002. Product understanding derived from in-repo artifacts; open questions listed in PRODUCT.md.
+- **ADR-0011（Proposed）**: 同じ目的の `hasegawa212/-6780/tac-next` が並行して存在する。どちらに一本化するか、オーナーの判断が必要。決まるまで DB・UI など大きな投資は保留する。
+- 参照 URL と公式ドキュメント（OpenAI / Twilio）は egress でブロックされている。Voice 系の仕様は検索結果の抜粋でしか確認できていないので、P11/P12 の着手前に再検証が必要。
 
 # Next
 
-1. Phase 2 Database (migrations, repositories, idempotency table, outbox, concurrency tests on real PostgreSQL)
-2. Phase 3 Auth / Tenant / RBAC
-3. Phase 4 Contacts (CSV import compatible with テレアポ管理シート.csv)
+1. ADR-0011 の決定
+2. Phase 2 Database（統合先で実施）
+3. 現行 TAC の重大リスク R1–R5・R8 の修正は、別途オーナー判断（現行リポジトリでの修正）
 
 # Known Issues / Deviations
 
-- logger.ts was implemented before its test (TDD deviation). Compensated with an end-to-end test and a manual mutation check.
-- evals/ were written after the conversation module (they are an evaluation dataset, not TDD drivers).
-- Coverage: remaining uncovered branches are unreachable defensive fallbacks (e.g. `?? ''` on Intl parts, phone presence checks after PHONE guard).
-- 〔要法務確認〕 items in COMPLIANCE.md (calling hours, treating 「興味なし」 as re-solicitation refusal, AI disclosure, recording notice).
-- DNC requirements that need persistence/queue/webhooks are NOT IMPLEMENTED yet — see TESTING.md table.
+- logger.ts は実装をテストより先に書いた（TDD からの逸脱。事後テストと mutation 確認で補った）。evals はデータセットなので TDD の駆動対象ではない。
+- 要件変更（PERMISSION 挿入）に伴い、既存テスト「DISCLOSURE → IDENTIFICATION 可」を更新した。実装に合わせてテストを弱めたのではなく、仕様が変わったため。
+- 残る未カバー分岐は到達不能な防御フォールバックのみ（`?? 0` など）。
+- 〔要法務確認〕項目は COMPLIANCE.md を参照。
+- 永続化が必要な DNC 要件は NOT IMPLEMENTED（TESTING.md の表を参照）。
 
-# TDD Evidence (RED → GREEN)
+# Tests Status
 
-| Module           | RED observed                                                                           | GREEN                                     |
-| ---------------- | -------------------------------------------------------------------------------------- | ----------------------------------------- |
-| errors           | module missing                                                                         | 13 tests                                  |
-| config           | module missing                                                                         | 11                                        |
-| redact           | module missing                                                                         | 16 (+regression: row number before phone) |
-| http app         | module missing                                                                         | 11                                        |
-| phoneNumber      | module missing                                                                         | 32                                        |
-| suppression      | module missing                                                                         | 19                                        |
-| callingWindow    | module missing                                                                         | 25                                        |
-| callStateMachine | module missing                                                                         | 9                                         |
-| outboundGuards   | module missing                                                                         | 35                                        |
-| outcome          | module missing                                                                         | 23                                        |
-| conversation     | module missing; then 1 assertion RED (half-width ｹｯｺｳﾃﾞｽ false negative) fixed in impl | 41                                        |
-| mutation smoke   | 2 surviving mutants → tests strengthened                                               | 19/19                                     |
+- unit + integration: 349 PASS（evals 35 件を含む）
+- critical mutant smoke: 25/25 killed
+- E2E: NOT IMPLEMENTED
 
-# Last Verified (2026-10-04)
+# Build Status
 
-- format: PASS / lint: PASS / typecheck: PASS / unit+integration: PASS / coverage gate: PASS / build: PASS / mutation smoke: PASS
-- start: `node dist/main.js` → GET /health 200
-- E2E: NOT IMPLEMENTED (no UI yet)
+- format / lint / typecheck / coverage gate / build: PASS（`npm run verify` exit 0）
+
+# TDD Evidence (RED → GREEN), 2026-10-05 delta
+
+| Module                                                   | RED observed                                    | GREEN |
+| -------------------------------------------------------- | ----------------------------------------------- | ----- |
+| config safety limits                                     | 新規 17 件がアサーションで失敗（limits 未定義） | 26    |
+| tacMapping                                               | モジュール不在                                  | 14    |
+| outcome WON / CONSIDERING                                | CONSIDERING の follow-up が null                | 30    |
+| conversation safety（PERMISSION / COMPLAINT / takeover） | 遷移・検知・takeover がアサーションで失敗       | 17    |
+| reconcile                                                | モジュール不在                                  | 12    |
+| mutation smoke（追加 6）                                 | —                                               | 25/25 |
+
+# Last Verified
+
+2026-10-05 — `npm run verify` PASS、`npm run test:mutation` 25/25

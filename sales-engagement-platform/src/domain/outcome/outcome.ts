@@ -4,10 +4,12 @@ import type { HardReason } from '../suppression/suppression.js';
 
 /**
  * Call outcomes. Mapped from the existing テレアポ管理シート vocabulary:
- * アポ獲得 → APPOINTMENT_SET, 再架電/折り返し → CALLBACK_REQUESTED, 不在/留守 → NOT_REACHED_*,
+ * 成約 → WON, 検討 → CONSIDERING, アポ獲得 → APPOINTMENT_SET, 再架電/折り返し → CALLBACK_REQUESTED, 不在/留守 → NOT_REACHED_*,
  * 拒否/断り/NG → REFUSED_DO_NOT_CALL, 興味なし → NOT_INTERESTED, 番号違い → WRONG_NUMBER, 架電済み → CONVERSATION_ENDED_NO_RESULT.
  */
 export const CALL_OUTCOMES = [
+  'WON',
+  'CONSIDERING',
   'APPOINTMENT_SET',
   'CALLBACK_REQUESTED',
   'NOT_REACHED_NO_ANSWER',
@@ -34,6 +36,8 @@ const RETRY_DELAY_MS: Readonly<Record<NotReached, number>> = {
   NOT_REACHED_VOICEMAIL: 24 * 60 * MINUTE,
   NOT_REACHED_BUSY: 30 * MINUTE,
 };
+/** 検討中のお客様への再連絡。〔要確認: 運用に合わせて調整〕 */
+const CONSIDERING_FOLLOW_UP_MS = 72 * 60 * MINUTE;
 
 /**
  * 宅建業法施行規則16条の11: once the person indicates they will not contract (or do not want
@@ -47,7 +51,7 @@ const SUPPRESSION_FOR: Partial<Record<CallOutcome, HardReason>> = {
   WRONG_NUMBER: 'PRIVACY_BLOCK',
 };
 
-export type FollowUpType = 'APPOINTMENT' | 'CALLBACK' | 'RETRY' | 'DATA_FIX';
+export type FollowUpType = 'APPOINTMENT' | 'CALLBACK' | 'RETRY' | 'FOLLOW_UP' | 'DATA_FIX';
 export type FollowUp = {
   readonly type: FollowUpType;
   readonly dueAt: Date | null;
@@ -141,6 +145,10 @@ export function recordOutcome(i: OutcomeInput): OutcomeDecision {
       // Internal data-quality task, not solicitation: allowed even under suppression.
       followUp = followUpOf('DATA_FIX', null);
       break;
+    case 'CONSIDERING':
+      if (mayFollowUp) followUp = followUpOf('FOLLOW_UP', new Date(now.getTime() + CONSIDERING_FOLLOW_UP_MS));
+      break;
+    case 'WON':
     case 'NOT_INTERESTED':
     case 'REFUSED_DO_NOT_CALL':
     case 'CONVERSATION_ENDED_NO_RESULT':

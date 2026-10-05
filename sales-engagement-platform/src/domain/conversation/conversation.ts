@@ -3,6 +3,7 @@ import { DomainError } from '../errors.js';
 export const CONVERSATION_STATES = [
   'INTRODUCTION',
   'DISCLOSURE',
+  'PERMISSION',
   'IDENTIFICATION',
   'QUALIFICATION',
   'DISCOVERY',
@@ -23,12 +24,14 @@ const EXITS = ['HANDOFF', 'STOPPING', 'COMPLETED'] as const;
 
 /**
  * 宅建業法施行規則16条の11: before soliciting, disclose 商号, 勧誘者の氏名 and 勧誘目的.
- * Hence INTRODUCTION → DISCLOSURE → IDENTIFICATION is the only path into sales states.
+ * Hence INTRODUCTION → DISCLOSURE → PERMISSION → IDENTIFICATION is the only path into sales states
+ * (PERMISSION = 「今お時間よろしいですか」: a no here ends or reschedules, it is never argued with).
  * STOPPING (the customer declined) can only end the call: no objection handling, no transfer to sales.
  */
 const TRANSITIONS: Readonly<Record<ConversationState, readonly ConversationState[]>> = {
   INTRODUCTION: ['DISCLOSURE', ...EXITS],
-  DISCLOSURE: ['IDENTIFICATION', ...EXITS],
+  DISCLOSURE: ['PERMISSION', ...EXITS],
+  PERMISSION: ['IDENTIFICATION', ...EXITS],
   IDENTIFICATION: [...SALES, ...EXITS],
   QUALIFICATION: [...others('QUALIFICATION'), ...EXITS],
   DISCOVERY: [...others('DISCOVERY'), ...EXITS],
@@ -98,23 +101,69 @@ export function detectStopIntent(text: string): StopIntent {
   return { stop: false };
 }
 
-export type StopDirective = {
-  readonly next: 'STOPPING';
-  readonly actions: readonly ['PERSIST_SUPPRESSION', 'CONFIRM_STOP', 'END_CALL'];
-  readonly suppressionReason: 'DO_NOT_CALL' | 'STOP_REQUESTED';
-};
+// Complaints (クレーム) — the AI must stop selling and hand over to a person.
+const COMPLAINT: readonly RegExp[] = [
+  /しつこい/,
+  /クレーム|苦情/,
+  /消費(者|生活)センター|国民生活センター/,
+  /警察|弁護士|訴え/,
+  /(責任者|上司|上の人)を出(せ|して)/,
+  /ふざけ(る|ん)な/,
+];
+
+export function detectComplaint(text: string): boolean {
+  const t = text.normalize('NFKC');
+  return COMPLAINT.some((re) => re.test(t));
+}
+
+export type SafetyDirective =
+  | {
+      readonly next: 'STOPPING';
+      readonly actions: readonly ('PERSIST_SUPPRESSION' | 'CONFIRM_STOP' | 'END_CALL' | 'FLAG_COMPLAINT')[];
+      readonly suppressionReason: 'DO_NOT_CALL' | 'STOP_REQUESTED';
+    }
+  | {
+      readonly next: 'HANDOFF';
+      readonly actions: readonly ['STOP_AI', 'HANDOFF_TO_HUMAN', 'FLAG_COMPLAINT'];
+      readonly suppressionReason: null;
+    };
 
 /**
- * Runs on every customer utterance before the AI is allowed to respond. A stop request
- * forces STOPPING; the AI never gets a turn to persuade.
+ * Runs on every customer utterance before the AI is allowed to respond.
+ * Precedence: stop request (suppression) > complaint (human) > normal flow.
+ * The AI never gets a turn to persuade after either.
  */
-export function handleCustomerTurn(state: ConversationState, utterance: string): StopDirective | null {
-  if (!canConversationTransition(state, 'STOPPING')) return null;
+export function handleCustomerTurn(state: ConversationState, utterance: string): SafetyDirective | null {
+  const complaint = detectComplaint(utterance);
   const intent = detectStopIntent(utterance);
-  if (!intent.stop) return null;
-  return {
-    next: 'STOPPING',
-    actions: ['PERSIST_SUPPRESSION', 'CONFIRM_STOP', 'END_CALL'],
-    suppressionReason: intent.strength === 'EXPLICIT_DNC' ? 'DO_NOT_CALL' : 'STOP_REQUESTED',
-  };
+
+  if (intent.stop && canConversationTransition(state, 'STOPPING')) {
+    return {
+      next: 'STOPPING',
+      actions: complaint
+        ? ['PERSIST_SUPPRESSION', 'CONFIRM_STOP', 'END_CALL', 'FLAG_COMPLAINT']
+        : ['PERSIST_SUPPRESSION', 'CONFIRM_STOP', 'END_CALL'],
+      suppressionReason: intent.strength === 'EXPLICIT_DNC' ? 'DO_NOT_CALL' : 'STOP_REQUESTED',
+    };
+  }
+  if (complaint && canConversationTransition(state, 'HANDOFF')) {
+    return { next: 'HANDOFF', actions: ['STOP_AI', 'HANDOFF_TO_HUMAN', 'FLAG_COMPLAINT'], suppressionReason: null };
+  }
+  return null;
+}
+
+export type ConversationSession = {
+  readonly state: ConversationState;
+  readonly controller: 'AI' | 'HUMAN';
+};
+
+/** A human takeover is final for the conversation: there is deliberately no resumeAi(). */
+export function takeOver(session: ConversationSession): ConversationSession {
+  return session.controller === 'HUMAN' ? session : { ...session, controller: 'HUMAN' };
+}
+
+const AI_SILENT_STATES: ReadonlySet<ConversationState> = new Set(['STOPPING', 'HANDOFF', 'COMPLETED']);
+
+export function canAiSpeak(session: ConversationSession): boolean {
+  return session.controller === 'AI' && !AI_SILENT_STATES.has(session.state);
 }

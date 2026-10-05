@@ -16,7 +16,8 @@ describe('conversation state machine', () => {
     for (const s of SALES) expect(canConversationTransition('INTRODUCTION', s), s).toBe(false);
     expect(canConversationTransition('INTRODUCTION', 'DISCLOSURE')).toBe(true);
     for (const s of SALES) expect(canConversationTransition('DISCLOSURE', s), s).toBe(false);
-    expect(canConversationTransition('DISCLOSURE', 'IDENTIFICATION')).toBe(true);
+    // 2026-10-05 requirement change: PERMISSION sits between DISCLOSURE and IDENTIFICATION (safety.test.ts).
+    for (const s of SALES) expect(canConversationTransition('PERMISSION', s), s).toBe(false);
   });
 
   it('STOPPING is reachable from every non-terminal state', () => {

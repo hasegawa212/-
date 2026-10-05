@@ -98,6 +98,23 @@ describe('recordOutcome — follow-ups', () => {
     expect(r.attemptsExhausted).toBe(true);
   });
 
+  it('WON → no sales follow-up, no suppression', () => {
+    const r = recordOutcome(input({ outcome: 'WON' }));
+    expect(r.followUp).toBeNull();
+    expect(r.suppression).toBeNull();
+  });
+
+  it('CONSIDERING (検討) → FOLLOW_UP after 3 days', () => {
+    expect(recordOutcome(input({ outcome: 'CONSIDERING' })).followUp).toMatchObject({
+      type: 'FOLLOW_UP',
+      dueAt: new Date(NOW.getTime() + 72 * HOUR),
+    });
+  });
+
+  it('CONSIDERING never follows up a suppressed contact', () => {
+    expect(recordOutcome(input({ outcome: 'CONSIDERING', activeHardSuppression: true })).followUp).toBeNull();
+  });
+
   it('CONVERSATION_ENDED_NO_RESULT → no follow-up, no suppression', () => {
     const r = recordOutcome(input({ outcome: 'CONVERSATION_ENDED_NO_RESULT' }));
     expect(r.followUp).toBeNull();

@@ -106,6 +106,42 @@ const MUTANTS = [
     '',
     'free-dial numbers dialable',
   ],
+  [
+    'src/domain/outcome/tacMapping.ts',
+    "拒否: 'REFUSED_DO_NOT_CALL',",
+    "拒否: 'NOT_REACHED_NO_ANSWER',",
+    'TAC 拒否 no longer suppresses',
+  ],
+  [
+    'src/domain/outcome/tacMapping.ts',
+    "連絡停止: { kind: 'SUPPRESS', reason: 'STOP_REQUESTED' },",
+    "連絡停止: { kind: 'CALLABLE', followUpType: 'RETRY' },",
+    'TAC 連絡停止 callable',
+  ],
+  [
+    'src/domain/conversation/conversation.ts',
+    "return session.controller === 'AI' && !AI_SILENT_STATES.has(session.state);",
+    'return !AI_SILENT_STATES.has(session.state);',
+    'AI speaks after human takeover',
+  ],
+  [
+    'src/domain/conversation/conversation.ts',
+    "if (intent.stop && canConversationTransition(state, 'STOPPING')) {",
+    "if (!complaint && intent.stop && canConversationTransition(state, 'STOPPING')) {",
+    'complaint masks a stop request',
+  ],
+  [
+    'src/domain/call/reconcile.ts',
+    "if (targetRank < rank) return IGNORE('STALE');",
+    '',
+    'late webhook moves call backwards',
+  ],
+  [
+    'src/domain/call/reconcile.ts',
+    "if (isTerminal(call.state)) return IGNORE('TERMINAL');",
+    '',
+    'webhook reopens a finished call',
+  ],
 ];
 
 let survived = 0;

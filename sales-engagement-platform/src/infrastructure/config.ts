@@ -7,6 +7,8 @@ const bool = (fallback: boolean) =>
     .optional()
     .transform((v) => (v === undefined ? fallback : v === 'true'));
 
+const int = (fallback: number, min: number, max: number) => z.coerce.number().int().min(min).max(max).default(fallback);
+
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(8080),
@@ -22,6 +24,17 @@ const EnvSchema = z.object({
   // Engaged (= no outbound calls) unless an operator explicitly releases it.
   OUTBOUND_KILL_SWITCH: bool(true),
   WEBHOOK_SIGNATURE_BYPASS: bool(false),
+
+  // Production safety limits. There is deliberately no "0 = unlimited" (audit R4).
+  MAX_CALL_DURATION_SECONDS: int(900, 60, 3600),
+  DAILY_CALL_LIMIT: int(100, 1, 100_000),
+  MAX_CONCURRENT_CALLS: int(1, 1, 100),
+  // 0 = not configured → the BUDGET guard denies (fail closed).
+  TELEPHONY_BUDGET_YEN_PER_DAY: int(0, 0, 10_000_000),
+  AI_BUDGET_YEN_PER_DAY: int(0, 0, 10_000_000),
+  CALLING_HOURS_START: int(9, 0, 23),
+  CALLING_HOURS_END: int(20, 1, 24),
+  PROVIDER_FAILURE_THRESHOLD: int(5, 1, 100),
 });
 
 export type FeatureFlags = {
@@ -30,6 +43,16 @@ export type FeatureFlags = {
   RECORDING_ENABLED: boolean;
   HUMAN_HANDOFF_ENABLED: boolean;
 };
+
+export type SafetyLimits = Readonly<{
+  maxCallDurationSeconds: number;
+  dailyCallLimit: number;
+  maxConcurrentCalls: number;
+  telephonyBudgetYenPerDay: number;
+  aiBudgetYenPerDay: number;
+  callingHours: Readonly<{ start: number; end: number }>;
+  providerFailureThreshold: number;
+}>;
 
 export type AppConfig = Readonly<{
   nodeEnv: 'development' | 'test' | 'production';
@@ -41,6 +64,7 @@ export type AppConfig = Readonly<{
   flags: Readonly<FeatureFlags>;
   outboundKillSwitch: boolean;
   webhookSignatureBypass: boolean;
+  limits: SafetyLimits;
 }>;
 
 export class ConfigError extends Error {
@@ -63,6 +87,13 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     throw new ConfigError(`Invalid configuration for: ${keys.join(', ')}`, keys);
   }
   const e = parsed.data;
+
+  if (e.CALLING_HOURS_START >= e.CALLING_HOURS_END) {
+    throw new ConfigError('CALLING_HOURS_START must be earlier than CALLING_HOURS_END', [
+      'CALLING_HOURS_START',
+      'CALLING_HOURS_END',
+    ]);
+  }
 
   if (e.NODE_ENV === 'production') {
     if (e.WEBHOOK_SIGNATURE_BYPASS) {
@@ -99,6 +130,15 @@ export function loadConfig(env: Record<string, string | undefined>): AppConfig {
     }),
     outboundKillSwitch: e.OUTBOUND_KILL_SWITCH,
     webhookSignatureBypass: e.WEBHOOK_SIGNATURE_BYPASS,
+    limits: Object.freeze({
+      maxCallDurationSeconds: e.MAX_CALL_DURATION_SECONDS,
+      dailyCallLimit: e.DAILY_CALL_LIMIT,
+      maxConcurrentCalls: e.MAX_CONCURRENT_CALLS,
+      telephonyBudgetYenPerDay: e.TELEPHONY_BUDGET_YEN_PER_DAY,
+      aiBudgetYenPerDay: e.AI_BUDGET_YEN_PER_DAY,
+      callingHours: Object.freeze({ start: e.CALLING_HOURS_START, end: e.CALLING_HOURS_END }),
+      providerFailureThreshold: e.PROVIDER_FAILURE_THRESHOLD,
+    }),
   });
 }
 

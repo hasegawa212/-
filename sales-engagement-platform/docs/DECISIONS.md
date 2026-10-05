@@ -14,7 +14,7 @@
 
 ## ADR-0002 — リファレンス URL に到達できない
 
-- **Status**: Accepted (2026-10-04)
+- **Status**: Superseded by ADR-0010 (2026-10-05)
 - **Context**: `https://tac-martial-arts.fly.dev/tac/app` は本開発環境の egress proxy でブロックされ取得不可。
 - **Decision**: 既存製品理解はリポ内の一次資料から行う: `テレアポ管理シート.csv`（24 列、架電ステータス・架電日1–3・架電結果1–3・アポ日時・担当者）、`apps-script-call-log/README.md`（結果キーワード対応表: アポ獲得/アポ予定/次回架電予定/対応不可/番号誤り/架電済み）、`経営管理/03_営業/テレアポ/個別分析.md`（優先度 A/B/C、電話可能な時間帯）。UI のコピーはしない。
 - **Tradeoff**: 既存アプリの画面導線や未記録の業務ルールを見落とす可能性。→ `PRODUCT.md` の「要確認」に列挙し、URL にアクセスできる環境で再確認する。
@@ -75,3 +75,35 @@
 - **Decision**: Stryker は採用しない（依存も削除）。`scripts/mutation-smoke.mjs`（依存ゼロ）で、安全上重要な変異を明示列挙し全 kill を CI で要求する。
 - **Tradeoff**: 網羅的な自動変異ではない。変異リストの保守が必要（パターン不一致は STALE として失敗させ、腐敗を検出）。
 - **Revisit**: Stryker が Vitest 5 を正式サポートしたら再評価。
+
+## ADR-0010 — 現行 TAC はソースコードで監査する
+
+- **Status**: Accepted (2026-10-05). Supersedes ADR-0002
+- **Context**: 参照 URL は今も egress でブロックされている。ただし本番アプリ `tac-martial-arts` のソースが `hasegawa212/-6780/telegram-ai-bot/tac/` にある（`fly.toml` の app 名が一致）。`feature/sakura-max` が UI の要求機能（スマートリスト・フォロー・分類修正）をすべて含む。
+- **Decision**: `docs/EXISTING_APP_AUDIT.md` は、このソースを証拠（OBSERVED, file:line 付き）とする。本番で動いている版と実機挙動は UNKNOWN として分けて書く。
+- **Alternatives**: 依頼文の機能リストだけで設計する（推測が混ざるので却下）。
+- **Consequences**: 本番の環境変数と実データは引き続き未確認。運用者に確認する。
+
+## ADR-0011 — 次世代版を 1 系統に統合する（**Proposed — オーナー判断待ち**）
+
+- **Context**: 同じ目的の次世代実装が 2 つある。
+  - `hasegawa212/-6780/tac-next`: pnpm monorepo。Phase 0–1 とアプリ層（in-memory）まで。テスト 180。
+  - 本サブプロジェクト: Phase 0–1 と HTTP 骨格まで。テスト 281、mutation smoke、evals あり。
+  - 並行して進めると、設計・テスト・運用知識が二重になり、どちらも中途半端になる。
+- **Options**:
+  - A) **tac-next に統合する**。現行 TAC と同じリポジトリで、アプリ層が先行している。本プロジェクトの強み（fail-closed suppression とそのテスト、会話中の拒否検知、redaction、mutation smoke、evals、監査書）を移植する。
+  - B) **本プロジェクトに統合する**。tac-next のアプリ層・冪等性・スコアリング・controller を移植する。
+  - C) 両方続ける（非推奨）。
+- **Recommendation**: **A**。理由は 3 つ。
+  - 本番 TAC と同じリポジトリにあり、移行・比較・デプロイ設定（Fly）を共有できる。
+  - アプリ層が先行している。
+  - こちらの強みは domain 単位の純関数とテストなので、移植コストが小さい。
+- **Consequences**: A を選んだ場合、本サブプロジェクトは移植完了後に archive し、README から tac-next を指す。決定までは本プロジェクトの作業を domain と docs（移植可能な資産）に限定し、DB・UI 等の大きな投資は行わない。
+
+## ADR-0012 — 単一パッケージ + レイヤ lint を維持する（apps/packages 分割はしない）
+
+- **Status**: Accepted (2026-10-05)
+- **Context**: 仕様 14 は `apps/{web,api,worker}` + `packages/*` を候補に挙げている。
+- **Decision**: 当面は `src/{domain,application,infrastructure,interface}` の単一パッケージを維持する。依存方向は ESLint で強制する（ADR-0006）。web UI（P9）を追加する時点で、`web/` を別パッケージにするか再評価する。
+- **Alternatives**: pnpm workspace（tac-next の方式）。境界は明確になるが、ビルド・CI・依存管理の複雑さが増える。
+- **Consequences**: ADR-0011 で A に決まった場合は tac-next の構成に合わせるので、本 ADR は無効になる。

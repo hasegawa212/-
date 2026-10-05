@@ -93,3 +93,62 @@ describe('toClientSafeConfig', () => {
     });
   });
 });
+
+describe('production safety limits (Phase 0 delta)', () => {
+  it('safe defaults when nothing is configured — never "unlimited"', () => {
+    expect(loadConfig({}).limits).toEqual({
+      maxCallDurationSeconds: 900,
+      dailyCallLimit: 100,
+      maxConcurrentCalls: 1,
+      telephonyBudgetYenPerDay: 0,
+      aiBudgetYenPerDay: 0,
+      callingHours: { start: 9, end: 20 },
+      providerFailureThreshold: 5,
+    });
+  });
+
+  it('accepts explicit valid values', () => {
+    const l = loadConfig({
+      DAILY_CALL_LIMIT: '300',
+      MAX_CONCURRENT_CALLS: '4',
+      TELEPHONY_BUDGET_YEN_PER_DAY: '5000',
+      CALLING_HOURS_START: '10',
+      CALLING_HOURS_END: '19',
+    }).limits;
+    expect(l.dailyCallLimit).toBe(300);
+    expect(l.maxConcurrentCalls).toBe(4);
+    expect(l.telephonyBudgetYenPerDay).toBe(5000);
+    expect(l.callingHours).toEqual({ start: 10, end: 19 });
+  });
+
+  it.each([
+    ['DAILY_CALL_LIMIT', '0'],
+    ['DAILY_CALL_LIMIT', '-1'],
+    ['DAILY_CALL_LIMIT', '1.5'],
+    ['DAILY_CALL_LIMIT', '100001'],
+    ['MAX_CONCURRENT_CALLS', '0'],
+    ['MAX_CALL_DURATION_SECONDS', 'abc'],
+    ['MAX_CALL_DURATION_SECONDS', '99999'],
+    ['TELEPHONY_BUDGET_YEN_PER_DAY', '-1'],
+    ['AI_BUDGET_YEN_PER_DAY', 'x'],
+    ['CALLING_HOURS_END', '25'],
+    ['PROVIDER_FAILURE_THRESHOLD', '0'],
+  ])('%s=%s is rejected (there is no "0 = unlimited")', (key, value) => {
+    try {
+      loadConfig({ [key]: value });
+      expect.unreachable();
+    } catch (e) {
+      expect(e).toBeInstanceOf(ConfigError);
+      expect((e as ConfigError).invalidKeys).toContain(key);
+    }
+  });
+
+  it('calling hours must form a non-empty window', () => {
+    expect(() => loadConfig({ CALLING_HOURS_START: '20', CALLING_HOURS_END: '20' })).toThrow(/CALLING_HOURS/);
+    expect(() => loadConfig({ CALLING_HOURS_START: '21', CALLING_HOURS_END: '9' })).toThrow(/CALLING_HOURS/);
+  });
+
+  it('limits are not exposed to the browser', () => {
+    expect(JSON.stringify(toClientSafeConfig(loadConfig({})))).not.toMatch(/limit|budget|duration/i);
+  });
+});
