@@ -2,7 +2,7 @@
 
 次世代 TAC テレアポ ― **AI + Human Hybrid Sales Engagement Platform**（株式会社 Martial Arts）。
 
-> 現在の状態: **Phase 0 (Foundation) + Phase 1 (Domain) 完了（2026-10-05 delta を含む）**。次世代版をどちらに統合するかは検討中（[ADR-0011](docs/DECISIONS.md)）。DB・API（発信）・UI・電話/AI Provider は未実装。
+> ⚠️ **凍結（2026-10-05）**: 次世代版は [`hasegawa212/-6780` の `tac-next/`](https://github.com/hasegawa212/-6780/tree/main/tac-next) に統合しました（[ADR-0011](docs/DECISIONS.md)）。このディレクトリは参照資料として残しています。新しい開発は tac-next で行ってください。
 > 実装状態は必ず [`docs/PROGRESS.md`](docs/PROGRESS.md) を参照。
 
 ## Quick start

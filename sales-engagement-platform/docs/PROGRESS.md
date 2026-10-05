@@ -5,7 +5,7 @@
 
 # Current Phase
 
-Phase 1 delta DONE → **次の Phase 2 (Database) は ADR-0011（tac-next との統合判断）待ち**
+**FROZEN（2026-10-05）**: ADR-0011 で tac-next への統合が決まった。移植は `hasegawa212/-6780` PR #131 で行っている。以後の作業は tac-next の `docs/PROGRESS.md` を正とする。
 
 # Completed
 
@@ -31,14 +31,13 @@ Phase 1 delta DONE → **次の Phase 2 (Database) は ADR-0011（tac-next と�
 
 # Blocked
 
-- **ADR-0011（Proposed）**: 同じ目的の `hasegawa212/-6780/tac-next` が並行して存在する。どちらに一本化するか、オーナーの判断が必要。決まるまで DB・UI など大きな投資は保留する。
+- なし（ADR-0011 は Accepted。本プロジェクトは凍結）
 - 参照 URL と公式ドキュメント（OpenAI / Twilio）は egress でブロックされている。Voice 系の仕様は検索結果の抜粋でしか確認できていないので、P11/P12 の着手前に再検証が必要。
 
 # Next
 
-1. ADR-0011 の決定
-2. Phase 2 Database（統合先で実施）
-3. 現行 TAC の重大リスク R1–R5・R8 の修正は、別途オーナー判断（現行リポジトリでの修正）
+1. tac-next で Phase 2 Database（tac-next の PROGRESS を参照）
+2. 現行 TAC の重大リスク R1–R5・R8 の修正は、別途オーナー判断（現行リポジトリでの修正）
 
 # Known Issues / Deviations
 

@@ -84,7 +84,9 @@
 - **Alternatives**: 依頼文の機能リストだけで設計する（推測が混ざるので却下）。
 - **Consequences**: 本番の環境変数と実データは引き続き未確認。運用者に確認する。
 
-## ADR-0011 — 次世代版を 1 系統に統合する（**Proposed — オーナー判断待ち**）
+## ADR-0011 — 次世代版を 1 系統に統合する
+
+- **Status**: Accepted (2026-10-05) — オーナーが A（tac-next に統合）を選択。移植は `hasegawa212/-6780` PR #131 / tac-next ADR-0008
 
 - **Context**: 同じ目的の次世代実装が 2 つある。
   - `hasegawa212/-6780/tac-next`: pnpm monorepo。Phase 0–1 とアプリ層（in-memory）まで。テスト 180。
@@ -107,3 +109,11 @@
 - **Decision**: 当面は `src/{domain,application,infrastructure,interface}` の単一パッケージを維持する。依存方向は ESLint で強制する（ADR-0006）。web UI（P9）を追加する時点で、`web/` を別パッケージにするか再評価する。
 - **Alternatives**: pnpm workspace（tac-next の方式）。境界は明確になるが、ビルド・CI・依存管理の複雑さが増える。
 - **Consequences**: ADR-0011 で A に決まった場合は tac-next の構成に合わせるので、本 ADR は無効になる。
+
+## 補記（2026-10-05）— 凍結
+
+ADR-0011 の決定（A）により、本サブプロジェクトは**凍結**する。以後の開発は `hasegawa212/-6780/tac-next` で行う。
+
+- 移植したもの: 抑止の fail closed（移植時に truthy 応答で発信される穴を発見して修正）、発話からの Safety 検知、フォロー 5 分類の写像、mutation smoke、evals、sakura-max 監査。
+- 移植していないもの（tac-next の流儀で後日作る）: HTTP 骨格（tac-next は Hono）、PII redaction（tac-next Phase 15）、設定の安全上限（tac-next ADR-0009 で議論中）。
+- コードと docs は参照資料として残す（削除しない）。
