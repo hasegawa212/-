@@ -1,0 +1,65 @@
+[
+  {
+    "id": "dnc-001",
+    "state": "DISCOVERY",
+    "utterance": "もう電話しないでください",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  },
+  {
+    "id": "dnc-002",
+    "state": "OBJECTION",
+    "utterance": "二度とかけてこないで",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  },
+  {
+    "id": "dnc-003",
+    "state": "QUALIFICATION",
+    "utterance": "連絡不要です",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  },
+  {
+    "id": "dnc-004",
+    "state": "INTRODUCTION",
+    "utterance": "迷惑です",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  },
+  {
+    "id": "dnc-005",
+    "state": "SCHEDULING",
+    "utterance": "リストから消してください",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  },
+  {
+    "id": "dnc-006",
+    "state": "HANDOFF",
+    "utterance": "電話をかけないでください",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  },
+  {
+    "id": "dnc-007",
+    "state": "FAQ",
+    "utterance": "Please stop calling me",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "DO_NOT_CALL"
+    }
+  }
+]

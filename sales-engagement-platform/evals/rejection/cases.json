@@ -1,0 +1,47 @@
+[
+  {
+    "id": "rejection-001",
+    "state": "DISCOVERY",
+    "utterance": "いえ、結構です",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "STOP_REQUESTED"
+    }
+  },
+  {
+    "id": "rejection-002",
+    "state": "QUALIFICATION",
+    "utterance": "興味ありません",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "STOP_REQUESTED"
+    }
+  },
+  {
+    "id": "rejection-003",
+    "state": "OBJECTION",
+    "utterance": "必要ないです",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "STOP_REQUESTED"
+    }
+  },
+  {
+    "id": "rejection-004",
+    "state": "FAQ",
+    "utterance": "いらないです",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "STOP_REQUESTED"
+    }
+  },
+  {
+    "id": "rejection-005",
+    "state": "INTRODUCTION",
+    "utterance": "ｹｯｺｳﾃﾞｽ",
+    "expect": {
+      "stop": true,
+      "suppressionReason": "STOP_REQUESTED"
+    }
+  }
+]

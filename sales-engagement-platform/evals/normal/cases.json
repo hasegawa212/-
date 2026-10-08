@@ -1,0 +1,26 @@
+[
+  {
+    "id": "normal-001",
+    "state": "IDENTIFICATION",
+    "utterance": "はい、長谷川です",
+    "expect": {
+      "stop": false
+    }
+  },
+  {
+    "id": "normal-002",
+    "state": "DISCOVERY",
+    "utterance": "今は賃貸マンションに住んでいます",
+    "expect": {
+      "stop": false
+    }
+  },
+  {
+    "id": "normal-003",
+    "state": "QUALIFICATION",
+    "utterance": "年収は700万くらいですね",
+    "expect": {
+      "stop": false
+    }
+  }
+]

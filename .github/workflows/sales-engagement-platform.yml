@@ -1,0 +1,57 @@
+name: sales-engagement-platform CI
+
+# Merge gate for sales-engagement-platform/. Every step must pass:
+# format → lint → typecheck → unit/integration (with coverage thresholds) → mutation smoke → build → dependency audit.
+on:
+  pull_request:
+    paths:
+      - "sales-engagement-platform/**"
+      - ".github/workflows/sales-engagement-platform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "sales-engagement-platform/**"
+      - ".github/workflows/sales-engagement-platform.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: sales-engagement-platform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sales-engagement-platform/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Format
+        run: npm run format:check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (unit + integration, coverage gate)
+        run: npm run test:coverage
+
+      - name: Mutation smoke (safety-critical domain)
+        run: npm run test:mutation
+
+      - name: Build
+        run: npm run build
+
+      - name: Security scan (dependencies)
+        run: npm audit --omit=dev --audit-level=high
