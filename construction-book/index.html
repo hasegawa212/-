@@ -111,6 +111,15 @@ textarea{ resize:vertical; }
   border:1.5px dashed var(--gold); border-radius:6px; color:var(--gold-dk); font-size:12.5px; font-weight:700; background:var(--gold-lt); transition:.15s;
 }
 .add-proc:hover{ background:#f0e4bf; }
+.preset-block{ margin-bottom:12px; }
+.preset-head{ font-size:11px; font-weight:700; color:var(--gold-dk); margin-bottom:7px; }
+.proc-presets{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+.preset-chip{ display:inline-flex; align-items:center; gap:4px; padding:5px 10px; font-size:11px; font-weight:600; color:var(--dark); background:var(--white); border:1px solid var(--gold); border-radius:999px; transition:.15s; cursor:pointer; }
+.preset-chip:hover{ background:var(--gold-lt); }
+.preset-chip span{ color:var(--gold-dk); font-weight:800; }
+.preset-all{ display:flex; align-items:center; justify-content:center; gap:7px; width:100%; padding:9px; font-size:11.5px; font-weight:700; color:var(--gold-dk); background:var(--gold-lt); border:1px solid var(--gold); border-radius:6px; transition:.15s; cursor:pointer; }
+.preset-all:hover{ background:#f0e4bf; }
+.preset-all:disabled{ opacity:.45; cursor:default; }
 
 /* mobile preview toggle */
 #mobile-toggle{ display:none; }
@@ -349,10 +358,32 @@ function newBook(){
     overview: { area:'', structure:'', content:'' },
     processes: [],
     completion: { comment:'', handoverDate:'', warranty:'' },
-    company: { name:'株式会社 Martial Arts', dept:'建設事業部', tel:'', address:'', site:'' },
+    company: { name:'株式会社 Martial Arts', dept:'建設事業部', tel:'03-6908-2680', address:'〒165-0023 東京都中野区江原町3-34-1 HBビル2階', site:'martialarts.co.jp' },
   };
 }
 function newProcess(){ return { id:uid(), name:'', date:'', desc:'', photos:[] }; }
+
+/* 標準施工工程テンプレート（木造戸建・新築の一般的な流れ）。
+   ワンタップで工程ページを追加できる。name/desc は追加後に編集・削除可能。 */
+const PROCESS_PRESETS = [
+  { name:'地盤調査・地鎮祭', desc:'地盤調査を実施し、必要に応じて地盤改良を行います。地鎮祭にて工事の安全を祈願します。' },
+  { name:'基礎工事', desc:'配筋・型枠を組み、コンクリートを打設して建物を支える基礎を施工します。' },
+  { name:'上棟・躯体工事', desc:'土台敷きから柱・梁の建方、屋根下地までを行い、建物の骨組みを組み上げます。' },
+  { name:'屋根・防水工事', desc:'ルーフィング・屋根材の施工と、各所の防水処理を行います。' },
+  { name:'外装（サイディング）工事', desc:'透湿防水シート・胴縁の上に外壁材を張り、シーリングで仕上げます。' },
+  { name:'断熱・内装工事', desc:'断熱材を充填し、石膏ボード・クロス・床材で内装を仕上げます。' },
+  { name:'住宅設備工事', desc:'キッチン・ユニットバス・洗面・トイレ・給湯設備を設置します。' },
+  { name:'外構工事', desc:'アプローチ・駐車場・フェンスなどの外構を施工します。' },
+  { name:'社内検査・お引渡し', desc:'社内検査で品質を確認し、是正のうえお客様へお引渡しします。' },
+];
+function newProcessFrom(preset){ return { id:uid(), name:preset.name||'', date:'', desc:preset.desc||'', photos:[] }; }
+/* 既に同名の工程があるテンプレートは重複追加しない */
+function addPresetProcess(preset){
+  update(()=>{ if(!book.processes.some(p=>p.name===preset.name)) book.processes.push(newProcessFrom(preset)); }, true);
+}
+function addAllPresets(){
+  update(()=>{ PROCESS_PRESETS.forEach(ps=>{ if(!book.processes.some(p=>p.name===ps.name)) book.processes.push(newProcessFrom(ps)); }); }, true);
+}
 
 /* Safe storage: localStorage が使えない環境（file:// で直接開く・プライベート
    ブラウズ・Cookieブロック・サンドボックス内プレビュー等では SecurityError を
@@ -460,8 +491,22 @@ function renderEditor(){
   /* 3. 施工工程 */
   const procNodes = [];
   if (book.processes.length===0){
-    procNodes.push(el('div',{class:'hint',style:'text-align:center;padding:8px 0 14px'},'工程がまだありません。下のボタンから追加してください。'));
+    procNodes.push(el('div',{class:'hint',style:'text-align:center;padding:8px 0 14px'},'工程がまだありません。テンプレートから追加するか、空の工程を追加してください。'));
   }
+  // 工程テンプレート（ワンタップ追加）
+  const remaining = PROCESS_PRESETS.filter(ps=>!book.processes.some(p=>p.name===ps.name));
+  const presetChips = PROCESS_PRESETS.map(ps=>{
+    const used = book.processes.some(p=>p.name===ps.name);
+    return el('button',{class:'preset-chip', title: used?'追加済み':'この工程を追加', disabled: used?'':null,
+      onClick: used?null:()=>addPresetProcess(ps)}, [ el('span',{html: used?'✓':'＋'}), ps.name ]);
+  });
+  const allBtn = el('button',{class:'preset-all', disabled: remaining.length?null:'', onClick: remaining.length?addAllPresets:null},
+    [ el('span',{html:'＋'}), remaining.length? `標準工程をまとめて追加（${remaining.length}）` : '標準工程は追加済み' ]);
+  procNodes.push(el('div',{class:'preset-block'},[
+    el('div',{class:'preset-head'},'工程テンプレートから追加'),
+    el('div',{class:'proc-presets'}, presetChips),
+    allBtn,
+  ]));
   book.processes.forEach((p, idx)=>{
     procNodes.push(procEditCard(p, idx));
   });
