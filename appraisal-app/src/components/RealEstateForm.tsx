@@ -6,6 +6,7 @@ import {
   CITY_OPTIONS,
   STRUCTURE_SPEC,
   type AppraisalResult,
+  type Direction,
   type Grade,
   type PropertyType,
   type Structure,
@@ -29,6 +30,18 @@ const GRADE_OPTIONS: { value: Grade; label: string }[] = [
   { value: "luxury", label: "ハイグレード" },
 ];
 
+const DIRECTION_OPTIONS: { value: "" | Direction; label: string }[] = [
+  { value: "", label: "指定なし" },
+  { value: "south", label: "南" },
+  { value: "southeast", label: "南東" },
+  { value: "southwest", label: "南西" },
+  { value: "east", label: "東" },
+  { value: "west", label: "西" },
+  { value: "northeast", label: "北東" },
+  { value: "northwest", label: "北西" },
+  { value: "north", label: "北" },
+];
+
 export function RealEstateForm({ onResult }: Props) {
   const [propertyType, setPropertyType] = useState<PropertyType>("house");
   const [city, setCity] = useState(CITY_OPTIONS[0]);
@@ -39,6 +52,8 @@ export function RealEstateForm({ onResult }: Props) {
   const [walkMinutes, setWalkMinutes] = useState("10");
   const [grade, setGrade] = useState<Grade>("standard");
   const [renovated, setRenovated] = useState(false);
+  const [direction, setDirection] = useState<"" | Direction>("");
+  const [cornerLot, setCornerLot] = useState(false);
 
   const showLand = propertyType !== "apartment";
   const showBuilding = propertyType !== "land";
@@ -56,6 +71,8 @@ export function RealEstateForm({ onResult }: Props) {
         walkMinutes: Number(walkMinutes) || 0,
         grade: showBuilding ? grade : undefined,
         renovated: showBuilding ? renovated : false,
+        direction: direction || undefined,
+        cornerLot: showLand ? cornerLot : false,
       })
     );
   }
@@ -143,6 +160,35 @@ export function RealEstateForm({ onResult }: Props) {
           onChange={(e) => setWalkMinutes(e.target.value)}
         />
       </Field>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="方角（採光/接道）" htmlFor="re-direction" hint="南向きほど日当たりで加点されます。">
+          <Select
+            id="re-direction"
+            value={direction}
+            onChange={(e) => setDirection(e.target.value as "" | Direction)}
+          >
+            {DIRECTION_OPTIONS.map((d) => (
+              <option key={d.value || "none"} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {showLand && (
+          <Field label="角地" hint="2方向接道は宅地価値が上がります。">
+            <label className="flex h-[38px] items-center gap-2.5 text-sm text-brand-700">
+              <input
+                type="checkbox"
+                checked={cornerLot}
+                onChange={(e) => setCornerLot(e.target.checked)}
+                className="h-4 w-4 rounded border-brand-300 text-brand-600 focus:ring-gold-400"
+              />
+              角地（2方向接道）
+            </label>
+          </Field>
+        )}
+      </div>
 
       {showBuilding && (
         <div className="grid grid-cols-2 gap-4">

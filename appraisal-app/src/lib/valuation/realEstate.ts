@@ -1,5 +1,5 @@
 import { CITY_LAND_PRICE, STRUCTURE_SPEC, CONDO_UNIT_PRICE, CONDO_UNIT_DEFAULT } from "./data";
-import type { AppraisalResult, BreakdownItem, Grade, RealEstateInput } from "./types";
+import type { AppraisalResult, BreakdownItem, Direction, Grade, PropertyType, RealEstateInput } from "./types";
 
 /** 1万円単位に丸める */
 function roundToMan(value: number): number {
@@ -41,6 +41,81 @@ function applyBuildingAdjustments(
     breakdown.push({
       label: "リフォーム/リノベ済み補正",
       detail: `係数${RENOVATION_FACTOR.toFixed(2)}`,
+      amount: after - v,
+    });
+    v = after;
+  }
+  return v;
+}
+
+/** 主要採光/接道の方位による日当たり補正係数（南が最も高く、北が最も低い） */
+export const DIRECTION_FACTOR: Record<Direction, number> = {
+  south: 1.03,
+  southeast: 1.015,
+  southwest: 1.015,
+  east: 1.0,
+  west: 1.0,
+  northeast: 0.985,
+  northwest: 0.985,
+  north: 0.97,
+};
+
+/** 方位ラベル（内訳表示用） */
+const DIRECTION_LABEL: Record<Direction, string> = {
+  south: "南",
+  southeast: "南東",
+  southwest: "南西",
+  east: "東",
+  west: "西",
+  northeast: "北東",
+  northwest: "北西",
+  north: "北",
+};
+
+/** 角地（2方向接道）の加点係数 */
+export const CORNER_LOT_FACTOR = 1.03;
+
+/**
+ * 方位による日当たり補正係数。未指定なら 1.0（補正なし）。
+ */
+export function directionFactor(direction?: Direction): number {
+  return direction ? DIRECTION_FACTOR[direction] : 1.0;
+}
+
+/**
+ * 角地補正係数。角地かつ戸建・土地のときのみ加点。
+ * マンションは専有住戸のため角地の概念を適用しない。
+ */
+export function cornerLotFactor(cornerLot: boolean | undefined, propertyType: PropertyType): number {
+  return cornerLot && propertyType !== "apartment" ? CORNER_LOT_FACTOR : 1.0;
+}
+
+/**
+ * 物件価値（土地＋建物の合計）に個別要因（方角・角地）を適用する。
+ * 既定（未指定・非角地）のときは何も積まず、従来の査定額をそのまま返す。
+ */
+function applyIndividualFactors(
+  value: number,
+  input: RealEstateInput,
+  breakdown: BreakdownItem[]
+): number {
+  let v = value;
+  const df = directionFactor(input.direction);
+  if (df !== 1.0 && input.direction) {
+    const after = v * df;
+    breakdown.push({
+      label: `方角補正（${DIRECTION_LABEL[input.direction]}向き）`,
+      detail: `日当たり係数${df.toFixed(3)}`,
+      amount: after - v,
+    });
+    v = after;
+  }
+  const cf = cornerLotFactor(input.cornerLot, input.propertyType);
+  if (cf !== 1.0) {
+    const after = v * cf;
+    breakdown.push({
+      label: "角地補正",
+      detail: `2方向接道 係数${cf.toFixed(2)}`,
       amount: after - v,
     });
     v = after;
@@ -130,8 +205,11 @@ export function appraiseRealEstate(input: RealEstateInput): AppraisalResult {
     }
   }
 
+  // 個別要因（方角＝日当たり・角地）を明示的に反映する
+  total = applyIndividualFactors(total, input, breakdown);
+
   const estimate = roundToMan(total);
-  // 個別要因（リフォーム履歴・日当たり・接道など）の不確実性として ±8% をレンジとする
+  // 残る個別要因（間口・地形・眺望など）の不確実性として ±8% をレンジとする
   const low = roundToMan(estimate * 0.92);
   const high = roundToMan(estimate * 1.08);
 
