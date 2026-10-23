@@ -4,7 +4,7 @@ name: Deploy appraisal-app to Netlify
 # 必要なシークレット（リポジトリ Settings → Secrets and variables → Actions）:
 #   NETLIFY_AUTH_TOKEN … Netlify の Personal access token（User settings → Applications）
 # サイトIDは公開情報なので env に直書き（必要なら NETLIFY_SITE_ID シークレットで上書き）。
-# NETLIFY_AUTH_TOKEN が未設定の環境では、ビルド検証のみ実行してデプロイはスキップする。
+# PRは秘密情報なしで検証。手動実行は既定で読み取り専用の接続診断のみ。
 
 on:
   push:
@@ -12,7 +12,23 @@ on:
     paths:
       - "appraisal-app/**"
       - ".github/workflows/deploy-appraisal-app.yml"
+  pull_request:
+    paths:
+      - "appraisal-app/**"
+      - ".github/workflows/deploy-appraisal-app.yml"
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "診断成功後、既存の本番サイトに公開する"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appraisal-netlify-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -22,6 +38,8 @@ jobs:
         working-directory: appraisal-app
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
@@ -40,20 +58,15 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Check Netlify auth
-        id: netlify-auth
+      - name: Verify Netlify identity and existing production target
+        if: github.event_name != 'pull_request'
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        run: |
-          if [ -n "$NETLIFY_AUTH_TOKEN" ]; then
-            echo "configured=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::warning::NETLIFY_AUTH_TOKEN is not configured; skipping Netlify deploy."
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-          fi
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'e6431469-8bb5-4d42-8db1-c370eebd5d04' }}
+        run: node scripts/netlify-preflight.mjs
 
       - name: Deploy to Netlify
-        if: steps.netlify-auth.outputs.configured == 'true'
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish)
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID || 'e6431469-8bb5-4d42-8db1-c370eebd5d04' }}
@@ -62,5 +75,4 @@ jobs:
             --prod \
             --dir=dist \
             --site="$NETLIFY_SITE_ID" \
-            --auth="$NETLIFY_AUTH_TOKEN" \
             --message "CI deploy ${{ github.sha }}"
