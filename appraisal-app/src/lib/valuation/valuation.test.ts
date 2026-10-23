@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { appraiseRealEstate, walkFactor, buildingResidualRate } from "./realEstate";
+import { appraiseRealEstate, walkFactor, buildingResidualRate, directionFactor, cornerLotFactor } from "./realEstate";
 import { appraiseCar, ageResidualRate, mileageFactor } from "./car";
 import { estimateMonthlyRent, WARD_RENT_PER_SQM, WARD_RENT_AVERAGE } from "./wardRents";
 import { evaluateInvestment } from "./investment";
@@ -127,6 +127,74 @@ describe("不動産: 査定", () => {
     });
     // 100 × 35,000 × 1.0
     expect(r.estimate).toBe(3500000);
+  });
+});
+
+describe("不動産: 個別要因（方角・角地）補正", () => {
+  it("方角係数は 南 > 東/西 > 北、未指定は1.0", () => {
+    expect(directionFactor(undefined)).toBe(1.0);
+    expect(directionFactor("south")).toBeGreaterThan(directionFactor("east"));
+    expect(directionFactor("east")).toBeGreaterThan(directionFactor("north"));
+    expect(directionFactor("east")).toBe(1.0);
+    // 南東・南西は南と東の中間
+    expect(directionFactor("southeast")).toBeGreaterThan(directionFactor("east"));
+    expect(directionFactor("southeast")).toBeLessThan(directionFactor("south"));
+  });
+
+  it("角地係数は戸建・土地で>1、マンションでは1.0", () => {
+    expect(cornerLotFactor(true, "house")).toBeGreaterThan(1.0);
+    expect(cornerLotFactor(true, "land")).toBeGreaterThan(1.0);
+    expect(cornerLotFactor(true, "apartment")).toBe(1.0);
+    expect(cornerLotFactor(false, "house")).toBe(1.0);
+    expect(cornerLotFactor(undefined, "house")).toBe(1.0);
+  });
+
+  const house = {
+    propertyType: "house" as const, city: "水戸市", landArea: 150, buildingArea: 100,
+    buildAge: 10, structure: "wood" as const, walkMinutes: 10,
+  };
+
+  it("方角・角地を指定しなければ従来結果と完全一致（内訳も増えない）", () => {
+    const plain = appraiseRealEstate(house);
+    const explicit = appraiseRealEstate({ ...house, direction: undefined, cornerLot: false });
+    expect(explicit.estimate).toBe(plain.estimate);
+    expect(explicit.breakdown).toHaveLength(plain.breakdown.length);
+  });
+
+  it("南向きは北向きより高く査定され、内訳に方角補正が加わる", () => {
+    const south = appraiseRealEstate({ ...house, direction: "south" });
+    const north = appraiseRealEstate({ ...house, direction: "north" });
+    const plain = appraiseRealEstate(house);
+    expect(south.estimate).toBeGreaterThan(north.estimate);
+    expect(south.estimate).toBeGreaterThan(plain.estimate);
+    expect(north.estimate).toBeLessThan(plain.estimate);
+    expect(south.breakdown.length).toBe(plain.breakdown.length + 1);
+  });
+
+  it("角地は非角地より高く査定される（戸建・土地）", () => {
+    expect(appraiseRealEstate({ ...house, cornerLot: true }).estimate)
+      .toBeGreaterThan(appraiseRealEstate(house).estimate);
+    const land = { ...house, propertyType: "land" as const, buildingArea: 0, buildAge: 0 };
+    expect(appraiseRealEstate({ ...land, cornerLot: true }).estimate)
+      .toBeGreaterThan(appraiseRealEstate(land).estimate);
+  });
+
+  it("マンションは方角が効くが角地は無視される", () => {
+    const apt = {
+      propertyType: "apartment" as const, city: "水戸市", landArea: 0, buildingArea: 70,
+      buildAge: 15, structure: "rc" as const, walkMinutes: 8,
+    };
+    expect(appraiseRealEstate({ ...apt, direction: "south" }).estimate)
+      .toBeGreaterThan(appraiseRealEstate(apt).estimate);
+    expect(appraiseRealEstate({ ...apt, cornerLot: true }).estimate)
+      .toBe(appraiseRealEstate(apt).estimate);
+  });
+
+  it("方角と角地は併用され、両方の補正が内訳に積まれる", () => {
+    const both = appraiseRealEstate({ ...house, direction: "south", cornerLot: true });
+    const plain = appraiseRealEstate(house);
+    expect(both.breakdown.length).toBe(plain.breakdown.length + 2);
+    expect(both.estimate).toBeGreaterThan(appraiseRealEstate({ ...house, direction: "south" }).estimate);
   });
 });
 

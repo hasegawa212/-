@@ -30,6 +30,16 @@ export type PropertyType = "house" | "land" | "apartment";
 export type Structure = "wood" | "steel" | "rc";
 /** 内装グレード（建物価値の補正に使用） */
 export type Grade = "standard" | "high" | "luxury";
+/** 主要採光・接道の方位（個別要因＝日当たりの補正に使用） */
+export type Direction =
+  | "south"
+  | "southeast"
+  | "southwest"
+  | "east"
+  | "west"
+  | "northeast"
+  | "northwest"
+  | "north";
 
 export interface RealEstateInput {
   propertyType: PropertyType;
@@ -49,6 +59,10 @@ export interface RealEstateInput {
   renovated?: boolean;
   /** 内装グレード（建物価値を補正）。任意・既定は standard */
   grade?: Grade;
+  /** 主要採光/接道の方位（日当たりの個別要因）。任意・未指定は補正なし */
+  direction?: Direction;
+  /** 角地か（2方向接道。宅地価値を加点）。戸建・土地のみ有効。任意 */
+  cornerLot?: boolean;
 }
 
 // ───────────────────────── 自動車 ─────────────────────────

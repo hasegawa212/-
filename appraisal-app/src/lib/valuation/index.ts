@@ -6,5 +6,5 @@ export * from "./investment";
 export * from "./batch";
 export * from "./comparables";
 export * from "./backtest";
-export { appraiseRealEstate, walkFactor, buildingResidualRate } from "./realEstate";
+export { appraiseRealEstate, walkFactor, buildingResidualRate, directionFactor, cornerLotFactor } from "./realEstate";
 export { appraiseCar, ageResidualRate, mileageFactor } from "./car";
