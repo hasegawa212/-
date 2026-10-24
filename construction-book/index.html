@@ -216,6 +216,10 @@ textarea{ resize:vertical; }
 .book-row .br-meta{ font-size:11px; color:var(--mid); margin-top:3px; }
 .book-row.active{ border-color:var(--gold); background:var(--gold-lt); }
 .br-open{ font-size:11.5px; color:var(--gold-dk); font-weight:700; padding:6px 12px; border:1px solid var(--gold); border-radius:4px; }
+.modal-foot{ display:flex; gap:10px; padding:14px 22px 20px; border-top:1px solid var(--line); }
+.mf-btn{ flex:1; display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:12px; font-weight:700; color:var(--gold-dk); background:var(--gold-lt); border:1px solid var(--gold); border-radius:6px; padding:9px; transition:.15s; cursor:pointer; }
+.mf-btn:hover{ background:#f0e4bf; }
+.mf-btn svg{ width:15px; height:15px; }
 
 .toast{ position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:#1a1a1a; color:#fff; padding:11px 22px; border-radius:6px; font-size:13px; letter-spacing:.03em; box-shadow:var(--shadow); opacity:0; pointer-events:none; transition:.25s; z-index:400; }
 .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
@@ -284,6 +288,15 @@ textarea{ resize:vertical; }
       <button class="x" id="listClose">✕</button>
     </div>
     <div class="modal-body" id="listBody"></div>
+    <div class="modal-foot">
+      <button class="mf-btn" id="btnExport" title="保存済みの全ブックをJSONファイルに書き出します">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>書き出し（バックアップ）
+      </button>
+      <button class="mf-btn" id="btnImport" title="バックアップしたJSONファイルから復元します">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3m0 0L8 7m4-4l4 4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>読み込み（復元）
+      </button>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    </div>
   </div>
 </div>
 
@@ -778,9 +791,55 @@ function startNew(){
   toast('新しい施工記録ブックを作成しました', true);
 }
 
+/* ════════════════ Backup (export / import JSON) ════════════════ */
+/* 端末・ブラウザをまたいでブックを持ち運べるよう、全ブックをJSONで書き出し/読み込みする。
+   保存はブラウザのlocalStorage（端末・オリジン単位）のみなので、これが唯一の移行手段。 */
+function exportBackup(){
+  if (book) persist();                 // 現在編集中のブックを最新状態で含める
+  const books = loadAll();
+  if (books.length===0){ toast('書き出すブックがありません'); return; }
+  const payload = { app:'martialarts-construction-book', v:1, exportedAt:new Date().toISOString(), books };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const d = new Date(), pad = n=>String(n).padStart(2,'0');
+  const a = el('a', { href:url, download:`施工記録ブック_backup_${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}.json` });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  toast(`${books.length}件のブックを書き出しました`, true);
+}
+function importBackup(file){
+  const r = new FileReader();
+  r.onload = ()=>{
+    let data;
+    try{ data = JSON.parse(r.result); }catch{ toast('ファイルを読み込めませんでした（JSON形式が不正です）'); return; }
+    const incoming = Array.isArray(data) ? data : (data && Array.isArray(data.books) ? data.books : null);
+    if (!incoming){ toast('施工記録ブックのバックアップではないようです'); return; }
+    const valid = incoming.filter(b=>b && typeof b==='object' && b.id && b.cover);
+    if (valid.length===0){ toast('取り込めるブックが見つかりませんでした'); return; }
+    const byId = new Map(loadAll().map(b=>[b.id, b]));
+    let added=0, updated=0;
+    for (const b of valid){
+      if (!b.updatedAt) b.updatedAt = Date.now();
+      const cur = byId.get(b.id);
+      if (!cur){ byId.set(b.id, b); added++; }
+      else if ((b.updatedAt||0) >= (cur.updatedAt||0)){ byId.set(b.id, b); updated++; }  // 新しい方を採用
+    }
+    try{ saveAll([...byId.values()]); }
+    catch{ toast('保存容量の上限に達しました。写真の多いブックは取り込めない場合があります。'); return; }
+    openList();
+    if (byId.has(book.id)) loadBook(book.id);  // 開いているブックが更新されたら再読み込み
+    toast(`${added+updated}件を取り込みました（新規${added}・更新${updated}）`, true);
+  };
+  r.onerror = ()=>toast('ファイルの読み込みに失敗しました');
+  r.readAsText(file);
+}
+
 /* ════════════════ wiring ════════════════ */
 $('#btnNew').addEventListener('click', ()=>{ if(confirm('新規ブックを作成しますか？現在のブックは保存済みです。')) startNew(); });
 $('#btnList').addEventListener('click', openList);
+$('#btnExport').addEventListener('click', exportBackup);
+$('#btnImport').addEventListener('click', ()=>$('#importFile').click());
+$('#importFile').addEventListener('change', e=>{ const f=e.target.files[0]; if(f) importBackup(f); e.target.value=''; });
 $('#listClose').addEventListener('click', closeList);
 $('#listModal').addEventListener('click', e=>{ if(e.target.id==='listModal') closeList(); });
 $('#btnPrint').addEventListener('click', ()=>window.print());
