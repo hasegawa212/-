@@ -1,20 +1,24 @@
 // 人生を、自分の土地から。— 対話型シミュレーター（画面）
-// 計算はすべて ../lib/engine.js（JM.compute）。このファイルは入力と表示だけを担当する。
+// 計算はすべて ../lib/engine.js（LL.compute）。このファイルは入力と表示だけを担当する。
+// 版（マーシャルアーツ／ジャパンマネジメント）は URL の ?ed=martialarts / ?ed=japan-mgmt か「保存・読み込み」で切り替える。
 (function () {
   "use strict";
-  const { fmt, RULES: R, BRAND } = JM;
+  const { fmt, RULES: R, EDITIONS: EDS } = LL;
+  const qs = new URLSearchParams(location.search).get("ed");
+  const ED = EDS[qs] || EDS.martialarts;
+  const BRAND = ED.brand;
   const { yen, man, manN, pct } = fmt;
   const $ = (s, el = document) => el.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const sgn = (v, d = 0) => (v >= 0 ? "＋" : "−") + manN(Math.abs(v), d) + "万円";
-  const KEY = "jm_house_sim_v1", KEY_ON = "jm_house_sim_persist";
+  const KEY = "land_life_sim_v1:" + ED.id, KEY_ON = "land_life_sim_persist";
   const C = { navy: "#17233B", gold: "#B89B6A", goldL: "#D9C9A6", soft: "#8C99AD", gray: "#C9CED6", gain: "#3D7258", loss: "#9E4B3B", mid: "#5E6B82" };
 
   // ───────── 状態 ─────────
   const clone = (o) => JSON.parse(JSON.stringify(o));
-  const fresh = () => ({ ...clone(JM.SAMPLE), dream: { place: "", time: "", space: "", value: "" }, ui: { step: 0, credit: true, prop: 0 } });
+  const fresh = () => ({ ...clone(ED.sample), edition: ED.id, dream: { place: "", time: "", space: "", value: "" }, ui: { step: 0, credit: true, prop: 0 } });
   let S = load() || fresh();
-  let X = JM.compute(S);
+  let X = LL.compute(S);
   function load() {
     try { if (localStorage.getItem(KEY_ON) === "1") { const v = JSON.parse(localStorage.getItem(KEY)); if (v && v.customer && v.props) return { ...fresh(), ...v }; } } catch (e) { /* 保存なしで続行 */ }
     return null;
@@ -122,6 +126,7 @@
         ${F(`${p}.builtDate`, "登記上の建築日", "date")}
         ${F(`${p}.firstBalance`, "初年度の年末残高（分かれば）", "man", { ph: "空欄＝自動計算" })}
       </div>
+      ${F(`${p}.financeCosts`, "諸費用を借入に含める（頭金を入れすぎず、手元資金を残す）", "check", { re: 1 })}
       ${F(`${p}.certs`, "性能を証明する書類がある（省エネ性能証明書・評価書・認定通知書など）", "check", { re: 1 })}
       ${F(`${p}.seismicCert`, "耐震基準適合の証明がある（1981年以前の中古で必要）", "check", { re: 1 })}
       ${F(`${p}.moveInOK`, "取得から6か月以内に入居する", "check", { re: 1 })}
@@ -147,7 +152,7 @@
   }
 
   // ───────── ステップ ─────────
-  const AX = JM.AXES;
+  const AX = LL.AXES;
   const STEPS = [
     { act: "1 憧れ", title: "お客様のこと", lead: "まずはお客様のことと、10年後に送りたい暮らしを伺います。", form: () => `
       <div class="grid g2">
@@ -161,6 +166,8 @@
           ${F("customer.rent", "今の家賃（月）", "man", { step: 0.1 })}
           ${F("customer.rentParking", "今の駐車場代（月）", "man", { step: 0.1 })}
           ${F("customer.savings", "預貯金", "man", { step: 10 })}
+          ${F("customer.existingMonthly", "既存の借入の返済（月）", "man", { step: 0.1, hint: "車・カード・奨学金など" })}
+          ${F("customer.monthlyWish", "月々の支払いの希望", "man", { step: 0.5, hint: "返済額の希望（家賃並みなど）" })}
           ${F("customer.livingMonth", "生活費（住居費以外・月）", "man", { step: 0.5 })}
           ${F("customer.moveInYear", "入居予定年", "select", { options: [2026, 2027, 2028, 2029, 2030].map((y) => [y, y + "年"]), re: 1 })}
           ${F("customer.moveInMonth", "入居予定月", "num", { unit: "月", min: 1, max: 12 })}
@@ -187,13 +194,15 @@
       </div>`,
       result: () => `<div class="card"><h3>税額と手取りの${S.customer.taxMode === "detail" ? "入力値" : "概算"}</h3><div class="stats">
         ${stat("合計所得金額", man(X.tax.totalIncome, 1))}${stat("所得税（控除前）", yen(X.tax.incomeTax))}
-        ${stat("住民税所得割", yen(X.tax.residentTax))}${stat("手取り（年）", man(X.tax.takeHome, 1), "月 " + man(X.tax.takeHome / 12, 1))}</div>
+        ${stat("住民税所得割", yen(X.tax.residentTax))}${stat("手取り（年）", man(X.tax.takeHome, 1), "月 " + man(X.tax.takeHome / 12, 1))}
+        ${X.afford ? stat("希望の支払いで買える価格の目安", "約" + man(X.afford.price), `返済 月${manN(S.customer.monthlyWish, 1)}万円・${S.props[0].financeCosts ? "諸費用込みの借入" : "頭金＋借入"}`) : ""}</div>
         <p class="hint">概算は給与所得のみ・社会保険料＝年収×料率として推計します（2028年以降も令和8・9年分の控除の特例が続くと仮定した、税額を低めに見積もる保守的な前提）。源泉徴収票があれば「詳細」に切り替えてください。</p>
         ${talk("「答えは今の気持ちで大丈夫です。書いていただいた暮らしを、どう形にするかを一緒に考えます。」")}</div>` },
 
     { act: "2 発見", title: "物件の情報", lead: "比べたい物件を2つまで入力します（初期値は新築と中古のサンプル・架空）。", form: () => `
       <div class="card white" style="margin-bottom:16px"><h3>住宅ローンの条件（2物件共通）</h3><div class="fields">
-        ${F("loan.rate", "金利（年・試算用）", "pct", { step: 0.05 })}${F("loan.years", "返済期間", "num", { unit: "年", min: 10, max: 50 })}</div>
+        ${F("loan.rate", "金利（年・試算用）", "pct", { step: 0.05 })}${F("loan.years", "返済期間", "num", { unit: "年", min: 10, max: 50 })}
+        ${F("screen.rate", "審査金利（返済比率の確認用）", "pct", { step: 0.1, hint: "金融機関の審査用の金利（仮定）" })}</div>
         <p class="hint">金利は実在の商品条件ではなく試算用の仮定です。実際の金利・審査は金融機関によって異なります。</p></div>
       <div class="grid g2">${propForm(0)}${propForm(1)}</div>`,
       result: () => `<div class="grid g2">${X.props.map((o) => `<div class="card"><h3>${esc(o.p.label)}</h3><div class="stats">
@@ -206,7 +215,7 @@
           <input class="range" type="range" min="1" max="5" step="1" data-path="priorities.${a.key}" data-kind="num" value="${S.priorities[a.key]}"></div>`).join("")}</div>
       <div class="card white"><h3>物件に求める条件</h3>
         <table><thead><tr><th>条件</th><th>使う</th><th>必須</th><th>希望値</th></tr></thead><tbody>
-        ${S.wishes.map((w, i) => { const d = JM.WISHES.find((x) => x.key === w.key); const unit = { budget: "万円", commute: "分", floor: "㎡", parking: "台" }[w.key];
+        ${S.wishes.map((w, i) => { const d = LL.WISHES.find((x) => x.key === w.key); const unit = { budget: "万円", commute: "分", floor: "㎡", parking: "台" }[w.key];
           return `<tr><td>${d.label}</td><td><input type="checkbox" data-path="wishes.${i}.on" data-kind="check" ${w.on !== false ? "checked" : ""}></td>
           <td><input type="checkbox" data-path="wishes.${i}.must" data-kind="check" ${w.must ? "checked" : ""}></td>
           <td>${unit ? `<div class="f"><div class="in" style="max-width:150px;margin-left:auto">${w.key === "budget" ? `<input type="number" data-path="wishes.${i}.value" data-kind="man" value="${w.value / 10_000}" step="0.5">` : `<input type="number" data-path="wishes.${i}.value" data-kind="num" value="${w.value}">`}<span class="unit">${unit}</span></div></div>` : "―"}</td></tr>`; }).join("")}
@@ -224,11 +233,14 @@
         <div class="big">${yen(o.pmt)}<span style="font-size:15px;font-weight:400"> / 月</span></div>
         <div class="stats" style="margin-top:12px">
           ${stat("借入額", man(o.loan.amount))}${stat("総返済額", man(o.pmt * o.loan.years * 12))}
-          ${stat("うち利息", man(o.pmt * o.loan.years * 12 - o.loan.amount))}${stat("返済 ÷ 年収", pct((o.pmt * 12) / S.customer.gross))}
-          ${stat("返済 ÷ 手取り", pct(o.risk[0].loanRatio), "目安は25%以内", o.risk[0].loanRatio > 0.25 ? "neg" : "pos")}
+          ${stat("うち利息", man(o.pmt * o.loan.years * 12 - o.loan.amount))}
+          ${stat("返済 ÷ 手取り（参考）", pct(o.risk[0].loanRatio), "手取りの25%以内なら、より余裕のある計画")}
           ${stat("初期費用", man(o.cashOut), `頭金${man(o.p.down)}＋諸費用${man(o.buyCost)}`)}
           ${stat("購入後の手元資金", man(o.cashLeft), `予備資金の目安 ${man(o.reserveTarget)}`, o.cashLeft < o.reserveTarget ? "neg" : "pos")}
-          ${stat("完済年齢", (S.customer.age + S.loan.years) + "歳")}</div></div>`).join("")}</div>
+          ${stat("完済年齢", (S.customer.age + S.loan.years) + "歳")}
+          ${stat("返済比率（年収比・既存借入込み）", pct(((o.pmt + (S.customer.existingMonthly || 0)) * 12) / S.customer.gross), `目安 ${pct(ED.comfortRatio, 0)}以内`, ((o.pmt + (S.customer.existingMonthly || 0)) * 12) / S.customer.gross > ED.comfortRatio ? "neg" : "pos")}
+          ${stat(`審査金利${pct(o.screen.screenRate, 1)}での返済比率`, pct(o.screen.ratio), `基準 ${pct(o.screen.limit, 0)}（フラット35の例）`, o.screen.ok ? "pos" : "neg")}
+          ${stat("借入の目安の上限", "約" + man(o.screen.maxLoan), `今回の借入 ${man(o.loan.amount)}${o.p.financeCosts ? "（諸費用込み）" : ""}`, o.loan.amount > o.screen.maxLoan ? "neg" : "")}</div></div>`).join("")}</div>
       <div class="card" style="margin-top:16px"><h3>ローン残高の推移</h3>
         ${lineChart({ labels: X.props[0].balances.map((_, t) => t + "年"), series: X.props.map((o, i) => ({ name: o.p.label, color: i ? C.gold : C.navy, values: o.balances })) })}
         <p class="hint">毎月返済額 ＝ 借入額 × r ×（1＋r）ⁿ ÷ {（1＋r）ⁿ − 1}　r＝年利÷12、n＝返済回数。入居月に借入、翌月から返済と仮定。</p>
@@ -282,22 +294,22 @@
       } },
 
     { act: "3 納得", title: "土地・建物の価値", lead: "物件価格を土地と建物に分けて、価値の動き方の違いを見ます（将来価格の予想ではありません）。", form: () => "", result: () => {
-      const o = X.props[S.ui.prop], flat = JM.SCENARIOS[1];
+      const o = X.props[S.ui.prop], flat = LL.SCENARIOS[1];
       const yrs = Array.from({ length: 31 }, (_, t) => t);
       return `<div class="seg" style="margin-bottom:12px">${X.props.map((x, i) => `<button type="button" data-prop="${i}" class="${S.ui.prop === i ? "on" : ""}">${esc(x.p.label)}</button>`).join("")}</div>
         <div class="grid g2"><div class="card white"><h3>土地と建物（横ばいシナリオ）</h3>
-          ${lineChart({ labels: yrs.map((t) => t + "年"), series: [{ name: "土地", color: C.gold, values: yrs.map((t) => JM.valueAt(o.p, flat, t).land) }, { name: "建物", color: C.navy, values: yrs.map((t) => JM.valueAt(o.p, flat, t).bldg) }] })}</div>
+          ${lineChart({ labels: yrs.map((t) => t + "年"), series: [{ name: "土地", color: C.gold, values: yrs.map((t) => LL.valueAt(o.p, flat, t).land) }, { name: "建物", color: C.navy, values: yrs.map((t) => LL.valueAt(o.p, flat, t).bldg) }] })}</div>
         <div class="card"><h3>いまの内訳</h3><div class="stats">
           ${stat("土地", man(o.p.landPrice), `${o.p.landArea}㎡・${o.p.landArea ? manN(o.p.landPrice / o.p.landArea, 1) + "万円/㎡" : ""}`)}${stat("建物", man(o.p.price - o.p.landPrice), `${o.p.floor}㎡`)}
-          ${stat("10年後（横ばい）", man(JM.valueAt(o.p, flat, 10).total), `土地 ${man(JM.valueAt(o.p, flat, 10).land)}・建物 ${man(JM.valueAt(o.p, flat, 10).bldg)}`)}
-          ${stat("20年後（横ばい）", man(JM.valueAt(o.p, flat, 20).total), `建物は下限10%で計算`)}</div>
+          ${stat("10年後（横ばい）", man(LL.valueAt(o.p, flat, 10).total), `土地 ${man(LL.valueAt(o.p, flat, 10).land)}・建物 ${man(LL.valueAt(o.p, flat, 10).bldg)}`)}
+          ${stat("20年後（横ばい）", man(LL.valueAt(o.p, flat, 20).total), `建物は下限10%で計算`)}</div>
           <p class="hint">土地は劣化しないが市場で上下します。建物は年数とともに評価が下がるのが一般的で、点検・修繕の記録が評価につながります。木造の法定耐用年数22年は税務上の基準で、寿命ではありません。</p>
           ${talk("「土地は『どこにあるか』、建物は『どう手入れするか』で価値が決まります。だから立地と修繕計画の両方を見ます。」")}</div></div>`;
     } },
 
     { act: "4 安心", title: "将来の売却", lead: "5年後・10年後・20年後に売った場合の手取り（売却価格−売却費用−残債）を、3つの仮定シナリオで見ます。", form: () => "", result: () => `
       <div class="grid g2">${X.props.map((o, i) => `<div class="card ${i ? "ivory" : "white"}"><h3>${esc(o.p.label)}</h3>
-        <div class="matrix"><div></div>${JM.SCENARIOS.map((s) => `<div class="h">${s.label}</div>`).join("")}
+        <div class="matrix"><div></div>${LL.SCENARIOS.map((s) => `<div class="h">${s.label}</div>`).join("")}
         ${o.sale.map((row) => `<div class="r">${row.t}年後<small>残債 ${man(row.byScen[0].balance)}</small></div>${row.byScen.map((c) => `<div class="c ${c.net >= 0 ? "p" : "m"}"><b>${sgn(c.net)}</b><small>価格 ${man(c.total)}</small></div>`).join("")}`).join("")}</div></div>`).join("")}</div>
       <div class="card" style="margin-top:16px"><h3>残債と物件価値（${esc(X.props[S.ui.prop].p.label)}）</h3>
         <div class="seg" style="margin-bottom:10px">${X.props.map((o, i) => `<button type="button" data-prop="${i}" class="${S.ui.prop === i ? "on" : ""}">${esc(o.p.label)}</button>`).join("")}</div>
@@ -344,7 +356,7 @@
     <section class="sheet"><div class="sk">04　物件の比較</div><h2 class="serif">数字で見る、2つの物件</h2>
       <table style="margin:10px 0 14px"><thead><tr><th>項目</th>${X.props.map((o) => `<th>${esc(o.p.label)}</th>`).join("")}</tr></thead><tbody>
       ${[["物件価格（土地／建物）", (o) => `${man(o.p.price)}（${manN(o.p.landPrice)}／${manN(o.p.price - o.p.landPrice)}）`], ["初期費用（頭金＋諸費用）", (o) => man(o.cashOut)], ["借入額／毎月の返済", (o) => `${man(o.loan.amount)}／${yen(o.pmt)}`],
-         ["毎月の総住居費", (o) => man(o.own.total, 1)], ["返済÷手取り（目安25%）", (o) => pct(o.risk[0].loanRatio)], ["購入後の手元資金", (o) => man(o.cashLeft)],
+         ["毎月の総住居費", (o) => man(o.own.total, 1)], ["返済比率（年収比・既存借入込み）", (o) => pct(((o.pmt + (S.customer.existingMonthly || 0)) * 12) / S.customer.gross) + `（目安${pct(ED.comfortRatio, 0)}）`], ["購入後の手元資金", (o) => man(o.cashLeft)],
          ["住宅ローン控除", (o) => (o.credit.judge.ok ? `${man(o.credit.judge.limit)}・${o.credit.judge.years}年` : "対象外")], ["控除見込（初年度／累計）", (o) => `${yen(o.credit.first)}／${man(o.credit.total, 1)}`],
          ["10年間の総コスト（控除後）", (o) => man(o.ten.with)], ["10年後に売却（横ばい）", (o) => sgn(o.sale[1].byScen[1].net)]]
         .map(([k, f]) => `<tr><td>${k}</td>${X.props.map((o) => `<td>${f(o)}</td>`).join("")}</tr>`).join("")}</tbody></table>
@@ -355,7 +367,7 @@
       ${foot(2)}</section>
     <section class="sheet"><div class="sk">06　将来の選択肢と、もしものとき</div><h2 class="serif">売る・住み替える・備える</h2>
       <div class="grid g2" style="margin:10px 0">${X.props.map((o) => `<div><div style="font-weight:700;color:#17233B;margin-bottom:4px">${esc(o.p.label)}：売却した場合の手取り</div>
-        <table><thead><tr><th></th>${JM.SCENARIOS.map((s) => `<th>${s.label}</th>`).join("")}</tr></thead><tbody>${o.sale.map((r) => `<tr><td>${r.t}年後</td>${r.byScen.map((x) => `<td style="color:${x.net >= 0 ? C.gain : C.loss};font-weight:700">${sgn(x.net)}</td>`).join("")}</tr>`).join("")}</tbody></table>
+        <table><thead><tr><th></th>${LL.SCENARIOS.map((s) => `<th>${s.label}</th>`).join("")}</tr></thead><tbody>${o.sale.map((r) => `<tr><td>${r.t}年後</td>${r.byScen.map((x) => `<td style="color:${x.net >= 0 ? C.gain : C.loss};font-weight:700">${sgn(x.net)}</td>`).join("")}</tr>`).join("")}</tbody></table>
         <div style="font-weight:700;color:#17233B;margin:10px 0 4px">収入が減った場合（返済÷手取り）</div>
         <table><tbody>${o.risk.map((r) => `<tr><td>${r.drop ? Math.round(r.drop * 100) + "%減" : "今の収入"}</td><td style="color:${r.loanRatio > 0.25 ? C.loss : C.gain};font-weight:700">${pct(r.loanRatio)}</td><td>${r.gap >= 0 ? "黒字" : "月" + yen(-r.gap) + "の不足"}</td></tr>`).join("")}</tbody></table></div>`).join("")}</div>
       <div class="sk" style="margin-top:12px">07　購入前に確認すること</div>
@@ -396,7 +408,7 @@
   }
   function recompute() {
     S.props.forEach((p) => { p.bldgPrice = Math.max(0, p.price - p.landPrice); });
-    X = JM.compute(S);
+    X = LL.compute(S);
     save();
   }
   function all() { recompute(); renderStep(); renderSum(); }
@@ -447,5 +459,9 @@
   $("#btnReset").addEventListener("click", () => { if (confirm("入力内容をサンプルに戻します。よろしいですか？")) { S = fresh(); all(); dlg.close(); } });
 
   $("#brandEn").textContent = BRAND.nameEn;
+  document.title = `人生を、自分の土地から。｜${ED.label}`;
+  const edSel = $("#edition");
+  edSel.innerHTML = Object.values(EDS).map((e) => `<option value="${e.id}"${e.id === ED.id ? " selected" : ""}>${esc(e.label)}（${esc(e.brand.name)}）</option>`).join("");
+  edSel.addEventListener("change", () => { location.search = "?ed=" + encodeURIComponent(edSel.value); });
   all();
 })();

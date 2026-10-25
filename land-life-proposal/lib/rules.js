@@ -7,7 +7,7 @@
 (function (root, factory) {
   const m = factory();
   if (typeof module === "object" && module.exports) module.exports = m;
-  else (root.JM = root.JM || {}).RULES = m;
+  else (root.LL = root.LL || {}).RULES = m;
 })(typeof self !== "undefined" ? self : this, function () {
   const BASIS_DATE = "2026年10月";
 

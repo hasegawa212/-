@@ -1,11 +1,11 @@
 // 計算エンジン（画面から独立・依存なし）
-// Node：const JM = require("./engine")   ブラウザ：<script src="lib/rules.js"> → <script src="lib/engine.js"> で window.JM
+// Node：const LL = require("./engine")   ブラウザ：<script src="lib/rules.js"> → <script src="lib/engine.js"> で window.LL
 // 住宅ローン／税額の概算／住宅ローン控除／住居費／土地・建物の価値／売却手取り／収入減少／3つの住まい方比較／物件の適合
 (function (root, factory) {
   if (typeof module === "object" && module.exports) module.exports = factory(require("./rules"));
   else {
-    root.JM = root.JM || {};
-    Object.assign(root.JM, factory(root.JM.RULES));
+    root.LL = root.LL || {};
+    Object.assign(root.LL, factory(root.LL.RULES));
   }
 })(typeof self !== "undefined" ? self : this, function (R) {
   "use strict";
@@ -137,6 +137,8 @@
     const n = Math.max(j.years, 13);
     const sched1 = yearEndBalance(loan.amount, loan.rate, loan.years, c.moveInMonth, 1);
     const scale = p.firstBalance ? p.firstBalance / sched1 : 1; // 年末残高を手入力した場合は返済計画をその比率で補正
+    // 諸費用ローンなど、住宅の取得対価以外の借入は控除の対象外 → 年末残高を「住宅取得分の割合」で按分する
+    const share = loan.amount > 0 ? Math.min(1, (loan.eligible ?? loan.amount) / loan.amount) : 0;
     for (let i = 1; i <= n; i++) {
       const year = c.moveInYear + i - 1;
       const balance = yearEndBalance(loan.amount, loan.rate, loan.years, c.moveInMonth, i) * scale;
@@ -145,12 +147,13 @@
       let blocked = "";
       if (inPeriod && tax.totalIncome > C.incomeCap) blocked = "合計所得金額が2,000万円超の年";
       if (inPeriod && p.floor < C.floorFullIncome && tax.totalIncome > C.incomeCapSmall) blocked = "50㎡未満かつ合計所得1,000万円超の年";
-      const base = inPeriod && !blocked ? Math.min(balance, j.limit, p.price) : 0;
+      const eligibleBalance = balance * share;
+      const base = inPeriod && !blocked ? Math.min(eligibleBalance, j.limit, p.price) : 0;
       const max = Math.floor((base * C.rate) / 100) * 100;
       const fromIT = Math.min(max, tax.incomeTax);
       const resCap = Math.min(C.residentCapMax, Math.floor(tax.taxable * C.residentCapRate), tax.residentTax);
       const fromRT = Math.min(max - fromIT, resCap);
-      rows.push({ i, year, balance, inPeriod, blocked, base, max, fromIT, fromRT, unused: max - fromIT - fromRT, actual: fromIT + fromRT, tax });
+      rows.push({ i, year, balance, eligibleBalance, inPeriod, blocked, base, max, fromIT, fromRT, unused: max - fromIT - fromRT, actual: fromIT + fromRT, tax });
     }
     const P = rows.filter((r) => r.inPeriod);
     const sum = (f, a = P) => a.reduce((s, r) => s + r[f], 0);
@@ -219,10 +222,31 @@
       const gross = c.gross * (1 - d);
       const t = estimateTax(gross, c.moveInYear, c.socialRate ?? 0.15);
       const takeHomeM = t.takeHome / 12;
-      const out = own.total + c.livingMonth;
+      const out = own.total + c.livingMonth + (c.existingMonthly || 0);
       const gap = takeHomeM - out;
       return { drop: d, gross, takeHomeM, loanRatio: own.loan / takeHomeM, housingRatio: own.total / takeHomeM, gap, months: gap < 0 ? cashLeft / -gap : Infinity };
     });
+  }
+
+  // ───────── 住宅ローン審査の返済比率（目安） ─────────
+  // 返済比率 =（住宅ローンの年間返済［審査金利で計算］＋ 既存の借入の年間返済）÷ 年収
+  // 基準は金融機関で異なる。既定はフラット35の基準（年収400万円未満30%・以上35%）
+  function screening({ gross, existingMonthly = 0, loan, years, screenRate = 0.03, limits = [[4_000_000, 0.3], [Infinity, 0.35]] }) {
+    const limit = limits.find((l) => gross < l[0])[1];
+    const pm = payment(loan, screenRate, years);
+    const ratio = gross > 0 ? (pm * 12 + existingMonthly * 12) / gross : Infinity;
+    const room = Math.max(0, (gross * limit) / 12 - existingMonthly); // 住宅ローンに使える毎月の上限
+    const r = screenRate / 12, n = years * 12, g = Math.pow(1 + r, n);
+    const maxLoan = r === 0 ? room * n : (room * (g - 1)) / (r * g);
+    return { ratio, limit, ok: ratio <= limit, maxLoan, screenRate };
+  }
+  // 毎月の返済額から買える物件価格を逆算（諸費用ローンありなら諸費用も借入に含める）
+  function affordablePrice({ monthly, rate, years, down = 0, costRate = 0.07, financeCosts = false }) {
+    const r = rate / 12, n = years * 12, g = Math.pow(1 + r, n);
+    const loan = r === 0 ? monthly * n : (monthly * (g - 1)) / (r * g);
+    const price = financeCosts ? (loan + down) / (1 + costRate) : loan + down;
+    const cash = financeCosts ? down : down + price * costRate;
+    return { price: Math.max(0, price), loan, cash };
   }
 
   // ───────── 賃貸・マンション・戸建ての比較（優先順位で重み付け） ─────────
@@ -272,10 +296,11 @@
     const rent = rentMonthly({ rent: c.rent, parking: c.rentParking, insYear: c.rentInsYear });
     const condo = input.condo ? condoMonthly(input.condo, input.loan) : null;
     const props = input.props.map((p) => {
-      const loan = { amount: Math.max(0, p.price - p.down), rate: input.loan.rate, years: input.loan.years };
-      const pmt = payment(loan.amount, loan.rate, loan.years);
       const buyCost = p.price * p.buyCostRate;
-      const cashOut = p.down + buyCost;
+      const eligible = Math.max(0, p.price - p.down);
+      const loan = { amount: eligible + (p.financeCosts ? buyCost : 0), eligible, rate: input.loan.rate, years: input.loan.years };
+      const pmt = payment(loan.amount, loan.rate, loan.years);
+      const cashOut = p.down + (p.financeCosts ? 0 : buyCost);
       const cashLeft = c.savings - cashOut;
       const own = ownMonthly(p, pmt);
       const credit = creditSimulate(c, p, loan);
@@ -291,9 +316,12 @@
       const x = { loan, pmt, buyCost, cashOut, cashLeft, own, credit, ten, balances, values, sale, reserveTarget };
       x.risk = incomeRisk(c, own, Math.max(0, cashLeft), input.drops);
       x.fit = fit(input.wishes || [], p, x);
+      x.screen = screening({ gross: c.gross, existingMonthly: c.existingMonthly || 0, loan: loan.amount, years: loan.years, screenRate: input.screen?.rate ?? 0.03 });
       return { p, ...x };
     });
-    return { input, c, tax, rent, condo, props, compare: compare3(input.priorities || {}) };
+    const p0 = input.props[0];
+    const afford = c.monthlyWish > 0 ? affordablePrice({ monthly: c.monthlyWish, rate: input.loan.rate, years: input.loan.years, down: p0.down, costRate: p0.buyCostRate, financeCosts: !!p0.financeCosts }) : null;
+    return { input, c, tax, rent, condo, props, afford, compare: compare3(input.priorities || {}) };
   }
 
   // ───────── サンプル（資料・アプリの初期値） ─────────
@@ -328,6 +356,6 @@
   return {
     fmt, payment, balanceAfter, yearEndBalance, salaryDeduction, basicDeductionIT, incomeTaxOf, estimateTax,
     isSpecialHousehold, judge, creditSimulate, brokerFee, ownMonthly, rentMonthly, condoMonthly,
-    SCENARIOS, valueAt, saleAt, incomeRisk, AXES, compare3, WISHES, fit, compute, SAMPLE,
+    SCENARIOS, valueAt, saleAt, incomeRisk, screening, affordablePrice, AXES, compare3, WISHES, fit, compute, SAMPLE,
   };
 });

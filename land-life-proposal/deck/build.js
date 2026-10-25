@@ -1,6 +1,9 @@
-// 人生を、自分の土地から。— 株式会社ジャパンマネジメント 提案資料（16:9・24ページ）ジェネレーター
-// node deck/build.js → dist/人生を、自分の土地から。_JM提案資料.pptx と dist/営業トーク集.md
-// 数値はすべて lib/engine.js の compute(SAMPLE) から。スライドに数字を直書きしない。
+// 人生を、自分の土地から。— 単身者向け 戸建て所有の提案資料（16:9・24ページ）ジェネレーター
+// 版（editions/）ごとに会社情報・サンプル・言い回しを差し替えて同じ構成の資料を作る。
+//   node deck/build.js            → 全版
+//   node deck/build.js martialarts → マーシャルアーツ版だけ
+// 出力：dist/<版>/人生を、自分の土地から。_<版名>.pptx と 営業トーク集_<版名>.md
+// 数値はすべて lib/engine.js の compute(edition.sample) から。スライドに数字を直書きしない。
 const fs = require("fs");
 const path = require("path");
 const pptxgen = require("pptxgenjs");
@@ -8,22 +11,18 @@ const React = require("react");
 const RDS = require("react-dom/server");
 const sharp = require("sharp");
 const Lu = require("react-icons/lu");
-const JM = require("../lib/engine");
+const LL = require("../lib/engine");
 const R = require("../lib/rules");
-const BRAND = require("../lib/brand");
+const EDITIONS = require("../editions");
 
 const ROOT = path.join(__dirname, "..");
 const IMG = path.join(ROOT, "..", "construction-portfolio", "img");
 const OUT = path.join(ROOT, "dist");
-const FILE = "人生を、自分の土地から。_JM提案資料.pptx";
 
-const { fmt } = JM;
+const { fmt } = LL;
 const { yen, man, manN, pct } = fmt;
-const X = JM.compute(JM.SAMPLE);
-const S = JM.SAMPLE;
-const CU = S.customer;
-const NA = X.props[0], UB = X.props[1];   // 新築A・中古B
 const sgn = (v) => (v >= 0 ? "＋" : "−") + manN(Math.abs(v)) + "万円";
+const desc = (o) => `${R.KIND[o.p.kind]}・${R.PERF[o.credit.judge.ok ? o.credit.judge.perf : o.p.perf]}`;
 
 // ───────────────────────── デザイン ─────────────────────────
 const H = {
@@ -34,26 +33,31 @@ const H = {
 const FH = "Yu Mincho", FB = "Yu Gothic";
 const W = 13.333, M = 0.7, CW = W - 2 * M;
 
-const pres = new pptxgen();
-pres.layout = "LAYOUT_WIDE";
-pres.title = "人生を、自分の土地から。";
-pres.subject = "単身者向け 戸建て所有のご提案";
-pres.author = BRAND.name;
-pres.company = BRAND.name;
-pres.theme = { headFontFace: FH, bodyFontFace: FB };
+// ───────────────────────── 1回のビルドの状態（buildDeck が毎回作り直す） ─────────────────────────
+let pres, ED, BRAND, S, X, CU, NA, UB, PAGES, PHOTOS, cur, page;
 
-const footer = [
-  { text: { text: BRAND.name, options: { x: M, y: 7.05, w: 5, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, margin: 0 } } },
-  { text: { text: "人生を、自分の土地から。", options: { x: 5.2, y: 7.05, w: 6.6, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, margin: 0, align: "right" } } },
-];
-const ph = (fill) => [
-  { placeholder: { options: { name: "kicker", type: "body", x: M, y: 0.42, w: CW, h: 0.3, fontSize: 11, bold: true, color: fill === H.navy ? H.gold : H.goldD, fontFace: FB, margin: 0, valign: "middle", align: "left", charSpacing: 1 }, text: "" } },
-  { placeholder: { options: { name: "title", type: "title", x: M, y: 0.74, w: CW, h: 0.85, fontSize: 30, bold: true, color: fill === H.navy ? H.white : H.navy, fontFace: FH, margin: 0, valign: "middle", align: "left" }, text: "" } },
-];
-pres.defineSlideMaster({ title: "LIGHT", background: { color: H.white }, objects: [...footer, ...ph(H.white)], slideNumber: { x: 12.15, y: 7.05, w: 0.5, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, align: "right" } });
-pres.defineSlideMaster({ title: "IVORY", background: { color: H.ivory }, objects: [...footer, ...ph(H.ivory)], slideNumber: { x: 12.15, y: 7.05, w: 0.5, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, align: "right" } });
-pres.defineSlideMaster({ title: "BLANK", background: { color: H.white } });
-pres.defineSlideMaster({ title: "NAVY", background: { color: H.navy } });
+function initPres() {
+  pres = new pptxgen();
+  pres.layout = "LAYOUT_WIDE";
+  pres.title = "人生を、自分の土地から。";
+  pres.subject = "単身者向け 戸建て所有のご提案";
+  pres.author = BRAND.name;
+  pres.company = BRAND.name.replace(/&/g, "&amp;");
+  pres.theme = { headFontFace: FH, bodyFontFace: FB };
+  const footer = [
+    { text: { text: BRAND.name, options: { x: M, y: 7.05, w: 5, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, margin: 0 } } },
+    { text: { text: "人生を、自分の土地から。", options: { x: 5.2, y: 7.05, w: 6.6, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, margin: 0, align: "right" } } },
+  ];
+  const ph = (fill) => [
+    { placeholder: { options: { name: "kicker", type: "body", x: M, y: 0.42, w: CW, h: 0.3, fontSize: 11, bold: true, color: H.goldD, fontFace: FB, margin: 0, valign: "middle", align: "left", charSpacing: 1 }, text: "" } },
+    { placeholder: { options: { name: "title", type: "title", x: M, y: 0.74, w: CW, h: 0.85, fontSize: 30, bold: true, color: H.navy, fontFace: FH, margin: 0, valign: "middle", align: "left" }, text: "" } },
+  ];
+  const num = { x: 12.15, y: 7.05, w: 0.5, h: 0.28, fontSize: 9, color: H.gray, fontFace: FB, align: "right" };
+  pres.defineSlideMaster({ title: "LIGHT", background: { color: H.white }, objects: [...footer, ...ph(H.white)], slideNumber: num });
+  pres.defineSlideMaster({ title: "IVORY", background: { color: H.ivory }, objects: [...footer, ...ph(H.ivory)], slideNumber: { ...num } });
+  pres.defineSlideMaster({ title: "BLANK", background: { color: H.white } });
+  pres.defineSlideMaster({ title: "NAVY", background: { color: H.navy } });
+}
 
 // ───────────────────────── 部品 ─────────────────────────
 const iconCache = {};
@@ -65,7 +69,9 @@ async function icon(name, color) {
   }
   return iconCache[k];
 }
+const textOf = (t) => (Array.isArray(t) ? t.map((r) => r.text).join("") : String(t));
 function T(s, text, x, y, w, h, o = {}) {
+  if (cur) cur.text += textOf(text) + "\n";
   s.addText(text, { x, y, w, h, isTextBox: true, margin: 0, fontFace: FB, fontSize: 14, color: H.char, valign: "top", ...o });
 }
 function box(s, x, y, w, h, fill, o = {}) {
@@ -74,9 +80,12 @@ function box(s, x, y, w, h, fill, o = {}) {
 function rect(s, x, y, w, h, fill, transparency = 0) {
   s.addShape(pres.shapes.RECTANGLE, { x, y, w, h, fill: { color: fill, transparency }, line: { color: fill, transparency: transparency ? 100 : 0, width: 0 } });
 }
-function photo(s, file, x, y, w, h, cap = "イメージ写真", capDark = true) {
+// 写真には必ず注記を付ける（施工事例かイメージかは版ごとに ED.photoCaption で決める）
+function photo(s, file, x, y, w, h, cap) {
+  cap = cap || ED.photoCaption;
+  PHOTOS.push({ file, caption: cap, page });
   s.addImage({ path: path.join(IMG, file), x, y, w, h, sizing: { type: "cover", w, h }, altText: cap });
-  if (cap) T(s, cap, x + w - 1.6, y + h - 0.3, 1.5, 0.24, { fontSize: 9, color: capDark ? "FFFFFF" : H.gray, align: "right", valign: "middle", shadow: { type: "outer", color: "000000", blur: 3, offset: 1, angle: 90, opacity: 0.5 } });
+  T(s, cap, x + w - 1.6, y + h - 0.3, 1.5, 0.24, { fontSize: 9, color: "FFFFFF", align: "right", valign: "middle", shadow: { type: "outer", color: "000000", blur: 3, offset: 1, angle: 90, opacity: 0.5 } });
 }
 function tag(s, text, x, y, w, h, fill = H.navy, color = H.white, fs = 12) {
   box(s, x, y, w, h, fill);
@@ -98,12 +107,14 @@ const CHART = {
 
 const ACTS = ["", "ACT 1 ─ 憧れ", "ACT 2 ─ 発見", "ACT 3 ─ 納得", "ACT 4 ─ 安心", "ACT 5 ─ 行動"];
 const SEC = ["", "第1幕 憧れ", "第2幕 発見", "第3幕 納得", "第4幕 安心", "第5幕 行動"];
-const NOTES = [];
-let page = 0;
 function slide(act, master, title, n) {
   page++;
+  const ex = (ED.extraNotes || {})[page] || {};
+  n = { ...n, ask: [...n.ask, ...(ex.ask || [])], worry: [...n.worry, ...(ex.worry || [])], answer: [...n.answer, ...(ex.answer || [])] };
   if (n.section) pres.addSection({ title: SEC[act] });
   const s = pres.addSlide({ masterName: master, sectionTitle: SEC[act] });
+  cur = { page, act, title, notes: { msg: n.msg, ask: n.ask, worry: n.worry, answer: n.answer, next: n.next }, text: title + "\n" };
+  PAGES.push(cur);
   if (master !== "BLANK" && master !== "NAVY") {
     s.addText(`${ACTS[act]}　｜　P${String(page).padStart(2, "0")}`, { placeholder: "kicker", align: "left" });
     s.addText(title, { placeholder: "title", align: "left" });
@@ -113,12 +124,11 @@ function slide(act, master, title, n) {
     ["根拠に基づく回答", n.answer.map((q) => "・" + q).join("\n")], ["次のページへのつなぎ", n.next],
   ];
   s.addNotes(t.map(([k, v]) => `【${k}】\n${v}`).join("\n\n"));
-  NOTES.push({ page, act, title, ...n });
   return s;
 }
 
 // ───────────────────────── スライド ─────────────────────────
-async function build() {
+async function slides() {
   // ════════ 第1幕 憧れ ════════
   // P01
   {
@@ -130,35 +140,33 @@ async function build() {
       answer: ["今日のゴールは購入を決めることではなく、賃貸・マンション・戸建てを同じ物差しで比べられるようになること", "資料はお持ち帰りいただける。見送りも大切な選択肢として扱う"],
       next: "「では、ひとりで暮らすからこそできる暮らし方から見ていきましょう。」",
     });
-    photo(s, "p23.jpg", 0, 0, W, 7.5, "");
+    photo(s, "p23.jpg", 0, 0, W, 7.5, ED.photoCaption);
     rect(s, 0, 0, 7.4, 7.5, H.navy, 18);
     T(s, BRAND.nameEn, M, 0.55, 5, 0.3, { fontSize: 12, bold: true, color: H.gold, charSpacing: 4 });
     T(s, "人生を、\n自分の土地から。", M, 1.7, 6.6, 2.6, { fontFace: FH, fontSize: 56, bold: true, color: H.white, lineSpacingMultiple: 1.1 });
     T(s, "ひとりで暮らす。その自由を、もっと大きく。", M, 4.45, 6.6, 0.5, { fontSize: 18, color: H.goldL });
     T(s, "単身者のための 戸建て所有のご提案", M, 6.35, 6, 0.3, { fontSize: 11, color: H.onNavy });
     T(s, BRAND.name, M, 6.68, 6, 0.35, { fontSize: 14, bold: true, color: H.white });
-    T(s, "イメージ写真", W - 2.1, 7.1, 1.8, 0.25, { fontSize: 9, color: H.white, align: "right" });
   }
 
   // P02
   {
     const s = slide(1, "BLANK", "一人だからこそ、暮らしを自由に。", {
-      msg: "「家族のための家」という前提を外す。誰にも合わせなくていい単身者だからこそ、家の使い方を100%自分で決められる。趣味・仕事・休日の3つの時間で、具体的な暮らしを想像してもらう。",
+      msg: "「家族のための家」という前提を外す。誰にも合わせなくていい単身者だからこそ、家の使い方を自分で決められる。3つの場面で、具体的な暮らしを想像してもらう。",
       ask: ["休日、いちばん長く過ごしている場所はどこですか？", "今の住まいで「本当はこうしたい」と思っていることは？"],
       worry: ["一人で一戸建ては広すぎるのでは", "掃除や手入れが大変そう"],
-      answer: ["広さは「何に使うか」が決まって初めて価値になる。用途が決まらなければコンパクトな物件や賃貸が合理的なこともある", "手入れの手間はデメリットとして正直に扱う（P20で維持費、元資料のデメリット13「管理の手間」）"],
+      answer: ["広さは「何に使うか」が決まって初めて価値になる。用途が決まらなければコンパクトな物件や賃貸が合理的なこともある", "手入れの手間はデメリットとして正直に扱う（P20で維持費を確認）"],
       next: "「その自由が、家の中でどう形になるのか。写真で見てみましょう。」",
     });
     photo(s, "p03.jpg", 6.9, 0, W - 6.9, 7.5);
     T(s, `${ACTS[1]}　｜　P02`, M, 0.55, 5.6, 0.3, { fontSize: 11, bold: true, color: H.goldD });
     T(s, "一人だからこそ、\n暮らしを自由に。", M, 0.95, 5.8, 1.7, { fontFace: FH, fontSize: 36, bold: true, color: H.navy, lineSpacingMultiple: 1.1 });
-    T(s, "誰かに合わせなくていい。家の使い方を、すべて自分で決められる。", M, 2.75, 5.8, 0.7, { fontSize: 15, color: H.char });
-    const rows = [["LuGuitar", "趣味", "好きなものを、広げたままにできる部屋。"], ["LuLaptop", "仕事", "生活と切り離して、集中できる書斎。"], ["LuSun", "休日", "車の手入れ、庭でコーヒー、何もしない贅沢。"]];
+    T(s, ED.lead.p02, M, 2.75, 5.8, 0.75, { fontSize: 15, color: H.char });
     for (let i = 0; i < 3; i++) {
-      const y = 3.75 + i * 0.95;
-      await disc(s, rows[i][0], M, y, 0.7, i === 1 ? H.gold : H.navy);
-      T(s, rows[i][1], M + 0.95, y + 0.02, 1.2, 0.32, { fontSize: 16, bold: true, color: H.navy });
-      T(s, rows[i][2], M + 0.95, y + 0.36, 5.0, 0.36, { fontSize: 14 });
+      const r = ED.scenes[i], y = 3.75 + i * 0.95;
+      await disc(s, r[0], M, y, 0.7, i === 1 ? H.gold : H.navy);
+      T(s, r[1], M + 0.95, y + 0.02, 1.2, 0.32, { fontSize: 16, bold: true, color: H.navy });
+      T(s, r[2], M + 0.95, y + 0.36, 5.0, 0.36, { fontSize: 14 });
     }
     T(s, BRAND.name, M, 7.05, 5, 0.28, { fontSize: 9, color: H.gray });
   }
@@ -166,23 +174,23 @@ async function build() {
   // P03
   {
     const s = slide(1, "LIGHT", "もし、家のすべてが自分の空間だったら。", {
-      msg: "リビング・書斎・収納・外まわり・ガレージ。賃貸のワンルームや1LDKでは分けられない空間が、すべて自分のものになる。写真を指しながら「この部屋を何に使うか」を一緒に決める。",
+      msg: "リビング・個室・収納・外まわり・ガレージ。賃貸のワンルームや1LDKでは分けられない空間が、すべて自分のものになる。写真を指しながら「この部屋を何に使うか」を一緒に決める。",
       ask: ["この中で、いちばん欲しい空間はどれですか？", "空いている一部屋があったら、何に使いますか？"],
       worry: ["写真のような家は高いのでは", "使わない部屋が無駄になりそう"],
-      answer: ["写真はイメージ。実際の物件は予算と希望条件から選ぶ（P10・P23）", "使い道が決まらない部屋は、収納・来客・将来の在宅勤務など、用途の候補を先に挙げてから判断する"],
+      answer: ["写真は施工事例・イメージ。実際の物件は予算と希望条件から選ぶ（P10・P23）", "使い道が決まらない部屋は、収納・来客・将来の用途など候補を先に挙げてから判断する"],
       next: "「では、10年後のご自分を少し想像してみましょう。」",
     });
     const L = [M, 1.75, 6.2, 4.6];
-    photo(s, "p26.jpg", ...L, "");
+    photo(s, "p26.jpg", ...L);
     tag(s, "リビング", L[0] + 0.2, L[1] + 0.2, 1.3, 0.4, H.white, H.navy);
-    const g = [["p03.jpg", "書斎にできる個室"], ["p05.jpg", "収納"], ["p16.jpg", "外まわり・庭"], ["p01.jpg", "ガレージ・駐車場"]];
+    const g = [["p03.jpg", "趣味・仕事の個室"], ["p05.jpg", "収納"], ["p16.jpg", "外まわり・庭"], ["p01.jpg", "ガレージ・駐車場"]];
     const gx = M + 6.45, gw = (CW - 6.45 - 0.25) / 2, gh = (4.6 - 0.25) / 2;
     g.forEach((t, i) => {
       const x = gx + (i % 2) * (gw + 0.25), y = 1.75 + Math.floor(i / 2) * (gh + 0.25);
-      photo(s, t[0], x, y, gw, gh, "");
+      photo(s, t[0], x, y, gw, gh);
       tag(s, t[1], x + 0.15, y + 0.15, Math.min(gw - 0.3, 0.32 + t[1].length * 0.19), 0.38, H.white, H.navy, 11);
     });
-    note(s, "※ 写真はすべてイメージ写真です。試算に用いた物件・ご提案物件の写真ではありません。実現できる空間は物件によって異なります。");
+    note(s, `※ ${ED.photoNote}実現できる空間は物件によって異なります。`);
   }
 
   // P04
@@ -277,10 +285,10 @@ async function build() {
       next: "「では、所有することで得られる『空間の自由』を具体的に見ていきます。」",
     });
     const yrs = [0, 5, 10, 15, 20, 25, 30];
-    const flat = JM.SCENARIOS[1];
+    const flat = LL.SCENARIOS[1];
     s.addChart(pres.charts.LINE, [
-      { name: "土地（横ばいと仮定）", labels: yrs.map((y) => y + "年"), values: yrs.map((t) => Math.round(JM.valueAt(NA.p, flat, t).land / 1e4)) },
-      { name: "建物（年数とともに下がる一例）", labels: yrs.map((y) => y + "年"), values: yrs.map((t) => Math.round(JM.valueAt(NA.p, flat, t).bldg / 1e4)) },
+      { name: "土地（横ばいと仮定）", labels: yrs.map((y) => y + "年"), values: yrs.map((t) => Math.round(LL.valueAt(NA.p, flat, t).land / 1e4)) },
+      { name: "建物（年数とともに下がる一例）", labels: yrs.map((y) => y + "年"), values: yrs.map((t) => Math.round(LL.valueAt(NA.p, flat, t).bldg / 1e4)) },
     ], { ...CHART, x: M, y: 1.75, w: 7.4, h: 4.6, chartColors: [H.gold, H.navy], lineSize: 3, lineDataSymbol: "circle", lineDataSymbolSize: 7,
       showTitle: true, title: "概念図：価値の動き方の違い（万円）", valAxisMinVal: 0, valAxisMaxVal: 2500 });
     const x0 = M + 7.75, w0 = CW - 7.75;
@@ -292,21 +300,21 @@ async function build() {
     await ico(s, "LuHammer", x0 + 0.3, 4.4, 0.45, H.gold);
     T(s, "建物", x0 + 0.9, 4.4, 2, 0.45, { fontSize: 20, bold: true, color: H.white, fontFace: FH, valign: "middle" });
     T(s, "年数とともに評価が下がるのが一般的。点検・修繕・リフォームで差がつく。", x0 + 0.3, 5.05, w0 - 0.6, 1.1, { fontSize: 14, color: H.white, lineSpacingMultiple: 1.15 });
-    note(s, `※ 概念図です。将来価格を示すものではありません。試算では新築${man(NA.p.price)}を土地${man(NA.p.landPrice)}・建物${man(NA.p.bldgPrice)}と仮定し、建物は10年で${NA.p.b10 * 100}%・下限10%とした一例です。`);
+    note(s, `※ 概念図です。将来価格を示すものではありません。試算では${NA.p.label}${man(NA.p.price)}を土地${man(NA.p.landPrice)}・建物${man(NA.p.bldgPrice)}と仮定し、建物は10年で${NA.p.b10 * 100}%・下限10%とした一例です。`);
   }
 
   // P08
   {
     const s = slide(2, "LIGHT", "賃貸では得にくい、空間の自由。", {
       msg: "賃貸では契約上の制約を受けやすい「改装・音・ペット・駐車場」。所有すれば、法令と近隣への配慮の範囲で自分の判断で決められる。ただし実現できるかは物件しだいなので、条件も必ずセットで伝える。",
-      ask: ["今、賃貸の規約や間取りであきらめていることはありますか？", "在宅勤務は週に何日くらいありますか？"],
+      ask: ["今、賃貸の規約や間取りであきらめていることはありますか？", "駐車場は何台あると安心ですか？"],
       worry: ["賃貸でも広い部屋を借りれば同じでは", "ペットを飼うと売るときに不利では"],
-      answer: ["広さは家賃で買えるが、造作・防音・駐車場・ペットは契約で制限されやすい（P12で同じ広さの賃貸とも比較）", "飼育の跡は売却時の評価に影響しうる。床材・壁材の選び方と退去時の補修で備える"],
+      answer: ["広さは家賃で買えるが、造作・防音・駐車場・ペットは契約で制限されやすい（P12で総住居費を比較）", "飼育の跡は売却時の評価に影響しうる。床材・壁材の選び方と補修で備える"],
       next: "「マンションという選択肢とも、公平に比べておきましょう。」",
     });
-    const sc = [
-      ["p03.jpg", "在宅勤務", "個室を書斎に。生活音と仕事を分けられる。", "条件：間取り・通信環境"],
-      ["p01.jpg", "車・バイク・趣味", "敷地内で、出し入れも手入れも自分のペースで。", "条件：駐車スペース・前面道路の幅"],
+    const sc = ED.p08 || [
+      ["p03.jpg", "在宅勤務・趣味", "個室を書斎や趣味の部屋に。生活音と分けられる。", "条件：間取り・通信環境・防音"],
+      ["p01.jpg", "車・バイク", "敷地内で、出し入れも手入れも自分のペースで。", "条件：駐車スペース・前面道路の幅"],
       ["p16.jpg", "ペットと庭", "飼育規約に縛られにくく、外の空間も使える。", "条件：近隣への配慮・自治体のルール"],
     ];
     const cw = (CW - 0.6) / 3;
@@ -318,7 +326,7 @@ async function build() {
       box(s, x, 5.8, cw, 0.42, H.goldL);
       T(s, c[3], x + 0.15, 5.8, cw - 0.3, 0.42, { fontSize: 12, bold: true, color: H.goldD, valign: "middle" });
     });
-    note(s, "※ 写真はイメージです。実現できるかは物件の間取り・敷地条件・法令・近隣環境によって異なります。");
+    note(s, `※ ${ED.photoNote}実現できるかは物件の間取り・敷地条件・法令・近隣環境によって異なります。`);
   }
 
   // P09
@@ -327,7 +335,7 @@ async function build() {
       msg: "どちらにも長所と短所がある。マンションにも敷地の共有持分がある（「マンションは土地がない」は誤り）。違いは土地を単独で持つか共有するか、管理を自分で決めるか管理組合で決めるか。",
       ask: ["管理は「任せたい」派ですか、「自分で決めたい」派ですか？", "駅からの距離と広さ、どちらを優先しますか？"],
       worry: ["戸建ては修繕費が読めない", "マンションのほうが売りやすいのでは"],
-      answer: ["戸建ては管理費・修繕積立金がない代わりに自分で積み立てる（試算では月1.5万円を住居費に含める）", "駅近マンションは流通しやすい傾向がある。戸建ては立地・土地条件で個別性が大きいので、売れる・貸せる立地を選ぶことが大切"],
+      answer: [`戸建ては管理費・修繕積立金がない代わりに自分で積み立てる（試算では月${manN(NA.p.repairMonth, 1)}万円を住居費に含める）`, "駅近マンションは流通しやすい傾向がある。戸建ては立地・土地条件で個別性が大きいので、売れる・貸せる立地を選ぶことが大切"],
       next: "「では、あなたの暮らしに合う戸建てとはどんなものか。希望を条件に置き換えてみます。」",
     });
     const cw = (CW - 0.4) / 2;
@@ -360,11 +368,7 @@ async function build() {
       answer: ["全部を満たす物件はまれ。「必須」と「あればうれしい」を分けると判断しやすい", "迷う場合は、毎月の住居費と通勤時間を先に決めると絞り込みやすい"],
       next: "「暮らしのイメージができたところで、お金の現実を確かめていきます。」",
     });
-    const P = [
-      ["LuLaptop", "在宅ワーク派", "仕事と生活を分けたい", ["書斎にできる独立した個室", "通信回線（光回線の引き込み）", "日当たり・静かさ（前面道路の交通量）"]],
-      ["LuCar", "車・バイク派", "道具も遊びも、自由に動きたい", ["敷地内の駐車スペース（台数・形）", "前面道路の幅と出し入れのしやすさ", "外の水栓・収納・作業スペース"]],
-      ["LuPawPrint", "ペットと暮らす派", "家族のように一緒に過ごしたい", ["庭・外の空間と周囲の環境", "床・壁の素材（傷・におい対策）", "動物病院・散歩道までの距離"]],
-    ];
+    const P = ED.personas;
     const cw = (CW - 0.6) / 3;
     for (let i = 0; i < 3; i++) {
       const x = M + i * (cw + 0.3);
@@ -385,19 +389,20 @@ async function build() {
   // ════════ 第3幕 納得 ════════
   // P11
   {
+    const fin = !!NA.p.financeCosts;
     const s = slide(3, "LIGHT", "購入は、月々の返済だけで考えない。", {
       section: true,
-      msg: `お金は3つの数字で見る。①最初に払う「初期費用」${man(NA.cashOut)}、②毎月の「住居費」${manN(NA.own.total, 1)}万円（返済に税・保険・修繕を加える）、③買った後に残る「手元資金」${man(NA.cashLeft)}。サンプル条件では手元資金が予備資金の目安に届かないので、頭金の配分を見直す余地があることを正直に示す。`,
+      msg: `お金は3つの数字で見る。①最初に払う「初期費用」${man(NA.cashOut)}、②毎月の「住居費」${manN(NA.own.total, 1)}万円（返済に税・保険・修繕を加える）、③買った後に残る「手元資金」${man(NA.cashLeft)}。${fin ? `諸費用を借入に含めるので、借入は物件価格より多い${man(NA.loan.amount)}になり、そのぶん利息も増えることを先に伝える。` : ""}`,
       ask: ["購入後も、手元にいくら残しておきたいですか？", "月々いくらまでなら、今の生活水準を変えずに払えそうですか？"],
       worry: ["頭金は多いほうがいいのでは", "諸費用がこんなにかかるとは思わなかった"],
-      answer: [`頭金を増やすと借入と利息は減るが手元資金が薄くなる。単身者は収入源が1つなので、まず生活費の半年分程度を残す考え方がおすすめ（目安${man(NA.reserveTarget)}）`, "諸費用は仲介手数料・登記費用・ローン手数料・保険など。物件価格とは別に必要（元資料デメリット01）"],
+      answer: [`頭金を増やすと借入と利息は減るが手元資金が薄くなる。単身者は収入源が1つなので、生活費の半年分程度を残す考え方がおすすめ（目安${man(NA.reserveTarget)}）`, "諸費用は登記費用・ローン手数料・保証料・保険などで、物件価格とは別に必要"],
       next: "「では、今の家賃と比べて毎月の支出がどう変わるかを見てみましょう。」",
     });
     const cw = (CW - 0.6) / 3;
     const cols = [
-      ["初期費用", man(NA.cashOut), [["頭金", man(NA.p.down)], ["購入諸費用（物件価格の7%と仮定）", man(NA.buyCost)]], H.navy],
+      ["初期費用（現金）", man(NA.cashOut), fin ? [["頭金", man(NA.p.down)], [`諸費用（価格の${pct(NA.p.buyCostRate, 1)}・借入に含める）`, man(NA.buyCost)]] : [["頭金", man(NA.p.down)], [`購入諸費用（価格の${pct(NA.p.buyCostRate, 1)}と仮定）`, man(NA.buyCost)]], H.navy],
       ["毎月の住居費", manN(NA.own.total, 1) + "万円", [["ローン返済", yen(NA.pmt)], ["固定資産税等・保険・修繕積立", yen(NA.own.upkeep)]], H.navy],
-      ["購入後の手元資金", man(NA.cashLeft), [["預貯金", man(CU.savings)], ["予備資金の目安（生活費6か月）", man(NA.reserveTarget)]], H.loss],
+      ["購入後の手元資金", man(NA.cashLeft), [["預貯金", man(CU.savings)], ["予備資金の目安（生活費6か月）", man(NA.reserveTarget)]], NA.cashLeft >= NA.reserveTarget ? H.gain : H.loss],
     ];
     cols.forEach((c, i) => {
       const x = M + i * (cw + 0.3);
@@ -411,48 +416,59 @@ async function build() {
         T(s, r[1], x + cw - 1.65, 3.6 + k * 0.62, 1.3, 0.52, { fontSize: 14, bold: true, color: H.char, align: "right", valign: "middle" });
       });
     });
-    const alt = JM.compute({ ...S, props: [{ ...S.props[0], down: 1_000_000 }] }).props[0];
     box(s, M, 5.25, CW, 1.05, H.navy);
-    await ico(s, "LuLightbulb" in Lu ? "LuLightbulb" : "LuSprout", M + 0.35, 5.47, 0.6, H.gold);
-    T(s, "見直し案：頭金を100万円にすると", M + 1.2, 5.32, 4.2, 0.4, { fontSize: 13, bold: true, color: H.gold });
-    T(s, `手元資金 ${man(alt.cashLeft)}（予備資金の目安をおおむね確保）／毎月の返済 ${yen(alt.pmt)}（＋${yen(alt.pmt - NA.pmt)}）`, M + 1.2, 5.7, CW - 1.5, 0.45, { fontSize: 16, bold: true, color: H.white });
-    note(s, `※ サンプル条件（架空）：新築${man(NA.p.price)}・頭金${man(NA.p.down)}・借入${man(NA.loan.amount)}・年利${pct(S.loan.rate)}（試算用の仮定）・${S.loan.years}年・元利均等。固定資産税等 年${manN(NA.p.propTaxYear)}万円・保険 年${manN(NA.p.insYear)}万円・修繕積立 月${manN(NA.p.repairMonth, 1)}万円・生活費（住居費以外）月${manN(CU.livingMonth)}万円は仮定値。`);
+    await ico(s, "LuLightbulb", M + 0.35, 5.47, 0.6, H.gold);
+    if (NA.cashLeft < NA.reserveTarget && NA.p.down > 0) {
+      const down = Math.max(0, NA.p.down - (NA.reserveTarget - NA.cashLeft));
+      const alt = LL.compute({ ...S, props: [{ ...S.props[ED.focus], down: Math.round(down / 100_000) * 100_000 }] }).props[0];
+      T(s, `見直し案：頭金を${man(alt.p.down)}にすると`, M + 1.2, 5.32, 6, 0.4, { fontSize: 13, bold: true, color: H.gold });
+      T(s, `手元資金 ${man(alt.cashLeft)}／毎月の返済 ${yen(alt.pmt)}（＋${yen(alt.pmt - NA.pmt)}）`, M + 1.2, 5.7, CW - 1.5, 0.45, { fontSize: 16, bold: true, color: H.white });
+    } else {
+      T(s, fin ? "頭金を入れすぎず、手元資金を残す計画" : "手元資金を残せる計画", M + 1.2, 5.32, 8, 0.4, { fontSize: 13, bold: true, color: H.gold });
+      T(s, `手元資金 ${man(NA.cashLeft)} ／ 予備資金の目安 ${man(NA.reserveTarget)}${fin ? `　・　借入 ${man(NA.loan.amount)}（諸費用込み）` : ""}`, M + 1.2, 5.7, CW - 1.5, 0.45, { fontSize: 16, bold: true, color: H.white });
+    }
+    note(s, `※ サンプル条件（架空）：${NA.p.label}${man(NA.p.price)}・頭金${man(NA.p.down)}・借入${man(NA.loan.amount)}・年利${pct(S.loan.rate)}（試算用の仮定）・${S.loan.years}年・元利均等。固定資産税等 年${manN(NA.p.propTaxYear)}万円・保険 年${manN(NA.p.insYear)}万円・修繕積立 月${manN(NA.p.repairMonth, 1)}万円・生活費（住居費以外）月${manN(CU.livingMonth)}万円は仮定値。`);
   }
 
   // P12
   {
+    const diff = NA.own.total - X.rent.total;
     const s = slide(3, "LIGHT", "賃貸と戸建て、支出はどう変わる？", {
-      msg: `家賃と返済額だけを比べない。税金・保険・修繕・更新料・管理費・駐車場まで入れた「総住居費」で比べる。今の賃貸は月${manN(X.rent.total, 1)}万円、新築戸建ては${manN(NA.own.total, 1)}万円、中古戸建ては${manN(UB.own.total, 1)}万円。何と比べるかで結論が変わることを示す。`,
-      ask: ["今の家賃以外に、住まいにかかっている費用（更新料・駐車場など）はいくらですか？", `月${manN(NA.own.total - X.rent.total, 1)}万円の差は、得られる広さや自由に見合うと感じますか？`],
+      msg: `家賃と返済額だけを比べない。税金・保険・修繕・更新料・管理費・駐車場まで入れた「総住居費」で比べる。今の賃貸は月${manN(X.rent.total, 1)}万円、${NA.p.label}は${manN(NA.own.total, 1)}万円。何と比べるかで結論が変わることを示す。${X.afford ? `月々の返済を${manN(CU.monthlyWish, 1)}万円にするなら、物件価格の目安は約${manN(X.afford.price)}万円。` : ""}`,
+      ask: ["今の家賃以外に、住まいにかかっている費用（更新料・駐車場など）はいくらですか？", `月${manN(Math.abs(diff), 1)}万円の差は、得られる広さや自由に見合うと感じますか？`],
       worry: ["家賃とほぼ同じ返済額なら買ったほうが得では", "結局、高くなるのでは"],
-      answer: [`返済額（${manN(NA.pmt, 1)}万円）は家賃と近いが、所有には税金・保険・修繕がかかる。総額では今の賃貸より月${manN(NA.own.total - X.rent.total, 1)}万円多い（新築の場合）`, `中古なら${manN(UB.own.total, 1)}万円と、今の家賃に近い水準になる`, "家賃は『住む権利』の対価で、無駄ではない。違いは所有すると住みながら借入残高が減っていく点"],
+      answer: [`返済額（${manN(NA.pmt, 1)}万円）に、所有すると税金・保険・修繕がかかる。総額では今の賃貸より月${manN(Math.abs(diff), 1)}万円${diff >= 0 ? "多い" : "少ない"}`, "家賃は『住む権利』の対価で、無駄ではない。違いは、所有すると住みながら借入残高が減っていく点と、広さ・駐車場・自由度"],
       next: "「ここに、住宅ローン控除という税金の軽減が加わります。新築と中古で違いがあります。」",
     });
     const rows = [
-      ["今の賃貸（約40㎡と仮定）", [["家賃・返済", X.rent.rent], ["税・保険", X.rent.ins], ["修繕・更新料", X.rent.renew], ["管理費等・駐車場", X.rent.park]], X.rent.total],
-      ["分譲マンション（3,000万円と仮定）", [["家賃・返済", X.condo.loan], ["税・保険", X.condo.tax + X.condo.ins], ["修繕・更新料", 0], ["管理費等・駐車場", X.condo.fees + X.condo.park]], X.condo.total],
-      ["新築戸建て（本件サンプル）", [["家賃・返済", NA.own.loan], ["税・保険", NA.own.tax + NA.own.ins], ["修繕・更新料", NA.own.repair], ["管理費等・駐車場", 0]], NA.own.total],
-      ["中古戸建て（本件サンプル）", [["家賃・返済", UB.own.loan], ["税・保険", UB.own.tax + UB.own.ins], ["修繕・更新料", UB.own.repair], ["管理費等・駐車場", 0]], UB.own.total],
+      ["今の賃貸", [["家賃・返済", X.rent.rent], ["税・保険", X.rent.ins], ["修繕・更新料", X.rent.renew], ["管理費等・駐車場", X.rent.park]], X.rent.total],
+      [`分譲マンション（${manN(S.condo.price)}万円と仮定）`, [["家賃・返済", X.condo.loan], ["税・保険", X.condo.tax + X.condo.ins], ["修繕・更新料", 0], ["管理費等・駐車場", X.condo.fees + X.condo.park]], X.condo.total],
+      ...X.props.map((o) => [`${o.p.label}（サンプル）`, [["家賃・返済", o.own.loan], ["税・保険", o.own.tax + o.own.ins], ["修繕・更新料", o.own.repair], ["管理費等・駐車場", 0]], o.own.total]),
     ];
     const cols = [H.navy, H.soft, H.gold, "C9CED6"];
-    const lx = M, bx = M + 3.7, maxW = 6.4, sc = maxW / 140_000;
+    const bx = M + 3.7, maxW = X.afford ? 4.1 : 5.6, sc = maxW / Math.max(...rows.map((r) => r[2]));
     rows.forEach((r, i) => {
-      const y = 1.95 + i * 1.0;
-      T(s, r[0], lx, y, 3.55, 0.55, { fontSize: 14, bold: i >= 2, color: i >= 2 ? H.navy : H.char, valign: "middle" });
+      const y = 1.85 + i * 0.95;
+      T(s, r[0], M, y, 3.55, 0.55, { fontSize: 14, bold: i >= 2, color: i >= 2 ? H.navy : H.char, valign: "middle" });
       let x = bx;
-      r[1].forEach((seg, j) => {
-        const w = seg[1] * sc;
-        if (w > 0.01) rect(s, x, y + 0.05, w, 0.45, cols[j]);
-        x += w;
-      });
+      r[1].forEach((seg, j) => { const w = seg[1] * sc; if (w > 0.01) rect(s, x, y + 0.05, w, 0.45, cols[j]); x += w; });
       T(s, `${manN(r[2], 1)}万円`, x + 0.15, y, 1.6, 0.55, { fontSize: 18, bold: true, color: i >= 2 ? H.navy : H.char, valign: "middle" });
     });
     ["家賃・ローン返済", "税金・保険", "修繕積立・更新料", "管理費等・駐車場"].forEach((l, j) => {
-      const x = bx + j * 1.65;
-      rect(s, x, 6.0, 0.2, 0.2, cols[j]);
-      T(s, l, x + 0.28, 5.95, 1.35, 0.3, { fontSize: 10, color: H.char, valign: "middle" });
+      const x = M + j * 1.75;
+      rect(s, x, 5.75, 0.2, 0.2, cols[j]);
+      T(s, l, x + 0.28, 5.7, 1.45, 0.3, { fontSize: 10, color: H.char, valign: "middle" });
     });
-    note(s, `※ 仮定値：賃貸は更新料2年ごとに1か月分・家財保険 年2万円。マンションは頭金300万円・管理費＋修繕積立金 月${manN(S.condo.fees, 1)}万円・駐車場 月${manN(S.condo.parking)}万円・固定資産税等 年${manN(S.condo.propTaxYear)}万円。戸建ての税・保険・修繕はP11と同じ。住宅ローン控除・初期費用は含みません。`);
+    if (X.afford) {
+      const ax = M + 9.35, aw = CW - 9.35;
+      box(s, ax, 1.85, aw, 3.7, H.navy);
+      T(s, "家賃並みの支払いなら", ax + 0.2, 1.98, aw - 0.4, 0.55, { fontSize: 12, bold: true, color: H.gold });
+      T(s, `返済 月${manN(CU.monthlyWish, 1)}万円`, ax + 0.2, 2.55, aw - 0.4, 0.4, { fontSize: 14, bold: true, color: H.white });
+      T(s, "物件価格の目安", ax + 0.2, 3.1, aw - 0.4, 0.3, { fontSize: 11, color: H.onNavy });
+      T(s, `約${manN(X.afford.price)}万円`, ax + 0.2, 3.4, aw - 0.4, 0.55, { fontSize: 20, bold: true, color: H.white });
+      T(s, `${NA.p.financeCosts ? "諸費用込みの借入" : "頭金＋借入"}・年利${pct(S.loan.rate)}・${S.loan.years}年で計算。税・保険・修繕は別にかかります。`, ax + 0.2, 4.05, aw - 0.4, 1.3, { fontSize: 10, color: H.onNavy });
+    }
+    note(s, `※ 仮定値：賃貸は更新料2年ごとに1か月分・家財保険 年${manN(CU.rentInsYear ?? 20_000, 1)}万円。マンションは頭金${man(S.condo.down)}・管理費＋修繕積立金 月${manN(S.condo.fees, 1)}万円・駐車場 月${manN(S.condo.parking, 1)}万円。戸建ての税・保険・修繕はP11と同じ。住宅ローン控除・初期費用は含みません。`);
   }
 
   // P13
@@ -462,7 +478,7 @@ async function build() {
       ask: ["検討中の物件に、省エネ性能の証明書は付いていますか？", "入居はいつ頃を考えていますか？（2028年以降は新築の条件が変わります）"],
       worry: ["中古は控除が少ないのでは", "新築なら必ず控除を受けられるのでは"],
       answer: ["性能の高い中古はZEH水準・認定住宅なら3,500万円・13年。性能の証明がない中古は2,000万円・10年", "省エネ基準を満たさない新築は原則対象外。2028年以降入居の省エネ基準適合住宅は、2027年末までの建築確認等に限り2,000万円・10年", "子育て・若者夫婦世帯の上乗せは、単身者には適用しない（条件を満たす場合のみ）"],
-      next: "「では、年収550万円の方なら実際にいくら軽くなるのか、年ごとに見てみましょう。」",
+      next: `「では、年収${manN(CU.gross)}万円の方なら実際にいくら軽くなるのか、年ごとに見てみましょう。」`,
     });
     const pw = (CW - 0.3) / 2;
     const rowsNew = [["認定長期優良・低炭素", 45e6, 13, ""], ["ZEH水準省エネ", 35e6, 13, ""], ["省エネ基準適合", 20e6, 13, "2028年以降入居は経過措置のみ（2,000万円・10年）"], ["その他（基準未満）", 0, 0, "2023年末までの建築確認等なら2,000万円・10年"]];
@@ -495,58 +511,60 @@ async function build() {
   // P14
   {
     const C = NA.credit, P = C.rows.filter((r) => r.inPeriod);
-    const avgM = C.total / P.length / 12;
+    const avgM = P.length ? C.total / P.length / 12 : 0;
     const s = slide(3, "LIGHT", "住宅ローン控除は、いくら受けられる？", {
-      msg: `制度上の上限（年末残高×0.7%）は13年で${man(C.totalMax, 1)}。実際に控除できるのは、その年の所得税と住民税（上限9.75万円）の範囲まで。年収550万円のサンプルでは見込み${man(C.total, 1)}で、初年度は${yen(C.firstMax - C.first)}が控除しきれない。控除は毎月の返済額を減らすのではなく、税金が軽くなる制度。`,
-      ask: ["昨年の源泉徴収票はお手元にありますか？（あると詳しく計算できます）", "iDeCo・医療費控除・ふるさと納税など、ほかに税金が減る制度を使っていますか？"],
+      msg: `制度上の上限（年末残高×0.7%）は${C.judge.years}年で${man(C.totalMax, 1)}。実際に控除できるのは、その年の所得税と住民税（上限9.75万円）の範囲まで。年収${man(CU.gross)}のサンプルでは見込み${man(C.total, 1)}。控除は毎月の返済額を減らすのではなく、税金が軽くなる制度。${NA.p.financeCosts ? "諸費用を借入に含めた部分は控除の対象外なので、年末残高を住宅の取得分で按分して計算している。" : ""}`,
+      ask: ["昨年の源泉徴収票はお手元にありますか？（あると詳しく計算できます）", "医療費控除・ふるさと納税など、ほかに税金が減る制度を使っていますか？"],
       worry: ["最大額が全部戻ってくるのでは", "控除で毎月の返済が安くなるのでは"],
-      answer: [`戻るのは税額の範囲まで。本試算は概算で、所得が変われば見込みも変わる`, `毎月の返済${yen(NA.pmt)}は変わらない。所得税は年末調整・確定申告で還付、住民税は翌年度に減額される`, "1年目は確定申告が必要（2年目以降は年末調整）。ふるさと納税の上限額が下がる場合もあるので併せて確認"],
-      next: "「控除を差し引いたうえで、新築と中古の10年間の総コストを比べます。」",
+      answer: ["戻るのは税額の範囲まで。本試算は概算で、所得が変われば見込みも変わる", `毎月の返済${yen(NA.pmt)}は変わらない。所得税は年末調整・確定申告で還付、住民税は翌年度に減額される`, "1年目は確定申告が必要（2年目以降は年末調整）"],
+      next: "「控除を差し引いたうえで、2つの物件の10年間の総コストを比べます。」",
     });
-    const cats = P.map((r) => r.i + "年目");
-    const v = (f) => P.map((r) => +(r[f] / 1e4).toFixed(1));
-    s.addChart(pres.charts.BAR, [
-      { name: "所得税から", labels: cats, values: v("fromIT") },
-      { name: "住民税から", labels: cats, values: v("fromRT") },
-      { name: "控除しきれない額（受け取れない）", labels: cats, values: v("unused") },
-    ], { ...CHART, x: M, y: 1.75, w: 7.6, h: 4.6, barDir: "col", barGrouping: "stacked", chartColors: [H.navy, H.gold, "D3D7DD"],
-      showTitle: true, title: "年ごとの控除見込額（万円）— 新築・ZEH水準・2027年入居", showValue: true, dataLabelPosition: "ctr", dataLabelColor: H.white,
-      dataLabelFontSize: 9, dataLabelFontFace: "+mn-lt", dataLabelFormatCode: '[<1.5]"";0.0', valAxisMinVal: 0, valAxisMaxVal: 25, barGapWidthPct: 45 });
+    if (P.length) {
+      const cats = P.map((r) => r.i + "年目");
+      const v = (f) => P.map((r) => +(r[f] / 1e4).toFixed(1));
+      const top = Math.ceil(Math.max(...P.map((r) => r.max)) / 1e4 / 5) * 5 + 5;
+      s.addChart(pres.charts.BAR, [
+        { name: "所得税から", labels: cats, values: v("fromIT") },
+        { name: "住民税から", labels: cats, values: v("fromRT") },
+        { name: "控除しきれない額（受け取れない）", labels: cats, values: v("unused") },
+      ], { ...CHART, x: M, y: 1.75, w: 7.6, h: 4.6, barDir: "col", barGrouping: "stacked", chartColors: [H.navy, H.gold, "D3D7DD"],
+        showTitle: true, title: `年ごとの控除見込額（万円）— ${desc(NA)}・${CU.moveInYear}年入居`, showValue: true, dataLabelPosition: "ctr", dataLabelColor: H.white,
+        dataLabelFontSize: 9, dataLabelFontFace: "+mn-lt", dataLabelFormatCode: '[<1.5]"";0.0', valAxisMinVal: 0, valAxisMaxVal: top, barGapWidthPct: 45 });
+    }
     const x0 = M + 7.9, w0 = CW - 7.9;
     box(s, x0, 1.8, w0, 2.3, H.navy);
-    T(s, "13年間の控除見込額（概算）", x0 + 0.3, 1.95, w0 - 0.6, 0.3, { fontSize: 12, bold: true, color: H.gold });
+    T(s, `${C.judge.years}年間の控除見込額（概算）`, x0 + 0.3, 1.95, w0 - 0.6, 0.3, { fontSize: 12, bold: true, color: H.gold });
     T(s, man(C.total, 1), x0 + 0.3, 2.25, w0 - 0.6, 0.75, { fontSize: 38, bold: true, color: H.white });
     T(s, `初年度 ${yen(C.first)}`, x0 + 0.3, 3.0, w0 - 0.6, 0.26, { fontSize: 11, color: H.white });
     T(s, `2年目以降 平均 ${yen(C.laterAvg)}`, x0 + 0.3, 3.26, w0 - 0.6, 0.26, { fontSize: 11, color: H.white });
     T(s, `上限 ${man(C.totalMax, 1)}・控除しきれない ${man(C.totalUnused, 1)}`, x0 + 0.3, 3.55, w0 - 0.6, 0.26, { fontSize: 11, color: H.goldL });
     box(s, x0, 4.3, w0, 2.0, H.mist);
     T(s, "返済額は変わらない", x0 + 0.3, 4.42, w0 - 0.6, 0.32, { fontSize: 14, bold: true, color: H.navy });
-    [["毎月のローン返済", yen(NA.pmt)], ["控除の月割り（参考）", `約${manN(avgM, 1)}万円`], ["14年目以降", "控除なし"]].forEach((l, i) => {
+    [["毎月のローン返済", yen(NA.pmt)], ["控除の月割り（参考）", `約${manN(avgM, 1)}万円`], [`${C.judge.years + 1}年目以降`, "控除なし"]].forEach((l, i) => {
       T(s, l[0], x0 + 0.3, 4.85 + i * 0.45, 2.5, 0.4, { fontSize: 12, color: H.gray, valign: "middle" });
       T(s, l[1], x0 + 2.7, 4.85 + i * 0.45, w0 - 3.0, 0.4, { fontSize: 13, bold: true, color: H.navy, align: "right", valign: "middle" });
     });
-    note(s, `※ 年収${man(CU.gross)}・単身・給与所得のみ、社会保険料を年収の15%と仮定した概算（所得税${yen(X.tax.incomeTax)}・住民税所得割${yen(X.tax.residentTax)}）。2028年以降も令和8・9年分の基礎控除等の特例が続くと仮定（税額を低めに見積もる保守的な前提）。住民税からの控除は課税総所得金額等×5%・最高97,500円（継続は〔要確認〕）。確定額ではありません。`);
+    note(s, `※ 年収${man(CU.gross)}・単身・給与所得のみ、社会保険料を年収の15%と仮定した概算（所得税${yen(X.tax.incomeTax)}・住民税所得割${yen(X.tax.residentTax)}）。2028年以降も令和8・9年分の基礎控除等の特例が続くと仮定（保守的な前提）。住民税からの控除は課税総所得金額等×5%・最高97,500円（継続は〔要確認〕）。${NA.p.kind === "resale" ? "買取再販住宅の限度額は〔要確認〕。" : ""}確定額ではありません。`);
   }
 
   // P15
   {
-    const s = slide(3, "LIGHT", "新築と中古、10年間の総コスト。", {
-      msg: `初期費用・返済・税・保険・修繕を10年分足し、住宅ローン控除を差し引く。新築${man(NA.ten.with)}、中古${man(UB.ten.with)}。控除は新築のほうが大きいが、価格と返済の差のほうが大きい。中古は「建物が安くなった分、土地付きで手に入る家」。ただし修繕は早めに来る。`,
-      ask: ["新築と中古で、いちばん気になる違いは「価格」「性能」「修繕」のどれですか？", "中古の場合、購入前にインスペクション（建物状況調査）を入れたいですか？"],
-      worry: ["控除が多い新築のほうが得では", "中古は修繕費が怖い"],
-      answer: [`10年の控除は新築${man(NA.ten.credit, 1)}・中古${man(UB.ten.credit, 1)}。差は約${manN(NA.ten.credit - UB.ten.credit, 1)}万円だが、支出全体の差は約${manN(NA.ten.with - UB.ten.with)}万円`, `中古の修繕積立は月${manN(UB.p.repairMonth, 1)}万円と多めに置いている。インスペクションで劣化状況を確認し、見積もりを取ってから判断する`, "性能・住み心地・売るときの価値（P16・P18）まで含めて比べる。控除の額だけで決めない"],
+    const s = slide(3, "LIGHT", `${X.props[0].p.kind === "new" ? "新築" : "中古"}と${X.props[1].p.kind === "new" ? "新築" : "中古"}、10年間の総コスト。`, {
+      msg: `初期費用・返済・税・保険・修繕を10年分足し、住宅ローン控除を差し引く。${X.props.map((o) => `${o.p.label}は${man(o.ten.with)}`).join("、")}。控除の額だけでなく、価格と返済の差、修繕の時期まで含めて比べる。`,
+      ask: ["2つの物件で、いちばん気になる違いは「価格」「性能」「修繕」のどれですか？", "中古の場合、購入前に建物の状態を調べる（インスペクション）ことに関心はありますか？"],
+      worry: ["控除が多いほうが得では", "中古は修繕費が怖い"],
+      answer: [`10年の控除は${X.props.map((o) => `${o.p.label}${man(o.ten.credit, 1)}`).join("・")}。控除の差より、価格と返済の差のほうが大きいことが多い`, "中古は修繕積立を多めに置いて比べる。リフォームの内容と時期を確認し、必要なら見積もりを取る", "性能・住み心地・売るときの価値（P16・P18）まで含めて比べる。控除の額だけで決めない"],
       next: "「では、払い続けた結果、残債と家の価値がどうなっていくかを見ます。」",
     });
     const segs = (t) => [["初期費用", t.initial, H.soft], ["ローン返済", t.loan, H.navy], ["固定資産税等", t.tax, "5E6B82"], ["保険", t.ins, "A9B2C0"], ["修繕積立", t.repair, H.gold]];
-    const maxV = Math.max(NA.ten.without, UB.ten.without), bx = M + 2.2, bw = 5.9, sc = bw / maxV;
-    [[NA, "新築戸建て"], [UB, "中古戸建て"]].forEach(([o, label], i) => {
+    const maxV = Math.max(...X.props.map((o) => o.ten.without)), bx = M + 2.2, bw = 5.9, sc = bw / maxV;
+    X.props.forEach((o, i) => {
       const y = 1.95 + i * 1.9;
-      T(s, label, M, y, 2.0, 0.6, { fontSize: 18, bold: true, color: H.navy, fontFace: FH, valign: "middle" });
-      T(s, `${man(o.p.price)}・${o.p.kind === "new" ? "ZEH水準" : "築15年"}`, M, y + 0.6, 2.0, 0.3, { fontSize: 11, color: H.gray });
+      T(s, o.p.label, M, y - 0.05, 2.1, 0.7, { fontSize: 14, bold: true, color: H.navy, fontFace: FH, valign: "middle" });
+      T(s, `${man(o.p.price)}・${R.KIND[o.p.kind]}`, M, y + 0.7, 2.1, 0.3, { fontSize: 11, color: H.gray });
       let x = bx;
-      segs(o.ten).forEach((g) => { const w = g[1] * sc; rect(s, x, y + 0.05, w, 0.55, g[2]); if (w > 0.95) T(s, manN(g[1]), x, y + 0.05, w, 0.55, { fontSize: 11, bold: true, color: H.white, align: "center", valign: "middle" }); x += w; });
+      segs(o.ten).forEach((g) => { const w = g[1] * sc; if (w > 0.005) rect(s, x, y + 0.05, w, 0.55, g[2]); if (w > 0.95) T(s, manN(g[1]), x, y + 0.05, w, 0.55, { fontSize: 11, bold: true, color: H.white, align: "center", valign: "middle" }); x += w; });
       T(s, man(o.ten.without), x + 0.15, y + 0.05, 1.6, 0.55, { fontSize: 14, color: H.gray, valign: "middle" });
-      // 控除後
       const wc = o.ten.with * sc;
       s.addShape(pres.shapes.LINE, { x: bx + wc, y: y + 0.7, w: 0, h: 0.5, line: { color: H.gain, width: 1.5 } });
       rect(s, bx, y + 0.78, wc, 0.32, "DCE8E1");
@@ -556,14 +574,14 @@ async function build() {
     const x0 = M + 9.5, w0 = CW - 9.5;
     box(s, x0, 1.95, w0, 3.7, H.ivory);
     T(s, "10年後に売ったら（横ばい）", x0 + 0.2, 2.05, w0 - 0.4, 0.6, { fontSize: 12, bold: true, color: H.goldD });
-    [[NA, "新築"], [UB, "中古"]].forEach(([o, l], i) => {
+    X.props.forEach((o, i) => {
       const sl = o.sale[1].byScen[1];
       const y = 2.8 + i * 1.4;
-      T(s, l, x0 + 0.2, y, w0 - 0.4, 0.3, { fontSize: 13, bold: true, color: H.navy });
+      T(s, o.p.label, x0 + 0.2, y, w0 - 0.4, 0.3, { fontSize: 12, bold: true, color: H.navy });
       T(s, `想定価格 ${man(sl.total)}\n残債 ${man(sl.balance)}`, x0 + 0.2, y + 0.32, w0 - 0.4, 0.55, { fontSize: 12, color: H.char });
       T(s, `売却手取り ${sgn(sl.net)}`, x0 + 0.2, y + 0.88, w0 - 0.4, 0.3, { fontSize: 12, bold: true, color: sl.net >= 0 ? H.gain : H.loss });
     });
-    note(s, `※ 10年間＝初期費用（頭金＋諸費用）＋返済120回＋固定資産税等・保険・修繕積立の10年分。中古サンプル（${man(UB.p.price)}・${UB.p.landArea}㎡/${UB.p.floor}㎡・2012年築・その他の住宅・諸費用8%・修繕 月${manN(UB.p.repairMonth, 1)}万円）と新築のZEH水準はすべて仮定値。控除はP14と同じ概算。`);
+    note(s, `※ 10年間＝初期費用（現金）＋返済120回＋固定資産税等・保険・修繕積立の10年分。${X.props.map((o) => `${o.p.label}：${man(o.p.price)}・${o.p.floor}㎡・${R.PERF[o.p.perf]}${o.p.financeCosts ? "・諸費用込みの借入" : ""}・修繕 月${manN(o.p.repairMonth, 1)}万円`).join("／")}（いずれも仮定値）。控除はP14と同じ概算。`);
   }
 
   // P16
@@ -575,27 +593,27 @@ async function build() {
       answer: ["返済した元金がそのまま利益になるわけではない。手元に残る額は売却価格しだい", "下落シナリオでも生活が成り立つ計画かを、P18で年数ごとに確認する。長く住むほど残債が減り、選択肢が広がる"],
       next: "「ここからは、将来への不安に一つずつ答えていきます。まず、住まいを変えたくなったら。」",
     });
-    const yrs = Array.from({ length: 36 }, (_, t) => t);
+    const yrs = Array.from({ length: S.loan.years + 1 }, (_, t) => t);
     const lab = yrs.map((t) => (t % 5 ? "" : String(t)));
     const val = (k) => NA.values.find((v) => v.key === k).path.map((v) => Math.round(v / 1e4));
+    const top = Math.ceil(Math.max(NA.loan.amount, NA.p.price) / 1e7) * 1000;
     s.addChart(pres.charts.LINE, [
       { name: "ローン残債", labels: lab, values: NA.balances.map((b) => Math.round(b / 1e4)) },
       { name: "物件の価値（横ばい）", labels: lab, values: val("flat") },
       { name: "物件の価値（上昇）", labels: lab, values: val("up") },
       { name: "物件の価値（下落）", labels: lab, values: val("down") },
     ], { ...CHART, x: M, y: 1.75, w: 8.4, h: 4.6, chartColors: [H.navy, H.gold, "D9C9A6", "C9CED6"], lineSize: 2.5, lineDataSymbol: "none",
-      showTitle: true, title: "新築サンプル：残債と物件価値の推移（万円・横軸は年後）", valAxisMinVal: 0, valAxisMaxVal: 4000, catAxisLabelRotate: 0 });
+      showTitle: true, title: `${NA.p.label}：残債と物件価値の推移（万円・横軸は年後）`, valAxisMinVal: 0, valAxisMaxVal: top, catAxisLabelRotate: 0 });
     const x0 = M + 8.7, w0 = CW - 8.7;
     T(s, "売却時の手取り", x0, 1.85, w0, 0.35, { fontSize: 14, bold: true, color: H.navy });
     box(s, x0, 2.25, w0, 1.1, H.navy);
     T(s, "売却価格\n− 売却費用 − 残債", x0 + 0.2, 2.25, w0 - 0.4, 1.1, { fontSize: 15, bold: true, color: H.white, align: "center", valign: "middle" });
-    const pts = [5, 10, 20].map((t) => ({ t, b: NA.balances[t], v: NA.values[1].path[t] }));
-    pts.forEach((p, i) => {
+    [5, 10, 20].forEach((t, i) => {
       const y = 3.6 + i * 0.85;
-      T(s, `${p.t}年後`, x0, y, 1.0, 0.7, { fontSize: 13, bold: true, color: H.goldD, valign: "middle" });
-      T(s, `価値 ${man(p.v)}\n残債 ${man(p.b)}`, x0 + 1.0, y, w0 - 1.0, 0.7, { fontSize: 12, valign: "middle" });
+      T(s, `${t}年後`, x0, y, 1.0, 0.7, { fontSize: 13, bold: true, color: H.goldD, valign: "middle" });
+      T(s, `価値 ${man(NA.values[1].path[t])}\n残債 ${man(NA.balances[t])}`, x0 + 1.0, y, w0 - 1.0, 0.7, { fontSize: 12, valign: "middle" });
     });
-    note(s, `※ 価値は3つの仮定シナリオ（土地：年−1%／±0%／＋1%、建物：10年後に購入時の${(NA.p.b10 - 0.1) * 100}／${NA.p.b10 * 100}／${(NA.p.b10 + 0.1) * 100}%・下限10%）で、将来価格の予想・保証ではありません。残債は年利${pct(S.loan.rate)}（全期間一定と仮定）・繰上げ返済なし。`);
+    note(s, `※ 価値は3つの仮定シナリオ（土地：年−1%／±0%／＋1%、建物：10年後に購入時の${Math.round((NA.p.b10 - 0.1) * 100)}／${Math.round(NA.p.b10 * 100)}／${Math.round((NA.p.b10 + 0.1) * 100)}%・下限10%）で、将来価格の予想・保証ではありません。${NA.p.kind !== "new" ? "リフォーム済み物件の価格には工事費が含まれ、購入直後の市場価格とは一致しません。" : "新築の価格には販売経費等が含まれ、購入直後から市場価格が下がりやすい傾向があります。"}`);
   }
 
   // ════════ 第4幕 安心 ════════
@@ -635,21 +653,26 @@ async function build() {
 
   // P18
   {
+    const cells = (o) => o.sale.flatMap((r) => r.byScen);
+    const posN = cells(NA).filter((c) => c.net >= 0).length;
+    const takeaway = posN === 0
+      ? `この試算では、${NA.p.label}はどの時点で売っても持ち出しになります。売って利益を出す家ではなく、長く住む家として選ぶ。売る可能性があるなら、繰上げ返済・頭金で残債を早く減らすこと、売れる立地を選ぶことが備えになります。`
+      : `${NA.p.label}は${posN}/9のケースで手取りがプラス。長く住むほど残債が減り、選択肢が広がります。`;
     const s = slide(4, "LIGHT", "5年後・10年後・20年後の選択肢。", {
-      msg: "売った場合の手取りを、年数×3つのシナリオで一覧にする。新築は短期で売ると持ち出しになりやすく、長く住むほど改善する。中古は価格が抑えられているぶん、手取りがプラスになりやすい。最悪のケースも先に見せることで安心につなげる。",
+      msg: `売った場合の手取りを、年数×3つのシナリオで一覧にする。最悪のケースも先に見せることで、安心と納得につなげる。${takeaway}`,
       ask: ["この表で、いちばん気になるマスはどこですか？", "下落シナリオの数字でも、生活は成り立ちそうですか？"],
       worry: ["結局、上がるのか下がるのか", "持ち出しになったらどうしよう"],
       answer: ["将来価格は誰にも分からない。だから幅で見て、下落でも成り立つ計画かを確認する", "持ち出しの可能性がある期間は、予備資金を厚めに持つ・繰上げ返済で残債を減らすなどで備える"],
       next: "「売るとき以外の不安、たとえば収入が減ったときのことも確認しておきましょう。」",
     });
     const pw = (CW - 0.4) / 2;
-    [[NA, "新築戸建て（サンプル）"], [UB, "中古戸建て（サンプル）"]].forEach(([o, label], i) => {
+    X.props.map((o) => [o, o.p.label + "（サンプル）"]).forEach(([o, label], i) => {
       const x = M + i * (pw + 0.4);
       T(s, label, x, 1.75, pw, 0.4, { fontSize: 16, bold: true, color: H.navy, fontFace: FH });
       const cw0 = 1.35, cwS = (pw - cw0) / 3;
       ["下落", "横ばい", "上昇"].forEach((h, k) => T(s, h, x + cw0 + k * cwS, 2.2, cwS, 0.35, { fontSize: 12, bold: true, color: H.gray, align: "center", valign: "middle" }));
       o.sale.forEach((row, r) => {
-        const y = 2.6 + r * 1.15;
+        const y = 2.6 + r * 1.05;
         T(s, `${row.t}年後`, x, y, cw0, 0.5, { fontSize: 16, bold: true, color: H.navy, valign: "middle" });
         T(s, `残債 ${man(row.byScen[0].balance)}`, x, y + 0.5, cw0, 0.45, { fontSize: 10, color: H.gray, valign: "top" });
         row.byScen.forEach((c, k) => {
@@ -661,16 +684,20 @@ async function build() {
         });
       });
     });
+    box(s, M, 5.82, CW, 0.52, posN === 0 ? H.ivory : "E3EEE7");
+    T(s, takeaway, M + 0.25, 5.82, CW - 0.5, 0.52, { fontSize: 12, bold: true, color: H.navy, valign: "middle" });
     note(s, "※ 手取り＝想定売却価格−売却費用（仲介手数料の上限＋その他10万円と仮定）−ローン残債。譲渡所得税は考慮していません。シナリオは説明のための仮定で、将来価格を予想・保証するものではありません。");
   }
 
   // P19
   {
+    const comfort = ((NA.pmt + (CU.existingMonthly || 0)) * 12) / CU.gross;
+    const comfortNoDebt = (NA.pmt * 12) / CU.gross;
     const s = slide(4, "LIGHT", "収入が減った場合は？", {
-      msg: `単身者は収入源が1本。収入が2割・4割減ったときの返済負担と家計の余裕を先に見ておく。新築サンプルでは、今の収入でも返済が手取りの${pct(NA.risk[0].loanRatio)}で、目安の25%を超える。中古なら${pct(UB.risk[0].loanRatio)}。数字で見て、借入額・頭金・物件価格を一緒に調整する。`,
-      ask: ["病気やけがで3か月働けなくなったら、生活費はどう工面しますか？", "勤務先の休業時の保障や、加入中の保険の内容は把握していますか？"],
+      msg: `単身者は収入源が1本。収入が2割・4割減ったときの返済負担と家計の余裕を先に見ておく。${NA.p.label}の返済比率（年収比${CU.existingMonthly ? "・既存の借入を含む" : ""}）は${pct(comfort)}で、目安は${pct(ED.comfortRatio, 0)}以内。数字を見ながら、借入額・頭金・物件価格を一緒に調整する。`,
+      ask: ["病気やけがで3か月働けなくなったら、生活費はどう工面しますか？", "車のローンなど、今ある借入はいつ完済予定ですか？"],
       worry: ["収入が減っても返済は続く", "団信に入れば安心では"],
-      answer: ["返済額は手取りの25%以内が一つの目安（元資料デメリット05）。超える場合は借入額・頭金・物件価格を見直す", "団信は死亡・高度障害等で残債が弁済される保険。働けない期間の収入減は商品によって保障の範囲が異なるので、就業不能保険も含めて確認", "固定金利を選ぶ・金利が上がっても払える額で借りる（元資料デメリット04）"],
+      answer: [`返済比率は${pct(ED.comfortRatio, 0)}以内（既存の借入を含む・年収比）を一つの目安にする。${CU.existingMonthly ? `既存の借入がなければ${pct(comfortNoDebt)}。` : ""}`, "団信は死亡・高度障害等で残債が弁済される保険。働けない期間の収入減は商品によって保障の範囲が異なるので確認する", "固定金利と変動金利を比べ、金利が上がっても払える額で借りる"],
       next: "「もう一つの不安、戸建ての維持費を具体的に見ておきましょう。」",
     });
     const cw = 2.55;
@@ -678,28 +705,30 @@ async function build() {
       const x = M + i * (cw + 0.25);
       const bad = r.loanRatio > 0.25;
       box(s, x, 1.75, cw, 4.55, i === 0 ? H.mist : H.ivory);
-      T(s, i === 0 ? "今の収入" : `収入が${r.drop * 100}%減`, x + 0.25, 1.9, cw - 0.5, 0.35, { fontSize: 15, bold: true, color: H.navy });
+      T(s, i === 0 ? "今の収入" : `収入が${Math.round(r.drop * 100)}%減`, x + 0.25, 1.9, cw - 0.5, 0.35, { fontSize: 15, bold: true, color: H.navy });
       T(s, `手取り 月${manN(r.takeHomeM, 1)}万円`, x + 0.25, 2.25, cw - 0.4, 0.3, { fontSize: 10, color: H.gray });
       T(s, "返済 ÷ 手取り", x + 0.25, 2.7, cw - 0.5, 0.3, { fontSize: 11, color: H.gray });
       T(s, pct(r.loanRatio), x + 0.25, 2.98, cw - 0.5, 0.7, { fontSize: 34, bold: true, color: bad ? H.loss : H.gain });
-      // ゲージ（0〜60%）
       const gw = cw - 0.5, gx = x + 0.25, gy = 3.78;
       rect(s, gx, gy, gw, 0.16, "DADDE2");
       rect(s, gx, gy, Math.min(1, r.loanRatio / 0.6) * gw, 0.16, bad ? H.loss : H.gain);
       s.addShape(pres.shapes.LINE, { x: gx + (0.25 / 0.6) * gw, y: gy - 0.08, w: 0, h: 0.32, line: { color: H.navy, width: 1.25 } });
-      T(s, "目安25%", gx + (0.25 / 0.6) * gw - 0.4, gy + 0.22, 0.8, 0.22, { fontSize: 9, color: H.navy, align: "center" });
+      T(s, "手取りの25%", gx + (0.25 / 0.6) * gw - 0.6, gy + 0.22, 1.2, 0.22, { fontSize: 9, color: H.navy, align: "center" });
       T(s, "毎月の余裕（手取り−支出）", x + 0.25, 4.6, cw - 0.4, 0.3, { fontSize: 10, color: H.gray });
       T(s, (r.gap >= 0 ? "＋" : "−") + yen(Math.abs(r.gap)), x + 0.25, 4.9, cw - 0.5, 0.45, { fontSize: 18, bold: true, color: r.gap >= 0 ? H.navy : H.loss });
       T(s, r.gap >= 0 ? "黒字" : `手元資金${man(NA.cashLeft)}で約${Math.floor(r.months)}か月`, x + 0.25, 5.4, cw - 0.5, 0.6, { fontSize: 11, color: r.gap >= 0 ? H.gray : H.loss });
     });
     const x0 = M + 3 * (cw + 0.25), w0 = CW - 3 * (cw + 0.25);
     box(s, x0, 1.75, w0, 4.55, H.navy);
-    T(s, "備え方", x0 + 0.3, 1.9, w0 - 0.6, 0.4, { fontSize: 16, bold: true, color: H.gold });
-    ["返済は手取りの25%以内を目安に", "生活費6か月分の予備資金を残す", "固定・変動金利を比べて選ぶ", "就業不能に備える保険を確認", "余裕がある年に繰上げ返済"].forEach((t, k) => {
-      T(s, [{ text: "✓  ", options: { color: H.gold, bold: true } }, { text: t }], x0 + 0.3, 2.45 + k * 0.62, w0 - 0.5, 0.55, { fontSize: 14, color: H.white, valign: "middle" });
+    T(s, "借りすぎないための目安", x0 + 0.3, 1.9, w0 - 0.6, 0.35, { fontSize: 14, bold: true, color: H.gold });
+    T(s, `返済比率（年収比${CU.existingMonthly ? "・既存借入込み" : ""}）`, x0 + 0.3, 2.3, w0 - 0.6, 0.3, { fontSize: 11, color: H.onNavy });
+    T(s, [{ text: pct(comfort), options: { fontSize: 26, bold: true, color: comfort > ED.comfortRatio ? "F0B9AC" : H.white } }, { text: `　目安 ${pct(ED.comfortRatio, 0)}以内`, options: { fontSize: 12, color: H.goldL } }], x0 + 0.3, 2.6, w0 - 0.6, 0.55, { valign: "middle" });
+    T(s, `審査金利${pct(S.screen.rate, 1)}で計算すると ${pct(NA.screen.ratio)}（基準 ${pct(NA.screen.limit, 0)}）`, x0 + 0.3, 3.2, w0 - 0.6, 0.5, { fontSize: 11, color: H.onNavy });
+    T(s, `借入の目安の上限 約${man(NA.screen.maxLoan)}`, x0 + 0.3, 3.7, w0 - 0.6, 0.3, { fontSize: 12, bold: true, color: H.white });
+    ["生活費6か月分の予備資金を残す", "固定・変動金利を比べて選ぶ", "就業不能に備える保障を確認", CU.existingMonthly ? "既存の借入は完済時期を確認" : "余裕がある年に繰上げ返済"].forEach((t, k) => {
+      T(s, [{ text: "✓  ", options: { color: H.gold, bold: true } }, { text: t }], x0 + 0.3, 4.2 + k * 0.5, w0 - 0.5, 0.45, { fontSize: 13, color: H.white, valign: "middle" });
     });
-    T(s, `中古サンプルなら、今の収入で返済は手取りの${pct(UB.risk[0].loanRatio)}。`, x0 + 0.3, 5.6, w0 - 0.5, 0.55, { fontSize: 12, color: H.goldL });
-    note(s, `※ 新築サンプル。手取りは社会保険料15%・所得税・住民税を差し引いた概算。生活費（住居費以外）月${manN(CU.livingMonth)}万円は仮定値。「手取りの25%以内」は一般的な目安の一つで、審査基準とは異なります。`);
+    note(s, `※ ${NA.p.label}のサンプル。手取りは社会保険料15%・所得税・住民税を差し引いた概算。生活費（住居費以外）月${manN(CU.livingMonth)}万円${CU.existingMonthly ? `・既存の借入返済 月${manN(CU.existingMonthly, 1)}万円` : ""}は仮定値。審査の基準・審査金利は金融機関によって異なります（フラット35は年収400万円未満30%・以上35%）。`);
   }
 
   // P20
@@ -743,7 +772,7 @@ async function build() {
   // P21
   {
     const s = slide(4, "LIGHT", "購入前に確認すべきこと。", {
-      msg: "不安の多くは、購入前に確認できる。災害・接道・再建築・耐震・住宅性能・ローン審査の6つを、誰と・何で確認するかまでセットで伝える。不利な情報も先に伝えることが、信頼につながる。",
+      msg: "不安の多くは、購入前に確認できる。災害・接道・再建築・耐震・住宅性能・ローンの6つを、何で確認するかまでセットで伝える。不利な情報も先に伝えることが、信頼につながる。",
       ask: ["この6つのうち、ご自身で確認したことがあるものはありますか？", "現地は、昼と夜、平日と休日で見たことがありますか？"],
       worry: ["専門的で自分では分からない", "確認しても見落としがありそう"],
       answer: ["重要事項説明で宅地建物取引士が説明する事項が多い。事前に資料を共有し、分からない点はその場で確認する", "ハザードマップは国土交通省「ハザードマップポータルサイト」で誰でも確認できる"],
@@ -755,7 +784,7 @@ async function build() {
       ["LuHammer", "再建築", "建て替えできるか（再建築不可・セットバック）", "役所の建築指導課／重要事項説明"],
       ["LuShieldCheck", "耐震", "1981年6月以降の建築確認か（新耐震）", "確認済証／インスペクション"],
       ["LuFileCheck", "住宅性能", "省エネ・認定の証明書（控除の枠に直結）", "性能証明書・評価書（P13）"],
-      ["LuCalculator", "ローン審査", "借入可能額と返済負担の確認", "金融機関の事前審査"],
+      ["LuCalculator", ED.checkLoan[0], ED.checkLoan[1], ED.checkLoan[2]],
     ];
     const cw = (CW - 0.6) / 3, ch = 2.15;
     for (let i = 0; i < 6; i++) {
@@ -800,7 +829,16 @@ async function build() {
   // P23
   {
     const F = NA.fit;
-    const sym = { ok: ["◯", H.gain, "合う"], part: ["△", H.goldD, "一部"], ng: ["✕", H.loss, "合わない"], unknown: ["？", H.soft, "未確認"] };
+    const sym = { ok: ["◯", H.gain], part: ["△", H.goldD], ng: ["✕", H.loss], unknown: ["？", H.soft] };
+    const comfort = ((NA.pmt + (CU.existingMonthly || 0)) * 12) / CU.gross;
+    const merits = F.filter((f) => f.status === "ok" && f.must).map((f) => `${f.label}：${f.detail}`).slice(0, 2);
+    if (NA.credit.judge.ok) merits.push(`住宅ローン控除の対象（${man(NA.credit.judge.limit)}・${NA.credit.judge.years}年）`);
+    const diff = NA.own.total - X.rent.total;
+    const demerits = [];
+    if (diff > 0) demerits.push(`総住居費 月${manN(NA.own.total, 1)}万円（今より＋${manN(diff, 1)}万円）`);
+    if (comfort > ED.comfortRatio) demerits.push(`返済比率 ${pct(comfort)}（目安${pct(ED.comfortRatio, 0)}超）`);
+    F.filter((f) => (f.status === "part" || f.status === "ng") && !(f.key === "budget" && diff > 0)).forEach((f) => demerits.push(`${f.label}：${f.detail}`));
+    const unknowns = F.filter((f) => f.status === "unknown").map((f) => `${f.label}：${f.detail}`).concat(["周辺環境（昼・夜／平日・休日）"]);
     const s = slide(5, "LIGHT", "この物件は、あなたの希望に合っているか。", {
       msg: "物件を「良い・悪い」ではなく「あなたの希望に合うか」で見る。合う点・合わない点・まだ確認していない点を正直に並べる。未確認事項は、見学と調査で確かめる理由になる。",
       ask: ["この中で、必ず確かめたい未確認事項はどれですか？", "「△」の項目は、許容できそうですか？"],
@@ -808,7 +846,7 @@ async function build() {
       answer: ["完璧な物件はまれ。必須条件を満たしているか、デメリットを許容できるかで判断する", "未確認事項は、見学・ハザードマップ・重要事項説明で一つずつ確かめられる"],
       next: "「確かめたいことが見えてきました。最後に、次の一歩をご提案します。」",
     });
-    T(s, "新築戸建て（サンプル・架空）×　あなたの希望", M, 1.7, 7.2, 0.35, { fontSize: 13, bold: true, color: H.goldD });
+    T(s, `${NA.p.label}（サンプル・架空）×　あなたの希望`, M, 1.7, 7.2, 0.35, { fontSize: 13, bold: true, color: H.goldD });
     F.forEach((f, i) => {
       const y = 2.1 + i * 0.4;
       if (i % 2 === 0) rect(s, M, y, 7.2, 0.4, H.mist);
@@ -818,17 +856,13 @@ async function build() {
     });
     T(s, "◯ 合う　△ 一部　✕ 合わない　？ 未確認", M, 6.14, 7.2, 0.25, { fontSize: 10, color: H.gray });
     const x0 = M + 7.5, w0 = CW - 7.5;
-    const boxes = [
-      ["メリット", H.navy, H.white, ["駐車場・書斎・庭がそろう", `ZEH水準で控除の枠が大きい（${man(NA.credit.judge.limit)}・13年）`, "新築で当面の修繕が少ない"]],
-      ["デメリット", H.mist, H.char, [`総住居費 月${manN(NA.own.total, 1)}万円（今より＋${manN(NA.own.total - X.rent.total, 1)}万円）`, `返済が手取りの${pct(NA.risk[0].loanRatio)}（目安25%超）`, "通勤が希望より5分長い"]],
-      ["未確認事項", H.ivory, H.char, F.filter((f) => f.status === "unknown").map((f) => f.label + "：" + f.detail).concat(["周辺環境（昼・夜／平日・休日）"])],
-    ];
+    const boxes = [["メリット", H.navy, H.white, merits.slice(0, 3)], ["デメリット", H.mist, H.char, demerits.slice(0, 3)], ["未確認事項", H.ivory, H.char, unknowns.slice(0, 3)]];
     let y = 1.7;
     boxes.forEach((b) => {
-      const h = 0.5 + b[3].length * 0.36;
+      const h = 0.5 + Math.max(1, b[3].length) * 0.36;
       box(s, x0, y, w0, h, b[1]);
       T(s, b[0], x0 + 0.25, y + 0.1, w0 - 0.5, 0.3, { fontSize: 13, bold: true, color: b[1] === H.navy ? H.gold : H.goldD });
-      b[3].forEach((t, k) => T(s, "・" + t, x0 + 0.25, y + 0.42 + k * 0.36, w0 - 0.4, 0.34, { fontSize: 12, color: b[2], valign: "middle" }));
+      (b[3].length ? b[3] : ["なし"]).forEach((t, k) => T(s, "・" + t, x0 + 0.25, y + 0.42 + k * 0.36, w0 - 0.4, 0.34, { fontSize: 11, color: b[2], valign: "middle" }));
       y += h + 0.15;
     });
     note(s, "※ サンプル物件（架空）での例です。実際の物件ではシミュレーターに希望と物件情報を入力すると、適合チェックと提案書を自動で作成します。");
@@ -837,7 +871,7 @@ async function build() {
   // P24
   {
     const s = slide(5, "NAVY", "まずは、その暮らしを体感する。", {
-      msg: "契約を迫らない。次の一歩を4つの具体的な行動として示し、お客様に選んでもらう。見学は昼と夜、平日と休日で。資金計画は源泉徴収票で詳しく計算する。見送りも大切な判断として尊重する。",
+      msg: "契約を迫らない。次の一歩を4つの具体的な行動として示し、お客様に選んでもらう。見送りも大切な判断として尊重する。",
       ask: ["4つのうち、どれから始めたいですか？", "見学するなら、いつ頃がご都合よいですか？"],
       worry: ["見学したら断りにくくなるのでは", "今買わないと損では"],
       answer: ["見学は確かめるための場。見て合わなければ、それも大事な情報", "『今買わないと損』と断言できる根拠はない。予備資金・住居費・住む期間がそろったときが、その人にとっての買い時"],
@@ -846,43 +880,55 @@ async function build() {
     T(s, `${ACTS[5]}　｜　P24`, M, 0.55, 6, 0.3, { fontSize: 11, bold: true, color: H.gold });
     T(s, "まずは、その暮らしを体感する。", M, 0.95, CW, 0.9, { fontFace: FH, fontSize: 36, bold: true, color: H.white });
     T(s, "決めるのは、見て、確かめてから。", M, 1.9, CW, 0.4, { fontSize: 16, color: H.goldL });
-    const st = [
-      ["LuEye", "物件見学", "昼と夜、平日と休日に。日当たり・音・周辺の雰囲気を自分の目で。"],
-      ["LuCalculator", "資金計画のご相談", "源泉徴収票をもとに、返済・控除・予備資金を詳しく計算。"],
-      ["LuMapPin", "現地・書類の確認", "ハザード・接道・再建築・性能証明を一緒に確認。"],
-      ["LuCalendarCheck", "次回のご提案", "希望に合う物件を比べてご提案。見送りも大切な選択肢です。"],
-    ];
+    const st = ED.steps;
     const cw = (CW - 0.9) / 4;
     for (let i = 0; i < 4; i++) {
       const x = M + i * (cw + 0.3);
       box(s, x, 2.65, cw, 2.75, H.navyL);
       T(s, `STEP 0${i + 1}`, x + 0.3, 2.85, cw - 0.6, 0.3, { fontSize: 11, bold: true, color: H.gold, charSpacing: 2 });
       await ico(s, st[i][0], x + 0.3, 3.25, 0.55, H.gold);
-      T(s, st[i][1], x + 0.3, 3.95, cw - 0.6, 0.42, { fontSize: 17, bold: true, color: H.white, fontFace: FH });
+      T(s, st[i][1], x + 0.3, 3.95, cw - 0.6, 0.42, { fontSize: 16, bold: true, color: H.white, fontFace: FH });
       T(s, st[i][2], x + 0.3, 4.42, cw - 0.6, 0.9, { fontSize: 13, color: H.onNavy });
     }
-    hline(s, M, 5.7, CW, H.navyL);
-    T(s, BRAND.name, M, 5.85, 6, 0.4, { fontSize: 18, bold: true, color: H.white });
-    T(s, `${BRAND.site}　TEL ${BRAND.tel}　${BRAND.staff}`, M, 6.27, 8, 0.32, { fontSize: 12, color: H.onNavy });
-    T(s, `本資料の数値は架空のサンプル条件と仮定値による試算で、将来の価格・金利・税制を保証するものではありません。税制は${R.BASIS_DATE}時点の情報です。最新の制度は国税庁・国土交通省等でご確認ください。宅地建物取引業の表示：${BRAND.license}`, M, 6.7, CW, 0.5, { fontSize: 9, color: H.onNavy });
+    hline(s, M, 5.6, CW, H.navyL);
+    T(s, BRAND.name, M, 5.7, 6, 0.4, { fontSize: 18, bold: true, color: H.white });
+    T(s, `${BRAND.site}　TEL ${BRAND.tel}　${BRAND.staff}`, M, 6.1, 8, 0.3, { fontSize: 12, color: H.onNavy });
+    T(s, ED.support, M, 6.4, CW, 0.28, { fontSize: 11, color: H.goldL });
+    T(s, `本資料の数値は架空のサンプル条件と仮定値による試算で、将来の価格・金利・税制を保証するものではありません。税制は${R.BASIS_DATE}時点の情報です。最新の制度は国税庁・国土交通省等でご確認ください。宅地建物取引業の表示：${BRAND.license}`, M, 6.75, CW, 0.5, { fontSize: 9, color: H.onNavy });
   }
 
-  fs.mkdirSync(OUT, { recursive: true });
-  await pres.writeFile({ fileName: path.join(OUT, FILE) });
-  fs.writeFileSync(path.join(OUT, "営業トーク集.md"), talk());
-  console.log("wrote", FILE, "pages:", page);
+}
+
+// ───────────────────────── 組み立て ─────────────────────────
+async function buildDeck(edition, opts = {}) {
+  ED = edition; BRAND = ED.brand; S = ED.sample; CU = S.customer;
+  X = LL.compute(S);
+  NA = X.props[ED.focus]; UB = X.props[1 - ED.focus];
+  PAGES = []; PHOTOS = []; cur = null; page = 0;
+  initPres();
+  await slides();
+  const out = { pages: PAGES, photos: PHOTOS };
+  if (opts.write !== false) {
+    const dir = path.join(OUT, ED.id);
+    fs.mkdirSync(dir, { recursive: true });
+    out.file = path.join(dir, `人生を、自分の土地から。_${ED.label}.pptx`);
+    await pres.writeFile({ fileName: out.file });
+    fs.writeFileSync(path.join(dir, `営業トーク集_${ED.label}.md`), talk());
+  }
+  return out;
 }
 
 // ───────────────────────── 営業トーク集（md） ─────────────────────────
 function talk() {
-  const L = ["# 営業トーク集 — 人生を、自分の土地から。", "", `> ${BRAND.name}｜全24ページの営業ノート（\`deck/build.js\` から自動生成。スライドの発表者ノートと同じ内容）`, "",
+  const L = [`# 営業トーク集 — 人生を、自分の土地から。（${ED.label}）`, "", `> ${BRAND.name}｜全24ページの営業ノート（\`deck/build.js\` から自動生成。スライドの発表者ノートと同じ内容）`, "",
     "## 使い方", "", "- 各ページ：①伝えるメッセージ ②顧客への質問 ③想定される不安 ④根拠に基づく回答 ⑤次のページへのつなぎ",
     "- 禁止：心理的な圧迫、虚偽の緊急性、将来の損失を断定した恐怖訴求、「必ず値上がりする」「絶対に損しない」などの断定（宅建業法）",
     "- 質問は「お客様自身の希望から魅力を発見できる」ものを優先する", ""];
   let act = 0;
-  for (const n of NOTES) {
-    if (n.act !== act) { act = n.act; L.push(`## ${SEC[act]}`, ""); }
-    L.push(`### P${String(n.page).padStart(2, "0")}｜${n.title}`, "", `**① 伝えるメッセージ**　${n.msg}`, "", "**② 顧客への質問**");
+  for (const p of PAGES) {
+    const n = p.notes;
+    if (p.act !== act) { act = p.act; L.push(`## ${SEC[act]}`, ""); }
+    L.push(`### P${String(p.page).padStart(2, "0")}｜${p.title}`, "", `**① 伝えるメッセージ**　${n.msg}`, "", "**② 顧客への質問**");
     n.ask.forEach((q) => L.push(`- ${q}`));
     L.push("", "**③ 想定される不安**");
     n.worry.forEach((q) => L.push(`- ${q}`));
@@ -893,4 +939,15 @@ function talk() {
   return L.join("\n");
 }
 
-build().catch((e) => { console.error(e); process.exit(1); });
+module.exports = { buildDeck };
+
+if (require.main === module) {
+  const ids = process.argv[2] ? [process.argv[2]] : Object.keys(EDITIONS);
+  (async () => {
+    for (const id of ids) {
+      if (!EDITIONS[id]) throw new Error(`版が見つかりません: ${id}（${Object.keys(EDITIONS).join(" / ")}）`);
+      const r = await buildDeck(EDITIONS[id]);
+      console.log("wrote", path.relative(ROOT, r.file), "pages:", r.pages.length);
+    }
+  })().catch((e) => { console.error(e); process.exit(1); });
+}

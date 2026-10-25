@@ -84,6 +84,7 @@ main { padding: 24px 28px 120px; min-width: 0; }
 .big { font-size: 40px; font-weight: 700; color: var(--navy); line-height: 1.1; }
 .navy .big { color: #fff; }
 .pos { color: var(--gain) !important; } .neg { color: var(--loss) !important; }
+.navy .pos { color: #9ED3B4 !important; } .navy .neg { color: #F0B9AC !important; }
 .pill { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--goldL); color: var(--goldD); vertical-align: 2px; }
 .pill.ok { background: #DCE8E1; color: var(--gain); } .pill.ng { background: #F4E4DF; color: var(--loss); }
 .verdict { border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; font-size: 14px; }

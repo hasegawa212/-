@@ -26,6 +26,7 @@
   <dialog id="menu" style="border:0;border-radius:12px;padding:22px;max-width:520px;width:calc(100% - 32px)">
     <h3 style="margin:0 0 10px;color:#17233B" class="serif">保存・読み込み</h3>
     <p style="font-size:13px;color:#6B7078;margin:0 0 14px">入力内容は<b>この端末の中だけ</b>で計算し、どこにも送信しません。保存は下のスイッチをオンにしたときだけ、このブラウザに残します。</p>
+    <div class="f" style="margin-bottom:10px"><label for="edition">資料の版（会社）</label><div class="in"><select id="edition"></select></div></div>
     <label class="chk"><input type="checkbox" id="persist"> この端末に入力内容を保存する</label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" id="btnExport" type="button">ファイルに書き出す（JSON）</button>
@@ -36,9 +37,10 @@
     <div style="text-align:right;margin-top:16px"><button class="btn primary" id="btnClose" type="button">閉じる</button></div>
   </dialog>
 
-  <script src="../lib/brand.js"></script>
   <script src="../lib/rules.js"></script>
   <script src="../lib/engine.js"></script>
+  <script src="../editions/martialarts.js"></script>
+  <script src="../editions/japan-mgmt.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
