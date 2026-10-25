@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人生を、自分の土地から。｜戸建て所有シミュレーター</title>
+<meta name="description" content="株式会社ジャパンマネジメント｜単身者向け 戸建て所有の対話型シミュレーター（住宅ローン・住宅ローン控除・将来の売却・収入減少・パーソナル提案書）">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <span class="brand" id="brandEn"></span>
+    <h1 class="serif">人生を、自分の土地から。<span style="font-family:inherit;font-size:13px;color:#C9D0DA;font-weight:400">　戸建て所有シミュレーター</span></h1>
+    <div class="actions">
+      <button class="btn ghost" id="btnMenu" type="button">保存・読み込み</button>
+      <button class="btn primary" id="btnPrint" type="button">提案書をPDFで出力</button>
+    </div>
+  </header>
+  <div class="layout">
+    <nav class="nav" id="nav" aria-label="ステップ"></nav>
+    <main id="main" tabindex="-1"></main>
+  </div>
+  <div class="sumbar" id="sumbar" aria-live="polite"></div>
+  <div id="proposal" aria-hidden="true"></div>
+
+  <dialog id="menu" style="border:0;border-radius:12px;padding:22px;max-width:520px;width:calc(100% - 32px)">
+    <h3 style="margin:0 0 10px;color:#17233B" class="serif">保存・読み込み</h3>
+    <p style="font-size:13px;color:#6B7078;margin:0 0 14px">入力内容は<b>この端末の中だけ</b>で計算し、どこにも送信しません。保存は下のスイッチをオンにしたときだけ、このブラウザに残します。</p>
+    <label class="chk"><input type="checkbox" id="persist"> この端末に入力内容を保存する</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn" id="btnExport" type="button">ファイルに書き出す（JSON）</button>
+      <button class="btn" id="btnImport" type="button">ファイルから読み込む</button>
+      <button class="btn" id="btnReset" type="button">サンプルに戻す</button>
+      <input type="file" id="file" accept="application/json" hidden>
+    </div>
+    <div style="text-align:right;margin-top:16px"><button class="btn primary" id="btnClose" type="button">閉じる</button></div>
+  </dialog>
+
+  <script src="../lib/brand.js"></script>
+  <script src="../lib/rules.js"></script>
+  <script src="../lib/engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
