@@ -2,8 +2,9 @@
   "name": "single-house-proposal",
   "version": "1.0.0",
   "private": true,
-  "description": "単身者向け 戸建て所有 提案資料（18枚 16:9 .pptx）ジェネレーター",
+  "description": "単身者向け 戸建て所有 提案資料（21枚 16:9 .pptx）ジェネレーター",
   "scripts": {
+    "test": "node test.js",
     "build": "node build.js",
     "pdf": "soffice --headless --convert-to pdf --outdir dist dist/単身者向け戸建て提案資料.pptx"
   },
