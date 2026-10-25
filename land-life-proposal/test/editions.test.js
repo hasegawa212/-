@@ -37,3 +37,13 @@ test("ジャパンマネジメント版：これまでのサンプルを維持�
   assert.equal(Math.round(x.props[0].pmt), 97_979);
   assert.equal(x.props[0].credit.total, 2_437_300);
 });
+
+test("ジャパンマネジメント版：会社情報は公式サイトの会社情報どおり（2026年10月確認）", () => {
+  const b = EDITIONS["japan-mgmt"].brand;
+  assert.equal(b.name, "合同会社JAPANマネジメント", "正式な社名（株式会社ではない）");
+  assert.equal(b.site, "japan-mgmt.co.jp");
+  assert.equal(b.tel, "03-6914-4887");
+  assert.equal(b.address, "〒186-0011 東京都国立市谷保四丁目20-1 JUNメビウス国立1F");
+  assert.equal(b.hours, "平日 11:00〜19:00／土日祝 10:00〜20:00");
+  assert.equal(b.closed, "毎週水曜日・隔週火曜日");
+});

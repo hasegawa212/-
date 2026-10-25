@@ -1,4 +1,4 @@
-// ジャパンマネジメント版：FP・金融リテラシーの視点で「持つ意味」と資金計画を丁寧に説明する版
+// ジャパンマネジメント版（合同会社JAPANマネジメント）：お金の相談の視点で「持つ意味」と資金計画を丁寧に説明する版
 (function (root, factory) {
   const m = factory(typeof module === "object" && module.exports ? require("../lib/engine") : root.LL);
   if (typeof module === "object" && module.exports) module.exports = m;
@@ -11,12 +11,15 @@
   return {
     id: "japan-mgmt",
     label: "ジャパンマネジメント版",
+    // 会社情報は公式サイト japan-mgmt.co.jp の「会社情報」による（2026年10月確認。代表：佐藤 黎亮）
     brand: {
-      name: "株式会社ジャパンマネジメント",
+      name: "合同会社JAPANマネジメント",
       nameEn: "JAPAN MANAGEMENT",
       site: "japan-mgmt.co.jp",
-      tel: "〔要確認〕",
-      hours: "〔要確認〕",
+      tel: "03-6914-4887",
+      address: "〒186-0011 東京都国立市谷保四丁目20-1 JUNメビウス国立1F",
+      hours: "平日 11:00〜19:00／土日祝 10:00〜20:00",
+      closed: "毎週水曜日・隔週火曜日",
       license: "〔要確認〕（物件の紹介・仲介を行う場合は宅地建物取引業の免許番号、または提携先の表示）",
       staff: "担当：＿＿＿＿＿＿",
     },
@@ -44,7 +47,7 @@
       ["LuMapPin", "現地・書類の確認", "ハザード・接道・再建築・性能証明を一緒に確認。"],
       ["LuCalendarCheck", "次回のご提案", "希望に合う物件を比べてご提案。見送りも大切な選択肢です。"],
     ],
-    support: "ファイナンシャル・プランニングの視点で、住宅と家計・老後資金をまとめてご相談いただけます。",
+    support: "お金の不安をなくすことは、人生の自由を取り戻すこと。住宅と家計・老後資金をまとめてご相談いただけます。",
     extraNotes: {},
   };
 });
