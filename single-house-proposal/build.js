@@ -1,5 +1,5 @@
-// 単身者向け 戸建て所有 提案資料（16:9・18枚）ジェネレーター
-// 数値はすべて下の calc() で計算し、スライド・ノート・台本(md)に同じ値を流し込む。
+// 単身者向け 戸建て所有 提案資料（16:9・21枚）ジェネレーター
+// 数値はすべて下の calc()（住宅ローン控除は taxcredit.js）で計算し、スライド・ノート・台本(md)に同じ値を流し込む。
 // node build.js → dist/単身者向け戸建て提案資料.pptx と dist/営業トーク台本.md
 const fs = require("fs");
 const path = require("path");
@@ -8,6 +8,7 @@ const React = require("react");
 const RDS = require("react-dom/server");
 const sharp = require("sharp");
 const Lu = require("react-icons/lu");
+const TC = require("./taxcredit");
 
 const COMPANY = "株式会社 Martial Arts";
 const DOC_NAME = "単身者のための 戸建て所有ガイド";
@@ -88,6 +89,40 @@ function calc() {
   };
 }
 const K = calc();
+
+// ───────────────────────── 1b. 住宅ローン控除（taxcredit.js） ─────────────────────────
+// 新築（本件）と中古の比較用サンプル。中古の数値はすべて試算用の仮定値。
+const USED = {
+  price: 25_000_000, landPrice: 15_000_000, bldgPrice: 10_000_000, land: 110, floor: 90, builtYear: 2012,
+  down: 3_000_000, buyCostRate: 0.08, propTaxYear: 90_000, insYear: 30_000, repairMonth: 25_000, bldg10: 0.40,
+};
+USED.loan = USED.price - USED.down;
+const TAXP = {
+  moveInYear: 2027, moveInMonth: 3, age: A.age, married: false, under19Dep: false, gross: A.income, socialRate: 0.15,
+  taxMode: "estimate", loanYears: A.years, rate: A.rate, certs: true, seismicOK: true, redZone: false, fromRelative: false,
+};
+const TX = {
+  newZ: TC.simulate({ ...TAXP, kind: "new", perf: "zeh", loan: A.loan, price: A.price, floor: A.floor }),
+  newE: TC.simulate({ ...TAXP, kind: "new", perf: "energy", loan: A.loan, price: A.price, floor: A.floor }),
+  usedO: TC.simulate({ ...TAXP, kind: "used", perf: "other", loan: USED.loan, price: USED.price, floor: USED.floor, builtYear: USED.builtYear }),
+  usedE: TC.simulate({ ...TAXP, kind: "used", perf: "energy", loan: USED.loan, price: USED.price, floor: USED.floor, builtYear: USED.builtYear }),
+};
+TX.tax = TX.newZ.rows[0].tax;
+function tenYear(o) { // 10年間の累計支出（控除なし／控除あり）
+  const monthly = o.pmt + o.taxY / 12 + o.insY / 12 + o.repairM;
+  const credit10 = o.sim.rows.slice(0, 10).reduce((a, r) => a + (r.inPeriod ? r.actual : 0), 0);
+  const cash = o.down + o.buyCost;
+  return { monthly, cash, credit10, without: cash + monthly * 120, with: cash + monthly * 120 - credit10 };
+}
+const CMP = {
+  new: { label: "新築（本件・ZEH水準と仮定）", price: A.price, buyCost: K.buyCost, down: A.down, loan: A.loan, pmt: K.pmt, taxY: A.propTaxYear, insY: A.insOwnYear, repairM: A.repairMonth,
+    sale10: A.landPrice + A.bldgPrice * A.scen[1].bldgRate, sim: TX.newZ },
+  used: { label: `中古（築${2027 - USED.builtYear}年・その他の住宅と仮定）`, price: USED.price, buyCost: USED.price * USED.buyCostRate, down: USED.down, loan: USED.loan, pmt: TC.payment(USED.loan, A.rate, A.years),
+    taxY: USED.propTaxYear, insY: USED.insYear, repairM: USED.repairMonth, sale10: USED.landPrice + USED.bldgPrice * USED.bldg10, sim: TX.usedO },
+};
+for (const k of ["new", "used"]) Object.assign(CMP[k], tenYear(CMP[k]));
+CMP.new.bal10 = TC.balanceAfter(A.loan, A.rate, A.years, 120);
+CMP.used.bal10 = TC.balanceAfter(USED.loan, A.rate, A.years, 120);
 
 // 表示用フォーマッタ
 const yen = (v) => Math.round(v).toLocaleString("ja-JP") + "円";
@@ -170,7 +205,8 @@ function slideOf(section, kicker, title, notes) {
 }
 function addNotes(s, kicker, title, n) {
   const qa = n.qa.map((x) => `Q「${x[0]}」\nA ${x[1]}`).join("\n\n");
-  const txt = `【このページで伝えるべきこと】\n${n.point}\n\n【顧客に投げかける質問】\n${n.ask.map((q) => "・" + q).join("\n")}\n\n【よくある反論と回答】\n${qa}`;
+  const ex = (n.extra || []).map((x) => `\n\n【${x[0]}】\n${x[1]}`).join("");
+  const txt = `【このページで伝えるべきこと】\n${n.point}\n\n【顧客に投げかける質問】\n${n.ask.map((q) => "・" + q).join("\n")}\n\n【よくある反論と回答】\n${qa}${ex}`;
   s.addNotes(txt);
   NOTES.push({ kicker, title, ...n });
 }
@@ -523,7 +559,7 @@ async function build() {
       point: `ローン返済額（約${manN(K.pmt, 1)}万円）だけを見ると家賃10万円とほぼ同じだが、税金・保険・修繕積立を加えた戸建ての住居費は月約${manN(K.own.total, 1)}万円で、現在の賃貸（約${manN(K.rentNow.total, 1)}万円）より月約${manN(K.own.total - K.rentNow.total, 1)}万円多い。一方、同じ広さ・駐車場付きの賃貸（仮定）と比べると月約${manN(K.rentEq.total - K.own.total, 1)}万円少ない。「何と比べるか」で結論が変わることを正直に示す。`,
       ask: ["今の家賃以外に、住まいにかかっている費用（更新料・駐車場など）はいくらですか？", `月${manN(K.own.total - K.rentNow.total, 1)}万円の差額は、得られる広さ・自由度に見合うと感じますか？`],
       qa: [["家賃とほぼ同じ返済額なら、買ったほうが得では？", "返済額だけならそう見えますが、所有には税金・保険・修繕の費用がかかります。本当の住居費で比べると、今の賃貸より負担は増えます。その差額で何が得られるかが判断のポイントです。"],
-        ["住宅ローン控除は入っていないの？", "入っていません。控除額は入居年・住宅の省エネ性能・所得などで変わるため、本試算では保守的に除外しています。適用されれば実質負担は軽くなります。"]],
+        ["住宅ローン控除は入っていないの？", "このページの住居費には入れていません。控除は返済額を減らすものではなく、所得税・住民税が軽くなる制度で、金額は入居年・住宅性能・税額で変わるためです。新築・中古別の控除見込額はP19〜P21で確認します。"]],
     });
     const rowsD = [
       ["現在の賃貸（約40㎡・駐車場なし）", K.rentNow, [["家賃", K.rentNow.rent], ["保険", K.rentNow.ins], ["更新料（月換算）", K.rentNow.renew], ["駐車場", 0]]],
@@ -764,12 +800,184 @@ async function build() {
     });
   }
 
+  await taxSlides();
+
   fs.mkdirSync(OUT, { recursive: true });
   const file = path.join(OUT, "単身者向け戸建て提案資料.pptx");
   await pres.writeFile({ fileName: file });
   fs.writeFileSync(path.join(OUT, "営業トーク台本.md"), script());
   console.log("wrote", file);
   printCheck();
+}
+
+// ───────────────────────── 3b. 税制編（P19〜P21） ─────────────────────────
+async function taxSlides() {
+  const S5 = "税制｜住宅ローン控除";
+  pres.addSection({ title: S5 });
+  const NZ = TX.newZ, UO = TX.usedO;
+  const BASIS = `制度の基準日：${TC.BASIS_DATE}時点（令和8年度税制改正後・2026〜2030年入居）`;
+  const docsNote = "購入前に確認する証明書：新築＝住宅省エネルギー性能証明書・建設住宅性能評価書（ZEH水準・省エネ基準）／長期優良住宅・低炭素建築物の認定通知書（認定住宅）。中古＝上記の性能証明（あれば）、1981年以前の建築なら耐震基準適合証明書・建設住宅性能評価書（耐震等級）・既存住宅売買瑕疵保険の付保証明書のいずれか。共通＝登記事項証明書、売買契約書（請負契約書）の写し、金融機関の年末残高等証明書。";
+  const filing = "確定申告の案内：1年目は入居した翌年の2月16日〜3月15日に確定申告が必要です（e-Tax可）。給与所得者は2年目以降、勤務先の年末調整で控除を受けられます（税務署から届く申告書と年末残高等証明書を勤務先へ提出）。住民税からの控除は、所得税で引ききれなかった分が翌年度の住民税から自動的に差し引かれます。";
+
+  // P19 新築と中古の違い
+  {
+    const s = slideOf(S5, "P19｜新築と中古で住宅ローン控除はどう違う？", "控除の枠は「新築か中古か」より、「住宅の性能」で決まる", {
+      point: "住宅ローン控除の借入限度額と控除期間は、新築・中古の区分と住宅の省エネ性能で変わる。2026年以降は中古でもZEH水準・認定住宅なら3,500万円・13年に拡充された。一方、省エネ基準を満たさない新築は原則対象外。物件を比べるときは、性能を証明する書類があるかを必ず確認する。",
+      ask: ["検討中の物件は、省エネ性能の証明書（BELSや性能評価書など）が付いていますか？", "入居はいつ頃を考えていますか？（2028年以降の新築は条件が変わります）"],
+      qa: [["中古は控除が少ないと聞きました。", "2026年以降は改正で、性能の高い中古（ZEH水準・認定住宅）は3,500万円・13年に拡充されました。性能の証明がない中古は2,000万円・10年です。中古でも書類しだいで差が出ます。"],
+        ["新築なら必ず控除を受けられる？", "受けられないケースがあります。省エネ基準を満たさない新築は原則対象外で、2028年以降の入居では省エネ基準適合住宅も、2027年までに建築確認を受けたもの等に限られます。"]],
+      extra: [
+        ["お客様への説明例", "「住宅ローン控除は、年末のローン残高の0.7%を、その年の所得税と翌年の住民税から差し引く制度です。どこまでの残高が対象になるか（借入限度額）と何年続くか（控除期間）は、新築か中古か、そして家の省エネ性能で決まります。」"],
+        ["住宅ローン控除のメリット", "最長13年間、所得税・住民税の負担が軽くなります。ZEH水準の新築なら借入限度額3,500万円まで対象です。"],
+        ["適用されない場合の注意点", "床面積40㎡未満、合計所得2,000万円超、返済期間10年未満、親族からの取得、1981年以前の建築で耐震を証明できない中古、2024年以降に建築確認を受けた省エネ基準未満の新築などは対象外です。40〜50㎡は合計所得1,000万円以下の年のみ対象です。"],
+        ["新築と中古の違い", "新築の認定住宅は4,500万円、中古の認定住宅・ZEH水準は3,500万円が限度。省エネ基準適合は新築・中古とも2,000万円・13年（新築は2027年入居まで）。性能証明のない中古は2,000万円・10年。"],
+        ["購入前に確認する証明書", docsNote],
+        ["確定申告の案内", filing],
+      ],
+    });
+    const pw = (CW - 0.3) / 2;
+    const rowsNew = [
+      ["認定長期優良・低炭素", "4,500万円", 13, ""],
+      ["ZEH水準省エネ", "3,500万円", 13, ""],
+      ["省エネ基準適合", "2,000万円", 13, "2028年以降入居は経過措置のみ（2,000万円・10年）"],
+      ["その他（基準未満）", "対象外", 0, "2023年末までの建築確認等なら2,000万円・10年"],
+    ];
+    const rowsUsed = [
+      ["認定長期優良・低炭素", "3,500万円", 13, ""],
+      ["ZEH水準省エネ", "3,500万円", 13, ""],
+      ["省エネ基準適合", "2,000万円", 13, ""],
+      ["その他（証明なし）", "2,000万円", 10, "1981年以前の建築は耐震の証明が必要"],
+    ];
+    const panel = (x, title, rows, dark) => {
+      card(s, x, 1.8, pw, 3.55, dark ? H.navy : H.mist);
+      T(s, title, x + 0.25, 1.88, pw - 0.5, 0.4, { fontSize: 16, bold: true, color: dark ? H.white : H.navy, valign: "middle" });
+      const tx = x + pw - 0.25 - 13 * 0.16; // タイムライン
+      T(s, "控除期間", tx, 1.92, 13 * 0.16, 0.3, { fontSize: 10, color: dark ? H.goldL : H.gray, align: "right", valign: "middle" });
+      T(s, "借入限度額", x + 2.2, 2.3, 1.2, 0.25, { fontSize: 10, color: dark ? H.goldL : H.gray });
+      [1, 5, 10, 13].forEach((n) => T(s, n + "年", tx + (n - 1) * 0.16 - 0.1, 2.3, 0.4, 0.25, { fontSize: 9, color: dark ? H.goldL : H.gray, align: "center" }));
+      rows.forEach((r, i) => {
+        const y = 2.6 + i * 0.68;
+        T(s, r[0], x + 0.25, y, 1.95, 0.36, { fontSize: 13, bold: true, color: dark ? H.white : H.navy, valign: "middle" });
+        T(s, r[1], x + 2.2, y, 1.3, 0.36, { fontSize: 16, bold: true, color: r[2] ? (dark ? H.goldL : H.gold) : (dark ? "F2B8A8" : H.loss), valign: "middle" });
+        for (let k = 0; k < 13; k++) {
+          const on = k < r[2];
+          s.addShape(pres.shapes.RECTANGLE, { x: tx + k * 0.16, y: y + 0.08, w: 0.13, h: 0.2, fill: { color: on ? (dark ? H.gold : H.navy) : (dark ? "34466A" : "DADDE2") }, line: { color: on ? (dark ? H.gold : H.navy) : (dark ? "34466A" : "DADDE2") } });
+        }
+        if (r[3]) T(s, r[3], x + 0.25, y + 0.36, pw - 0.5, 0.26, { fontSize: 10, color: dark ? "C9D0DA" : H.gray });
+      });
+    };
+    panel(M, "新築（買取再販は新築に準じる）", rowsNew, false);
+    panel(M + pw + 0.3, "中古（既存住宅）", rowsUsed, true);
+    card(s, M, 5.5, CW, 0.85, H.goldL);
+    T(s, "共通の主な要件", M + 0.25, 5.5, 1.6, 0.85, { fontSize: 13, bold: true, color: H.gold, valign: "middle" });
+    T(s, "控除率0.7%・一般世帯の限度額／床面積40㎡以上（40〜50㎡は合計所得1,000万円以下の年のみ）／合計所得2,000万円以下／返済期間10年以上／取得から6か月以内に入居／親族等からの取得は対象外", M + 1.85, 5.5, CW - 2.1, 0.85, { fontSize: 12, color: H.char, valign: "middle" });
+    note(s, `※ ${BASIS}。子育て世帯・若者夫婦世帯（19歳未満の扶養親族がいる、または夫婦のいずれかが40歳未満）は上乗せあり（50㎡以上）。2028年以降入居の災害レッドゾーン内の新築は対象外。買取再販住宅の限度額は〔要確認〕。出典：財務省「令和8年度税制改正の大綱」、国土交通省「住宅ローン減税」、国税庁 タックスアンサーNo.1211-1。`);
+  }
+
+  // P20 年ごとの控除見込額
+  {
+    const P = NZ.rows.filter((r) => r.inPeriod);
+    const avgM = NZ.totalActual / P.length / 12;
+    const s = slideOf(S5, "P20｜住宅ローン控除で税負担はどのくらい軽くなる？", `13年間で約${manN(NZ.totalActual, 0)}万円の見込み。ただし「上限」と「実際」は別もの`, {
+      point: `制度上の上限（年末残高×0.7%）は13年で約${manN(NZ.totalMax)}万円だが、実際に控除できるのは「その年の所得税＋住民税（上限9.75万円）」まで。サンプルの年収550万円では初年度の上限${yen(NZ.rows[0].max)}に対し税額が足りず、控除しきれない額が出る。控除は毎月の返済額を減らすものではなく、税金が軽くなる（所得税は還付・年末調整、住民税は翌年度に減額）という違いを明確にする。`,
+      ask: ["昨年の源泉徴収票はお手元にありますか？（所得税額が分かると精度が上がります）", "iDeCoや医療費控除、ふるさと納税など、ほかに税金が減る制度を使っていますか？"],
+      qa: [["控除で毎月の返済が安くなるんですよね？", `いいえ。毎月の返済は${yen(K.pmt)}のままです。控除は所得税の還付と翌年度の住民税の減額という形で戻ります。月割りにすると平均約${manN(avgM, 1)}万円相当ですが、受け取る時期はずれます。`],
+        ["最大額の245万円が戻るんでしょう？", `それは制度上の上限です。実際は税額の範囲までしか控除できず、本試算の見込みは約${manN(NZ.totalActual, 1)}万円です。所得が下がれば見込みも下がります。`],
+        ["ふるさと納税と一緒に使える？", "併用はできますが、住民税からの住宅ローン控除が増えると、ふるさと納税の上限額が下がる場合があります。シミュレーションで確認しましょう。"]],
+      extra: [
+        ["お客様への説明例", `「年収550万円の方なら、所得税は年11万円ほど、住民税から引ける上限は9.75万円です。初年度の控除上限は${yen(NZ.rows[0].max)}ですが、実際に戻るのは${yen(NZ.first)}の見込みです。返済が進んで残高が減ると、控除額も少しずつ減ります。」`],
+        ["住宅ローン控除のメリット", `13年間の累計で約${manN(NZ.totalActual, 1)}万円（概算）の税負担が軽くなる見込み。ZEH水準なら省エネ基準適合（同条件で約${manN(TX.newE.totalActual, 1)}万円）より枠が大きい。`],
+        ["適用されない場合の注意点", "税額が少ない年（転職・休職・収入減）は控除額も減ります。控除しきれない額は受け取れません。税額は概算（社会保険料を年収の15%と仮定）なので、源泉徴収票で詳細計算をします。"],
+        ["新築と中古の違い", `同じ年収でも、中古（その他の住宅）は限度額2,000万円・10年のため、累計見込みは約${manN(UO.totalActual, 1)}万円（P21）。`],
+        ["購入前に確認する証明書", docsNote],
+        ["確定申告の案内", filing],
+      ],
+    });
+    const cats = P.map((r) => r.i + "年目");
+    const v = (f) => P.map((r) => +(r[f] / 10_000).toFixed(1));
+    s.addChart(pres.charts.BAR, [
+      { name: "所得税から控除", labels: cats, values: v("fromIT") },
+      { name: "住民税から控除", labels: cats, values: v("fromRT") },
+      { name: "控除しきれない額（受け取れない）", labels: cats, values: v("unused") },
+    ], {
+      x: M, y: 1.8, w: 7.5, h: 4.5, barDir: "col", barGrouping: "stacked", chartColors: [H.navy, H.gold, "C9CED6"],
+      showTitle: true, title: "年ごとの控除見込額（万円）— 新築・ZEH水準・2027年入居", titleFontSize: 13, titleColor: H.char, titleFontFace: "+mn-lt",
+      showValue: true, dataLabelPosition: "ctr", dataLabelColor: H.white, dataLabelFontSize: 9, dataLabelFontFace: "+mn-lt", dataLabelFormatCode: '[<1.5]"";0.0',
+      showLegend: true, legendPos: "b", legendFontSize: 11, legendFontFace: "+mn-lt", legendColor: H.char,
+      catAxisLabelColor: H.gray, catAxisLabelFontSize: 10, catAxisLabelFontFace: "+mn-lt", valAxisLabelColor: H.gray, valAxisLabelFontSize: 10, valAxisLabelFontFace: "+mn-lt",
+      valGridLine: { color: "E5E7EB", size: 0.5 }, catGridLine: { style: "none" }, valAxisMaxVal: 25, valAxisMinVal: 0, barGapWidthPct: 45,
+    });
+    const cx = M + 7.8, cw = CW - 7.8;
+    card(s, cx, 1.8, cw, 2.05, H.navy);
+    T(s, "13年間の控除見込額（概算）", cx + 0.25, 1.9, cw - 0.5, 0.3, { fontSize: 12, bold: true, color: H.goldL });
+    T(s, `約${manN(NZ.totalActual, 1)}万円`, cx + 0.25, 2.2, cw - 0.5, 0.65, { fontSize: 32, bold: true, color: H.white });
+    T(s, `初年度 ${yen(NZ.first)}　2年目以降 平均 ${yen(NZ.laterAvg)}`, cx + 0.25, 2.88, cw - 0.5, 0.3, { fontSize: 11, color: "E6E9EE" });
+    T(s, `所得税から ${man(NZ.totalIT, 1)}／住民税から ${man(NZ.totalRT, 1)}`, cx + 0.25, 3.18, cw - 0.5, 0.3, { fontSize: 11, color: "E6E9EE" });
+    T(s, `上限 ${man(NZ.totalMax, 1)}・控除しきれない ${man(NZ.totalUnused, 1)}`, cx + 0.25, 3.48, cw - 0.5, 0.3, { fontSize: 11, color: H.goldL });
+    card(s, cx, 4.0, cw, 2.3, H.mist);
+    T(s, "返済額は変わらない", cx + 0.25, 4.1, cw - 0.5, 0.35, { fontSize: 14, bold: true, color: H.navy });
+    const lines = [
+      ["毎月のローン返済（変わらない）", yen(K.pmt)],
+      ["住居費（返済＋税・保険・修繕）", `月${manN(K.own.total, 1)}万円`],
+      ["控除を月割りにした参考値", `約${manN(avgM, 1)}万円/月`],
+      ["14年目以降の住居費（控除なし）", `月${manN(K.own.total, 1)}万円`],
+    ];
+    lines.forEach((l, i) => {
+      T(s, l[0], cx + 0.25, 4.5 + i * 0.43, 2.75, 0.4, { fontSize: 11, color: H.gray, valign: "middle" });
+      T(s, l[1], cx + 2.9, 4.5 + i * 0.43, cw - 3.1, 0.4, { fontSize: 12, bold: true, color: H.navy, align: "right", valign: "middle" });
+    });
+    note(s, `※ ${BASIS}。年収${man(A.income)}・単身・給与所得のみ、社会保険料は年収の15%と仮定した概算（所得税${yen(TX.tax.incomeTax)}・課税総所得${man(TX.tax.taxable, 1)}）。2028年以降も令和8・9年分の基礎控除等の特例が続くと仮定（税額を低めに見積もる保守的な前提）。住民税からの控除は所得税の課税総所得金額等×5%（最高97,500円）。確定額ではありません。`);
+  }
+
+  // P21 新築・中古の購入比較
+  {
+    const N = CMP.new, U = CMP.used;
+    const s = slideOf(S5, "P21｜住宅ローン控除を含めた新築・中古の購入比較", "控除は判断材料のひとつ。10年間の支出と、手元に残る価値で比べる", {
+      point: `控除込みの10年間の累計支出は、新築約${manN(N.with)}万円・中古約${manN(U.with)}万円で、差は約${manN(N.with - U.with)}万円。控除は新築のほうが大きい（10年で${man(N.credit10, 1)} 対 ${man(U.credit10, 1)}）が、支出の差を埋めるほどではない。一方で10年後の想定売却価格と残債の差、修繕の手間、住み心地まで含めて比べることが大切。控除額だけで有利・不利を決めない。`,
+      ask: ["新築と中古で、いちばん気になる違いは「価格」「性能」「修繕」のどれですか？", "中古の場合、購入前にインスペクション（建物状況調査）を入れたいですか？"],
+      qa: [["控除が多い新築のほうが得ですよね？", `控除は新築のほうが10年で約${manN(N.credit10 - U.credit10, 1)}万円多い見込みですが、物件価格や返済額の差のほうが大きいため、支出の合計では中古のほうが少ない試算です。そのぶん修繕費や将来の売却価格まで含めて判断します。`],
+        ["中古は修繕費が怖いです。", `本試算では中古の修繕積立を月${manN(U.repairM, 1)}万円（新築は${manN(N.repairM, 1)}万円）と多めに置いています。購入前のインスペクションで劣化状況を確認し、必要な工事費を見積もってから判断しましょう。`]],
+      extra: [
+        ["お客様への説明例", "「左が新築、右が中古です。控除は新築のほうが大きいのですが、10年間で出ていくお金の合計は中古のほうが少なくなります。ただし、どちらが良いかは、性能・修繕・住み心地・売るときの価値まで含めて考えましょう。」"],
+        ["住宅ローン控除のメリット", `控除込みで10年間の実質的な支出が、新築で約${manN(N.credit10, 1)}万円、中古で約${manN(U.credit10, 1)}万円少なくなる見込み。`],
+        ["適用されない場合の注意点", "中古は性能証明がないと「その他の住宅」（2,000万円・10年）。1981年以前の建築は耐震の証明がないと対象外。新築でも省エネ基準未満なら対象外です。"],
+        ["新築と中古の違い", "新築は性能が高く修繕が当面少ない一方、価格と購入直後の値下がりが大きい。中古は価格が抑えられる一方、修繕・設備交換が早めに来る。控除の枠は性能の証明しだい（P19）。"],
+        ["購入前に確認する証明書", docsNote],
+        ["確定申告の案内", filing],
+      ],
+    });
+    const pw = (CW - 0.3) / 2;
+    const max = Math.max(N.without, U.without);
+    const col = (x, o, dark) => {
+      card(s, x, 1.8, pw, 4.55, dark ? H.navy : H.mist);
+      T(s, o.label, x + 0.25, 1.88, pw - 0.5, 0.38, { fontSize: 15, bold: true, color: dark ? H.white : H.navy, valign: "middle" });
+      const j = o.sim.judge;
+      const rows = [
+        ["物件価格／購入諸費用", `${man(o.price)}／${man(o.buyCost, 1)}`],
+        ["借入額／毎月の返済", `${man(o.loan)}／${yen(o.pmt)}`],
+        ["控除の枠（限度額・期間）", `${man(j.limit)}・${j.years}年`],
+        ["初年度／累計の控除見込み", `${yen(o.sim.first)}／${man(o.sim.totalActual, 1)}`],
+        ["固定資産税等／修繕積立", `年${manN(o.taxY)}万円／月${manN(o.repairM, 1)}万円`],
+        ["年間住居費（控除前）", man(o.monthly * 12, 1)],
+        ["10年後の残債／想定売却価格", `${man(o.bal10)}／${man(o.sale10)}`],
+      ];
+      rows.forEach((r, i) => {
+        const y = 2.32 + i * 0.36;
+        T(s, r[0], x + 0.25, y, 2.5, 0.34, { fontSize: 11, color: dark ? "C9D0DA" : H.gray, valign: "middle" });
+        T(s, r[1], x + 2.6, y, pw - 2.85, 0.34, { fontSize: 13, bold: true, color: dark ? H.white : H.navy, align: "right", valign: "middle" });
+      });
+      T(s, "10年間の累計支出（初期費用＋住居費）", x + 0.25, 4.95, pw - 0.5, 0.3, { fontSize: 11, bold: true, color: dark ? H.goldL : H.gold });
+      [["控除なし", o.without, dark ? "6B7A96" : "9AA5B4"], ["控除あり", o.with, dark ? H.gold : H.navy]].forEach((b, i) => {
+        const y = 5.3 + i * 0.45, bw = ((pw - 2.6) * b[1]) / max;
+        T(s, b[0], x + 0.25, y, 0.85, 0.36, { fontSize: 11, color: dark ? H.white : H.char, valign: "middle" });
+        s.addShape(pres.shapes.RECTANGLE, { x: x + 1.1, y: y + 0.04, w: bw, h: 0.28, fill: { color: b[2] }, line: { color: b[2] } });
+        T(s, man(b[1]), x + 1.15 + bw, y, 1.3, 0.36, { fontSize: 12, bold: true, color: dark ? H.white : H.navy, valign: "middle" });
+      });
+    };
+    col(M, N, false);
+    col(M + pw + 0.3, U, true);
+    note(s, `※ 中古のサンプル（価格${man(USED.price)}・土地${USED.land}㎡/建物${USED.floor}㎡・${USED.builtYear}年築・頭金${man(USED.down)}・諸費用${USED.buyCostRate * 100}%・固定資産税等 年${manN(USED.propTaxYear)}万円・修繕 月${manN(USED.repairMonth, 1)}万円・10年後の建物価値40%）と新築の住宅性能（ZEH水準）はすべて仮定値。金利${pct(A.rate)}・${A.years}年・${TAXP.moveInYear}年${TAXP.moveInMonth}月入居。売却価格は横ばいシナリオ。控除は概算（P20と同じ税額の前提）。`);
+  }
 }
 
 // ───────────────────────── 4. 台本(md) と 検算ログ ─────────────────────────
@@ -792,6 +1000,11 @@ function script() {
   r("同等賃貸の住居費（月）", yen(K.rentEq.total), "仮定値");
   K.scen.forEach((x) => r(`10年後売却：${x.key}`, `売却${man(x.sale, 1)} − 費用${man(x.cost, 1)} − 残債${man(x.bal, 1)} ＝ ${sgn(x.net)}`, "仮定シナリオ"));
   r("金利＋1%時の返済", yen(K.pmtUp), "計算");
+  r("住宅ローン控除（新築ZEH・2027年入居）", `初年度${yen(TX.newZ.first)}・13年累計${man(TX.newZ.totalActual, 1)}（上限${man(TX.newZ.totalMax, 1)}・控除しきれない${man(TX.newZ.totalUnused, 1)}）`, "概算（税額は推計）");
+  r("住宅ローン控除（新築省エネ基準）", `13年累計${man(TX.newE.totalActual, 1)}`, "概算");
+  r("住宅ローン控除（中古その他／中古省エネ）", `${man(TX.usedO.totalActual, 1)}（10年）／${man(TX.usedE.totalActual, 1)}（13年）`, "概算");
+  r("10年累計支出 新築 控除なし→あり", `${man(CMP.new.without)} → ${man(CMP.new.with)}`, "計算（仮定値含む）");
+  r("10年累計支出 中古 控除なし→あり", `${man(CMP.used.without)} → ${man(CMP.used.with)}`, "計算（仮定値含む）");
   r("頭金100万円案", `借入${man(K.altLoan)}・返済${yen(K.altPmt)}・手元${man(K.altLeft, 1)}`, "計算");
   L.push("");
   NOTES.forEach((n) => {
@@ -799,6 +1012,7 @@ function script() {
     n.ask.forEach((q) => L.push(`- ${q}`));
     L.push("", "**③ よくある反論と適切な回答**", "");
     n.qa.forEach((q) => L.push(`- **「${q[0]}」**  `, `  ${q[1]}`));
+    (n.extra || []).forEach((x) => L.push("", `**${x[0]}**`, "", x[1]));
     L.push("");
   });
   return L.join("\n");

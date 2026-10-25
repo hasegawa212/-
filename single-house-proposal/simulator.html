@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>住宅ローン控除シミュレーター（新築・中古比較）</title>
+<style>
+  :root { --navy:#1C2B45; --char:#2B2F36; --gold:#A8854A; --goldL:#E9DFCB; --mist:#F2F3F5; --line:#DADDE2; --gray:#6B7280; --loss:#A65440; --gain:#3F7A5C; --blue:#4F6D8F; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Yu Gothic","YuGothic","Hiragino Sans","Noto Sans JP",sans-serif; color:var(--char); background:#fff; line-height:1.55; }
+  header { background:var(--navy); color:#fff; padding:22px 24px; }
+  header h1 { margin:0; font-size:22px; font-family:"Yu Mincho","YuMincho","Hiragino Mincho ProN",serif; }
+  header p { margin:6px 0 0; font-size:13px; color:#C9D0DA; }
+  main { max-width:1240px; margin:0 auto; padding:20px 16px 48px; }
+  h2 { font-size:16px; color:var(--navy); margin:24px 0 10px; }
+  .grid { display:grid; gap:16px; }
+  .g2 { grid-template-columns:1fr 1fr; }
+  @media (max-width: 860px) { .g2 { grid-template-columns:1fr; } }
+  .card { background:var(--mist); border-radius:10px; padding:16px; min-width:0; }
+  .grid > * { min-width:0; }
+  .seg { flex-wrap:wrap; }
+  .card.dark { background:var(--navy); color:#fff; }
+  .fields { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px,1fr)); gap:10px 14px; }
+  label { font-size:12px; color:var(--gray); display:block; }
+  .dark label { color:#C9D0DA; }
+  input, select { width:100%; padding:7px 8px; border:1px solid var(--line); border-radius:6px; font-size:14px; font-family:inherit; background:#fff; color:var(--char); }
+  input[type=checkbox] { width:auto; margin-right:6px; }
+  .chk { display:flex; align-items:center; font-size:13px; color:inherit; padding-top:18px; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:0; background:#fff; padding:7px 14px; font-size:13px; cursor:pointer; font-family:inherit; color:var(--char); }
+  .seg button.on { background:var(--navy); color:#fff; }
+  .verdict { border-radius:8px; padding:10px 12px; font-size:13px; margin:12px 0; }
+  .verdict.ok { background:#E6F0EA; color:#24513A; }
+  .verdict.ng { background:#F6E3DE; color:#7A3324; }
+  .verdict ul { margin:6px 0 0 18px; padding:0; }
+  .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .stat { background:#fff; border-radius:8px; padding:8px 10px; }
+  .dark .stat { background:#24365A; }
+  .stat .k { font-size:11px; color:var(--gray); }
+  .dark .stat .k { color:#C9D0DA; }
+  .stat .v { font-size:18px; font-weight:700; color:var(--navy); }
+  .dark .stat .v { color:#fff; }
+  .stat.big { grid-column:1 / -1; }
+  .stat.big .v { font-size:26px; }
+  .muted { font-size:11px; color:var(--gray); }
+  .dark .muted { color:#C9D0DA; }
+  table { width:100%; border-collapse:collapse; font-size:12px; background:#fff; color:var(--char); }
+  th, td { padding:5px 6px; border-bottom:1px solid var(--line); text-align:right; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  thead th { background:var(--navy); color:#fff; font-weight:600; }
+  .scroll { overflow-x:auto; border-radius:8px; margin-top:10px; }
+  svg text { font-family:inherit; }
+  .dark .legend { color:#E6E9EE; }
+  .legend { display:flex; gap:14px; flex-wrap:wrap; font-size:11px; margin-top:4px; }
+  .legend i { display:inline-block; width:10px; height:10px; margin-right:4px; vertical-align:-1px; border-radius:2px; }
+  details { margin-top:10px; font-size:12px; }
+  .cmp td, .cmp th { font-size:13px; }
+  .note { font-size:11px; color:var(--gray); margin-top:18px; }
+  .pill { display:inline-block; font-size:11px; padding:1px 8px; border-radius:99px; background:var(--goldL); color:var(--gold); font-weight:700; margin-left:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>住宅ローン控除シミュレーター — 新築・中古の比較</h1>
+  <p>制度の基準日：2026年10月時点（令和8年度税制改正後・2026〜2030年入居）。結果は概算の見込みで、還付額を約束するものではありません。</p>
+</header>
+<main>
+  <h2>お客様の情報</h2>
+  <div class="card">
+    <div class="fields">
+      <div><label>入居予定年</label><select id="moveInYear"><option>2026</option><option selected>2027</option><option>2028</option><option>2029</option><option>2030</option></select></div>
+      <div><label>入居月</label><input id="moveInMonth" type="number" min="1" max="12" value="3"></div>
+      <div><label>年齢（入居年の12月末）</label><input id="age" type="number" value="35"></div>
+      <div><label>世帯区分</label><select id="married"><option value="0" selected>単身</option><option value="1">既婚（配偶者あり）</option></select></div>
+      <div><label>配偶者の年齢</label><input id="spouseAge" type="number" value="" placeholder="既婚の場合"></div>
+      <div><label>19歳未満の扶養親族</label><select id="under19Dep"><option value="0" selected>なし</option><option value="1">あり</option></select></div>
+      <div><label>年収（給与・円）</label><input id="gross" type="number" value="5500000" step="10000"></div>
+      <div><label>社会保険料率（概算用）</label><input id="socialRate" type="number" value="0.15" step="0.005"></div>
+    </div>
+    <div style="margin-top:14px">
+      <span class="seg" id="modeSeg"><button data-m="estimate" class="on">概算モード（税額を推計）</button><button data-m="detail">詳細モード（源泉徴収票の税額）</button></span>
+    </div>
+    <div class="fields" id="detailBox" style="margin-top:12px; display:none">
+      <div><label>合計所得金額（円）</label><input id="d_total" type="number" value="3960000"></div>
+      <div><label>所得税額（控除前・復興税除く）</label><input id="d_it" type="number" value="112000"></div>
+      <div><label>課税総所得金額等（円）</label><input id="d_taxable" type="number" value="2095000"></div>
+      <div><label>住民税所得割額（円）</label><input id="d_rt" type="number" value="268000"></div>
+    </div>
+    <p class="muted" id="taxEcho"></p>
+  </div>
+
+  <h2>物件の比較</h2>
+  <div class="grid g2" id="props"></div>
+
+  <h2>新築・中古の比較 <span class="seg" id="creditSeg" style="margin-left:10px"><button data-c="1" class="on">控除あり</button><button data-c="0">控除なし</button></span></h2>
+  <div class="scroll"><table class="cmp" id="cmp"></table></div>
+
+  <p class="note">
+    計算方法：各年の控除上限＝min（年末ローン残高, 借入限度額, 取得対価）×0.7%（100円未満切捨て）。実際の控除は、その年の所得税額（住宅ローン控除前）→ 翌年度の住民税（所得税の課税総所得金額等×5%、最高97,500円、所得割額まで）の順に充当し、控除しきれない額は受け取れないものとして加算しません。
+    概算モードは給与所得のみ・単身を前提に、給与所得控除・基礎控除（令和8・9年分の特例。2028年以降も続くと仮定する保守的な前提）・社会保険料（年収×料率）で税額を推計します。入居月に借入を実行し、翌月から返済すると仮定しています。
+    住宅区分・限度額の出典：財務省「令和8年度税制改正の大綱」、国土交通省「住宅ローン減税」、国税庁 タックスアンサーNo.1211-1・1211-2。買取再販住宅の限度額は新築に準じて計算しています〔要確認〕。最終的な適用可否・控除額は、税務署・税理士・金融機関にご確認ください。
+  </p>
+</main>
+<script src="taxcredit.js"></script>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const yen = (v) => Math.round(v).toLocaleString("ja-JP") + "円";
+  const man = (v, d = 1) => (v / 10000).toLocaleString("ja-JP", { minimumFractionDigits: d, maximumFractionDigits: d }) + "万円";
+  let taxMode = "estimate", withCredit = true;
+
+  const DEFAULTS = [
+    { name: "新築", kind: "new", perf: "zeh", certs: true, price: 35000000, down: 3000000, costRate: 0.07, loanYears: 35, rate: 0.015, floor: 85,
+      confirmDate: "2026-06-01", builtDate: "2027-01-31", builtYear: 2027, seismicOK: true, redZone: false, fromRelative: false, taxY: 120000, insY: 30000, repairM: 15000, sale10: 25000000 },
+    { name: "中古", kind: "used", perf: "other", certs: false, price: 25000000, down: 3000000, costRate: 0.08, loanYears: 35, rate: 0.015, floor: 90,
+      confirmDate: "", builtDate: "2012-03-31", builtYear: 2012, seismicOK: true, redZone: false, fromRelative: false, taxY: 90000, insY: 30000, repairM: 25000, sale10: 19000000 },
+  ];
+  const PERF = TaxCredit.PERF, KIND = TaxCredit.KIND;
+
+  function propForm(i, d) {
+    const opt = (o, v) => Object.entries(o).map(([k, t]) => `<option value="${k}"${k === v ? " selected" : ""}>${t}</option>`).join("");
+    return `<div class="card ${i ? "dark" : ""}" data-i="${i}">
+      <div style="display:flex;justify-content:space-between;align-items:center"><strong style="font-size:16px">物件${i ? "B" : "A"}</strong><input data-f="name" value="${d.name}" style="width:140px"></div>
+      <div class="fields" style="margin-top:10px">
+        <div><label>新築・中古区分</label><select data-f="kind">${opt(KIND, d.kind)}</select></div>
+        <div><label>住宅性能区分</label><select data-f="perf">${opt(PERF, d.perf)}</select></div>
+        <div><label class="chk" style="padding-top:0"><input type="checkbox" data-f="certs"${d.certs ? " checked" : ""}>性能を証明する書類あり</label></div>
+        <div><label>住宅取得価格（円）</label><input type="number" data-f="price" value="${d.price}" step="100000"></div>
+        <div><label>頭金（円）</label><input type="number" data-f="down" value="${d.down}" step="100000"></div>
+        <div><label>購入諸費用率</label><input type="number" data-f="costRate" value="${d.costRate}" step="0.005"></div>
+        <div><label>返済期間（年）</label><input type="number" data-f="loanYears" value="${d.loanYears}"></div>
+        <div><label>金利（年・小数）</label><input type="number" data-f="rate" value="${d.rate}" step="0.001"></div>
+        <div><label>床面積（㎡）</label><input type="number" data-f="floor" value="${d.floor}"></div>
+        <div><label>建築確認日（新築）</label><input type="date" data-f="confirmDate" value="${d.confirmDate}"></div>
+        <div><label>登記上の建築日</label><input type="date" data-f="builtDate" value="${d.builtDate}"></div>
+        <div><label class="chk"><input type="checkbox" data-f="seismicOK"${d.seismicOK ? " checked" : ""}>耐震基準に適合（1982年以降築 または 証明あり）</label></div>
+        <div><label class="chk"><input type="checkbox" data-f="redZone"${d.redZone ? " checked" : ""}>災害レッドゾーン内</label></div>
+        <div><label class="chk"><input type="checkbox" data-f="fromRelative"${d.fromRelative ? " checked" : ""}>親族等からの取得</label></div>
+        <div><label>固定資産税等（年）</label><input type="number" data-f="taxY" value="${d.taxY}" step="10000"></div>
+        <div><label>保険料（年）</label><input type="number" data-f="insY" value="${d.insY}" step="5000"></div>
+        <div><label>修繕積立（月）</label><input type="number" data-f="repairM" value="${d.repairM}" step="1000"></div>
+        <div><label>10年後の想定売却価格（円）</label><input type="number" data-f="sale10" value="${d.sale10}" step="100000"></div>
+      </div>
+      <div class="out"></div>
+    </div>`;
+  }
+  $("props").innerHTML = DEFAULTS.map((d, i) => propForm(i, d)).join("");
+
+  function readProp(el) {
+    const o = {};
+    el.querySelectorAll("[data-f]").forEach((x) => {
+      const f = x.dataset.f;
+      o[f] = x.type === "checkbox" ? x.checked : x.type === "number" ? +x.value : x.value;
+    });
+    o.builtYear = o.builtDate ? +o.builtDate.slice(0, 4) : undefined;
+    o.loan = Math.max(0, o.price - o.down);
+    return o;
+  }
+  function customer() {
+    return {
+      moveInYear: +$("moveInYear").value, moveInMonth: +$("moveInMonth").value, age: +$("age").value,
+      married: $("married").value === "1", spouseAge: $("spouseAge").value ? +$("spouseAge").value : undefined,
+      under19Dep: $("under19Dep").value === "1", gross: +$("gross").value, socialRate: +$("socialRate").value, taxMode,
+      detail: { totalIncome: +$("d_total").value, incomeTax: +$("d_it").value, taxable: +$("d_taxable").value, residentTax: +$("d_rt").value },
+    };
+  }
+
+  function chart(rows, years) {
+    const P = rows.filter((r) => r.inPeriod);
+    if (!P.length) return "";
+    const W = 520, Hh = 190, pad = 28, bw = (W - pad - 8) / P.length;
+    const max = Math.max(...P.map((r) => r.max), 1);
+    const sc = (v) => ((Hh - 30) * v) / max;
+    let g = "";
+    P.forEach((r, i) => {
+      const x = pad + i * bw + bw * 0.15, w = bw * 0.7;
+      let y = Hh - 20;
+      [[r.fromIT, "#1C2B45"], [r.fromRT, "#A8854A"], [r.unused, "#C9CED6"]].forEach(([v, c]) => {
+        const h = sc(v); y -= h;
+        if (h > 0) g += `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${c}"><title>${r.i}年目 ${yen(v)}</title></rect>`;
+      });
+      g += `<text x="${x + w / 2}" y="${Hh - 6}" font-size="9" text-anchor="middle" fill="#6B7280">${r.i}</text>`;
+    });
+    g += `<text x="2" y="12" font-size="9" fill="#6B7280">${man(max)}</text><line x1="${pad}" x2="${W}" y1="${Hh - 20}" y2="${Hh - 20}" stroke="#DADDE2"/>`;
+    return `<svg viewBox="0 0 ${W} ${Hh}" width="100%" role="img" aria-label="年ごとの控除見込額" style="background:#fff;border-radius:8px;margin-top:10px">${g}</svg>
+      <div class="legend"><span><i style="background:#1C2B45"></i>所得税から</span><span><i style="background:#A8854A"></i>住民税から</span><span><i style="background:#C9CED6"></i>控除しきれない額（受け取れない）</span><span>横軸：控除の年目</span></div>`;
+  }
+
+  function render() {
+    $("detailBox").style.display = taxMode === "detail" ? "" : "none";
+    const c = customer();
+    const t = TaxCredit.estimateTax(c.gross, c.moveInYear, c.socialRate);
+    $("taxEcho").textContent = taxMode === "estimate"
+      ? `概算：合計所得 ${yen(t.totalIncome)}・所得税（控除前）${yen(t.incomeTax)}・課税総所得 ${yen(t.taxable)}・住民税所得割 ${yen(t.residentTax)}（社会保険料＝年収×${c.socialRate}と仮定）`
+      : "詳細モード：入力した税額を毎年同じと仮定して計算します。";
+    const res = [];
+    document.querySelectorAll("#props .card").forEach((el) => {
+      const p = readProp(el);
+      const sim = TaxCredit.simulate({ ...c, ...p });
+      const j = sim.judge;
+      const monthly = sim.pmt + p.taxY / 12 + p.insY / 12 + p.repairM;
+      const cash = p.down + p.price * p.costRate;
+      const credit10 = sim.rows.slice(0, 10).reduce((a, r) => a + (r.inPeriod ? r.actual : 0), 0);
+      const k10 = Math.min(p.loanYears * 12, 120);
+      res.push({ p, sim, monthly, cash, credit10, bal10: TaxCredit.balanceAfter(p.loan, p.rate, p.loanYears, k10) });
+      const est = sim.estimated ? '<span class="pill">概算</span>' : "";
+      const vd = `<div class="verdict ${j.ok ? "ok" : "ng"}"><strong>${j.ok ? "適用見込み" : "適用なし"}</strong> — ${j.reasons.at(-1)}
+        ${j.warnings.length ? "<ul>" + j.warnings.map((w) => `<li>${w}</li>`).join("") + "</ul>" : ""}</div>`;
+      const stats = j.ok ? `<div class="stats">
+        <div class="stat big"><div class="k">控除期間全体の控除見込額 ${est}</div><div class="v">${man(sim.totalActual)}</div><div class="muted">制度上の上限 ${man(sim.totalMax)}（税額の範囲までしか控除できません）</div></div>
+        <div class="stat"><div class="k">初年度の控除見込額</div><div class="v">${yen(sim.first)}</div></div>
+        <div class="stat"><div class="k">2年目以降（平均）</div><div class="v">${yen(sim.laterAvg)}</div></div>
+        <div class="stat"><div class="k">所得税から／住民税から</div><div class="v" style="font-size:15px">${man(sim.totalIT)}／${man(sim.totalRT)}</div></div>
+        <div class="stat"><div class="k">控除しきれない金額</div><div class="v">${man(sim.totalUnused)}</div></div>
+        <div class="stat"><div class="k">毎月の返済（控除で変わらない）</div><div class="v">${yen(sim.pmt)}</div></div>
+        <div class="stat"><div class="k">控除終了後の住居費（月）</div><div class="v">${yen(monthly)}</div></div>
+      </div>` : `<div class="stats"><div class="stat"><div class="k">毎月の返済</div><div class="v">${yen(sim.pmt)}</div></div><div class="stat"><div class="k">住居費（月）</div><div class="v">${yen(monthly)}</div></div></div>`;
+      const tbl = j.ok ? `<div class="scroll"><table><thead><tr><th>年目</th><th>年</th><th>年末残高</th><th>上限</th><th>所得税から</th><th>住民税から</th><th>控除しきれない</th></tr></thead><tbody>${
+        sim.rows.filter((r) => r.inPeriod).map((r) => `<tr><td>${r.i}</td><td>${r.year}</td><td>${man(r.balance)}</td><td>${yen(r.max)}</td><td>${yen(r.fromIT)}</td><td>${yen(r.fromRT)}</td><td>${yen(r.unused)}${r.blocked ? "（" + r.blocked + "）" : ""}</td></tr>`).join("")
+      }</tbody></table></div>` : "";
+      const docs = j.docs.length ? `<details><summary>購入前に確認する証明書・必要書類</summary><ul>${j.docs.map((d) => `<li>${d}</li>`).join("")}<li>1年目は確定申告が必要（2年目以降は年末調整）</li></ul></details>` : "";
+      el.querySelector(".out").innerHTML = vd + stats + chart(sim.rows) + tbl + docs;
+    });
+    const [A, B] = res;
+    const row = (k, f) => `<tr><td>${k}</td><td>${f(A)}</td><td>${f(B)}</td></tr>`;
+    const tenY = (r) => r.cash + r.monthly * 120 - (withCredit ? r.credit10 : 0);
+    $("cmp").innerHTML = `<thead><tr><th>比較項目</th><th>${A.p.name}</th><th>${B.p.name}</th></tr></thead><tbody>
+      ${row("物件価格", (r) => man(r.p.price, 0))}
+      ${row("購入諸費用", (r) => man(r.p.price * r.p.costRate))}
+      ${row("住宅ローン借入額", (r) => man(r.p.loan, 0))}
+      ${row("月々の返済額", (r) => yen(r.sim.pmt))}
+      ${row("控除対象の借入限度額", (r) => (r.sim.judge.ok ? man(r.sim.judge.limit, 0) : "対象外"))}
+      ${row("控除期間", (r) => (r.sim.judge.ok ? r.sim.judge.years + "年" : "―"))}
+      ${row("初年度の控除見込額", (r) => yen(r.sim.first))}
+      ${row("累計の控除見込額", (r) => man(r.sim.totalActual) + (r.sim.estimated ? "（概算）" : ""))}
+      ${row("固定資産税等（年）", (r) => yen(r.p.taxY))}
+      ${row("維持修繕費（年）", (r) => yen(r.p.repairM * 12))}
+      ${row("年間住居費（控除前）", (r) => man(r.monthly * 12))}
+      ${row("初期費用（頭金＋諸費用）", (r) => man(r.cash))}
+      ${row(`10年間の累計支出（${withCredit ? "控除あり" : "控除なし"}）`, (r) => `<strong>${man(tenY(r))}</strong>`)}
+      ${row("10年後のローン残債", (r) => man(r.bal10))}
+      ${row("10年後の想定売却価格", (r) => man(r.p.sale10, 0))}
+    </tbody>`;
+  }
+
+  document.addEventListener("input", render);
+  document.addEventListener("change", render);
+  $("modeSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    taxMode = b.dataset.m; $("modeSeg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); render();
+  });
+  $("creditSeg").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    withCredit = b.dataset.c === "1"; $("creditSeg").querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b)); render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
