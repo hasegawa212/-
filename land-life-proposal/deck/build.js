@@ -891,9 +891,13 @@ async function slides() {
       T(s, st[i][2], x + 0.3, 4.42, cw - 0.6, 0.9, { fontSize: 13, color: H.onNavy });
     }
     hline(s, M, 5.6, CW, H.navyL);
-    T(s, BRAND.name, M, 5.7, 6, 0.4, { fontSize: 18, bold: true, color: H.white });
-    T(s, `${BRAND.site}　TEL ${BRAND.tel}　${BRAND.staff}`, M, 6.1, 8, 0.3, { fontSize: 12, color: H.onNavy });
-    T(s, ED.support, M, 6.4, CW, 0.28, { fontSize: 11, color: H.goldL });
+    T(s, BRAND.name, M, 5.7, 5.2, 0.4, { fontSize: 18, bold: true, color: H.white });
+    T(s, ED.support, M + 5.3, 5.7, CW - 5.3, 0.4, { fontSize: 11, color: H.goldL, align: "right", valign: "middle" });
+    // 連絡先：所在地・営業時間・定休日は版に設定があるときだけ載せる
+    const contact = [BRAND.address, `TEL ${BRAND.tel}`, BRAND.site].filter(Boolean).join("　");
+    const open = [BRAND.hours && `営業時間 ${BRAND.hours}`, BRAND.closed && `定休日 ${BRAND.closed}`, BRAND.staff].filter(Boolean).join("　");
+    T(s, contact, M, 6.1, CW, 0.28, { fontSize: 12, color: H.onNavy });
+    T(s, open, M, 6.4, CW, 0.28, { fontSize: 11, color: H.onNavy });
     T(s, `本資料の数値は架空のサンプル条件と仮定値による試算で、将来の価格・金利・税制を保証するものではありません。税制は${R.BASIS_DATE}時点の情報です。最新の制度は国税庁・国土交通省等でご確認ください。宅地建物取引業の表示：${BRAND.license}`, M, 6.75, CW, 0.5, { fontSize: 9, color: H.onNavy });
   }
 

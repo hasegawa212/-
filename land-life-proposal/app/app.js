@@ -374,7 +374,7 @@
       <p style="font-size:12px;margin:6px 0">災害リスク（ハザードマップ）／接道（幅4m以上の道路に2m以上）／再建築の可否／耐震（1981年6月以降の建築確認）／住宅性能の証明書（控除の枠に直結）／ローンの事前審査</p>
       <div class="sk" style="margin-top:12px">08　次の一歩</div>
       <div class="grid g2" style="margin-top:6px">${["物件見学：昼と夜、平日と休日に", "資金計画：源泉徴収票で控除・返済を詳しく計算", "現地・書類の確認：ハザード・接道・性能証明", "次回のご提案：希望に合う物件を比較（見送りも選択肢）"].map((t, i) => `<div class="card ivory" style="padding:10px 12px;font-size:12px"><b style="color:#8A6F3E">STEP 0${i + 1}</b>　${t}</div>`).join("")}</div>
-      <p class="hint" style="margin-top:12px">${esc(BRAND.name)}　${esc(BRAND.site)}　TEL ${esc(BRAND.tel)}　${esc(BRAND.staff)}</p>
+      <p class="hint" style="margin-top:12px"><b>${esc(BRAND.name)}</b>　${[BRAND.address, "TEL " + BRAND.tel, BRAND.site].filter(Boolean).map((t) => `<span style="white-space:nowrap">${esc(t)}</span>`).join("　")}<br>${[BRAND.hours && "営業時間 " + BRAND.hours, BRAND.closed && "定休日 " + BRAND.closed, BRAND.staff].filter(Boolean).map(esc).join("　")}</p>
       <p class="hint">本提案書の数値は入力条件と仮定値による試算で、将来の価格・金利・税制・控除額を保証するものではありません。住宅ローン控除は${R.BASIS_DATE}時点の制度にもとづく${X.props.some((o) => o.credit.estimated) ? "概算（税額は推計）" : "計算"}です。最新の制度は国税庁・国土交通省等でご確認ください。宅地建物取引業の表示：${esc(BRAND.license)}</p>
       ${foot(3)}</section>`;
   }

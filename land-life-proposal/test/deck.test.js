@@ -36,3 +36,10 @@ for (const [id, ed] of Object.entries(EDITIONS)) {
     for (const ph of d.photos) assert.ok(ph.caption, `${ph.file} に注記なし（P${ph.page}）`);
   });
 }
+
+test("最終ページ（P24）に所在地・営業時間・定休日がある版はそれを載せる", async () => {
+  const ed = EDITIONS["japan-mgmt"];
+  const d = await buildDeck(ed, { write: false });
+  const last = d.pages[23].text;
+  for (const v of [ed.brand.address, ed.brand.tel, ed.brand.hours, ed.brand.closed]) assert.ok(last.includes(v), `P24 に「${v}」がない`);
+});
