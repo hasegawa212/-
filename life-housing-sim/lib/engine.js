@@ -97,6 +97,9 @@
     return { yearly, monthly: yearly / 12, basic: PENSION.basicFull, kousei: Math.round(kousei) };
   }
 
+  // 会社名の初期値（トップページ・提案書。画面の「会社名」で変えられる）
+  const DEFAULT_COMPANY = "合同会社ジャパンマネジメント";
+
   // 家賃の平均：当社のお客様の家賃の中央値（社内Slack #02_アポ報告 見込み客の集計 2026年9〜10月）。社宅・家賃補助の自己負担は1〜3万円が多い
   const RENT_AVG = { single: 58_000, shatakuSelf: 20_000, source: "当社のお客様（20代後半・単身・賃貸）の家賃の中央値 約5.8万円、社宅・家賃補助の自己負担 1〜3万円（2026年9〜10月の商談・アポ報告の集計）" };
 
@@ -422,7 +425,7 @@
       sub: "賃貸のまま／持ち家 を、今から" + i.lifeEnd + "歳まで同じ物差しでくらべました",
       to: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "お客様",
       date: meta.date || "",
-      company: meta.company || "",
+      company: meta.company || DEFAULT_COMPANY,
       contact: [meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"),
       profile: `${i.age}歳・年収 ${man(i.income)}・貯金 ${man(i.savings)}・${x.shataku ? `社宅（自己負担 ${manY(x.shataku.self)}・${x.shataku.until}歳まで）・` : ""}${single ? "おひとりで暮らす前提" : (i.family.marryAge + "歳で結婚" + (i.family.kids ? `・お子さま${i.family.kids}人` : ""))}・${i.own.buyAge}歳で ${man(i.own.price)} の家を買った場合`,
     };
@@ -531,7 +534,7 @@
     return {
       hero: { title: "ライフパートナー", catch: "人生のすべてのステージに、最高のパートナーを。", sub: "描こう、あなたの理想の未来を。",
         name: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "あなた",
-        company: meta.company || "", level: 1 + doneN, age: i.age },
+        company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age },
       assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
       goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
       areas, missions: M, events: ev,
@@ -561,5 +564,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

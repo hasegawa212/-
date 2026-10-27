@@ -8,7 +8,7 @@ const x = S.compute(S.defaults());
 test("主人公はお客様：名前があれば「◯◯ 様」、なければ「あなた」。会社名は入力どおり", () => {
   assert.equal(S.home(x, {}, { customer: "山田 太郎" }).hero.name, "山田 太郎 様");
   assert.equal(S.home(x).hero.name, "あなた");
-  assert.equal(S.home(x, {}, { company: "株式会社 Martial Arts" }).hero.company, "株式会社 Martial Arts");
+  assert.equal(S.home(x, {}, { company: "株式会社 Martial Arts" }).hero.company, "株式会社 Martial Arts", "入力した会社名");
   assert.equal(S.home(x).hero.title, "ライフパートナー");
 });
 
@@ -82,4 +82,11 @@ test("おすすめのアクション4つ（押すと説明のステップか提�
   const all = JSON.stringify(h);
   for (const re of S.FORBIDDEN) assert.doesNotMatch(all, re);
   assert.doesNotMatch(all, /\+\d+(\.\d+)?%|7\.7%/, "根拠のない上昇率は出さない");
+});
+
+test("会社名の初期値は「合同会社ジャパンマネジメント」（トップページと提案書で同じ。入力すれば変えられる）", () => {
+  assert.equal(S.DEFAULT_COMPANY, "合同会社ジャパンマネジメント");
+  assert.equal(S.home(x).hero.company, "合同会社ジャパンマネジメント");
+  assert.equal(S.proposal(x).cover.company, "合同会社ジャパンマネジメント");
+  assert.equal(S.home(x, {}, { company: "別の会社" }).hero.company, "別の会社");
 });

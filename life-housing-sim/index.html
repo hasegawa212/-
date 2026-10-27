@@ -281,7 +281,7 @@
   ];
   const opened = window.LHSShare.decode(location.hash, S.defaults());
   // 提案書の宛名・会社情報（この画面の中だけ。共有リンクや保存には入れない）
-  const meta = { customer: "", company: "株式会社 Martial Arts", staff: "", tel: "" };
+  const meta = { customer: "", company: S.DEFAULT_COMPANY, staff: "", tel: "" };
   const state = opened.state;
   const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
