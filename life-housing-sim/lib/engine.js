@@ -166,7 +166,8 @@
     const inShataku = (age) => sh.on && age < sh.until && age < inp.retireAge;
     const o = inp.own, R = inp.rent;
     // 暮らしの段階ごとの家賃。2人暮らしが「なし」（0）なら、結婚後もひとり暮らしの家賃のまま
-    const rentAt = (st) => (st === "couple" && !R.couple ? R.single : R[st]);
+    // 「なし」（0）：2人暮らし→ひとり暮らしと同じ、子育て期→2人暮らし（それもなしならひとり）と同じ。ひとり・老後の「なし」は家賃0（実家など）
+    const rentAt = (st) => (st === "couple" ? R.couple || R.single : st === "family" ? R.family || R.couple || R.single : R[st]);
     const married = inp.family.marryAge != null;
     const cost = o.price * o.costRate;
     const loan = o.price - o.down + (o.financeCosts ? cost : 0);
@@ -357,7 +358,7 @@
       acquisition: { cost, costRate: o.costRate },
       loan: { amount: loan, pmt, cashAtBuy, buyAge, endAge: loanEnd, months: o.years * 12,
         atReemploy: loanAt(reAge), atRetire: loanAt(inp.retireAge),
-        ratioNow: inp.income > 0 ? (pmt * 12) / inp.income : 0, ratioReemploy: inp.income * reRate > 0 ? (pmt * 12) / (inp.income * reRate) : 0 },
+        ratioNow: inp.income > 0 ? (pmt * 12) / inp.income : 0, ratioReemploy: inp.income * reRate > 0 ? (pmt * 12) / (inp.income * reRate) : pmt > 0 ? null : 0 }, // null＝再雇用の収入なし
       pension: { me, partnerYearly: partner.yearly, yearly: pensionYearly, monthly: pensionYearly / 12, living },
       life,
       old: { rent: oldRent, own: oldOwn, years: oldYears.length },
@@ -372,14 +373,15 @@
   // 定年・再雇用とローンの回数（説明と提案書で同じ文を使う）
   function workLoanLine(x) {
     const i = x.input, L = x.loan, re = x.income.reemploy, r = L.atReemploy;
-    const work = re.age < i.retireAge ? `${re.age}歳で定年、${i.retireAge}歳まで再雇用（年収は定年前の${Math.round(re.rate * 100)}%＝今の年収なら ${man(i.income * re.rate)}と仮定）` : `${i.retireAge}歳まで今の働き方`;
+    const work = re.age < i.retireAge ? (re.rate > 0 ? `${re.age}歳で定年、${i.retireAge}歳まで再雇用（年収は定年前の${Math.round(re.rate * 100)}%＝今の年収なら ${man(i.income * re.rate)}と仮定）` : `${re.age}歳で定年、そのあとは働かない（再雇用なし）`) : `${i.retireAge}歳まで今の働き方`;
     const loan = `ローンは${i.own.years}年＝${L.months}回払い（毎月 ${man(L.pmt, 1)}）`;
-    const at = re.age < i.retireAge && r.left > 0 ? `。${re.age}歳の時点で${r.paid}回払って残り${r.left}回（残高 ${man(r.balance)}）、再雇用の間の返済は年収の${Math.round(L.ratioReemploy * 100)}%${L.ratioReemploy > 0.35 ? "（重いので、定年までの繰上げ返済や退職金で残りを減らす計画も一緒に考えます）" : ""}` : r.left === 0 ? `。${re.age}歳までに完済` : "";
+    const at = re.age < i.retireAge && r.left > 0 ? `。${re.age}歳の時点で${r.paid}回払って残り${r.left}回（残高 ${man(r.balance)}）${L.ratioReemploy == null ? "、定年のあとは収入がないので、定年までの繰上げ返済や退職金で残りを返す計画が必要です" : `、再雇用の間の返済は年収の${Math.round(L.ratioReemploy * 100)}%`}${L.ratioReemploy > 0.35 ? "（重いので、定年までの繰上げ返済や退職金で残りを減らす計画も一緒に考えます）" : ""}` : r.left === 0 ? `。${re.age}歳までに完済` : "";
     const end = L.atRetire.left > 0 ? `。${i.retireAge}歳でまだ残り${L.atRetire.left}回（残高 ${man(L.atRetire.balance)}）` : `。${L.endAge}歳で完済`;
     return work + "／" + loan + at + end;
   }
 
   // いちばん大きな固定費＝住まい。今の家賃・手取り（概算：社会保険料15%と所得税・住民税を引く）・割合・払い続けた場合の合計
+  const rentTxt = (v) => (v ? man(v, 1) : "なし");
   function fixedCost(x) {
     const i = x.input, now = x.years[0], t = estimateTax(i.income);
     const takeHome = (i.income - i.income * 0.15 - t.incomeTax - t.residentTax) / 12;
@@ -438,7 +440,8 @@
   // 老後の賃貸の入居審査（一般的な目安。断定しない）
   function rentScreenLine(x) {
     const s = x.screening.rent, i = x.input;
-    return `賃貸の入居審査：${s.ageFrom}歳からは収入が年金（毎月 ${man(x.pension.monthly, 1)}）だけになり、家賃 ${man(i.rent.old, 1)} は年金の${Math.round(s.ratioOld * 100)}%。家賃は収入の3分の1以内が一般的な審査の目安なので、${s.hard ? "高齢・保証人とあわせて通りにくくなる場合があります" : "目安の範囲ですが、年齢や保証人で断られる場合があります"}`;
+    if (!i.rent.old) return `賃貸の入居審査：老後の家賃は「なし」（家賃のかからない住まい）の計画なので、入居審査の心配はありません`;
+    return `賃貸の入居審査：${s.ageFrom}歳からは収入が年金（毎月 ${man(x.pension.monthly, 1)}）だけになり、家賃 ${rentTxt(i.rent.old)} は年金の${Math.round(s.ratioOld * 100)}%。家賃は収入の3分の1以内が一般的な審査の目安なので、${s.hard ? "高齢・保証人とあわせて通りにくくなる場合があります" : "目安の範囲ですが、年齢や保証人で断られる場合があります"}`;
   }
 
   // 区切り：「やるか・やらないか」の前に、まず「できるか」を確かめる。決めるのは融資する金融機関
@@ -449,7 +452,7 @@
       { key: "ratio", label: "返済比率（毎月の返済×12÷年収）", value: `${pct(L.ratioNow)}（目安 ${pct(lim)}以内）`, ok: L.ratioNow <= lim },
       { key: "multiple", label: "借りる額は年収の何倍か", value: `${mult.toFixed(1)}倍（目安 7倍以内）`, ok: mult <= 7 },
       { key: "payoff", label: "完済の年齢", value: `${L.endAge}歳（目安 80歳まで）`, ok: L.endAge <= 80 },
-      { key: "reemploy", label: "定年後（再雇用）の返済", value: L.atReemploy.left > 0 ? `年収の${pct(L.ratioReemploy)}（目安 35%以内）` : "定年までに完済", ok: L.atReemploy.left === 0 || L.ratioReemploy <= 0.35 },
+      { key: "reemploy", label: "定年後（再雇用）の返済", value: L.atReemploy.left > 0 ? (L.ratioReemploy == null ? "収入なし（定年までに完済するか、退職金で返す計画が必要）" : `年収の${pct(L.ratioReemploy)}（目安 35%以内）`) : "定年までに完済", ok: L.atReemploy.left === 0 || (L.ratioReemploy != null && L.ratioReemploy <= 0.35) },
     ];
     const allOk = checks.every((c) => c.ok);
     return {
@@ -480,7 +483,7 @@
     const g = gate(x), bb = bubble(x), fc = fixedCost(x);
     const intro = { title: "¥ 節約するなら、いちばん大きな固定費から",
       say: `日本は「節約しなさい」と言われて育つ国です。では、何を節約すると一番効くでしょうか。答えは、毎月いちばん大きな固定費＝住まい（家賃）です。家賃は住まいの対価で、同時にオーナーのローンの返済や将来の備えにもつながっています。どちらが正解ということはありません。同じ住まいのお金の使い方を、一緒に見ていきましょう。`,
-      show: `今の家賃 毎月 ${man(fc.rent, 1)}（手取りの約${Math.round(fc.share * 100)}%・手取りは概算 毎月 ${man(fc.takeHome, 1)}）／1年で ${man(fc.yearly)}／${i.retireAge}歳まで払い続けると ${man(fc.to65)}、${i.lifeEnd}歳までで ${man(fc.toEnd)}（更新料こみ・家財保険は含まない）／家賃の行き先：オーナーのローンの返済・管理や修繕・固定資産税など → 残りがオーナーの収益（空室や修繕で赤字になる場合もあります）`,
+      show: (fc.rent ? `今の家賃 毎月 ${man(fc.rent, 1)}（手取りの約${Math.round(fc.share * 100)}%・手取りは概算 毎月 ${man(fc.takeHome, 1)}）／1年で ${man(fc.yearly)}／` : `今の家賃 なし（実家など）。家賃がかからない今は、貯金と住まいの準備ができる時期です／`) + `${fc.to65 ? `${i.retireAge}歳まで払い続けると ${man(fc.to65)}、${i.lifeEnd}歳までで ${man(fc.toEnd)}` : `${i.lifeEnd}歳までに払う家賃 ${man(fc.toEnd)}`}（更新料こみ・家財保険は含まない）／家賃の行き先：オーナーのローンの返済・管理や修繕・固定資産税など → 残りがオーナーの収益（空室や修繕で赤字になる場合もあります）`,
       ask: "毎月の固定費で、いちばん大きいものは何ですか。その家賃は、誰の将来の備えになっていると思いますか。" };
     const six = { title: "⑥ まず「できるか」を確かめる（区切り）",
       say: `ここで一度、区切りをつけます。住宅ローンは、借りたい人や私たちが決めるのではなく、融資する金融機関が決めます。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほどです（目安）。ですから、やるか・やらないかを決める前に、まず「できるか」をこちらで確認させてください。その土台に乗ったら、やるか・やらないかを決めていただければ大丈夫です。できるかわからないまま決めても意味がないので、お客様のお時間を無駄にしないための順番です。`,
@@ -499,7 +502,7 @@
           ? `ひとりで暮らしていく場合も、家賃は一生続きます。今の働き方のまま${i.retireAge}歳を迎え、そのあとも${i.lifeEnd}歳まで住まいは必要です。持ち家なら、結婚しても住み続ける・貸す・売るを選べます。`
           : `家賃は暮らしの段階で変わります。${stages.join(" → ")} と進むと、広い部屋が必要な時期に家賃も上がります。`,
         show: (sh ? `社宅 ${manY(sh.self)}（${sh.until}歳まで）→ 社宅を出たあと ${manY(sh.after)}（毎月 ${manY(sh.jump)}・年 ${manY(sh.jump * 12)} 増える。家賃は当社のお客様の平均）／` : "") +
-          (x.input.family.marryAge != null ? `ひとり ${man(i.rent.single, 1)} → 2人 ${i.rent.couple ? man(i.rent.couple, 1) : "（ひとりと同じ）"} → 子育て ${man(i.rent.family, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）` : `ひとり ${man(i.rent.single, 1)}${i.rent.single === RENT_AVG.single ? "（当社のお客様の家賃の平均）" : ""} → 老後 ${man(i.rent.old, 1)}（毎月）`),
+          (x.input.family.marryAge != null ? `ひとり ${rentTxt(i.rent.single)} → 2人 ${i.rent.couple ? man(i.rent.couple, 1) : "（ひとりと同じ）"} → 子育て ${i.rent.family ? man(i.rent.family, 1) : "（2人と同じ）"} → 老後 ${rentTxt(i.rent.old)}（毎月）` : `ひとり ${rentTxt(i.rent.single)}${i.rent.single === RENT_AVG.single ? "（当社のお客様の家賃の平均）" : ""} → 老後 ${rentTxt(i.rent.old)}（毎月）`),
         ask: sh ? `社宅を出るのは何歳ごろの予定ですか。出たあと、どこに住みたいですか。` : single ? "これからも、ひとりで自由に暮らしていきたいですか。結婚したら、住まいはどうしたいですか。" : "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
       { title: "② 一生でかかる住まいのお金", say: `今から${i.lifeEnd}歳まで、住まいには一生お金がかかります。賃貸は家賃と保険を払い続け、持ち家は返済が終わったあとは税金・保険・修繕だけになります。持ち家は住宅ローン控除で、払った税金の一部が戻ります。`,
         show: `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（${o.buyAge}歳で${man(o.price)}の家を買った場合）。持ち家のうち 税金（固定資産税・都市計画税）${man(x.breakdown.own.tax.amount)}・保険（火災・地震）${man(x.breakdown.own.ins.amount)}・利息 ${man(x.breakdown.own.interest.amount)}、住宅ローン控除で戻る税金 ${man(x.credit.total)}（${x.credit.label}・${x.credit.years}年）。賃貸の家財保険 ${man(x.breakdown.rent.ins.amount)}・更新料 ${man(x.renew.total)}（${x.renew.every}年ごとに家賃${x.renew.months}か月分、${i.lifeEnd}歳までに${x.renew.times}回。うち${i.retireAge}歳から ${man(x.renew.old)}）`,
@@ -513,7 +516,7 @@
         show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）`,
         ask: `毎月 ${man(x.prepare.monthlyRent, 1)} を${i.retireAge}歳まで積み立て続けられそうですか。` },
       single ? { title: "⑤ もしものとき", say: `ひとりで暮らす場合、いちばんの心配は「年を取ってからの住まい」です。高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。持ち家なら、返済が終わったあとは住む場所が確保できます。住宅ローンには団体信用生命保険（団信）が付くので、万一のときもローンが親や兄弟に残りません。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 ${i.rent.old ? `毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）` : "なし"}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ひとりで年を重ねたとき、どこに住んでいたいですか。金利が上がったときの備えはありますか。" } :
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
         show: `${rentScreenLine(x)}／${danshinLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
@@ -546,7 +549,7 @@
         points: [
           `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${pct(inc.vsAverage)}）`,
           `一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）`,
-          `毎月いちばん大きな固定費は住まい：今の家賃 ${man(fc.rent, 1)}（手取りの約${pct(fc.share)}）。${i.retireAge}歳まで払い続けると ${man(fc.to65)}。家賃は住まいの対価で、オーナーのローンの返済・管理・修繕・税金にあてられます`,
+          `毎月いちばん大きな固定費は住まい：${fc.rent ? `今の家賃 ${man(fc.rent, 1)}（手取りの約${pct(fc.share)}）` : "今は家賃なし（実家など）、家を出ると家賃が始まります"}。${fc.to65 ? `${i.retireAge}歳まで払い続けると ${man(fc.to65)}。` : ""}家賃は住まいの対価で、オーナーのローンの返済・管理・修繕・税金にあてられます`,
           `そのうち住まいに使うお金　賃貸のまま ${man(x.life.rent)}（${pct(inc.housingShare.rent)}）／持ち家 ${man(x.life.own)}（${pct(inc.housingShare.own)}）`,
           `今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
           `${i.retireAge}歳の資産（概算）　賃貸のまま ${man(pf.at65.rent.total)}／持ち家 ${man(pf.at65.own.total)}（うち家 ${man(pf.at65.own.realEstate)}）`,
@@ -617,8 +620,10 @@
     }
     const target = x.prepare.rentNeed;
     const rentNow = x.years[0] ? x.years[0].rentMonthly : i.rent.single;
+    // 今は家賃なし（実家など）なら、家を出たあとの家賃で備えを考える
+    const rentBase = rentNow || (x.years.find((y) => y.rentMonthly > 0) || {}).rentMonthly || 0, rentWord = rentNow ? "家賃" : "家を出たあとの家賃";
     const M = [
-      { id: "cushion", area: "cash", label: `急な出費に備える貯金（家賃の6か月分 ${man(rentNow * 6)}）`, auto: true, done: i.savings >= rentNow * 6 },
+      { id: "cushion", area: "cash", label: `急な出費に備える貯金（${rentWord}の6か月分 ${man(rentBase * 6)}）`, auto: true, done: i.savings >= rentBase * 6 },
       { id: "nisaStart", area: "nisa", label: "NISAで毎月の積立を始める", auto: true, done: i.nisa.monthly > 0 },
       { id: "nisaReview", area: "nisa", label: "積立の額と続けられるかを確かめる", auto: false },
       { id: "insurance", area: "ins", label: "保険を見直す（団信で減らせる分があるか）", auto: false },
@@ -634,7 +639,7 @@
     const AT = (n) => n + 1; // 説明の先頭に「¥ いちばん大きな固定費」があるので、⓪ は1番目
     const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
     const areas = [
-      area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：家賃の6か月分 ${man(rentNow * 6)}`, AT(0)),
+      area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：${rentWord}の6か月分 ${man(rentBase * 6)}`, AT(0)),
       area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, AT(0)),
       area("ins", "保険エリア", "もしもの時に備える", man(i.lifeIns.monthly, 1), "毎月の保険料", "団信で万一のときローンは残らない", AT(5)),
       area("home", "不動産エリア", "住まいで人生を豊かに", man(L.pmt, 1), "毎月の返済", `${L.buyAge}歳で ${man(o.price)}・${L.months}回・${L.endAge}歳で完済`, AT(2)),
@@ -642,10 +647,10 @@
     ];
     // ライフイベント：出来事と、そのときの数字（stat）。地図の道の印・グラフの点・一覧で同じ文を使う
     const f = i.family, sh = x.shataku, re = x.income.reemploy;
-    const ev = [{ age: i.age, label: "今（ここからスタート）", stat: `資産 ${man(now)}・家賃 毎月 ${manY(rentNow)}` }];
+    const ev = [{ age: i.age, label: "今（ここからスタート）", stat: `資産 ${man(now)}・家賃 ${rentNow ? `毎月 ${manY(rentNow)}` : "なし（実家など）"}` }];
     if (sh && sh.until > i.age) ev.push({ age: sh.until, label: "社宅を出る", stat: `家賃 ${manY(sh.self)}→${manY(sh.after)}（毎月 +${manY(sh.jump)}）` });
     if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚", stat: i.rent.couple ? `2人暮らしの家賃 ${manY(i.rent.couple)}` : "家賃はひとり暮らしのまま" });
-    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる", stat: `子育て期の家賃 ${manY(i.rent.family)}` });
+    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる", stat: i.rent.family ? `子育て期の家賃 ${manY(i.rent.family)}` : "家賃は2人暮らしのまま" });
     ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）`, stat: `毎月 ${man(L.pmt, 1)}×${L.months}回` });
     if (re.age < i.retireAge) ev.push({ age: re.age, label: "定年・再雇用", stat: L.atReemploy.left > 0 ? `年収 ${man(i.income * re.rate)}・ローン残り${L.atReemploy.left}回（残高 ${man(L.atReemploy.balance)}）` : `年収 ${man(i.income * re.rate)}・ローンは完済` });
     ev.push({ age: i.retireAge, label: "年金生活", stat: `年金 毎月 ${man(x.pension.monthly, 1)}` });
