@@ -150,7 +150,7 @@ test("年収を一般（国税庁の平均給与459.5万円）と比べる", () 
 test("生涯収入＝これからの給料（昇給を仮定）＋年金。そのうち住まいに使う割合", () => {
   const x = S.compute({ ...base, raise: 0 });
   const inc = x.income;
-  assert.equal(Math.round(inc.salaryMe), 3_900_000 * (65 - 27));
+  assert.equal(Math.round(inc.salaryMe), 3_900_000 * (60 - 27) + 3_900_000 * 0.6 * 5, "60歳で定年→65歳まで再雇用（6割）");
   assert.equal(Math.round(inc.pension), Math.round(x.pension.yearly * 30));
   assert.ok(inc.total >= inc.salaryMe + inc.pension);
   assert.ok(Math.abs(inc.housingShare.rent - x.life.rent / inc.total) < 1e-9);

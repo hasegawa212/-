@@ -108,6 +108,89 @@
   .ptools button { font:inherit; font-size:14px; border:1px solid var(--navy); background:#fff; color:var(--navy); border-radius:8px; padding:8px 16px; cursor:pointer; }
   .ptools button.primary { background:var(--navy); color:#fff; }
   .form input[type=text] { font:inherit; font-size:13px; padding:5px 6px; border:1px solid #c9b48a; border-radius:7px; background:#fff; width:150px; }
+
+  /* ───── トップページ「ライフパートナー」（お客様が主人公） ───── */
+  #home { display:none; }
+  body.home-view header, body.home-view main, body.home-view .pbar { display:none !important; }
+  body.home-view { background:#071229; }
+  body.home-view #home { display:block; min-height:100vh; color:#eef2fa;
+    background:radial-gradient(1200px 600px at 60% -10%, #1d3f78 0%, rgba(7,18,41,0) 60%), linear-gradient(#0a1a3a, #071229 60%); }
+  .gold { background:linear-gradient(180deg,#fff3c4 0%,#f2cd73 45%,#b98a2e 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hh { display:flex; align-items:center; gap:18px; padding:14px 22px; flex-wrap:wrap; }
+  .hh .logo { display:flex; align-items:center; gap:10px; min-width:230px; }
+  .hh .logo b { font-size:17px; letter-spacing:.04em; color:#fff; } .hh .logo small { display:block; font-size:10px; letter-spacing:.3em; color:#d9b968; }
+  .hh .ttl { flex:1; min-width:280px; }
+  .hh .ttl h1 { margin:0; font-size:44px; line-height:1.1; letter-spacing:.06em; font-weight:800; }
+  .hh .ttl p { margin:2px 0 0; font-size:14px; letter-spacing:.12em; color:#dfe6f3; }
+  .who { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.06); border:1px solid rgba(242,205,115,.35); border-radius:14px; padding:8px 14px; }
+  .who .av { width:44px; height:44px; border-radius:50%; background:#1c2f57; border:2px solid #f2cd73; display:grid; place-items:center; }
+  .who input { font:inherit; font-size:15px; font-weight:700; color:#fff; background:transparent; border:none; border-bottom:1px dashed rgba(255,255,255,.35); width:150px; padding:0 0 2px; }
+  .who input::placeholder { color:rgba(255,255,255,.55); font-weight:400; }
+  .who .lv { font-size:13px; color:#f2cd73; font-weight:700; }
+  .hgrid { display:grid; grid-template-columns:210px minmax(0,1fr) 330px; gap:14px; padding:0 18px 18px; }
+  @media (max-width:1180px){ .hgrid { grid-template-columns:1fr; } .hgrid > div:nth-child(2) { order:-1; } .hh .ttl h1 { font-size:34px; } }
+  .glass { background:linear-gradient(180deg, rgba(20,34,66,.88), rgba(10,20,44,.88)); border:1px solid rgba(242,205,115,.28); border-radius:14px; box-shadow:0 6px 24px rgba(0,0,0,.35); }
+  .hnav { padding:8px; display:flex; flex-direction:column; gap:2px; }
+  .hnav button { display:flex; align-items:center; gap:10px; font:inherit; font-size:14px; color:#e8edf7; background:transparent; border:1px solid transparent; border-radius:10px; padding:9px 10px; text-align:left; cursor:pointer; }
+  .hnav button:hover { background:rgba(255,255,255,.06); }
+  .hnav button.on { border-color:#f2cd73; background:linear-gradient(90deg, rgba(242,205,115,.22), rgba(242,205,115,.04)); color:#fff; font-weight:700; }
+  .hnav svg { flex:none; }
+  .mis { margin-top:12px; padding:10px 12px; }
+  .mis h3, .rc h3, .acts h3 { margin:0 0 8px; font-size:15px; display:flex; align-items:center; gap:8px; }
+  .mis h3 .n { margin-left:auto; background:#e5484d; color:#fff; border-radius:999px; font-size:12px; padding:0 8px; }
+  .mis label { display:flex; gap:8px; align-items:flex-start; grid-template-columns:none; font-size:12.5px; margin:6px 0; color:#e3e9f4; cursor:pointer; line-height:1.45; }
+  .mis label.auto { cursor:default; opacity:.9; }
+  .mis input { accent-color:#d9b968; margin-top:2px; }
+  .mis .d { text-decoration:line-through; text-decoration-color:rgba(242,205,115,.7); color:#b9c3d6; }
+  .map { position:relative; border-radius:16px; overflow:hidden; aspect-ratio:16/10; min-height:420px; border:1px solid rgba(242,205,115,.28); }
+  .map > svg { position:absolute; inset:0; width:100%; height:100%; }
+  .area { position:absolute; width:226px; padding:8px 10px 9px; cursor:pointer; text-align:left; font:inherit; color:#fff;
+    background:linear-gradient(180deg, rgba(14,24,48,.92), rgba(8,16,34,.92)); border:1px solid #d9b968; border-radius:12px; box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 0 18px rgba(242,205,115,.25); }
+  .area:hover { transform:translateY(-2px); box-shadow:0 0 24px rgba(242,205,115,.5); }
+  .area .t { display:flex; align-items:center; gap:8px; font-size:15px; white-space:nowrap; font-weight:800; letter-spacing:.04em; }
+  .area .s { font-size:11.5px; color:#cfd8e8; margin:1px 0 4px 34px; }
+  .area .v { font-size:11px; color:#e9edf5; line-height:1.4; margin-top:4px; }
+  .area .lvrow { display:flex; align-items:center; gap:6px; font-size:11px; color:#f2cd73; font-weight:700; }
+  .bar { flex:1; height:7px; background:rgba(255,255,255,.12); border-radius:9px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:linear-gradient(90deg,#b98a2e,#f6d98a); border-radius:9px; }
+  .bar.blue i { background:linear-gradient(90deg,#2d6be0,#7fb2ff); }
+  .hero { position:absolute; left:3%; bottom:0; width:26%; max-width:250px; pointer-events:none; }
+  .flag { position:absolute; left:4%; bottom:46%; background:rgba(8,16,34,.9); border:1px solid #f2cd73; color:#fff; border-radius:10px; padding:4px 10px; font-size:13px; font-weight:700; }
+  .nextbtn { position:absolute; left:50%; bottom:5%; transform:translateX(-50%); font:inherit; font-size:18px; font-weight:800; letter-spacing:.06em; color:#fff; cursor:pointer;
+    padding:12px 30px; border-radius:999px; border:2px solid #f2cd73; background:linear-gradient(180deg, rgba(40,30,8,.9), rgba(12,10,4,.95)); box-shadow:0 0 22px rgba(242,205,115,.55); }
+  .pin { position:absolute; transform:translate(-50%,-100%); font-size:12px; font-weight:800; color:#2a1d02; background:linear-gradient(#ffe79a,#d9a93a); border-radius:6px; padding:2px 8px; box-shadow:0 0 12px rgba(242,205,115,.8); }
+  .acts { margin-top:12px; padding:12px; }
+  .acts .row { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  @media (max-width:820px){
+    .acts .row { grid-template-columns:1fr 1fr; }
+    .map { aspect-ratio:auto; min-height:0; display:flex; flex-wrap:wrap; gap:8px; padding:10px; }
+    .area { position:relative; left:auto !important; top:auto !important; width:calc(50% - 4px); }
+    .area .t { font-size:13px; white-space:normal; } .area .s { margin-left:0; }
+    .hero, .flag, .pin { display:none; }
+    .nextbtn { position:relative; left:auto; bottom:auto; transform:none; width:100%; margin-top:4px; }
+    .hh .ttl h1 { font-size:30px; } .hh .logo { min-width:0; } .hgrid { padding:0 10px 14px; } .hh { padding:12px 12px; }
+    .who input { width:120px; }
+    .hnav { display:grid; grid-template-columns:1fr 1fr; } .hnav button { font-size:12.5px; padding:7px 8px; }
+    .rc li { grid-template-columns:16px 1fr 40px 84px; }
+  }
+  .act { position:relative; min-height:118px; border-radius:12px; overflow:hidden; cursor:pointer; text-align:left; font:inherit; color:#fff; border:1px solid rgba(242,205,115,.35); padding:10px 12px; }
+  .act b { font-size:16px; display:block; } .act span { font-size:12px; color:#e8edf5; }
+  .act em { position:absolute; right:10px; bottom:10px; font-style:normal; font-size:12px; border:1px solid #f2cd73; border-radius:999px; padding:3px 12px; background:rgba(0,0,0,.45); }
+  .act svg { position:absolute; right:-6px; top:-6px; opacity:.55; }
+  .rc { padding:12px 14px; margin-bottom:12px; }
+  .rc .big { font-size:30px; font-weight:800; letter-spacing:.02em; }
+  .rc .big small { font-size:15px; margin-left:2px; }
+  .rc .sub { font-size:12px; color:#9fb0cc; }
+  .rc ul { list-style:none; margin:8px 0 0; padding:0; }
+  .rc li { display:grid; grid-template-columns:16px 1fr 46px 92px; gap:6px; align-items:center; font-size:13px; padding:5px 0; border-top:1px solid rgba(255,255,255,.07); }
+  .rc li .dot { width:11px; height:11px; border-radius:50%; } .rc li .r { text-align:right; }
+  .ring { display:flex; gap:12px; align-items:center; }
+  .ev { list-style:none; margin:0; padding:0 0 0 4px; }
+  .ev li { display:grid; grid-template-columns:14px 52px 1fr; gap:6px; align-items:center; font-size:13.5px; padding:6px 0; border-top:1px solid rgba(255,255,255,.07); }
+  .ev li::before { content:""; width:9px; height:9px; border-radius:50%; background:#f2cd73; box-shadow:0 0 8px #f2cd73; }
+  .ev li.now::before { background:#7fb2ff; box-shadow:0 0 8px #7fb2ff; }
+  .hnote { font-size:11px; color:#9fb0cc; padding:0 22px 18px; }
+  .tabs button.home { font-weight:700; }
   @media print {
     body.proposal-view header, body.proposal-view .ptools { display:none !important; }
     body.proposal-view #proposal { padding:0; }
@@ -122,6 +205,7 @@
 </style>
 </head>
 <body>
+<section id="home"></section>
 <header>
   <h1>住まいの一生シミュレーター</h1>
   <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑦ の同じ順番で説明します（概算・通信なし・保存なし）</p>
@@ -132,7 +216,7 @@
     <div class="tabs" id="tabs"></div>
     <div id="steps"></div>
     <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
-    <div class="tools"><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
+    <div class="tools"><button id="toHome" style="background:#b08d57;color:#fff;border-color:#b08d57">★ トップ（ライフパートナー）</button><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
     <ul class="notes" id="notes"></ul>
   </section>
 </main>
@@ -212,6 +296,7 @@
   }
 
   const man = (v, d = 0) => (v == null ? "—" : (v / 10_000).toLocaleString("ja-JP", { minimumFractionDigits: d, maximumFractionDigits: d }) + "万円");
+  const manY = (v) => man(v, v % 10_000 ? 1 : 0); // 2万円・5.8万円
 
   function payment(P, rate, years) {
     if (P <= 0) return 0;
@@ -227,14 +312,20 @@
     return Math.max(0, P * g - (pm * (g - 1)) / r);
   }
 
-  // 年金の概算（年額）：基礎年金（満額と仮定）＋厚生年金（平均の月給 × 乗率 × 加入月数）
-  function pension(income, workStart, retireAge) {
-    const avg = Math.min(PENSION.salaryCap, Math.max(0, income) / 12);
-    const months = Math.max(0, retireAge - workStart) * 12;
-    const kousei = income > 0 ? avg * PENSION.kouseiRate * months : 0;
+  // 年金の概算（年額）：基礎年金（満額と仮定）＋厚生年金（月給 × 乗率 × 加入月数）
+  // reemploy＝{ age: 定年, rate: 再雇用の年収の割合 }：定年から retireAge までは月給が rate 倍
+  function pension(income, workStart, retireAge, reemploy) {
+    const mon = (v) => Math.min(PENSION.salaryCap, Math.max(0, v) / 12);
+    const re = reemploy ? Math.min(retireAge, Math.max(workStart, reemploy.age)) : retireAge;
+    const rRate = reemploy ? reemploy.rate : 1;
+    const months1 = Math.max(0, re - workStart) * 12, months2 = Math.max(0, retireAge - re) * 12;
+    const kousei = income > 0 ? (mon(income) * months1 + mon(income * rRate) * months2) * PENSION.kouseiRate : 0;
     const yearly = Math.round(PENSION.basicFull + kousei);
     return { yearly, monthly: yearly / 12, basic: PENSION.basicFull, kousei: Math.round(kousei) };
   }
+
+  // 家賃の平均：当社のお客様の家賃の中央値（社内Slack #02_アポ報告 見込み客の集計 2026年9〜10月）。社宅・家賃補助の自己負担は1〜3万円が多い
+  const RENT_AVG = { single: 58_000, shatakuSelf: 20_000, source: "当社のお客様（20代後半・単身・賃貸）の家賃の中央値 約5.8万円、社宅・家賃補助の自己負担 1〜3万円（2026年9〜10月の商談・アポ報告の集計）" };
 
   // 商談報告（#03）の中央値に近いお客様像：27歳・年収390万・貯金140万。家賃は将来の暮らしに合わせた目安（仮定）
   // お客様像のひな形。初期値は「独身」（商談のお客様の大半：独身・結婚願望「無し・あまり無し」71%）
@@ -243,7 +334,9 @@
       age: 27, income: 3_900_000, savings: 1_400_000, workStart: 22, retireAge: 65, lifeEnd: 95,
       family: { marryAge: null, kids: 0, firstKidAge: 32 },
       partnerIncome: 0,
-      rent: { single: 55_000, couple: 75_000, family: 90_000, old: 55_000, renewMonths: 1, renewEvery: 2, insYear: 10_000 },
+      rent: { single: RENT_AVG.single, couple: 75_000, family: 90_000, old: RENT_AVG.single, renewMonths: 1, renewEvery: 2, insYear: 10_000 },
+      shataku: { on: false, self: RENT_AVG.shatakuSelf, until: 30 },
+      reemploy: { age: 60, rate: 0.6 }, // 60歳で定年→65歳まで再雇用（年収は定年前の6割と仮定） // 社宅：自己負担と、出なければいけない年齢（だいたい30歳）
       own: { buyAge: 30, price: 28_000_000, landShare: 0.35, down: 0, costRate: 0.07, financeCosts: true, rate: 0.012, years: 35,
         propTax: 100_000, ins: 30_000, repairYear: 150_000, repairUpAfter: 20, repairUpRate: 1.5, kind: "used_other" },
       lifeIns: { monthly: 10_000, cutWithDanshin: 0 },
@@ -254,9 +347,10 @@
       invest: { on: false, rate: 0.03 },
     };
     if (name === "family") { p.family = { marryAge: 30, kids: 1, firstKidAge: 32 }; p.rent.old = 70_000; }
+    if (name === "shataku") { p.shataku.on = true; p.own.buyAge = p.shataku.until; }
     return p;
   }
-  const PRESETS = { single: "独身（ひとりで暮らす）", family: "結婚・子どもあり" };
+  const PRESETS = { single: "独身・賃貸（家賃は平均）", shataku: "独身・社宅（30歳ごろまで）", family: "結婚・子どもあり" };
   function defaults() { return preset("single"); }
 
   function stage(inp, age) {
@@ -266,14 +360,17 @@
     if (f.marryAge != null && age >= f.marryAge) return "couple";
     return "single";
   }
-  const STAGE_LABEL = { single: "ひとり暮らし", couple: "2人暮らし", family: "子育て", old: "老後" };
+  const STAGE_LABEL = { single: "ひとり暮らし", couple: "2人暮らし", family: "子育て", old: "老後", shataku: "社宅" };
 
   function compute(input, nested) {
     const d = defaults();
     const inp = { ...d, ...input, family: { ...d.family, ...(input.family || {}) }, rent: { ...d.rent, ...(input.rent || {}) },
       own: { ...d.own, ...(input.own || {}) }, oldLiving: { ...d.oldLiving, ...(input.oldLiving || {}) },
       landRates: { ...d.landRates, ...(input.landRates || {}) }, invest: { ...d.invest, ...(input.invest || {}) },
-      lifeIns: { ...d.lifeIns, ...(input.lifeIns || {}) }, nisa: { ...d.nisa, ...(input.nisa || {}) } };
+      lifeIns: { ...d.lifeIns, ...(input.lifeIns || {}) }, nisa: { ...d.nisa, ...(input.nisa || {}) }, shataku: { ...d.shataku, ...(input.shataku || {}) }, reemploy: { ...d.reemploy, ...(input.reemploy || {}) } };
+    const reAge = Math.min(inp.retireAge, inp.reemploy.age), reRate = inp.reemploy.rate;
+    const sh = inp.shataku;
+    const inShataku = (age) => sh.on && age < sh.until && age < inp.retireAge;
     const o = inp.own, R = inp.rent;
     const married = inp.family.marryAge != null;
     const cost = o.price * o.costRate;
@@ -283,8 +380,8 @@
     const buyAge = Math.max(inp.age, o.buyAge);
     const loanEnd = buyAge + o.years;
 
-    const me = pension(inp.income, inp.workStart, inp.retireAge);
-    const partner = married ? (inp.partnerIncome > 0 ? pension(inp.partnerIncome, inp.workStart, inp.retireAge) : { yearly: PENSION.basicFull }) : { yearly: 0 };
+    const me = pension(inp.income, inp.workStart, inp.retireAge, inp.reemploy);
+    const partner = married ? (inp.partnerIncome > 0 ? pension(inp.partnerIncome, inp.workStart, inp.retireAge, inp.reemploy) : { yearly: PENSION.basicFull }) : { yearly: 0 };
     const pensionYearly = me.yearly + partner.yearly;
     const living = married ? inp.oldLiving.couple : inp.oldLiving.single;
 
@@ -307,13 +404,18 @@
       const fromRT = Math.min(max - fromIT, resCap);
       creditRows.push({ i, age: buyAge + i - 1, balance, max, fromIT, fromRT, actual: fromIT + fromRT });
     }
+    // その年齢になった時点で、返した回数・残りの回数・残高（ローンは月で数える：35年＝420回）
+    const loanAt = (age) => {
+      const paidN = Math.min(o.years * 12, Math.max(0, age - buyAge) * 12);
+      return { age, paid: paidN, left: o.years * 12 - paidN, balance: balanceAfter(loan, o.rate, o.years, paidN) };
+    };
     const creditAt = (age) => (creditRows.find((r) => r.age === age) || { actual: 0 }).actual;
 
     const years = [];
     for (let age = inp.age; age < inp.lifeEnd; age++) {
-      const st = stage(inp, age);
-      const rentMonthly = R[st];
-      const rentPart = rentMonthly * 12, renewPart = (rentMonthly * R.renewMonths) / R.renewEvery, rentIns = R.insYear;
+      const st = inShataku(age) ? "shataku" : stage(inp, age);
+      const rentMonthly = st === "shataku" ? sh.self : R[st];
+      const rentPart = rentMonthly * 12, renewPart = st === "shataku" ? 0 : (rentMonthly * R.renewMonths) / R.renewEvery, rentIns = R.insYear;
       const rentYear = rentPart + renewPart + rentIns;
       let ownYear, ownLoan = 0, ownUpkeep = 0, cash = 0, ownTax = 0, ownIns = 0, ownRepair = 0, ownCredit = 0, preRent = 0;
       if (age < buyAge) { ownYear = rentYear; preRent = rentYear; }
@@ -386,17 +488,19 @@
     };
 
     // 生涯収入（これからの給料＋年金）と、そのうち住まいに使う割合
-    let salaryMe = 0, salaryPartner = 0;
+    let salaryMe = 0, salaryPartner = 0, salaryReemploy = 0;
     for (let a = inp.age; a < inp.retireAge; a++) {
-      const g = Math.pow(1 + inp.raise, a - inp.age);
+      // 定年までは毎年 raise で上がり、再雇用の間は定年前の年収 × rate（上がらない）
+      const g = Math.pow(1 + inp.raise, Math.min(a, reAge) - inp.age) * (a >= reAge ? reRate : 1);
       salaryMe += inp.income * g;
+      if (a >= reAge) salaryReemploy += inp.income * g;
       if (married && a >= inp.family.marryAge) salaryPartner += inp.partnerIncome * g;
     }
     const pensionTotal = pensionYearly * oldYears.length;
     const life = { rent: sum(years, "rentYear"), own: sum(years, "ownYear") };
     const incomeTotal = salaryMe + salaryPartner + pensionTotal;
     const income = {
-      salaryMe, salaryPartner, pension: pensionTotal, total: incomeTotal,
+      salaryMe, salaryPartner, salaryReemploy, reemploy: { age: reAge, rate: reRate }, pension: pensionTotal, total: incomeTotal,
       vsAverage: inp.income / AVG_SALARY, average: AVG_SALARY, averageLifetime: AVG_SALARY * Math.max(0, inp.retireAge - inp.workStart),
       housingShare: { rent: incomeTotal ? life.rent / incomeTotal : 0, own: incomeTotal ? life.own / incomeTotal : 0 },
     };
@@ -422,7 +526,11 @@
         const b = b0 + k, yrs = Math.max(10, Math.min(o.years, 80 - b));
         const sub = compute({ ...input, own: { ...o, buyAge: b, years: yrs, rate: o.rate + rateAdd } }, true);
         const waited = years.filter((y) => y.age >= b0 && y.age < b);
-        return { years: k, buyAge: b, loanYears: yrs, payoffAge: b + yrs, pmt: sub.loan.pmt,
+        // 審査の目安：返済比率（毎月の返済×12÷買うときの年収）。年収400万円未満30%・以上35%（フラット35の基準）
+        const incB = inp.income * Math.pow(1 + inp.raise, b - inp.age);
+        const ratio = incB > 0 ? (sub.loan.pmt * 12) / incB : 0, lim = incB < 4_000_000 ? 0.3 : 0.35;
+        const screen = { income: incB, ratio, limit: lim, ok: ratio <= lim, shorter: yrs < o.years };
+        return { years: k, buyAge: b, loanYears: yrs, payoffAge: b + yrs, pmt: sub.loan.pmt, screen,
           rentWhileWaiting: waited.reduce((s2, y) => s2 + y.rentYear, 0), loanYearsAfterRetire: Math.max(0, b + yrs - inp.retireAge),
           lifeOwn: sub.life.own, oldGapOwn: sub.old.own.gapMonthly };
       };
@@ -438,12 +546,23 @@
       wait,
       waitRateUp,
       tax,
+      renew: (() => {
+        const n = years.filter((y) => y.renewPart > 0).length;
+        return { total: tot("renewPart"), old: oldYears.reduce((s2, y) => s2 + y.renewPart, 0), every: R.renewEvery, months: R.renewMonths,
+          times: R.renewEvery > 0 ? Math.round(n / R.renewEvery) : 0, perTimeNow: (inShataku(inp.age) ? 0 : R[stage(inp, inp.age)]) * R.renewMonths };
+      })(),
+      // 審査：老後の賃貸の入居審査は、収入が年金だけになる。家賃が収入の3分の1以下が一般的な目安
+      screening: { rent: { ageFrom: inp.retireAge, ratioOld: pensionYearly > 0 ? (R.old * 12) / pensionYearly : Infinity, guide: 1 / 3,
+        hard: pensionYearly > 0 ? (R.old * 12) / pensionYearly > 1 / 3 : true } },
+      shataku: sh.on ? { self: sh.self, until: sh.until, after: R[stage(inp, Math.max(inp.age, sh.until))], jump: R[stage(inp, Math.max(inp.age, sh.until))] - sh.self } : null,
       credit: { kind: o.kind, label: kind.label, limit, years: kind.years, special, rows: creditRows, total: creditRows.reduce((s2, r) => s2 + r.actual, 0),
         totalMax: creditRows.reduce((s2, r) => s2 + r.max, 0), first: creditRows.length ? creditRows[0].actual : 0 },
       breakdown,
       insurance,
       acquisition: { cost, costRate: o.costRate },
-      loan: { amount: loan, pmt, cashAtBuy, buyAge, endAge: loanEnd },
+      loan: { amount: loan, pmt, cashAtBuy, buyAge, endAge: loanEnd, months: o.years * 12,
+        atReemploy: loanAt(reAge), atRetire: loanAt(inp.retireAge),
+        ratioNow: inp.income > 0 ? (pmt * 12) / inp.income : 0, ratioReemploy: inp.income * reRate > 0 ? (pmt * 12) / (inp.income * reRate) : 0 },
       pension: { me, partnerYearly: partner.yearly, yearly: pensionYearly, monthly: pensionYearly / 12, living },
       life,
       old: { rent: oldRent, own: oldOwn, years: oldYears.length },
@@ -455,42 +574,63 @@
     };
   }
 
+  // 定年・再雇用とローンの回数（説明と提案書で同じ文を使う）
+  function workLoanLine(x) {
+    const i = x.input, L = x.loan, re = x.income.reemploy, r = L.atReemploy;
+    const work = re.age < i.retireAge ? `${re.age}歳で定年、${i.retireAge}歳まで再雇用（年収は定年前の${Math.round(re.rate * 100)}%＝今の年収なら ${man(i.income * re.rate)}と仮定）` : `${i.retireAge}歳まで今の働き方`;
+    const loan = `ローンは${i.own.years}年＝${L.months}回払い（毎月 ${man(L.pmt, 1)}）`;
+    const at = re.age < i.retireAge && r.left > 0 ? `。${re.age}歳の時点で${r.paid}回払って残り${r.left}回（残高 ${man(r.balance)}）、再雇用の間の返済は年収の${Math.round(L.ratioReemploy * 100)}%${L.ratioReemploy > 0.35 ? "（重いので、定年までの繰上げ返済や退職金で残りを減らす計画も一緒に考えます）" : ""}` : r.left === 0 ? `。${re.age}歳までに完済` : "";
+    const end = L.atRetire.left > 0 ? `。${i.retireAge}歳でまだ残り${L.atRetire.left}回（残高 ${man(L.atRetire.balance)}）` : `。${L.endAge}歳で完済`;
+    return work + "／" + loan + at + end;
+  }
+
+  // 老後の賃貸の入居審査（一般的な目安。断定しない）
+  function rentScreenLine(x) {
+    const s = x.screening.rent, i = x.input;
+    return `賃貸の入居審査：${s.ageFrom}歳からは収入が年金（毎月 ${man(x.pension.monthly, 1)}）だけになり、家賃 ${man(i.rent.old, 1)} は年金の${Math.round(s.ratioOld * 100)}%。家賃は収入の3分の1以内が一般的な審査の目安なので、${s.hard ? "高齢・保証人とあわせて通りにくくなる場合があります" : "目安の範囲ですが、年齢や保証人で断られる場合があります"}`;
+  }
+
   // どのお客様にも同じ順番で説明する6ステップ（話すこと・見せる数字・お客様への質問）
   function talk(x) {
     const i = x.input, o = i.own;
     const stages = [...new Set(x.years.map((y) => y.stageLabel))];
     const single = i.family.marryAge == null;
+    const sh = x.shataku;
     const r = x.old.rent, w = x.old.own;
     const inc = x.income, pf = x.portfolio, wt = x.wait, wu = x.waitRateUp;
     const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
       show: `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${Math.round(inc.vsAverage * 100)}%）／これから一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）／そのうち住まいに使う割合　賃貸のまま ${Math.round(inc.housingShare.rent * 100)}%・持ち家 ${Math.round(inc.housingShare.own * 100)}%／今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
       ask: "今の預金・NISA・保険・不動産のバランスに、満足していますか。" };
     const seven = wt.length ? { title: "⑦「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
-      show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}`).join("／") +
+      show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}・住宅ローンの審査の返済比率 ${Math.round(r.screen.ratio * 100)}%（目安 ${Math.round(r.screen.limit * 100)}%以内${r.screen.ok ? "" : "を超える"}${r.screen.shorter ? "・返済期間が短くなる" : ""}）`).join("／") +
+        "。年齢が上がるほど返済期間が短くなり、健康状態によっては団信に入れず、審査が通りにくくなる場合があります" +
         (wu ? `／仮に3年の間に金利が0.5%上がった場合、毎月 ${man(wu.pmt, 1)}（下がる場合もあります）` : ""),
       ask: "待つ理由は何ですか。その理由がなくなるのはいつ頃ですか。" } : null;
     return [zero,
-      { title: "① これからの暮らしの段階", say: single
+      { title: "① これからの暮らしの段階", say: sh
+          ? `今は社宅で家賃が抑えられていますが、社宅はだいたい${sh.until}歳ごろまでです。出たあとは、ふつうの家賃を${i.lifeEnd}歳まで払うことになります。社宅の間は、貯金と住まいの準備ができる時期です。`
+          : single
           ? `ひとりで暮らしていく場合も、家賃は一生続きます。今の働き方のまま${i.retireAge}歳を迎え、そのあとも${i.lifeEnd}歳まで住まいは必要です。持ち家なら、結婚しても住み続ける・貸す・売るを選べます。`
           : `家賃は暮らしの段階で変わります。${stages.join(" → ")} と進むと、広い部屋が必要な時期に家賃も上がります。`,
-        show: x.input.family.marryAge != null ? `ひとり ${man(i.rent.single, 1)} → 2人 ${man(i.rent.couple, 1)} → 子育て ${man(i.rent.family, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）` : `ひとり ${man(i.rent.single, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）`,
-        ask: single ? "これからも、ひとりで自由に暮らしていきたいですか。結婚したら、住まいはどうしたいですか。" : "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
+        show: (sh ? `社宅 ${manY(sh.self)}（${sh.until}歳まで）→ 社宅を出たあと ${manY(sh.after)}（毎月 ${manY(sh.jump)}・年 ${manY(sh.jump * 12)} 増える。家賃は当社のお客様の平均）／` : "") +
+          (x.input.family.marryAge != null ? `ひとり ${man(i.rent.single, 1)} → 2人 ${man(i.rent.couple, 1)} → 子育て ${man(i.rent.family, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）` : `ひとり ${man(i.rent.single, 1)}${i.rent.single === RENT_AVG.single ? "（当社のお客様の家賃の平均）" : ""} → 老後 ${man(i.rent.old, 1)}（毎月）`),
+        ask: sh ? `社宅を出るのは何歳ごろの予定ですか。出たあと、どこに住みたいですか。` : single ? "これからも、ひとりで自由に暮らしていきたいですか。結婚したら、住まいはどうしたいですか。" : "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
       { title: "② 一生でかかる住まいのお金", say: `今から${i.lifeEnd}歳まで、住まいには一生お金がかかります。賃貸は家賃と保険を払い続け、持ち家は返済が終わったあとは税金・保険・修繕だけになります。持ち家は住宅ローン控除で、払った税金の一部が戻ります。`,
-        show: `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（${o.buyAge}歳で${man(o.price)}の家を買った場合）。持ち家のうち 税金（固定資産税・都市計画税）${man(x.breakdown.own.tax.amount)}・保険（火災・地震）${man(x.breakdown.own.ins.amount)}・利息 ${man(x.breakdown.own.interest.amount)}、住宅ローン控除で戻る税金 ${man(x.credit.total)}（${x.credit.label}・${x.credit.years}年）。賃貸の家財保険 ${man(x.breakdown.rent.ins.amount)}`,
+        show: `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（${o.buyAge}歳で${man(o.price)}の家を買った場合）。持ち家のうち 税金（固定資産税・都市計画税）${man(x.breakdown.own.tax.amount)}・保険（火災・地震）${man(x.breakdown.own.ins.amount)}・利息 ${man(x.breakdown.own.interest.amount)}、住宅ローン控除で戻る税金 ${man(x.credit.total)}（${x.credit.label}・${x.credit.years}年）。賃貸の家財保険 ${man(x.breakdown.rent.ins.amount)}・更新料 ${man(x.renew.total)}（${x.renew.every}年ごとに家賃${x.renew.months}か月分、${i.lifeEnd}歳までに${x.renew.times}回。うち${i.retireAge}歳から ${man(x.renew.old)}）`,
         ask: "一生の住まいのお金を、今まで計算したことはありますか。税金や保険まで含めて考えたことはありますか。" },
       { title: `③ ${i.retireAge}歳からの${x.old.years}年`, say: single
           ? `${i.retireAge}歳からは、ひとり分の年金が収入の中心です。賃貸のままだと、その年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`
           : `${i.retireAge}歳からは年金が収入の中心です。賃貸のままだと、年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`,
-        show: `年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸 ${man(r.outMonthly, 1)}・持ち家 ${man(w.outMonthly, 1)}／毎月の不足　賃貸 ${man(r.gapMonthly, 1)}・持ち家 ${man(w.gapMonthly, 1)}`,
+        show: `${workLoanLine(x)}／年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸 ${man(r.outMonthly, 1)}・持ち家 ${man(w.outMonthly, 1)}／毎月の不足　賃貸 ${man(r.gapMonthly, 1)}・持ち家 ${man(w.gapMonthly, 1)}`,
         ask: "老後の住まいは、どこで、どんな家に住んでいたいですか。" },
       { title: "④ 持たないなら、いくら準備が必要か", say: `賃貸のままでも、老後の家賃のぶんを今から準備できれば大丈夫です。そのために必要な金額を見てみましょう。`,
         show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）`,
         ask: `毎月 ${man(x.prepare.monthlyRent, 1)} を${i.retireAge}歳まで積み立て続けられそうですか。` },
       single ? { title: "⑤ もしものとき", say: `ひとりで暮らす場合、いちばんの心配は「年を取ってからの住まい」です。高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。持ち家なら、返済が終わったあとは住む場所が確保できます。住宅ローンには団体信用生命保険（団信）が付くので、万一のときもローンが親や兄弟に残りません。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `老後ひとりで払う家賃 毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／老後ひとりで払う家賃 毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ひとりで年を重ねたとき、どこに住んでいたいですか。金利が上がったときの備えはありますか。" } :
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ご家族に、どんな形で住まいを残したいですか。金利が上がったときの備えはありますか。" },
       { title: "⑥ まとめ：持つ・持たない、それぞれの準備", say: `どちらが正解ということはありません。持つなら、無理のない返済と修繕の備え。持たないなら、老後の家賃のための積立。「持たない」を選ぶ場合も、準備が必要だと知ったうえで選ぶことが大切です。`,
         show: `${i.retireAge}歳時点の家の価値（概算）　下落 ${man(x.value65.down)}／横ばい ${man(x.value65.flat)}／上昇 ${man(x.value65.up)}　※将来の価格を約束するものではありません／参考：差額を積み立てて運用した場合 ${man(x.fair.rentInvested65)}（${x.fair.note}）`,
@@ -511,7 +651,7 @@
       date: meta.date || "",
       company: meta.company || "",
       contact: [meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"),
-      profile: `${i.age}歳・年収 ${man(i.income)}・貯金 ${man(i.savings)}・${single ? "おひとりで暮らす前提" : (i.family.marryAge + "歳で結婚" + (i.family.kids ? `・お子さま${i.family.kids}人` : ""))}・${i.own.buyAge}歳で ${man(i.own.price)} の家を買った場合`,
+      profile: `${i.age}歳・年収 ${man(i.income)}・貯金 ${man(i.savings)}・${x.shataku ? `社宅（自己負担 ${manY(x.shataku.self)}・${x.shataku.until}歳まで）・` : ""}${single ? "おひとりで暮らす前提" : (i.family.marryAge + "歳で結婚" + (i.family.kids ? `・お子さま${i.family.kids}人` : ""))}・${i.own.buyAge}歳で ${man(i.own.price)} の家を買った場合`,
     };
     const pages = [
       { no: 1, title: "あなたのお金の全体像", lead: `これから一生で入ってくるお金は約 ${man(inc.total)}。住まいは、その中でいちばん大きな支出です。`,
@@ -525,16 +665,19 @@
       { no: 2, title: "一生でかかる住まいのお金", lead: `今から${i.lifeEnd}歳まで、賃貸は家賃を払い続け、持ち家は返済が終わると税金・保険・修繕だけになります。`,
         points: [
           `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（住宅ローン控除で戻る税金を差し引いた額）`,
+          `賃貸の更新料　${x.renew.every}年ごとに家賃${x.renew.months}か月分。${i.lifeEnd}歳までに${x.renew.times}回・合計 ${man(x.renew.total)}（うち${i.retireAge}歳から ${man(x.renew.old)}）`,
           `持ち家の内訳　元金 ${man(b.own.principal.amount)}・利息 ${man(b.own.interest.amount)}・固定資産税等 ${man(b.own.tax.amount)}・火災地震保険 ${man(b.own.ins.amount)}・修繕 ${man(b.own.repair.amount)}`,
           `住宅ローン控除　${x.credit.label}・${x.credit.years}年。払う税金の範囲で戻る見込み ${man(x.credit.total)}（制度上の上限 ${man(x.credit.totalMax)}）`,
-          `毎月の返済 ${man(x.loan.pmt, 1)}（金利 ${(i.own.rate * 100).toFixed(1)}%・${i.own.years}年・${x.loan.endAge}歳で完済）`,
+          `毎月の返済 ${man(x.loan.pmt, 1)}（金利 ${(i.own.rate * 100).toFixed(1)}%・${i.own.years}年＝${x.loan.months}回払い・${x.loan.endAge}歳で完済）`,
         ], table: true },
       { no: 3, title: single ? `${i.retireAge}歳からの、ひとりの暮らし` : `${i.retireAge}歳からの暮らしと、もしものとき`,
         lead: single ? `${i.retireAge}歳からは、ひとり分の年金が収入の中心です。賃貸のままなら、その年金から家賃を払い続けます。`
           : `${i.retireAge}歳からは年金が収入の中心です。ご家族の暮らしと住まいを、もしものときも含めて考えます。`,
         points: [
+          workLoanLine(x),
           `年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸のまま ${man(x.old.rent.outMonthly, 1)}・持ち家 ${man(x.old.own.outMonthly, 1)}`,
           `毎月の不足　賃貸のまま ${man(x.old.rent.gapMonthly, 1)}・持ち家 ${man(x.old.own.gapMonthly, 1)}`,
+          rentScreenLine(x),
           `持たない場合に${i.retireAge}歳までに準備したいお金 ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）`,
           single ? `高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。団信があるので、万一のときもローンは親や兄弟に残りません。`
             : `団信があるので、万一のときは残りのローンがなくなり、ご家族に住まいが残ります（賃貸ならご家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続けます）。`,
@@ -544,7 +687,7 @@
         points: [
           `持つなら：無理のない返済（毎月 ${man(x.loan.pmt, 1)}）と、修繕・固定資産税の備え。${i.retireAge}歳の家の価値（概算）は ${man(x.value65.down)}〜${man(x.value65.up)}（将来の価格を約束するものではありません）`,
           `持たないなら：老後の家賃のための積立（毎月 ${man(x.prepare.monthlyRent, 1)}）。差額を年${(x.fair.rate * 100).toFixed(0)}%で運用できた場合 ${man(x.fair.rentInvested65)}（元本保証なし）`,
-          `待つ場合：5年待つと、その間の家賃 ${man(w5.rentWhileWaiting)}・完済 ${w5.payoffAge}歳${w5.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${w5.loanYearsAfterRetire}年返済）` : ""}。待つ理由がはっきりしていれば、待つのも選択肢です`,
+          `待つ場合：5年待つと、その間の家賃 ${man(w5.rentWhileWaiting)}・完済 ${w5.payoffAge}歳${w5.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${w5.loanYearsAfterRetire}年返済）` : ""}・住宅ローンの審査の返済比率 ${Math.round(w5.screen.ratio * 100)}%（目安 ${Math.round(w5.screen.limit * 100)}%以内）。年齢が上がると期間が短くなり審査が通りにくくなる場合もあります。待つ理由がはっきりしていれば、待つのも選択肢です`,
         ],
         nextSteps: [
           "住宅ローンの事前審査で、借りられる額を確かめる（無料・購入の義務はありません）",
@@ -557,12 +700,87 @@
     return { cover, pages, notes: NOTES.slice() };
   }
 
+  // トップページ「ライフパートナー」：お客様が主人公。数字はすべて compute の結果から（見本の数字は使わない）
+  // done＝チェックしたミッション（{ preApproval, viewHomes, nenkin, insurance, nisaReview }）。画面の中だけで、保存しない
+  function home(x, done = {}, meta = {}) {
+    const i = x.input, o = i.own, pf = x.portfolio, L = x.loan;
+    const now = i.savings + i.nisa.balance;
+    const parts = [
+      { key: "realEstate", label: "不動産", amount: 0 },
+      { key: "nisa", label: "NISA", amount: i.nisa.balance },
+      { key: "savings", label: "預貯金", amount: i.savings },
+    ].map((p) => ({ ...p, share: now > 0 ? p.amount / now : p.key === "savings" ? 1 : 0 }));
+    // 今から65歳まで、持ち家の場合の資産（預貯金＋NISA＋家の価値−残りのローン）。65歳は portfolio.at65.own と同じ
+    const nr = i.nisa.rate, path = [];
+    for (let a = i.age; a <= i.retireAge; a++) {
+      const n = a - i.age, g = Math.pow(1 + nr, n);
+      const nisa = i.nisa.balance * g + (nr === 0 ? i.nisa.monthly * 12 * n : (i.nisa.monthly * 12 * (g - 1)) / nr);
+      let house = 0;
+      if (a >= L.buyAge) {
+        const t = a - L.buyAge;
+        const value = o.price * o.landShare + o.price * (1 - o.landShare) * Math.max(0.1, 1 - (0.9 * t) / 30);
+        house = Math.max(0, value - balanceAfter(L.amount, o.rate, o.years, t * 12));
+      }
+      path.push({ age: a, own: i.savings + nisa + house, rent: i.savings + nisa });
+    }
+    const target = x.prepare.rentNeed;
+    const rentNow = x.years[0] ? x.years[0].rentMonthly : i.rent.single;
+    const M = [
+      { id: "cushion", area: "cash", label: `急な出費に備える貯金（家賃の6か月分 ${man(rentNow * 6)}）`, auto: true, done: i.savings >= rentNow * 6 },
+      { id: "nisaStart", area: "nisa", label: "NISAで毎月の積立を始める", auto: true, done: i.nisa.monthly > 0 },
+      { id: "nisaReview", area: "nisa", label: "積立の額と続けられるかを確かめる", auto: false },
+      { id: "insurance", area: "ins", label: "保険を見直す（団信で減らせる分があるか）", auto: false },
+      { id: "preApproval", area: "home", label: "住宅ローンの事前審査で借りられる額を確かめる（無料・購入の義務はありません）", auto: false },
+      { id: "viewHomes", area: "home", label: "条件（エリア・広さ・毎月の上限）を書き出して物件を見る", auto: false },
+      { id: "plan", area: "plan", label: "ライフプランをつくる（このシミュレーション）", auto: true, done: true },
+      { id: "nenkin", area: "plan", label: "ねんきんネットで年金の見込額を確かめる", auto: false },
+    ].map((m) => ({ ...m, done: m.auto ? !!m.done : !!done[m.id] }));
+    const lv = (k) => 1 + M.filter((m) => m.area === k && m.done).length;
+    const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
+    const area = (key, label, sub, value, step) => ({ key, label, sub, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
+    const areas = [
+      area("cash", "現預金エリア", "安心の土台をつくる", `預貯金 ${man(i.savings)}`, 0),
+      area("nisa", "NISAエリア", "未来の資産を育てる", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)} → ${i.retireAge}歳 ${man(pf.at65.nisa)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
+      area("ins", "保険エリア", "もしもの時に備える", `生命保険 毎月 ${man(i.lifeIns.monthly, 1)}・団信で万一のときローンは残らない`, 5),
+      area("home", "不動産エリア", "住まいで人生を豊かに", `${L.buyAge}歳で ${man(o.price)} の家・毎月 ${man(L.pmt, 1)}・${L.endAge}歳で完済`, 2),
+      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}`, 1),
+    ];
+    const f = i.family, ev = [{ age: i.age, label: "今（ここからスタート）" }];
+    if (x.shataku && x.shataku.until > i.age) ev.push({ age: x.shataku.until, label: "社宅を出る" });
+    if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚" });
+    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる" });
+    ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）` });
+    if (x.income.reemploy.age < i.retireAge) ev.push({ age: x.income.reemploy.age, label: "定年・再雇用" });
+    ev.push({ age: i.retireAge, label: "年金生活" });
+    ev.push({ age: L.endAge, label: "ローン完済" });
+    ev.sort((p, q) => p.age - q.age);
+    const doneN = M.filter((m) => m.done).length;
+    return {
+      hero: { title: "ライフパートナー", catch: "人生のすべてのステージに、最高のパートナーを。", sub: "描こう、あなたの理想の未来を。",
+        name: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "あなた",
+        company: meta.company || "", level: 1 + doneN, age: i.age },
+      assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
+      goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
+      areas, missions: M, events: ev,
+      actions: [
+        { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: 0, icon: "nisa" },
+        { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: 2, icon: "home" },
+        { title: "もしもに備える", sub: "団信・保険・金利が上がったら", step: 5, icon: "ins" },
+        { title: "提案書をつくる", sub: "A4・4ページでお渡し", go: "proposal", icon: "plan" },
+      ],
+    };
+  }
+
   const NOTES = [
     "金額はすべて概算です。年金は ねんきんネット・ねんきん定期便の見込額で確かめてください。",
-    "年金は基礎年金を満額、厚生年金を「年収÷12 × 5.481/1000 × 加入月数」で概算（令和8年度の数字。賞与・昇給・加入期間で変わる）。",
+    "年金は基礎年金を満額、厚生年金を「年収÷12 × 5.481/1000 × 加入月数」で概算（令和8年度の数字。賞与・昇給・加入期間で変わる）。60歳で定年・65歳まで再雇用（年収は定年前の6割と仮定、会社の制度で変わる）とし、再雇用の5年は給料も厚生年金も下がった年収で計算。",
+    "ローンは月で数える（35年＝420回払い）。定年・65歳の時点の残りの回数と残高は、毎月同じ額を返す元利均等返済で計算。",
+    "家賃の初期値 5.8万円は当社のお客様（20代後半・単身・賃貸）の家賃の中央値。社宅は自己負担2万円・30歳ごろまでと仮定（会社の規定で変わる。社宅の間は更新料なし）。",
     "老後の生活費（住居費を除く）・将来の家賃・物件価格・修繕費は仮定です。お客様の地域と暮らしに合わせて変えてください。",
     "家の価値は、土地は年−1%／0%／＋1%、建物は30年で1割まで下がると仮定した3つのシナリオです。",
-    "高齢期の賃貸は、年齢や保証人を理由に入居を断られる場合がある（一般的な傾向）。",
+    "高齢期の賃貸は、年齢や保証人を理由に入居を断られる場合がある（一般的な傾向）。家賃は収入の3分の1以内が入居審査の一般的な目安。",
+    "住宅ローンの審査は返済比率（年収400万円未満30%・以上35%、フラット35の基準）で目安を表示。完済は80歳までが一般的で、年齢が上がると期間が短くなる。団信は健康状態で入れない場合がある。実際の審査は金融機関ごとに異なる。",
+    "賃貸の更新料は2年ごとに家賃1か月分と仮定（地域・物件で0〜2か月）。社宅の間は更新料なし。",
     "住宅ローン控除は2026〜2027年入居の制度（令和8年度税制改正）で概算。単身は一般の限度額、結婚後（40歳未満）や子育て中に入居すると上乗せ。所得税→住民税（課税所得×5%・最高97,500円）の順に、払った税金の範囲で戻り、控除しきれない額は数えない。税額は給与収入だけの単身として概算〔要確認：源泉徴収票で確認〕。",
     "一般の年収は国税庁「民間給与実態統計調査」令和5年分の平均給与 459.5万円。生涯収入は今の年収が毎年1%上がると仮定（▼で変更）した給料と、年金（概算）の合計。",
     "NISAは今の残高と毎月の積立を年3%で運用できたと仮定（元本保証なし）。預貯金は今のまま。65歳の不動産は家の価値（横ばい）から残りのローンを引いた額。",
@@ -570,7 +788,7 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
 
 </script>
@@ -661,6 +879,8 @@
     ["income", "年収（税込）", range(2_500_000, 12_000_000, 100_000), yen],
     ["savings", "今の貯金", [0, 300_000, 500_000, 800_000, 1_000_000, 1_400_000, 2_000_000, 3_000_000, 5_000_000, 8_000_000, 10_000_000], yen],
     ["raise", "年収の上がり方（年）", [0, 0.005, 0.01, 0.015, 0.02, 0.03], (v) => (v ? (v * 100).toFixed(1) + "%" : "上がらない")],
+    ["reemploy.age", "定年（そのあと65歳まで再雇用）", range(55, 65, 1), (v) => (v >= 65 ? "65歳まで今の働き方" : v + "歳")],
+    ["reemploy.rate", "再雇用の年収（定年前の何割）", [0.4, 0.5, 0.6, 0.7, 0.8, 1], (v) => (v * 10).toFixed(0) + "割"],
     ["NISA・投資"],
     ["nisa.balance", "NISAの残高", [0, 100_000, 300_000, 500_000, 1_000_000, 2_000_000, 3_000_000, 5_000_000, 10_000_000], (v) => (v ? yen(v) : "なし")],
     ["nisa.monthly", "NISAの毎月の積立", range(0, 100_000, 5_000), (v) => (v ? yen(v) : "していない")],
@@ -671,16 +891,22 @@
     ["family.firstKidAge", "第1子が生まれる年齢", range(22, 45, 1), (v) => v + "歳"],
     ["partnerIncome", "パートナーの年収", [0, 1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000], (v) => (v ? yen(v) : "なし・扶養内")],
     ["賃貸の家賃（毎月・その地域の目安）"],
-    ["rent.single", "ひとり暮らし", range(30_000, 120_000, 5_000), yen],
+    ["rent.single", "ひとり暮らし（初期値＝当社のお客様の平均）", [...range(30_000, 120_000, 5_000), S.RENT_AVG.single].sort((a, b) => a - b), yen],
     ["rent.couple", "2人暮らし", range(40_000, 150_000, 5_000), yen],
     ["rent.family", "子育て期（広い部屋）", range(50_000, 180_000, 5_000), yen],
-    ["rent.old", "老後", range(30_000, 150_000, 5_000), yen],
+    ["rent.old", "老後", [...range(30_000, 150_000, 5_000), S.RENT_AVG.single].sort((a, b) => a - b), yen],
     ["rent.insYear", "家財保険（年）", range(5_000, 30_000, 1_000), yen],
+    ["rent.renewMonths", "更新料（家賃の何か月分）", [0, 0.5, 1, 1.5, 2], (v) => (v ? v + "か月分" : "なし")],
+    ["rent.renewEvery", "更新の間隔", [1, 2, 3], (v) => v + "年ごと"],
+    ["社宅（会社の寮・借り上げ社宅）"],
+    ["shataku.on", "今、社宅に住んでいる", [false, true], (v) => (v ? "はい" : "いいえ")],
+    ["shataku.self", "社宅の自己負担（毎月）", range(0, 50_000, 5_000), (v) => (v ? yen(v) : "なし")],
+    ["shataku.until", "社宅を出る年齢（規定）", range(25, 40, 1), (v) => v + "歳"],
     ["持ち家（買う場合）"],
     ["own.buyAge", "買う年齢", range(20, 55, 1), (v) => v + "歳"],
     ["own.price", "物件価格", range(10_000_000, 60_000_000, 1_000_000), yen],
     ["own.rate", "金利（年）", range(0.005, 0.03, 0.001), (v) => (v * 100).toFixed(1) + "%"],
-    ["own.years", "返済年数", range(20, 35, 1), (v) => v + "年"],
+    ["own.years", "返済年数（回数）", range(20, 35, 1), (v) => `${v}年（${v * 12}回）`],
     ["own.kind", "住宅の種類（住宅ローン控除）", Object.keys(S.CREDIT_KINDS), (v) => S.CREDIT_KINDS[v].label],
     ["own.propTax", "固定資産税・都市計画税（年）", range(30_000, 300_000, 10_000), yen],
     ["own.ins", "火災・地震保険（年）", range(10_000, 100_000, 5_000), yen],
@@ -699,9 +925,9 @@
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
   function buildForm() {
-    const isSingle = state.family.marryAge == null;
+    const curP = state.shataku.on ? "shataku" : state.family.marryAge == null ? "single" : "family";
     let h = `<h2>お客様のタイプ</h2><div class="preset">${Object.entries(S.PRESETS).map(([k, v]) =>
-      `<button data-p="${k}" class="${(k === "single") === isSingle ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
+      `<button data-p="${k}" class="${k === curP ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
     for (const f of FIELDS) {
       if (f.length === 1) { h += `<h2>${esc(f[0])}</h2>`; continue; }
       const [key, label, opts, fmt] = f;
@@ -714,13 +940,13 @@
     $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
     $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
       const p = S.preset(b.dataset.p);
-      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome;
+      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome; state.shataku = p.shataku; state.own.buyAge = p.own.buyAge;
       buildForm(); render();
     }));
     $("form").querySelectorAll("select").forEach((sel) => {
       const f = FIELDS.find((x) => x[0] === sel.dataset.k);
       if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
-      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge") buildForm(); render(); };
+      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge" || f[0] === "shataku.on") buildForm(); render(); };
     });
   }
 
@@ -797,16 +1023,18 @@
   }
   function waitView(x) {
     const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge;
-    const rows = w.map((r) => `<tr><td>${r.years ? r.years + "年待つ" : "今の計画"}</td><td>${r.buyAge}歳</td><td>${r.years ? man(r.rentWhileWaiting) : "—"}</td><td>${r.payoffAge}歳</td><td>${r.loanYearsAfterRetire ? r.loanYearsAfterRetire + "年" : "なし"}</td><td>${man(r.pmt, 1)}</td></tr>`).join("");
-    return `<div class="two"><div><table class="bd"><tr><th></th><th>買う年齢</th><th>待つ間の家賃</th><th>完済</th><th>${ret}歳を過ぎて返す</th><th>毎月の返済</th></tr>${rows}</table>
-      <p class="small">仮に3年待つ間に金利が0.5%上がった場合、毎月 ${man(u.pmt, 1)}。物件価格や金利は、上がることも下がることもあります。</p></div>
+    const rows = w.map((r) => `<tr style="white-space:nowrap"><td>${r.years ? r.years + "年待つ" : "今の計画"}</td><td>${r.buyAge}歳</td><td>${r.years ? man(r.rentWhileWaiting) : "—"}</td><td>${r.payoffAge}歳</td><td>${r.loanYearsAfterRetire ? r.loanYearsAfterRetire + "年" : "なし"}</td><td>${man(r.pmt, 1)}</td><td class="${r.screen.ok ? "" : "minus"}">${Math.round(r.screen.ratio * 100)}%${r.screen.ok ? "" : " ⚠"}</td></tr>`).join("");
+    return `<div class="two"><div><table class="bd"><tr><th></th><th>購入</th><th>待つ間の家賃</th><th>完済</th><th>${ret}歳以降</th><th>毎月</th><th>返済比率</th></tr>${rows}</table>
+      <p class="small">返済比率＝毎月の返済×12÷その年の年収（審査の目安：年収400万円未満30%・以上35%以内）。年齢が上がると期間が短くなり、団信に入れず審査が通りにくくなる場合も。仮に3年の間に金利が0.5%上がれば毎月 ${man(u.pmt, 1)}（下がることもあります）。</p></div>
       <div>${hbars(w.slice(1).map((r) => ({ label: `${r.years}年待つ`, parts: [["待つ間の家賃", r.rentWhileWaiting, "var(--rent)"]] })))}
       <p class="small" style="margin-top:8px"><b>待つ理由をはっきりさせる</b><br>✓ 転勤・結婚・転職の時期が決まっていない → 決まる時期まで待つのも選択肢（その間に事前審査や貯金を進める）<br>✓ 貯金が足りない → いつまでにいくら貯めるかを決める<br>？「なんとなく」→ 待つ間の家賃と、遅れる完済年齢を知ったうえで決める</p></div></div>`;
   }
   function breakdownTable(x) {
     const b = x.breakdown, r = b.rent, o = b.own, dash = "—";
+    const preRenew = x.years.filter((y) => y.age < x.loan.buyAge).reduce((s, y) => s + y.renewPart, 0);
     const rows = [
-      ["家賃・更新料", r.rent.amount + r.renew.amount, o.preRent.amount, "買うまで"],
+      ["家賃", r.rent.amount, o.preRent.amount - preRenew, "買うまで"],
+      [`更新料（${x.renew.every}年ごとに${x.renew.months}か月分・${x.renew.times}回）`, r.renew.amount, preRenew, "買うまで"],
       ["保険（住まい）", r.ins.amount, o.ins.amount, "賃貸は家財保険・持ち家は火災・地震保険"],
       ["税金（固定資産税・都市計画税）", null, o.tax.amount],
       ["頭金・諸費用（現金）", null, o.cash.amount],
@@ -865,6 +1093,153 @@
     document.body.classList.add("proposal-view");
     window.scrollTo(0, 0);
   }
+
+  // ───── トップページ「ライフパートナー」：お客様が主人公 ─────
+  const missionDone = {}; // チェックしたミッション（この画面の中だけ。保存・共有しない）
+  const ICON = {
+    cash: '<path d="M4 15c0-2 3.6-3.5 8-3.5s8 1.5 8 3.5-3.6 3.5-8 3.5S4 17 4 15Z"/><path d="M4 15v3c0 2 3.6 3.5 8 3.5s8-1.5 8-3.5v-3M6 9.5C6 8 8.7 7 12 7s6 1 6 2.5S15.3 12 12 12 6 11 6 9.5Z"/>',
+    nisa: '<path d="M4 20V14M9 20V10M14 20V12M19 20V5"/><path d="M4 11l5-4 5 3 6-6"/>',
+    ins: '<path d="M12 3l7 3v5c0 5-3.2 8.4-7 10-3.8-1.6-7-5-7-10V6l7-3Z"/><path d="M9 12l2 2 4-4"/>',
+    home: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+    plan: '<circle cx="8" cy="7" r="3"/><circle cx="16" cy="7" r="3"/><path d="M2 20c0-3.5 2.7-6 6-6s6 2.5 6 6M12 20c0-3.5 1.8-6 4-6s6 2.5 6 6"/>',
+    top: '<path d="M3 11l9-7 9 7"/><path d="M6 10v10h12V10"/>',
+    map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Z"/><path d="M9 4v14M15 6v14"/>',
+    life: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+    old: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+    doc: '<path d="M6 3h9l4 4v14H6Z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/>',
+    zoom: '<rect x="3" y="5" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3"/>',
+  };
+  const ico = (k, sz = 20, c = "#f2cd73") => `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICON[k]}</svg>`;
+  // 地図の絵（SVG・手描き）：海と島、今からGOALまでの金色の道
+  function mapArt() {
+    let city = "", houses = "", trees = "";
+    [[120, 250, 26, 120], [152, 230, 22, 140], [180, 262, 20, 108], [206, 240, 18, 130], [232, 270, 22, 100], [258, 252, 16, 118], [96, 280, 20, 90]].forEach(([x0, y0, w, h]) => {
+      city += `<rect x="${x0}" y="${y0 - h + 120}" width="${w}" height="${h}" fill="url(#bld)"/>`;
+      for (let yy = y0 - h + 128; yy < y0 + 112; yy += 10) city += `<rect x="${x0 + 4}" y="${yy}" width="${w - 8}" height="2" fill="#ffe7a8" opacity=".55"/>`;
+    });
+    [[430, 300], [480, 285], [530, 305], [585, 290], [455, 345], [520, 352], [600, 340], [660, 320], [700, 360], [640, 395]].forEach(([x0, y0], k) => {
+      const c = ["#f4efe6", "#efe4cf", "#f7f3ea"][k % 3];
+      houses += `<g transform="translate(${x0},${y0})"><rect x="-16" y="-12" width="32" height="20" fill="${c}"/><path d="M-20 -11 0 -27 20 -11Z" fill="#7a4b2a"/><rect x="-5" y="-4" width="10" height="12" fill="#ffd36e" opacity=".9"/></g>`;
+    });
+    for (let k = 0; k < 46; k++) { const tx = 70 + ((k * 137) % 860), ty = 300 + ((k * 89) % 230); trees += `<circle cx="${tx}" cy="${ty}" r="${5 + (k % 4)}" fill="${k % 5 ? "#2f6b3f" : "#e7a6c4"}" opacity=".9"/>`; }
+    return `<svg viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b1d45"/><stop offset=".45" stop-color="#2f5e9e"/><stop offset=".78" stop-color="#e9b86a"/><stop offset="1" stop-color="#f6d79a"/></linearGradient>
+        <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a7fb8"/><stop offset="1" stop-color="#0b3561"/></linearGradient>
+        <linearGradient id="isl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f9a4e"/><stop offset="1" stop-color="#2d5b34"/></linearGradient>
+        <linearGradient id="bld" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#9fb7d6"/><stop offset="1" stop-color="#5a7398"/></linearGradient>
+        <radialGradient id="sun" cx=".72" cy=".2" r=".35"><stop offset="0" stop-color="#fff2c6" stop-opacity=".95"/><stop offset="1" stop-color="#fff2c6" stop-opacity="0"/></radialGradient>
+        <filter id="glow"><feGaussianBlur stdDeviation="6"/></filter>
+      </defs>
+      <rect width="1000" height="620" fill="url(#sky)"/><rect width="1000" height="620" fill="url(#sun)"/>
+      <path d="M0 210 120 120 210 190 330 90 450 200 560 130 690 70 800 160 900 110 1000 180V260H0Z" fill="#30476e" opacity=".75"/>
+      <path d="M690 70 712 92 700 92Z" fill="#fff" opacity=".9"/>
+      <rect y="230" width="1000" height="390" fill="url(#sea)"/>
+      <path d="M0 236h1000" stroke="#fff" stroke-opacity=".25"/>
+      <ellipse cx="190" cy="360" rx="190" ry="95" fill="#e9d7a8"/><ellipse cx="190" cy="352" rx="176" ry="86" fill="url(#isl)"/>
+      <ellipse cx="560" cy="350" rx="230" ry="110" fill="#e9d7a8"/><ellipse cx="560" cy="342" rx="216" ry="100" fill="url(#isl)"/>
+      <ellipse cx="740" cy="170" rx="140" ry="62" fill="#e9d7a8"/><ellipse cx="740" cy="164" rx="128" ry="55" fill="url(#isl)"/>
+      <ellipse cx="860" cy="470" rx="150" ry="80" fill="#e9d7a8"/><ellipse cx="860" cy="462" rx="138" ry="72" fill="url(#isl)"/>
+      ${trees}${city}${houses}
+      <g transform="translate(740,150)"><rect x="-34" y="-46" width="68" height="46" fill="#f5ecd6"/><rect x="-46" y="-30" width="16" height="30" fill="#efe2c2"/><rect x="30" y="-30" width="16" height="30" fill="#efe2c2"/>
+        <path d="M-38 -46 0 -72 38 -46Z" fill="#c9a24b"/><rect x="-6" y="-20" width="12" height="20" fill="#ffd36e"/></g>
+      <g transform="translate(860,450)"><rect x="-40" y="-40" width="80" height="44" fill="#f2efe8"/><rect x="-40" y="-52" width="80" height="12" fill="#3d5f8f"/><rect x="-30" y="-30" width="60" height="20" fill="#9cc4ea"/></g>
+      <path id="road" d="M520 640 C 470 560, 600 520, 560 450 S 430 380, 520 330 S 700 300, 660 240 S 700 180, 740 132" fill="none" stroke="#ffd36e" stroke-width="16" opacity=".55" filter="url(#glow)"/>
+      <path d="M520 640 C 470 560, 600 520, 560 450 S 430 380, 520 330 S 700 300, 660 240 S 700 180, 740 132" fill="none" stroke="#ffe9a8" stroke-width="7" stroke-linecap="round"/>
+      <path d="M520 640 C 470 560, 600 520, 560 450 S 430 380, 520 330 S 700 300, 660 240 S 700 180, 740 132" fill="none" stroke="#b98a2e" stroke-width="2" stroke-dasharray="2 12" stroke-linecap="round"/>
+      <path d="M330 470 q90 -40 140 -10" stroke="#e8dcc0" stroke-width="6" fill="none"/><path d="M330 470 q90 -40 140 -10" stroke="#9a8b6a" stroke-width="1" fill="none"/>
+      <g fill="#fff" opacity=".9"><path d="M60 520 h46 l-8 10 h-32Z"/><path d="M880 280 h34 l-6 8 h-24Z"/><path d="M300 560 h60 l-10 12 h-42Z"/></g>
+    </svg>`;
+  }
+  // 主人公（後ろ姿）
+  const heroArt = () => `<svg class="hero" viewBox="0 0 240 300" aria-hidden="true">
+    <path d="M30 300 C 34 220, 60 170, 120 166 C 180 170, 206 220, 210 300Z" fill="#1d2434"/>
+    <path d="M60 300 C 62 236, 82 196, 120 192 C 158 196, 178 236, 180 300Z" fill="#141a26"/>
+    <rect x="78" y="196" width="84" height="80" rx="14" fill="#0e131c" stroke="#2a3346" stroke-width="3"/><path d="M92 196 v-14 M148 196 v-14" stroke="#0e131c" stroke-width="10"/>
+    <rect x="108" y="140" width="24" height="30" fill="#c99a76"/>
+    <circle cx="120" cy="112" r="40" fill="#2b1c14"/><path d="M84 100 q10 -40 40 -38 q34 2 40 38 q-8 -14 -16 -10 q-6 -16 -24 -12 q-16 -6 -26 10 q-8 -2 -14 12Z" fill="#3a2619"/>
+    <ellipse cx="80" cy="118" rx="6" ry="10" fill="#c99a76"/><ellipse cx="160" cy="118" rx="6" ry="10" fill="#c99a76"/></svg>`;
+  function sparkline(path) {
+    const W = 300, H = 70, max = Math.max(...path.map((p) => p.own)) * 1.05 || 1, a0 = path[0].age, a1 = path.at(-1).age;
+    const X = (a) => 4 + ((a - a0) / Math.max(1, a1 - a0)) * (W - 8), Y = (v) => H - 4 - (v / max) * (H - 10);
+    const line = (k) => path.map((p, i) => `${i ? "L" : "M"}${X(p.age).toFixed(1)},${Y(p[k]).toFixed(1)}`).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" aria-label="今から65歳までの資産の見通し">
+      <path d="${line("own")}L${X(a1)},${H}L${X(a0)},${H}Z" fill="#2d8cff" opacity=".14"/><path d="${line("own")}" fill="none" stroke="#5fb0ff" stroke-width="2.5"/>
+      <path d="${line("rent")}" fill="none" stroke="#c9d3e6" stroke-width="1.5" stroke-dasharray="4 4"/><circle cx="${X(a1)}" cy="${Y(path.at(-1).own)}" r="4" fill="#9fd0ff"/></svg>`;
+  }
+  function ring(pct) {
+    const r = 34, c = 2 * Math.PI * r;
+    return `<svg width="96" height="96" viewBox="0 0 96 96"><circle cx="48" cy="48" r="${r}" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9"/>
+      <circle cx="48" cy="48" r="${r}" fill="none" stroke="#f2cd73" stroke-width="9" stroke-linecap="round" stroke-dasharray="${(c * pct).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 48 48)"/>
+      <text x="48" y="54" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">${Math.round(pct * 100)}%</text></svg>`;
+  }
+  const NAV = [["top", "マイページ", "home"], ["map", "お金の全体像", 0], ["life", "暮らしの段階", 1], ["home", "一生の住居費", 2], ["old", "65歳からの暮らし", 3], ["nisa", "持たない場合の準備", 4], ["ins", "もしものとき", 5], ["plan", "まとめ", 6], ["cash", "「今はいい」と思ったら", 7], ["doc", "提案書（PDF）", "proposal"], ["zoom", "画面共有（Zoom）", "present"], ["gear", "条件を変える", "form"]];
+  const POS = { nisa: [3, 6], home: [36, 4], ins: [75, 30], plan: [75, 53], cash: [64, 76] };
+  function homeHtml(x) {
+    const h = S.home(x, missionDone, meta), A = h.assets;
+    const DOT = { realEstate: "#e7b84a", nisa: "#26c6b5", savings: "#3b82f6" };
+    const open = h.missions.filter((m) => !m.done).length;
+    const areaCard = (a) => `<button class="area" style="left:${POS[a.key][0]}%;top:${POS[a.key][1]}%" data-step="${a.step}">
+        <div class="t">${ico(a.key, 26)}<span>${esc(a.label)}</span></div><div class="s">${esc(a.sub)}</div>
+        <div class="lvrow">Lv.${a.level}<span class="bar${a.key === "nisa" ? " blue" : ""}"><i style="width:${Math.max(6, a.progress * 100)}%"></i></span></div>
+        <div class="v">${esc(a.value)}</div></button>`;
+    return `<div class="hh">
+        <div class="logo">${ico("plan", 40)}<div><b>${esc(h.hero.company || "会社名")}</b><small>LIFE PARTNER</small></div></div>
+        <div class="ttl"><h1 class="gold">${esc(h.hero.title)}</h1><p>${esc(h.hero.catch)}</p></div>
+        <div class="who"><div class="av">${ico("old", 26, "#fff")}</div><div><input id="hName" placeholder="お名前を入力" value="${esc(meta.customer || "")}" aria-label="お客様のお名前"><span style="font-size:13px"> 様</span>
+          <div class="lv">準備 Lv.${h.hero.level}　<span style="color:#cfd8e8;font-weight:400">${h.hero.age}歳からの物語</span></div></div></div>
+      </div>
+      <div class="hgrid">
+        <div>
+          <nav class="glass hnav">${NAV.map(([ic, l, t]) => `<button data-go="${t}" class="${t === "home" ? "on" : ""}">${ico(ic)}<span>${esc(l)}</span></button>`).join("")}</nav>
+          <div class="glass mis"><h3>${ico("doc")}ミッション<span class="n">${open}</span></h3>
+            ${h.missions.map((m) => `<label class="${m.auto ? "auto" : ""}"><input type="checkbox" data-m="${m.id}" ${m.done ? "checked" : ""} ${m.auto ? "disabled" : ""}><span class="${m.done ? "d" : ""}">${esc(m.label)}${m.auto ? "（自動）" : ""}</span></label>`).join("")}
+          </div>
+        </div>
+        <div>
+          <div class="map">${mapArt()}
+            <span class="pin" style="left:74%;top:19%">GOAL ${x.input.retireAge}歳</span>
+            ${h.areas.map(areaCard).join("")}
+            ${heroArt()}<span class="flag">${esc(h.hero.name)}（${h.hero.age}歳）</span>
+            <button class="nextbtn" data-step="0">次のステージへ ›</button>
+          </div>
+          <div class="glass acts"><h3>${ico("top")}おすすめのアクション</h3><div class="row">
+            ${h.actions.map((a, k) => `<button class="act" data-${a.go ? "go" : "step"}="${a.go || a.step}" style="background:${["linear-gradient(135deg,#1c5a52,#0d2a2a)", "linear-gradient(135deg,#6b4a1e,#2a1c0b)", "linear-gradient(135deg,#3d2a58,#171028)", "linear-gradient(135deg,#1e3f73,#0c1a33)"][k]}">${ico(a.icon, 74, "rgba(255,255,255,.5)")}<b>${esc(a.title)}</b><span>${esc(a.sub)}</span><em>${a.go ? "つくる" : "見る"} ›</em></button>`).join("")}
+          </div></div>
+        </div>
+        <div>
+          <div class="glass rc"><h3>今の資産</h3><div class="big">${esc(man(A.now).replace("万円", ""))}<small>万円</small></div>
+            <div class="sub">${x.input.retireAge}歳の見通し（概算）　持ち家 ${esc(man(A.at65.own))}／賃貸のまま ${esc(man(A.at65.rent))}</div>
+            ${sparkline(A.path)}<div class="sub">━ 持ち家の場合　┅ 賃貸のまま（NISA年${(x.input.nisa.rate * 100).toFixed(0)}%と仮定・元本保証なし）</div>
+            <ul>${A.parts.map((p) => `<li><span class="dot" style="background:${DOT[p.key]}"></span><span>${esc(p.label)}</span><span class="r">${Math.round(p.share * 100)}%</span><span class="r">${esc(man(p.amount))}</span></li>`).join("")}
+              <li><span class="dot" style="background:#a78bfa"></span><span>保険</span><span class="r"></span><span class="r">毎月 ${esc(man(x.input.lifeIns.monthly, 1))}</span></li></ul></div>
+          <div class="glass rc"><h3>人生の目標</h3><div class="ring">${ring(h.goal.pct)}<div><div style="font-size:13px;font-weight:700">${esc(h.goal.label)}</div>
+            <div class="sub">目標 ${esc(man(h.goal.target))}（持ち家なら ${esc(man(h.goal.ownTarget))}）</div><div class="sub">今 ${esc(man(h.goal.now))}</div></div></div></div>
+          <div class="glass rc"><h3>ライフイベント</h3><ul class="ev">${h.events.map((e, k) => `<li class="${k === 0 ? "now" : ""}"><b>${e.age}歳</b><span>${esc(e.label)}</span></li>`).join("")}</ul></div>
+        </div>
+      </div>
+      <p class="hnote">数字はすべて、このシミュレーションの条件から計算した概算です（将来の価格・運用の結果を約束するものではありません）。ミッションのチェックとお名前は、この画面の中だけで使い、保存・共有しません。</p>`;
+  }
+  function renderHome() {
+    const x = S.compute(state);
+    $("home").innerHTML = homeHtml(x);
+    $("home").querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => openStep(+b.dataset.step)));
+    $("home").querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => {
+      const g = b.dataset.go;
+      if (g === "home") return;
+      if (/^\d+$/.test(g)) return openStep(+g);
+      if (g === "proposal") { document.body.classList.remove("home-view"); return showProposal(); }
+      if (g === "present") { document.body.classList.remove("home-view"); return present(true); }
+      if (g === "form") { openStep(cur); $("form").scrollIntoView(); }
+    }));
+    $("home").querySelectorAll("input[data-m]").forEach((el) => (el.onchange = () => { missionDone[el.dataset.m] = el.checked; renderHome(); }));
+    const nm = $("hName");
+    nm.oninput = () => { meta.customer = nm.value; const f = $("form").querySelector('input[data-m="customer"]'); if (f) f.value = nm.value; };
+    nm.onchange = () => { renderHome(); $("hName").focus(); };
+  }
+  function openHome() { document.body.classList.remove("present", "proposal-view"); document.body.classList.add("home-view"); renderHome(); window.scrollTo(0, 0); }
+  function openStep(i) { document.body.classList.remove("home-view"); cur = i; all = false; render(); window.scrollTo(0, 0); }
   let cur = opened.step, all = false, LAST = 7;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
   const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
@@ -878,12 +1253,12 @@
       `<div class="kpis dup"><div class="kpi rent"><span>一生の住居費（賃貸のまま）</span><b>${man(x.life.rent)}</b></div><div class="kpi own"><span>一生の住居費（持ち家・控除後）</span><b>${man(x.life.own)}</b></div><div class="kpi"><span>住宅ローン控除で戻る税金</span><b style="color:var(--ok)">${man(x.credit.total)}</b><span>${x.credit.years}年・1年目 ${man(x.credit.first, 1)}</span></div></div><div class="two"><div>${lineChart(x)}${breakdownNote(x)}</div><div>${breakdownTable(x)}</div></div>`,
       oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>`,
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>`,
-      `<div class="kpis"><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>家族に住まいが残る</span></div><div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div><div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${insurancePanel(x)}`,
+      `<div class="kpis"><div class="kpi rent"><span>老後の賃貸の入居審査（家賃÷年金）</span><b>${Math.round(x.screening.rent.ratioOld * 100)}%</b><span>目安は3分の1（33%）以内${x.screening.rent.hard ? "・通りにくくなる場合あり" : ""}</span></div><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>${x.input.family.marryAge == null ? "親や兄弟に残らない" : "家族に住まいが残る"}</span></div>${x.input.family.marryAge == null ? "" : `<div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div>`}<div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${insurancePanel(x)}`,
       `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div><p style="font-size:13px;color:#5b616b;margin:0 0 8px">※家の価値は将来の価格を約束するものではありません。運用も元本保証はありません。</p>`,
       waitView(x),
     ];
-    $("tabs").innerHTML = steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");
-    $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { cur = +b.dataset.i; all = false; render(); }));
+    $("tabs").innerHTML = `<button class="home" data-home="1" title="トップ（ライフパートナー）">★</button>` + steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");
+    $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { if (b.dataset.home) return openHome(); cur = +b.dataset.i; all = false; render(); }));
     $("steps").innerHTML = steps.map((s, i) => `<div class="step" style="display:${all || i === cur ? "block" : "none"}">
       <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");
     $("prev").disabled = cur === 0; $("next").disabled = cur === steps.length - 1;
@@ -907,7 +1282,8 @@
     catch (e) { prompt("このリンクをコピーしてください", url); }
   };
   document.addEventListener("keydown", (e) => {
-    if (e.target.tagName === "SELECT") return;
+    if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
+    if (document.body.classList.contains("home-view")) return;
     if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); go(1); }
     else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); go(-1); }
     else if (e.key === "p" || e.key === "P") present(!document.body.classList.contains("present"));
@@ -918,7 +1294,10 @@
   $("next").onclick = () => go(1);
   $("all").onclick = () => { all = !all; render(); };
   $("print").onclick = () => { all = true; render(); window.print(); };
+  $("toHome").onclick = openHome;
   buildForm(); if (opened.present) document.body.classList.add("present"); render();
+  // 最初に開いたときはトップページ（共有リンクで step・画面共有の指定があるときはそのステップから）
+  if (!opened.present && !/step=/.test(location.hash)) openHome();
 })();
 </script>
 </body>
