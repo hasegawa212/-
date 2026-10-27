@@ -19,6 +19,9 @@
   .form h2:first-child { margin-top:0; }
   label { display:grid; grid-template-columns:1fr 150px; gap:8px; align-items:center; font-size:13px; margin:5px 0; }
   select { max-width:150px; }
+  .preset { display:flex; gap:6px; margin:2px 0 6px; }
+  .preset button { flex:1; font:inherit; font-size:13px; padding:7px 8px; border:1px solid #c9b48a; background:#fff; border-radius:8px; cursor:pointer; }
+  .preset button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
   .two { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; align-items:start; }
   @media (max-width:920px){ .two{ grid-template-columns:1fr; } }
   .bd td.minus { color:var(--ok); }
@@ -94,7 +97,7 @@
 <body>
 <header>
   <h1>住まいの一生シミュレーター</h1>
-  <p>賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ①〜⑥ の同じ順番で説明します（概算・通信なし・保存なし）</p>
+  <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑦ の同じ順番で説明します（概算・通信なし・保存なし）</p>
 </header>
 <main>
   <section class="panel form" id="form"></section>
@@ -205,12 +208,13 @@
   }
 
   // 商談報告（#03）の中央値に近いお客様像：27歳・年収390万・貯金140万。家賃は将来の暮らしに合わせた目安（仮定）
-  function defaults() {
-    return {
+  // お客様像のひな形。初期値は「独身」（商談のお客様の大半：独身・結婚願望「無し・あまり無し」71%）
+  function preset(name) {
+    const p = {
       age: 27, income: 3_900_000, savings: 1_400_000, workStart: 22, retireAge: 65, lifeEnd: 95,
-      family: { marryAge: 30, kids: 1, firstKidAge: 32 },
+      family: { marryAge: null, kids: 0, firstKidAge: 32 },
       partnerIncome: 0,
-      rent: { single: 55_000, couple: 75_000, family: 90_000, old: 70_000, renewMonths: 1, renewEvery: 2, insYear: 10_000 },
+      rent: { single: 55_000, couple: 75_000, family: 90_000, old: 55_000, renewMonths: 1, renewEvery: 2, insYear: 10_000 },
       own: { buyAge: 30, price: 28_000_000, landShare: 0.35, down: 0, costRate: 0.07, financeCosts: true, rate: 0.012, years: 35,
         propTax: 100_000, ins: 30_000, repairYear: 150_000, repairUpAfter: 20, repairUpRate: 1.5, kind: "used_other" },
       lifeIns: { monthly: 10_000, cutWithDanshin: 0 },
@@ -220,7 +224,11 @@
       landRates: { down: -0.01, flat: 0, up: 0.01 },
       invest: { on: false, rate: 0.03 },
     };
+    if (name === "family") { p.family = { marryAge: 30, kids: 1, firstKidAge: 32 }; p.rent.old = 70_000; }
+    return p;
   }
+  const PRESETS = { single: "独身（ひとりで暮らす）", family: "結婚・子どもあり" };
+  function defaults() { return preset("single"); }
 
   function stage(inp, age) {
     const f = inp.family || {};
@@ -421,6 +429,7 @@
   function talk(x) {
     const i = x.input, o = i.own;
     const stages = [...new Set(x.years.map((y) => y.stageLabel))];
+    const single = i.family.marryAge == null;
     const r = x.old.rent, w = x.old.own;
     const inc = x.income, pf = x.portfolio, wt = x.wait, wu = x.waitRateUp;
     const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
@@ -431,18 +440,25 @@
         (wu ? `／仮に3年の間に金利が0.5%上がった場合、毎月 ${man(wu.pmt, 1)}（下がる場合もあります）` : ""),
       ask: "待つ理由は何ですか。その理由がなくなるのはいつ頃ですか。" } : null;
     return [zero,
-      { title: "① これからの暮らしの段階", say: `家賃は暮らしの段階で変わります。${stages.join(" → ")} と進むと、広い部屋が必要な時期に家賃も上がります。`,
+      { title: "① これからの暮らしの段階", say: single
+          ? `ひとりで暮らしていく場合も、家賃は一生続きます。今の働き方のまま${i.retireAge}歳を迎え、そのあとも${i.lifeEnd}歳まで住まいは必要です。持ち家なら、結婚しても住み続ける・貸す・売るを選べます。`
+          : `家賃は暮らしの段階で変わります。${stages.join(" → ")} と進むと、広い部屋が必要な時期に家賃も上がります。`,
         show: x.input.family.marryAge != null ? `ひとり ${man(i.rent.single, 1)} → 2人 ${man(i.rent.couple, 1)} → 子育て ${man(i.rent.family, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）` : `ひとり ${man(i.rent.single, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）`,
-        ask: "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
+        ask: single ? "これからも、ひとりで自由に暮らしていきたいですか。結婚したら、住まいはどうしたいですか。" : "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
       { title: "② 一生でかかる住まいのお金", say: `今から${i.lifeEnd}歳まで、住まいには一生お金がかかります。賃貸は家賃と保険を払い続け、持ち家は返済が終わったあとは税金・保険・修繕だけになります。持ち家は住宅ローン控除で、払った税金の一部が戻ります。`,
         show: `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（${o.buyAge}歳で${man(o.price)}の家を買った場合）。持ち家のうち 税金（固定資産税・都市計画税）${man(x.breakdown.own.tax.amount)}・保険（火災・地震）${man(x.breakdown.own.ins.amount)}・利息 ${man(x.breakdown.own.interest.amount)}、住宅ローン控除で戻る税金 ${man(x.credit.total)}（${x.credit.label}・${x.credit.years}年）。賃貸の家財保険 ${man(x.breakdown.rent.ins.amount)}`,
         ask: "一生の住まいのお金を、今まで計算したことはありますか。税金や保険まで含めて考えたことはありますか。" },
-      { title: `③ ${i.retireAge}歳からの${x.old.years}年`, say: `${i.retireAge}歳からは年金が収入の中心です。賃貸のままだと、年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`,
+      { title: `③ ${i.retireAge}歳からの${x.old.years}年`, say: single
+          ? `${i.retireAge}歳からは、ひとり分の年金が収入の中心です。賃貸のままだと、その年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`
+          : `${i.retireAge}歳からは年金が収入の中心です。賃貸のままだと、年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`,
         show: `年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸 ${man(r.outMonthly, 1)}・持ち家 ${man(w.outMonthly, 1)}／毎月の不足　賃貸 ${man(r.gapMonthly, 1)}・持ち家 ${man(w.gapMonthly, 1)}`,
         ask: "老後の住まいは、どこで、どんな家に住んでいたいですか。" },
       { title: "④ 持たないなら、いくら準備が必要か", say: `賃貸のままでも、老後の家賃のぶんを今から準備できれば大丈夫です。そのために必要な金額を見てみましょう。`,
         show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）`,
         ask: `毎月 ${man(x.prepare.monthlyRent, 1)} を${i.retireAge}歳まで積み立て続けられそうですか。` },
+      single ? { title: "⑤ もしものとき", say: `ひとりで暮らす場合、いちばんの心配は「年を取ってからの住まい」です。高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。持ち家なら、返済が終わったあとは住む場所が確保できます。住宅ローンには団体信用生命保険（団信）が付くので、万一のときもローンが親や兄弟に残りません。金利が上がると返済が増える点は持ち家の注意点です。`,
+        show: `老後ひとりで払う家賃 毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        ask: "ひとりで年を重ねたとき、どこに住んでいたいですか。金利が上がったときの備えはありますか。" } :
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
         show: `団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ご家族に、どんな形で住まいを残したいですか。金利が上がったときの備えはありますか。" },
@@ -466,7 +482,7 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
 
 </script>
@@ -593,7 +609,9 @@
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
   function buildForm() {
-    let h = "";
+    const isSingle = state.family.marryAge == null;
+    let h = `<h2>お客様のタイプ</h2><div class="preset">${Object.entries(S.PRESETS).map(([k, v]) =>
+      `<button data-p="${k}" class="${(k === "single") === isSingle ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
     for (const f of FIELDS) {
       if (f.length === 1) { h += `<h2>${esc(f[0])}</h2>`; continue; }
       const [key, label, opts, fmt] = f;
@@ -601,10 +619,15 @@
       h += `<label>${esc(label)}<select data-k="${key}">${opts.map((v, i) => `<option value="${i}"${v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select></label>`;
     }
     $("form").innerHTML = h;
+    $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
+      const p = S.preset(b.dataset.p);
+      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome;
+      buildForm(); render();
+    }));
     $("form").querySelectorAll("select").forEach((sel) => {
       const f = FIELDS.find((x) => x[0] === sel.dataset.k);
       if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
-      sel.onchange = () => { set(state, f[0], f[2][sel.value]); render(); };
+      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge") buildForm(); render(); };
     });
   }
 

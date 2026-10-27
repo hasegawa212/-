@@ -19,6 +19,9 @@
   .form h2:first-child { margin-top:0; }
   label { display:grid; grid-template-columns:1fr 150px; gap:8px; align-items:center; font-size:13px; margin:5px 0; }
   select { max-width:150px; }
+  .preset { display:flex; gap:6px; margin:2px 0 6px; }
+  .preset button { flex:1; font:inherit; font-size:13px; padding:7px 8px; border:1px solid #c9b48a; background:#fff; border-radius:8px; cursor:pointer; }
+  .preset button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
   .two { display:grid; grid-template-columns:1.15fr 1fr; gap:16px; align-items:start; }
   @media (max-width:920px){ .two{ grid-template-columns:1fr; } }
   .bd td.minus { color:var(--ok); }
@@ -94,7 +97,7 @@
 <body>
 <header>
   <h1>住まいの一生シミュレーター</h1>
-  <p>賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ①〜⑥ の同じ順番で説明します（概算・通信なし・保存なし）</p>
+  <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑦ の同じ順番で説明します（概算・通信なし・保存なし）</p>
 </header>
 <main>
   <section class="panel form" id="form"></section>
@@ -161,7 +164,9 @@
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
   function buildForm() {
-    let h = "";
+    const isSingle = state.family.marryAge == null;
+    let h = `<h2>お客様のタイプ</h2><div class="preset">${Object.entries(S.PRESETS).map(([k, v]) =>
+      `<button data-p="${k}" class="${(k === "single") === isSingle ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
     for (const f of FIELDS) {
       if (f.length === 1) { h += `<h2>${esc(f[0])}</h2>`; continue; }
       const [key, label, opts, fmt] = f;
@@ -169,10 +174,15 @@
       h += `<label>${esc(label)}<select data-k="${key}">${opts.map((v, i) => `<option value="${i}"${v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select></label>`;
     }
     $("form").innerHTML = h;
+    $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
+      const p = S.preset(b.dataset.p);
+      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome;
+      buildForm(); render();
+    }));
     $("form").querySelectorAll("select").forEach((sel) => {
       const f = FIELDS.find((x) => x[0] === sel.dataset.k);
       if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
-      sel.onchange = () => { set(state, f[0], f[2][sel.value]); render(); };
+      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge") buildForm(); render(); };
     });
   }
 
