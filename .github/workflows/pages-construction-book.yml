@@ -6,7 +6,7 @@ name: Deploy static tools to GitHub Pages
 #   施工記録ブック:       https://hasegawa212.github.io/-/construction-book/
 #   施工事例集:           https://hasegawa212.github.io/-/construction-portfolio/
 #   資金繰りダッシュボード: https://hasegawa212.github.io/-/cashflow-dashboard/
-#   住まいの一生シミュレーター: https://hasegawa212.github.io/-/life-housing-sim/
+#   LIFE ROUTE（ライフルート）: https://hasegawa212.github.io/-/life-housing-sim/
 # ※ 事前に Settings → Pages → Source を「GitHub Actions」にしておくこと。
 # ※ ツールを増やすときは paths / cp / 下のランディングのカードの3箇所を足す。
 
@@ -100,7 +100,7 @@ jobs:
               </a>
               <a class="card" href="life-housing-sim/">
                 <div class="k">Simulator</div>
-                <div class="t">住まいの一生シミュレーター</div>
+                <div class="t">LIFE ROUTE（ライフルート）</div>
                 <div class="d">賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。Zoomの画面共有モードと共有リンクつき。入力はブラウザ内だけで計算され、外部に送信されません。</div>
                 <div class="go">ひらく →</div>
               </a>

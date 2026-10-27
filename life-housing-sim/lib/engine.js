@@ -1,4 +1,4 @@
-// 住まいの一生シミュレーター（計算）：賃貸のまま／持ち家 を、今から95歳まで同じ前提で比べる
+// LIFE ROUTE（ライフルート）の計算：賃貸のまま／持ち家 を、今から95歳まで同じ前提で比べる
 // 依存なし。Node：require("./lib/engine")　ブラウザ：<script src="lib/engine.js"> で window.LHS
 (function (root, factory) {
   const m = factory();
@@ -96,6 +96,9 @@
     const yearly = Math.round(PENSION.basicFull + kousei);
     return { yearly, monthly: yearly / 12, basic: PENSION.basicFull, kousei: Math.round(kousei) };
   }
+
+  // 名前（トップページ・提案書・画面で同じ）
+  const APP = { name: "LIFE ROUTE", kana: "ライフルート", tagline: "住まいとお金、95歳までの道のり" };
 
   // 会社名の初期値（トップページ・提案書。画面の「会社名」で変えられる）
   const DEFAULT_COMPANY = "合同会社ジャパンマネジメント";
@@ -421,8 +424,8 @@
     const pct = (v) => Math.round(v * 100) + "%";
     const w5 = x.wait[3] || x.wait[x.wait.length - 1];
     const cover = {
-      title: "住まいの一生プラン",
-      sub: "賃貸のまま／持ち家 を、今から" + i.lifeEnd + "歳まで同じ物差しでくらべました",
+      title: APP.name,
+      sub: `${APP.kana}｜賃貸のまま／持ち家 を、今から${i.lifeEnd}歳まで同じ物差しでくらべました`,
       to: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "お客様",
       date: meta.date || "",
       company: meta.company || DEFAULT_COMPANY,
@@ -476,7 +479,7 @@
     return { cover, pages, notes: NOTES.slice() };
   }
 
-  // トップページ「ライフパートナー」：お客様が主人公。数字はすべて compute の結果から（見本の数字は使わない）
+  // トップページ（LIFE ROUTE）：お客様が主人公。数字はすべて compute の結果から（見本の数字は使わない）
   // done＝チェックしたミッション（{ preApproval, viewHomes, nenkin, insurance, nisaReview }）。画面の中だけで、保存しない
   function home(x, done = {}, meta = {}) {
     const i = x.input, o = i.own, pf = x.portfolio, L = x.loan;
@@ -545,7 +548,7 @@
     }
     const doneN = M.filter((m) => m.done).length;
     return {
-      hero: { title: "ライフパートナー", catch: "人生のすべてのステージに、最高のパートナーを。", sub: "描こう、あなたの理想の未来を。",
+      hero: { title: APP.name, kana: APP.kana, catch: APP.tagline,
         name: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "あなた",
         company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age },
       assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
@@ -577,5 +580,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

@@ -11,5 +11,5 @@ for (const f of ["lib/engine.js", "lib/share.js"]) {
   out = next;
 }
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
-fs.writeFileSync(path.join(root, "dist/住まいの一生シミュレーター.html"), out);
-console.log("dist/住まいの一生シミュレーター.html");
+fs.writeFileSync(path.join(root, "dist/ライフルート.html"), out);
+console.log("dist/ライフルート.html");

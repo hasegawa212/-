@@ -19,7 +19,7 @@ cp -R echo-interview-console/. _site/
 mkdir -p _site/cashflow-dashboard
 cp -R cashflow-dashboard/. _site/cashflow-dashboard/
 
-# サブディレクトリ: 住まいの一生シミュレーター
+# サブディレクトリ: LIFE ROUTE（ライフルート、旧 住まいの一生シミュレーター）
 mkdir -p _site/life-housing-sim
 cp -R life-housing-sim/. _site/life-housing-sim/
 
