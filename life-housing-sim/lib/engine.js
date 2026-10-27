@@ -473,6 +473,77 @@
     return { cover, pages, notes: NOTES.slice() };
   }
 
+  // トップページ「ライフパートナー」：お客様が主人公。数字はすべて compute の結果から（見本の数字は使わない）
+  // done＝チェックしたミッション（{ preApproval, viewHomes, nenkin, insurance, nisaReview }）。画面の中だけで、保存しない
+  function home(x, done = {}, meta = {}) {
+    const i = x.input, o = i.own, pf = x.portfolio, L = x.loan;
+    const now = i.savings + i.nisa.balance;
+    const parts = [
+      { key: "realEstate", label: "不動産", amount: 0 },
+      { key: "nisa", label: "NISA", amount: i.nisa.balance },
+      { key: "savings", label: "預貯金", amount: i.savings },
+    ].map((p) => ({ ...p, share: now > 0 ? p.amount / now : p.key === "savings" ? 1 : 0 }));
+    // 今から65歳まで、持ち家の場合の資産（預貯金＋NISA＋家の価値−残りのローン）。65歳は portfolio.at65.own と同じ
+    const nr = i.nisa.rate, path = [];
+    for (let a = i.age; a <= i.retireAge; a++) {
+      const n = a - i.age, g = Math.pow(1 + nr, n);
+      const nisa = i.nisa.balance * g + (nr === 0 ? i.nisa.monthly * 12 * n : (i.nisa.monthly * 12 * (g - 1)) / nr);
+      let house = 0;
+      if (a >= L.buyAge) {
+        const t = a - L.buyAge;
+        const value = o.price * o.landShare + o.price * (1 - o.landShare) * Math.max(0.1, 1 - (0.9 * t) / 30);
+        house = Math.max(0, value - balanceAfter(L.amount, o.rate, o.years, t * 12));
+      }
+      path.push({ age: a, own: i.savings + nisa + house, rent: i.savings + nisa });
+    }
+    const target = x.prepare.rentNeed;
+    const rentNow = x.years[0] ? x.years[0].rentMonthly : i.rent.single;
+    const M = [
+      { id: "cushion", area: "cash", label: `急な出費に備える貯金（家賃の6か月分 ${man(rentNow * 6)}）`, auto: true, done: i.savings >= rentNow * 6 },
+      { id: "nisaStart", area: "nisa", label: "NISAで毎月の積立を始める", auto: true, done: i.nisa.monthly > 0 },
+      { id: "nisaReview", area: "nisa", label: "積立の額と続けられるかを確かめる", auto: false },
+      { id: "insurance", area: "ins", label: "保険を見直す（団信で減らせる分があるか）", auto: false },
+      { id: "preApproval", area: "home", label: "住宅ローンの事前審査で借りられる額を確かめる（無料・購入の義務はありません）", auto: false },
+      { id: "viewHomes", area: "home", label: "条件（エリア・広さ・毎月の上限）を書き出して物件を見る", auto: false },
+      { id: "plan", area: "plan", label: "ライフプランをつくる（このシミュレーション）", auto: true, done: true },
+      { id: "nenkin", area: "plan", label: "ねんきんネットで年金の見込額を確かめる", auto: false },
+    ].map((m) => ({ ...m, done: m.auto ? !!m.done : !!done[m.id] }));
+    const lv = (k) => 1 + M.filter((m) => m.area === k && m.done).length;
+    const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
+    const area = (key, label, sub, value, step) => ({ key, label, sub, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
+    const areas = [
+      area("cash", "現預金エリア", "安心の土台をつくる", `預貯金 ${man(i.savings)}`, 0),
+      area("nisa", "NISAエリア", "未来の資産を育てる", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)} → ${i.retireAge}歳 ${man(pf.at65.nisa)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
+      area("ins", "保険エリア", "もしもの時に備える", `生命保険 毎月 ${man(i.lifeIns.monthly, 1)}・団信で万一のときローンは残らない`, 5),
+      area("home", "不動産エリア", "住まいで人生を豊かに", `${L.buyAge}歳で ${man(o.price)} の家・毎月 ${man(L.pmt, 1)}・${L.endAge}歳で完済`, 2),
+      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}`, 1),
+    ];
+    const f = i.family, ev = [{ age: i.age, label: "今（ここからスタート）" }];
+    if (x.shataku && x.shataku.until > i.age) ev.push({ age: x.shataku.until, label: "社宅を出る" });
+    if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚" });
+    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる" });
+    ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）` });
+    if (x.income.reemploy.age < i.retireAge) ev.push({ age: x.income.reemploy.age, label: "定年・再雇用" });
+    ev.push({ age: i.retireAge, label: "年金生活" });
+    ev.push({ age: L.endAge, label: "ローン完済" });
+    ev.sort((p, q) => p.age - q.age);
+    const doneN = M.filter((m) => m.done).length;
+    return {
+      hero: { title: "ライフパートナー", catch: "人生のすべてのステージに、最高のパートナーを。", sub: "描こう、あなたの理想の未来を。",
+        name: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "あなた",
+        company: meta.company || "", level: 1 + doneN, age: i.age },
+      assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
+      goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
+      areas, missions: M, events: ev,
+      actions: [
+        { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: 0, icon: "nisa" },
+        { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: 2, icon: "home" },
+        { title: "もしもに備える", sub: "団信・保険・金利が上がったら", step: 5, icon: "ins" },
+        { title: "提案書をつくる", sub: "A4・4ページでお渡し", go: "proposal", icon: "plan" },
+      ],
+    };
+  }
+
   const NOTES = [
     "金額はすべて概算です。年金は ねんきんネット・ねんきん定期便の見込額で確かめてください。",
     "年金は基礎年金を満額、厚生年金を「年収÷12 × 5.481/1000 × 加入月数」で概算（令和8年度の数字。賞与・昇給・加入期間で変わる）。60歳で定年・65歳まで再雇用（年収は定年前の6割と仮定、会社の制度で変わる）とし、再雇用の5年は給料も厚生年金も下がった年収で計算。",
@@ -490,5 +561,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
