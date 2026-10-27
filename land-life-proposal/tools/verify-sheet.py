@@ -15,15 +15,15 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 JS = r"""
 const LL=require('./lib/engine'),E=require('./editions');
-const out={};
+const out={};const C={};
 for(const [id,ed] of Object.entries(E)){
   const x=LL.compute(ed.sample);
-  out[id]={label:ed.label,tax:x.tax,rent:x.rent.total,afford:x.afford,props:x.props.map(p=>({
+  out[id]={label:ed.label,comfort:ed.comfortRatio,savings:x.c.savings,tax:x.tax,rent:x.rent.total,afford:x.afford,props:x.props.map(p=>({
     loan:p.loan.amount,pmt:p.pmt,cashOut:p.cashOut,cashLeft:p.cashLeft,own:p.own.total,
     ratio:(p.pmt*12+(x.c.existingMonthly||0)*12)/x.c.gross,screen:p.screen,
     ok:p.credit.judge.ok,limit:p.credit.judge.limit,years:p.credit.judge.years,
     rows:p.credit.rows.slice(0,13).map(r=>({bal:r.balance,max:r.max,it:r.fromIT,rt:r.fromRT,act:r.actual})),
-    total:p.credit.total,totalMax:p.credit.totalMax,first10:p.credit.first10,ten:p.ten.with,
+    total:p.credit.total,limitScreen:p.screen.limit,totalMax:p.credit.totalMax,first10:p.credit.first10,ten:p.ten.with,
     risk:p.risk.map(r=>({th:r.takeHomeM,gap:r.gap})),
     sale:p.sale.map(s=>s.byScen.map(b=>b.net))}))};
 }
@@ -67,7 +67,40 @@ def main():
                     for c in row:
                         if isinstance(c.value, str) and c.value.startswith("#") or c.value in ("Err:502", "Err:504", "#NAME?"):
                             fails.append(f"{id_} {ws.title}!{c.coordinate} = {c.value}")
-            m, y, z, v, t = wb["試算"], wb["住宅ローン控除"], wb["収入が減ったら"], wb["売却の目安"], wb["税額の概算"]
+            raw = load_workbook(path)
+            # わかりやすさの受け入れ基準（docs/05_スプレッドシート版の設計.md §5）
+            first = raw.worksheets[0]
+            checks += 1
+            if first.title != "① かんたん試算":
+                fails.append(f"{id_} 1枚目が「① かんたん試算」ではない: {first.title}")
+            yellow = sum(1 for row in first.iter_rows() for cl in row
+                         if cl.fill is not None and cl.fill.fgColor is not None and cl.fill.fgColor.rgb in ("00FFF2CC", "FFFFF2CC"))
+            checks += 1
+            if not 0 < yellow <= 15:
+                fails.append(f"{id_} かんたん試算の入力欄が {yellow} か所（1〜15か所にする）")
+            for ws in wb.worksheets:
+                for row in ws.iter_rows():
+                    for cl in row:
+                        if isinstance(cl.value, bool):
+                            fails.append(f"{id_} {ws.title}!{cl.coordinate} に TRUE/FALSE が表示される")
+            m, y, z, v, t = wb["③ 詳しい試算"], wb["④ 住宅ローン控除"], wb["⑤ 収入が減ったら"], wb["⑥ 売却の目安"], wb["参考：税額の概算"]
+            k_ = wb["① かんたん試算"]
+            kv = lambda label, col: k_.cell(find(k_, label), col).value
+            eq(f"{id_} かんたん 賃貸の住居費", kv("毎月の住まいの支払い", 2), e["rent"], 0.01)
+            eq(f"{id_} かんたん 手元の預貯金（賃貸）", kv("手元に残る預貯金", 2), e["savings"] / 1e4, 1e-6)
+            eq(f"{id_} かんたん 10年の賃貸", kv("10年間の住まいの費用", 2), e["rent"] * 120 / 1e4, 1e-4)
+            for k, p in enumerate(e["props"]):
+                n, col = f"{id_} かんたん 物件{'AB'[k]}", 3 + k
+                eq(n + " 住居費", kv("毎月の住まいの支払い", col), p["own"], 0.01)
+                eq(n + " 返済", kv("うちローンの返済", col), p["pmt"], 0.01)
+                eq(n + " 初期費用", kv("はじめに必要な現金", col), p["cashOut"] / 1e4, 1e-4)
+                eq(n + " 手元", kv("手元に残る預貯金", col), p["cashLeft"] / 1e4, 1e-4)
+                eq(n + " 控除10年", kv("住宅ローン控除（最初の10年）", col), p["first10"] / 1e4, 1e-4)
+                eq(n + " 10年総額", kv("10年間の住まいの費用", col), p["ten"] / 1e4, 1e-4)
+                want = "◎" if p["ratio"] <= e["comfort"] else "△" if p["ratio"] <= p["limitScreen"] else "×"
+                eq(n + " 返済の負担の判定", (kv("返済の負担", col) or "")[:1], want)
+                eq(n + " 控除の判定", (kv("住宅ローン控除", col) or "")[:1], "◎" if p["ok"] else "×")
+                eq(n + " 審査の判定", (kv("ローン審査の目安", col) or "")[:1], "◎" if p["screen"]["ratio"] <= p["limitScreen"] else "×")
             val = lambda ws, label, k, start=1: ws.cell(find(ws, label, 1, start), 2 + k).value
             eq(f"{id_} 所得税", val(t, "所得税（控除前）", 0), e["tax"]["incomeTax"])
             eq(f"{id_} 住民税", val(t, "住民税（所得割）", 0), e["tax"]["residentTax"])
@@ -81,7 +114,7 @@ def main():
                 eq(n + " 返済比率", val(m, "返済比率（年収比・既存の借入を含む）", k), p["ratio"], 1e-9)
                 eq(n + " 審査比率", val(m, "審査の返済比率", k), p["screen"]["ratio"], 1e-9)
                 eq(n + " 審査上限", val(m, "審査上の借入の上限（目安）", k), p["screen"]["maxLoan"])
-                eq(n + " 控除対象", val(m, "控除の対象か", k), p["ok"])
+                eq(n + " 控除対象", val(m, "控除の対象か", k), "はい" if p["ok"] else "いいえ")
                 eq(n + " 限度額", val(m, "借入限度額", k), p["limit"])
                 eq(n + " 期間", val(m, "控除期間（年）", k), p["years"])
                 eq(n + " 控除合計", val(m, "控除見込額（期間合計・概算）", k), p["total"])
