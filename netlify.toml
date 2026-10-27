@@ -25,3 +25,8 @@
   for = "/cashflow-dashboard/*"
   [headers.values]
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/life-housing-sim/*"
+  [headers.values]
+    Cache-Control = "no-cache"

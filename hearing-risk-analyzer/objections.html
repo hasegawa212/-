@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>断り文句の切り返し早見表</title>
+<style>
+  :root { --navy:#1f2a44; --gold:#b08d57; --ink:#1d1f23; --sub:#5b616b; --line:#dcdfe4; --bg:#f6f4ef; --ng:#a33; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+  header { background:var(--navy); color:#fff; padding:14px 20px; }
+  header h1 { margin:0; font-size:19px; } header p { margin:2px 0 0; font-size:12px; opacity:.8; }
+  .bar { position:sticky; top:0; background:var(--bg); padding:12px 20px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; border-bottom:1px solid var(--line); z-index:2; }
+  input { font:inherit; font-size:15px; padding:8px 12px; border:1px solid var(--line); border-radius:8px; min-width:260px; flex:1; max-width:420px; }
+  .bar button { font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; border-radius:999px; padding:6px 12px; cursor:pointer; color:var(--sub); }
+  .bar button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  main { padding:12px 20px 40px; max-width:1100px; margin:0 auto; }
+  .flow { font-size:13px; color:var(--navy); background:#fff; border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin:6px 0 12px; }
+  details { background:#fff; border:1px solid var(--line); border-left:5px solid var(--gold); border-radius:10px; margin:8px 0; }
+  details[open] { box-shadow:0 2px 8px rgba(0,0,0,.05); }
+  summary { cursor:pointer; padding:10px 14px; font-weight:700; display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
+  summary .st { font-size:11px; font-weight:600; color:#fff; background:var(--navy); border-radius:999px; padding:1px 8px; }
+  summary .fq { font-size:12px; font-weight:400; color:var(--sub); }
+  .body { padding:0 14px 12px; }
+  .ex { font-size:13px; color:var(--sub); margin:0 0 8px; }
+  dl { display:grid; grid-template-columns:8.5em 1fr; gap:4px 12px; margin:0; font-size:14px; }
+  dt { color:var(--sub); } dd { margin:0; }
+  dd.fact { font-weight:600; }
+  dd.ng { color:var(--ng); }
+  .note { font-size:12px; color:var(--sub); margin-top:16px; }
+  @media print { .bar { display:none; } details { break-inside:avoid; } details:not([open]) .body { display:block; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>断り文句の切り返し早見表</h1>
+  <p>#02 アポ報告・#09 キャンセル・#03 商談報告・#18 ボイレコ（2026年9〜10月）で多かった断り文句と、その返し方。電話中・商談中に検索して使う</p>
+</header>
+<div class="bar"><input id="q" placeholder="お客様の言葉で検索（例：転勤、親、怖い、NISA、忙しい）" autofocus><span id="tabs"></span><button id="openAll">すべて開く</button></div>
+<main>
+  <div class="flow">型はいつも同じ：① 受け止める → ② 聞く → ③ 事実（お客様の数字・資料）で返す → ④ 小さな次の一歩。<b>言わないこと</b>も決めておく（あおり・断定・目的をぼかすのは、不信感とクレームの原因）。</div>
+  <div id="list"></div>
+  <p class="note">頻度はSlackの報告の件数の目安です。お客様の名前・勤務先は載せていません。数字の説明には「住まいの一生シミュレーター」「商談ヒアリング分析」を使ってください。</p>
+</main>
+<script src="lib/objections.js"></script>
+<script>
+(function () {
+  "use strict";
+  const H = window.HRA, $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  let stage = "all", openAll = false;
+  const stages = [["all", "すべて"], ...Object.entries(H.STAGES)];
+  function render() {
+    $("tabs").innerHTML = stages.map(([k, v]) => `<button class="${k === stage ? "on" : ""}" data-k="${k}">${esc(v)}</button>`).join(" ");
+    $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { stage = b.dataset.k; render(); }));
+    const q = $("q").value.trim();
+    const items = H.OBJECTIONS.filter((o) => (stage === "all" || o.stage === stage) &&
+      (!q || o.keywords.test(q) || (o.label + o.examples.join("") + o.fact).includes(q)));
+    $("list").innerHTML = items.map((o) => `<details${openAll || (q && items.length <= 3) ? " open" : ""}><summary><span class="st">${esc(H.STAGES[o.stage])}</span>「${esc(o.label)}」<span class="fq">${esc(o.freq)}</span></summary>
+      <div class="body"><p class="ex">よくある言い方：${o.examples.map((e) => "「" + esc(e) + "」").join("　")}</p><dl>
+      <dt>① 受け止める</dt><dd>${esc(o.accept)}</dd><dt>② 聞く</dt><dd>${esc(o.ask)}</dd><dt>③ 事実で返す</dt><dd class="fact">${esc(o.fact)}</dd>
+      <dt>④ 次の一歩</dt><dd>${esc(o.next)}</dd><dt>言わない</dt><dd class="ng">${esc(o.avoid)}</dd></dl></div></details>`).join("") || `<p class="note">見つかりません。別の言葉で探してください。</p>`;
+  }
+  $("q").oninput = render;
+  $("openAll").onclick = () => { openAll = !openAll; $("openAll").textContent = openAll ? "閉じる" : "すべて開く"; render(); };
+  render();
+})();
+</script>
+</body>
+</html>

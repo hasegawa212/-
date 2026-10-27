@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>商談ヒアリング分析</title>
+<style>
+  :root { --navy:#1f2a44; --gold:#b08d57; --ink:#1d1f23; --sub:#5b616b; --line:#d9dce1; --bg:#f6f4ef; --card:#fff;
+          --hi:#c0392b; --hi-bg:#fbe9e7; --mid:#a86d00; --mid-bg:#fff4d6; --lo:#5b616b; --lo-bg:#eef0f3; --ok:#2e7d32; --ok-bg:#e6f2e7; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: "Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+  header { background:var(--navy); color:#fff; padding:14px 20px; display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:18px; letter-spacing:.04em; }
+  header p { margin:0; font-size:12px; opacity:.8; }
+  main { display:grid; grid-template-columns: minmax(280px, 420px) 1fr; gap:16px; padding:16px; max-width:1400px; margin:0 auto; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px; }
+  textarea { width:100%; min-height:62vh; font:12px/1.5 ui-monospace,Menlo,monospace; border:1px solid var(--line); border-radius:8px; padding:10px; resize:vertical; }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 0; }
+  button { font:inherit; font-size:13px; border:1px solid var(--navy); background:#fff; color:var(--navy); border-radius:8px; padding:7px 12px; cursor:pointer; }
+  button.primary { background:var(--navy); color:#fff; }
+  .note { font-size:11px; color:var(--sub); margin-top:8px; }
+  h2 { font-size:15px; color:var(--navy); margin:18px 0 8px; border-left:4px solid var(--gold); padding-left:8px; }
+  h2:first-child { margin-top:0; }
+  .kpis { display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap:8px; }
+  .kpi { border:1px solid var(--line); border-radius:8px; padding:8px 10px; background:#fff; }
+  .kpi b { display:block; font-size:18px; font-variant-numeric: tabular-nums; }
+  .kpi span { font-size:11px; color:var(--sub); }
+  .summary { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:6px; }
+  .chip { font-size:12px; border-radius:999px; padding:2px 10px; font-weight:600; }
+  .hi { color:var(--hi); background:var(--hi-bg); } .mid { color:var(--mid); background:var(--mid-bg); } .lo { color:var(--lo); background:var(--lo-bg); } .ok { color:var(--ok); background:var(--ok-bg); }
+  .risk { border:1px solid var(--line); border-left-width:6px; border-radius:8px; padding:10px 12px; margin:8px 0; background:#fff; }
+  .risk.l-高 { border-left-color:var(--hi); } .risk.l-中 { border-left-color:#e0a100; } .risk.l-低 { border-left-color:#9aa0a8; }
+  .risk h3 { margin:0 0 6px; font-size:14px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .risk dl { margin:0; display:grid; grid-template-columns: 9.5em 1fr; gap:3px 10px; font-size:13px; }
+  .risk dt { color:var(--sub); } .risk dd { margin:0; }
+  .risk dd.value { font-weight:600; }
+  ul, ol { margin:4px 0; padding-left:1.3em; font-size:13px; }
+  .bar { height:10px; background:var(--lo-bg); border-radius:999px; overflow:hidden; margin:4px 0; }
+  .bar > i { display:block; height:100%; background:var(--gold); }
+  .muted { color:var(--sub); font-size:12px; }
+  .empty { color:var(--sub); text-align:center; padding:60px 10px; }
+  @media print {
+    header, .input, .btns { display:none !important; }
+    main { display:block; padding:0; }
+    body { background:#fff; }
+    .panel { border:none; padding:0; }
+    .risk { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>商談ヒアリング分析</h1>
+  <p>#03_商談報告 を貼り付け → 将来のリスクと、不動産の価値の伝え方。通信なし・保存なし（画面を閉じると消えます）</p>
+</header>
+<main>
+  <section class="panel input">
+    <textarea id="src" placeholder="Slack の #03_商談報告 の本文をそのまま貼り付けてください"></textarea>
+    <div class="btns">
+      <button class="primary" id="run">分析する</button>
+      <button id="sample">サンプルを入れる</button>
+      <button id="copy">Markdownをコピー</button>
+      <button id="print">印刷・PDF</button>
+      <button id="clear">消す</button>
+    </div>
+    <p class="note">お客様の情報はこの画面の中だけで処理し、どこにも送信・保存しません。レポートにはお客様の氏名を載せません。</p>
+  </section>
+  <section class="panel" id="out"><div class="empty">左に商談報告を貼り付けて「分析する」を押してください。</div></section>
+</main>
+<script src="lib/parse.js"></script>
+<script src="lib/objections.js"></script>
+<script src="lib/analyze.js"></script>
+<script src="lib/report.js"></script>
+<script>
+(function () {
+  "use strict";
+  const H = window.HRA, $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const CLS = { 高: "hi", 中: "mid", 低: "lo" };
+  const SAMPLE = `【面談日】2026/10/20
+【チャンネル】#03_商談報告
+■ 基本情報
+・年齢：28歳
+・勤務先：宇都宮市立〇〇中学校
+・年収：R7年5,200,000円
+　　　　R6年4,100,000円
+　　　　R5年4,000,000円
+・ボーナス：年2回計4ヶ月90万
+■ 商談概要
+・商談ランク：C
+・交渉回数：3回目
+■ 内容要約
+婚約者様に相談したところ、異動先が決まっていない中での購入は不安とのことでした。
+■ 物件・金融情報
+・借入状況：投資不動産、車(残150万)
+・加入保険：ドル建て終身/月1.5万
+・貯金・手付金：50万
+⚠️必ず聞く⚠️
+　動機の中身：結婚
+■ 備考
+・異動の可能性あり（今年度で6年目）
+・家賃5万(駐車場込み)
+・確定申告/赤字申告
+・投資不動産/持ち出し0.6万
+〜希望条件〜
+・宇都宮市の中心寄り
+・駐車場は2台以上
+・持ち出し8万円以内
+・ボーナス払い有り各10万ずつ/計年20万円
+▼ S0-S1
+⬜ ライフプランシート
+✅源泉1期
+⬜源泉2期
+✅給料明細
+⬜ CIC`;
+  let last = null;
+
+  function render() {
+    const h = H.parse($("src").value);
+    const a = H.analyze(h);
+    last = { h, a };
+    const n = a.numbers, cnt = (l) => a.risks.filter((r) => r.level === l).length;
+    let html = `<h2>このお客様</h2>
+      <p>${esc(h.age ? h.age + "歳" : "")}　${esc(a.customer.employer)}　動機：<b>${esc(a.customer.motive || "—")}</b>　商談ランク ${esc(a.customer.rank || "—")}・交渉 ${esc(a.customer.negotiations || "—")}回目</p>
+      <div class="summary"><span class="chip hi">高 ${cnt("高")}</span><span class="chip mid">中 ${cnt("中")}</span><span class="chip lo">低 ${cnt("低")}</span><span class="chip ok">強み ${a.strengths.length}</span></div>
+      <h2>1. 数字の目安（概算）</h2><div class="kpis">
+        <div class="kpi"><span>年収（直近／低い年）</span><b>${H.man(n.incomeLatest)}</b><span>低い年 ${H.man(n.incomeLow)}</span></div>`;
+    for (const l of n.loanAt) html += `<div class="kpi"><span>借りられる額（${(l.rate * 100).toFixed(1)}%・${n.years}年）</span><b>${H.man(l.amount)}</b><span>月${H.man(n.monthly)}＋ボーナス各${H.man(n.bonusEach)}</span></div>`;
+    if (n.ratioLatest != null) html += `<div class="kpi"><span>返済比率（直近／低い年）</span><b>${H.pct(n.ratioLatest)}</b><span>低い年 ${H.pct(n.ratioLow)}</span></div>`;
+    if (n.monthlyUp != null) html += `<div class="kpi"><span>今の家賃からの増え方</span><b>＋${H.man(n.monthlyUp)}</b><span>毎月</span></div>`;
+    if (n.savings != null) html += `<div class="kpi"><span>貯金・手付金</span><b>${H.man(n.savings)}</b><span>&nbsp;</span></div>`;
+    html += `</div><p class="muted">前提：${n.assumptions.map(esc).join("／")}</p>`;
+    html += `<h2>2. 強み（審査・将来でプラス）</h2><ul>${a.strengths.map((s) => `<li><b>${esc(s.evidence)}</b>：${esc(s.text)}</li>`).join("") || "<li>—</li>"}</ul>`;
+    html += `<h2>3. 将来のリスクと、不動産の価値の伝え方</h2>`;
+    for (const r of a.risks) html += `<div class="risk l-${r.level}"><h3><span class="chip ${CLS[r.level]}">${r.level}</span>${esc(r.title)}<span class="muted">${esc(r.area)}</span></h3><dl>
+      <dt>根拠（ヒアリング）</dt><dd>${esc(r.evidence)}</dd>
+      <dt>将来どうなるか</dt><dd>${esc(r.future)}</dd>
+      <dt>価値の伝え方</dt><dd class="value">${esc(r.value)}</dd>
+      <dt>確認すること</dt><dd>${esc(r.ask)}</dd>
+      <dt>次にやること</dt><dd>${esc(r.action)}</dd></dl></div>`;
+    if (!a.risks.length) html += `<p class="muted">読み取れるリスクはありません（情報が足りない可能性があります）。</p>`;
+    html += `<h2>4. このお客様への伝え方（話の柱）</h2><ol>${a.story.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>`;
+    html += `<h2>5. 次回の確認事項</h2><ul>${a.questions.map((q) => `<li>☐ ${esc(q)}</li>`).join("")}</ul>`;
+    html += `<h2>6. 次にやること（優先順）</h2><ol>${a.nextActions.map((q) => `<li>${esc(q)}</li>`).join("")}</ol>`;
+    html += `<h2>7. 書類（段階ごと）</h2>`;
+    for (const st of a.docs.stages) {
+      const p = Math.round((st.done / st.total) * 100);
+      html += `<p style="margin:6px 0 0"><b>${esc(st.name)}</b>　${st.done}/${st.total}（${p}%）</p><div class="bar"><i style="width:${p}%"></i></div><p class="muted">未回収：${esc(st.missing.join("、") || "なし")}</p>`;
+    }
+    html += `<h2>8. このお客様の断り文句と切り返し</h2>`;
+    if (!a.objections.length) html += `<p class="muted">報告の文章から読み取れる断り文句はありません。</p>`;
+    for (const o of a.objections) html += `<div class="risk l-中"><h3>${esc(o.label)}</h3><dl>
+      <dt>根拠（ヒアリング）</dt><dd>${esc(o.evidence)}</dd><dt>① 受け止める</dt><dd>${esc(o.accept)}</dd><dt>② 聞く</dt><dd>${esc(o.ask)}</dd>
+      <dt>③ 事実で返す</dt><dd class="value">${esc(o.fact)}</dd><dt>④ 次の一歩</dt><dd>${esc(o.next)}</dd><dt>言わない</dt><dd>${esc(o.avoid)}</dd></dl></div>`;
+    html += `<p class="muted">断り文句の一覧は <a href="objections.html">切り返し早見表</a>。</p>`;
+    html += `<p class="muted">概算・一般的な傾向にもとづく分析です。審査結果・税額・控除額は金融機関・税務署の判断で変わります。お客様への説明では断定しないでください。</p>`;
+    $("out").innerHTML = html;
+  }
+  $("run").onclick = render;
+  $("sample").onclick = () => { $("src").value = SAMPLE; render(); };
+  $("clear").onclick = () => { $("src").value = ""; last = null; $("out").innerHTML = '<div class="empty">左に商談報告を貼り付けて「分析する」を押してください。</div>'; };
+  $("print").onclick = () => { if (!last) render(); window.print(); };
+  $("copy").onclick = async () => {
+    if (!last) render();
+    const md = H.toMarkdown(last.h, last.a);
+    try { await navigator.clipboard.writeText(md); $("copy").textContent = "コピーしました"; } catch (e) { prompt("コピーしてください", md); }
+    setTimeout(() => ($("copy").textContent = "Markdownをコピー"), 1500);
+  };
+})();
+</script>
+</body>
+</html>
