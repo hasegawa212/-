@@ -167,11 +167,15 @@
     ["family.firstKidAge", "第1子が生まれる年齢", range(22, 45, 1), (v) => v + "歳"],
     ["partnerIncome", "パートナーの年収", [0, 1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000], (v) => (v ? yen(v) : "なし・扶養内")],
     ["賃貸の家賃（毎月・その地域の目安）"],
-    ["rent.single", "ひとり暮らし", range(30_000, 120_000, 5_000), yen],
+    ["rent.single", "ひとり暮らし（初期値＝当社のお客様の平均）", [...range(30_000, 120_000, 5_000), S.RENT_AVG.single].sort((a, b) => a - b), yen],
     ["rent.couple", "2人暮らし", range(40_000, 150_000, 5_000), yen],
     ["rent.family", "子育て期（広い部屋）", range(50_000, 180_000, 5_000), yen],
-    ["rent.old", "老後", range(30_000, 150_000, 5_000), yen],
+    ["rent.old", "老後", [...range(30_000, 150_000, 5_000), S.RENT_AVG.single].sort((a, b) => a - b), yen],
     ["rent.insYear", "家財保険（年）", range(5_000, 30_000, 1_000), yen],
+    ["社宅（会社の寮・借り上げ社宅）"],
+    ["shataku.on", "今、社宅に住んでいる", [false, true], (v) => (v ? "はい" : "いいえ")],
+    ["shataku.self", "社宅の自己負担（毎月）", range(0, 50_000, 5_000), (v) => (v ? yen(v) : "なし")],
+    ["shataku.until", "社宅を出る年齢（規定）", range(25, 40, 1), (v) => v + "歳"],
     ["持ち家（買う場合）"],
     ["own.buyAge", "買う年齢", range(20, 55, 1), (v) => v + "歳"],
     ["own.price", "物件価格", range(10_000_000, 60_000_000, 1_000_000), yen],
@@ -195,9 +199,9 @@
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
   function buildForm() {
-    const isSingle = state.family.marryAge == null;
+    const curP = state.shataku.on ? "shataku" : state.family.marryAge == null ? "single" : "family";
     let h = `<h2>お客様のタイプ</h2><div class="preset">${Object.entries(S.PRESETS).map(([k, v]) =>
-      `<button data-p="${k}" class="${(k === "single") === isSingle ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
+      `<button data-p="${k}" class="${k === curP ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
     for (const f of FIELDS) {
       if (f.length === 1) { h += `<h2>${esc(f[0])}</h2>`; continue; }
       const [key, label, opts, fmt] = f;
@@ -210,13 +214,13 @@
     $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
     $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
       const p = S.preset(b.dataset.p);
-      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome;
+      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome; state.shataku = p.shataku; state.own.buyAge = p.own.buyAge;
       buildForm(); render();
     }));
     $("form").querySelectorAll("select").forEach((sel) => {
       const f = FIELDS.find((x) => x[0] === sel.dataset.k);
       if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
-      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge") buildForm(); render(); };
+      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge" || f[0] === "shataku.on") buildForm(); render(); };
     });
   }
 
