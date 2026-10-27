@@ -14,6 +14,16 @@
   header p { margin:0; font-size:12px; opacity:.8; }
   main { display:grid; grid-template-columns:minmax(260px,330px) 1fr; gap:16px; padding:16px; max-width:1400px; margin:0 auto; }
   @media (max-width:920px){ main{ grid-template-columns:1fr; } }
+  /* 入力は最初に1回だけ。そのあとは「条件のまとめ＋条件を変える」の1行に畳む */
+  .formbar { display:none; }
+  body.form-closed .form { display:none; }
+  body.form-closed main { grid-template-columns:1fr; }
+  body.form-closed .formbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 14px; }
+  .formbar span { flex:1 1 260px; min-width:0; font-size:13.5px; color:var(--sub); line-height:1.5; } .formbar b { color:var(--navy); }
+  .formbar button { white-space:nowrap; background:var(--gold); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; }
+  .startbtn { width:100%; margin-top:16px; padding:14px; font-size:17px; font-weight:800; border-radius:12px; background:var(--navy); color:#fff; border:none; cursor:pointer; }
+  body.present .formbar { display:none !important; }
+  @media print { .formbar, .startbtn { display:none !important; } }
   .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
   .form h2 { font-size:13px; color:var(--navy); margin:12px 0 6px; border-left:4px solid var(--gold); padding-left:7px; }
   .form h2:first-child { margin-top:0; }
@@ -322,6 +332,7 @@
   <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑧ の同じ順番で説明します（概算・通信なし・保存なし）</p>
 </header>
 <main>
+  <section class="panel formbar" id="formbar"><span id="fbText"></span><button id="fbOpen">条件を変える</button></section>
   <section class="panel form" id="form"></section>
   <section class="panel">
     <div class="tabs" id="tabs"></div>
@@ -1284,7 +1295,9 @@
     }
     h += `<h2>提案書（お名前はリンクに入りません）</h2>` + [["customer", "お客様のお名前"], ["company", "会社名"], ["staff", "担当者"], ["tel", "電話番号"]]
       .map(([k, l]) => `<label>${l}<input type="text" data-m="${k}" value="${esc(meta[k] || "")}"></label>`).join("");
+    h += `<button class="startbtn" id="startBtn">この条件で説明を始める ›</button>`;
     $("form").innerHTML = h;
+    $("startBtn").onclick = () => { closeForm(); toTop(); };
     $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
     $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
       const p = S.preset(b.dataset.p);
@@ -1750,6 +1763,7 @@
   const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
   function render() {
     const x = S.compute(state), steps = S.talk(x);
+    $("fbText").innerHTML = `<b>条件</b>　${esc(S.proposal(x).cover.profile)}`;
     LAST = steps.length - 1;
     const visual = [
       fixedView(x),
@@ -1764,7 +1778,7 @@
       waitView(x),
     ];
     $("tabs").innerHTML = `<button class="home" data-home="1" title="トップ（LIFE ROUTE）">★</button>` + steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");
-    $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { if (b.dataset.home) return openHome(); cur = +b.dataset.i; all = false; render(); toTop(); }));
+    $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { if (b.dataset.home) return openHome(); cur = +b.dataset.i; all = false; closeForm(); render(); toTop(); }));
     $("steps").innerHTML = steps.map((s, i) => `<div class="step" style="display:${all || i === cur ? "block" : "none"}">
       <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");
     $("steps").querySelectorAll(".rentimg img").forEach((im) => (im.onclick = () => { const z = $("imgzoom"); z.querySelector("img").src = im.src; z.querySelector("img").alt = im.alt; z.classList.add("on"); }));
@@ -1775,7 +1789,11 @@
   }
   // ページを移ったら、いつもいちばん上から
   const toTop = () => { window.scrollTo(0, 0); document.querySelectorAll("main, .result, #steps").forEach((el) => (el.scrollTop = 0)); };
-  const go = (d) => { cur = Math.min(LAST, Math.max(0, cur + d)); all = false; render(); toTop(); };
+  // 入力は最初に1回だけ：説明を始めたら畳み、次からは「条件を変える」で開く（この画面の中・このタブの間だけ覚える）
+  function closeForm() { document.body.classList.add("form-closed"); try { sessionStorage.setItem("lhs_form_done", "1"); } catch (e) { /* 使えなくても動く */ } }
+  function openForm() { document.body.classList.remove("form-closed", "present"); render(); window.scrollTo(0, 0); }
+  $("fbOpen").onclick = openForm;
+  const go = (d) => { cur = Math.min(LAST, Math.max(0, cur + d)); all = false; closeForm(); render(); toTop(); };
   $("present").onclick = () => present(true);
   $("prop").onclick = showProposal;
   $("deckBtn").onclick = showDeck;
@@ -1787,7 +1805,7 @@
   window.addEventListener("resize", () => { if (document.body.classList.contains("deck-view")) fitDeck(); });
   $("pvBack").onclick = () => { document.body.classList.remove("proposal-view"); render(); };
   $("pvPrint").onclick = () => window.print();
-  $("pExit").onclick = () => present(false);
+  $("pExit").onclick = () => { present(false); openForm(); };
   $("pPrev").onclick = () => go(-1);
   $("pNext").onclick = () => go(1);
   const full = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); };
@@ -1821,7 +1839,11 @@
   $("all").onclick = () => { all = !all; render(); };
   $("print").onclick = () => { all = true; render(); window.print(); };
   $("toHome").onclick = openHome;
-  buildForm(); if (opened.present) document.body.classList.add("present"); render();
+  buildForm(); if (opened.present) document.body.classList.add("present");
+  // 共有リンクで開いた・前に入力を済ませた・ステップを指定して開いた → 入力は畳んで始める
+  let formDone = false; try { formDone = sessionStorage.getItem("lhs_form_done") === "1"; } catch (e) { /* なし */ }
+  if (formDone || /(^|[#&])s=/.test(location.hash) || opened.step > 0) document.body.classList.add("form-closed");
+  render();
   // 最初に開いたときはトップページ（共有リンクで step・画面共有の指定があるときはそのステップから）
   if (!opened.present && !/step=/.test(location.hash)) openHome();
 })();
