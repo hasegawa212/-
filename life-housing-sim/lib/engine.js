@@ -132,7 +132,7 @@
       reemploy: { age: 60, rate: 0.6 }, // 60歳で定年→65歳まで再雇用（年収は定年前の6割と仮定） // 社宅：自己負担と、出なければいけない年齢（だいたい30歳）
       own: { buyAge: 30, price: 28_000_000, landShare: 0.35, down: 0, costRate: 0.07, financeCosts: true, rate: 0.012, years: 35,
         propTax: 100_000, ins: 30_000, repairYear: 150_000, repairUpAfter: 20, repairUpRate: 1.5, kind: "used_other" },
-      lifeIns: { monthly: 10_000, cutWithDanshin: 0 },
+      lifeIns: { monthly: 10_000, cutWithDanshin: 0, cover: 10_000_000 }, // 生命保険：毎月の保険料・団信で減らせる分・保障額
       nisa: { monthly: 10_000, balance: 300_000, rate: 0.03 },
       raise: 0.01, // 年収の上がり方（年率・仮定）
       oldLiving: { single: 130_000, couple: 220_000 },
@@ -379,6 +379,44 @@
     return work + "／" + loan + at + end;
   }
 
+  // 団信の上乗せ金利の目安（2026年10月時点、金融機関・商品で違う）。一般団信は多くの金融機関で金利に含まれ、別払いなし
+  const DANSHIN_OPTIONS = [
+    { key: "cancer", label: "がん団信", add: 0.001 },
+    { key: "sandai", label: "3大疾病付き団信", add: 0.002 },
+    { key: "wide", label: "ワイド団信（持病がある方向け）", add: 0.003 },
+  ];
+  // 団体信用生命保険（団信）と生命保険を並べて比べる
+  function danshin(x) {
+    const i = x.input, o = i.own, L = x.loan, single = i.family.marryAge == null;
+    const cover = [];
+    for (let a = L.buyAge; a <= L.endAge; a++) cover.push({ age: a, amount: balanceAfter(L.amount, o.rate, o.years, (a - L.buyAge) * 12) });
+    const options = DANSHIN_OPTIONS.map((d) => {
+      const extraMonthly = payment(L.amount, o.rate + d.add, o.years) - L.pmt;
+      return { ...d, extraMonthly, extraTotal: extraMonthly * L.months };
+    });
+    const life = { monthly: i.lifeIns.monthly, total: x.insurance.rentLife, cover: i.lifeIns.cover };
+    const review = { monthly: x.insurance.cut, total: x.insurance.rentLife - x.insurance.ownLife };
+    const rows = [
+      { key: "target", label: "何を守るか", danshin: "住宅ローンの残り（万一のとき、残りのローンがなくなる）", life: "家族の生活費など（契約した保障額が支払われる）" },
+      { key: "amount", label: "保障額", danshin: `${man(L.amount)} → 返すほど減り ${L.endAge}歳で0`, life: `${man(life.cover)}（一定）` },
+      { key: "premium", label: "保険料", danshin: "金利に含まれ別払いなし（一般団信）", life: `毎月 ${man(life.monthly, 1)}` },
+      { key: "total", label: `${i.retireAge}歳までに払う額`, danshin: "別払い 0円", life: man(life.total) },
+      { key: "period", label: "期間", danshin: `返している間だけ（${L.buyAge}〜${L.endAge}歳）`, life: "契約した期間" },
+      { key: "deduction", label: "生命保険料控除", danshin: "対象外", life: "あり" },
+      { key: "health", label: "健康状態", danshin: "加入に審査あり。入れないとローンが組めない場合も（ワイド団信は金利が上乗せ）", life: "加入に審査あり" },
+    ];
+    return {
+      cover, general: { extraMonthly: 0, note: "一般団信（死亡・高度障害）の保険料は、多くの金融機関で住宅ローンの金利に含まれ、別払いはありません" },
+      options, optionsNote: "上乗せ金利は年0.1〜0.3%が目安。金融機関・商品で違うので、申し込む前に確認してください",
+      life, review, rows,
+      message: single ? "万一のとき、残りのローンは保険で返され、親や兄弟にローンが残りません" : "万一のとき、残りのローンは保険で返され、家族に住まいが残ります",
+    };
+  }
+  function danshinLine(x) {
+    const d = danshin(x), L = x.loan, c = d.options[0];
+    return `団信と生命保険：団信は住宅ローンの残り（${man(L.amount)}→${L.endAge}歳で0）を守り、一般団信の保険料は金利に含まれ別払いなし。生命保険は毎月 ${man(d.life.monthly, 1)}（${x.input.retireAge}歳まで ${man(d.life.total)}、保障額 ${man(d.life.cover)}）。${c.label}にすると毎月 +${man(c.extraMonthly, 1)}（金利+${(c.add * 100).toFixed(1)}%の目安）${d.review.total > 0 ? `。返している間は生命保険を毎月 ${man(d.review.monthly, 1)} 減らすと ${man(d.review.total)} の見直し` : ""}`;
+  }
+
   // 老後の賃貸の入居審査（一般的な目安。断定しない）
   function rentScreenLine(x) {
     const s = x.screening.rent, i = x.input;
@@ -452,10 +490,10 @@
         show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）`,
         ask: `毎月 ${man(x.prepare.monthlyRent, 1)} を${i.retireAge}歳まで積み立て続けられそうですか。` },
       single ? { title: "⑤ もしものとき", say: `ひとりで暮らす場合、いちばんの心配は「年を取ってからの住まい」です。高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。持ち家なら、返済が終わったあとは住む場所が確保できます。住宅ローンには団体信用生命保険（団信）が付くので、万一のときもローンが親や兄弟に残りません。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／老後ひとりで払う家賃 毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ひとりで年を重ねたとき、どこに住んでいたいですか。金利が上がったときの備えはありますか。" } :
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ご家族に、どんな形で住まいを残したいですか。金利が上がったときの備えはありますか。" },
       six,
       { title: "⑦ まとめ：持つ・持たない、それぞれの準備", say: `「できる」とわかったうえで、どちらが正解ということはありません。持つなら、無理のない返済と修繕の備え。持たないなら、老後の家賃のための積立。「持たない」を選ぶ場合も、準備が必要だと知ったうえで選ぶことが大切です。`,
@@ -504,6 +542,7 @@
           `年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸のまま ${man(x.old.rent.outMonthly, 1)}・持ち家 ${man(x.old.own.outMonthly, 1)}`,
           `毎月の不足　賃貸のまま ${man(x.old.rent.gapMonthly, 1)}・持ち家 ${man(x.old.own.gapMonthly, 1)}`,
           rentScreenLine(x),
+          danshinLine(x),
           `持たない場合に${i.retireAge}歳までに準備したいお金 ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）`,
           single ? `高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。団信があるので、万一のときもローンは親や兄弟に残りません。`
             : `団信があるので、万一のときは残りのローンがなくなり、ご家族に住まいが残ります（賃貸ならご家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続けます）。`,
@@ -630,5 +669,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
