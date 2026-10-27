@@ -25,7 +25,7 @@ test("⑥の進め方は4段階：⓪ CICで自分の信用情報を取り寄せ
 });
 
 test("⑥の説明・提案書の次の一歩・トップのミッションに CIC が入る", () => {
-  const six = S.talk(x)[6];
+  const six = S.talk(x)[7];
   assert.match(six.show, /CIC/);
   assert.match(S.proposal(x).pages[3].nextSteps[0], /CIC/);
   const m = S.home(x).missions.find((v) => v.id === "cic");

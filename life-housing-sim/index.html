@@ -206,6 +206,26 @@
     .mdetail { position:relative; left:auto; bottom:auto; width:100%; order:9; }
     #ms { display:none; }
   }
+  .fixed { grid-template-columns:minmax(0,300px) 1fr; }
+  .rentimg img { width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block; }
+  .takebar { position:relative; height:30px; border-radius:8px; background:#e9e4da; overflow:hidden; margin:8px 0; }
+  .takebar i { position:absolute; left:0; top:0; bottom:0; background:var(--rent); }
+  .takebar span { position:absolute; left:8px; top:5px; color:#fff; font-weight:800; font-size:14px; }
+  .takebar em { position:absolute; right:8px; top:6px; font-style:normal; font-size:13px; color:var(--sub); }
+  .rflow { display:flex; align-items:center; gap:8px; margin:8px 0; }
+  .rflow .rf { border:2px solid var(--navy); border-radius:12px; padding:6px 10px; font-weight:700; color:var(--navy); text-align:center; background:#fff; font-size:14px; }
+  .rflow .rf.you { border-color:var(--rent); color:var(--rent); } .rflow .rf b { display:block; font-size:20px; }
+  .rflow .ra { font-size:22px; color:var(--gold); font-weight:800; }
+  .rflow .rfs { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+  .rflow .rfs span { border:1px solid var(--gold); background:#fffaf0; border-radius:8px; padding:3px 8px; font-size:13px; font-weight:700; color:var(--navy); }
+  body.present .rentimg img { max-height:245px; width:auto; max-width:100%; margin:0 auto; }
+  .rentimg img { cursor:zoom-in; } .rentimg .hint { display:block; text-align:center; font-size:12px; color:var(--sub); margin-top:4px; }
+  #imgzoom { display:none; position:fixed; inset:0; background:rgba(15,20,32,.88); z-index:50; align-items:center; justify-content:center; cursor:zoom-out; }
+  #imgzoom.on { display:flex; } #imgzoom img { max-height:96vh; max-width:96vw; border-radius:10px; }
+  @media print { #imgzoom, .rentimg .hint { display:none !important; } }
+  body.present .fixed .small { font-size:11.5px; margin:2px 0 0; line-height:1.45; } body.present .takebar { margin:4px 0; height:26px; } body.present .takebar span { top:3px; } body.present .takebar em { top:4px; } body.present .rflow { margin:4px 0; } body.present .rflow .rf { padding:3px 10px; } body.present .rflow .rfs span { padding:1px 8px; }
+  @media (max-width:920px){ .fixed { grid-template-columns:1fr; } .rentimg img { max-width:420px; margin:0 auto; } }
+  @media (max-width:520px){ .rflow { flex-direction:column; align-items:stretch; } .rflow .ra { transform:rotate(90deg); align-self:center; } }
   .gflow { display:flex; align-items:stretch; gap:8px; margin:10px 0 6px; }
   .gflow .gs { flex:1 1 0; min-width:0; border:2px solid var(--gold); border-radius:12px; padding:8px 10px; background:#fffaf0; }
   .gflow .gs b { display:block; font-size:17px; color:var(--navy); } .gflow .gs span { font-size:12.5px; color:var(--sub); }
@@ -255,6 +275,7 @@
 </main>
 <div class="ptools"><button id="pvBack">← シミュレーターに戻る</button><button class="primary" id="pvPrint">印刷・PDFで保存</button></div>
 <section id="proposal"></section>
+<div id="imgzoom" role="dialog" aria-label="拡大表示"><img alt=""></div>
 <div class="pbar"><button id="pExit">条件を変える</button><span><button id="pPrev">← 前へ</button> <span class="count" id="pCount"></span> <button class="primary" id="pNext">次へ →</button></span><span><button id="pFull">全画面</button> <span class="hint">← → キーでも移動</span></span></div>
 <div class="toast" id="toast"></div>
 <script src="lib/engine.js"></script>
@@ -435,6 +456,17 @@
         ${g.checks.map((c) => `<tr><td>${esc(c.label)}</td><td>${esc(c.value)}</td><td class="${c.ok ? "own" : "rent"}" style="font-weight:700">${c.ok ? "○" : "△ 見直し"}</td></tr>`).join("")}</table>
         <p class="gverdict ${g.allOk ? "ok" : "ng"}">${esc(g.verdict)}</p>
         <p class="small glook"><b>金融機関が見ること（数字以外）</b>：${g.lookAt.map(esc).join("／")}</p></div></div>`;
+  }
+  // ¥ いちばん大きな固定費：賃貸の仕組みの絵 ＋ お客様の家賃の数字（絵の「毎月の家賃」がこの金額）
+  function fixedView(x) {
+    const f = S.fixedCost(x), pct = Math.max(0, Math.min(100, Math.round(f.share * 100))), i = x.input;
+    return `<div class="two fixed"><div class="rentimg"><img src="img/rent-mechanism.jpg" alt="賃貸の仕組み：入居者は毎月の家賃を払い、オーナーは住まいを提供する。家賃はオーナーのローンの返済、管理・修繕・税金にあてられ、残りがオーナーの収益になる"><span class="hint">絵を押すと大きく表示</span></div>
+      <div style="min-width:0"><div class="kpis"><div class="kpi rent"><span>いちばん大きな固定費（今の家賃）</span><b>${man(f.rent, 1)}</b><span>毎月・手取りの約${pct}%</span></div>
+        <div class="kpi rent"><span>${i.retireAge}歳まで払い続けると</span><b>${man(f.to65)}</b><span>${i.lifeEnd}歳までで ${man(f.toEnd)}</span></div></div>
+        <div class="takebar" title="手取り（概算）毎月 ${man(f.takeHome, 1)}"><i style="width:${pct}%"></i><span>家賃 ${pct}%</span><em>手取り（概算）毎月 ${man(f.takeHome, 1)}</em></div>
+        <div class="rflow"><div class="rf you">あなたの家賃<b>${man(f.rent, 1)}</b>毎月</div><div class="ra">→</div><div class="rf">オーナー</div><div class="ra">→</div>
+          <div class="rfs"><span>ローンの返済</span><span>管理・修繕・税金</span><span>手元に残る収益</span></div></div>
+        <p class="small">家賃は住まいの対価。同時に、オーナーの将来への備えにもつながっています。収益は経費や返済額で変わり、空室や修繕で赤字になる場合もあります。手取りは年収から社会保険料（15%と仮定）・所得税・住民税を引いた概算、家賃の合計は更新料こみ。</p></div></div>`;
   }
   function waitView(x) {
     const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge, b = S.bubble(x);
@@ -713,7 +745,7 @@
   }
   function openHome() { document.body.classList.remove("present", "proposal-view"); document.body.classList.add("home-view"); renderHome(); window.scrollTo(0, 0); }
   function openStep(i) { document.body.classList.remove("home-view"); cur = i; all = false; render(); window.scrollTo(0, 0); }
-  let cur = opened.step, all = false, LAST = 8;
+  let cur = opened.step, all = false, LAST = 9;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
   const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
   const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
@@ -721,6 +753,7 @@
     const x = S.compute(state), steps = S.talk(x);
     LAST = steps.length - 1;
     const visual = [
+      fixedView(x),
       portfolioView(x),
       stageTable(x),
       `<div class="kpis dup"><div class="kpi rent"><span>一生の住居費（賃貸のまま）</span><b>${man(x.life.rent)}</b></div><div class="kpi own"><span>一生の住居費（持ち家・控除後）</span><b>${man(x.life.own)}</b></div><div class="kpi"><span>住宅ローン控除で戻る税金</span><b style="color:var(--ok)">${man(x.credit.total)}</b><span>${x.credit.years}年・1年目 ${man(x.credit.first, 1)}</span></div></div><div class="two"><div>${lineChart(x)}${breakdownNote(x)}</div><div>${breakdownTable(x)}</div></div>`,
@@ -735,6 +768,7 @@
     $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { if (b.dataset.home) return openHome(); cur = +b.dataset.i; all = false; render(); }));
     $("steps").innerHTML = steps.map((s, i) => `<div class="step" style="display:${all || i === cur ? "block" : "none"}">
       <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");
+    $("steps").querySelectorAll(".rentimg img").forEach((im) => (im.onclick = () => { const z = $("imgzoom"); z.querySelector("img").src = im.src; z.querySelector("img").alt = im.alt; z.classList.add("on"); }));
     $("prev").disabled = cur === 0; $("next").disabled = cur === steps.length - 1;
     $("notes").innerHTML = S.NOTES.map((n) => `<li>${esc(n)}</li>`).join("");
     $("pCount").textContent = `${cur + 1} / ${steps.length}`;
@@ -755,7 +789,9 @@
     try { await navigator.clipboard.writeText(url); toast("共有リンクをコピーしました（条件の数字だけが入り、お名前は入りません）"); }
     catch (e) { prompt("このリンクをコピーしてください", url); }
   };
+  $("imgzoom").onclick = () => $("imgzoom").classList.remove("on");
   document.addEventListener("keydown", (e) => {
+    if ($("imgzoom").classList.contains("on")) { if (e.key === "Escape" || e.key === " " || e.key === "Enter") { $("imgzoom").classList.remove("on"); e.preventDefault(); } return; }
     if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
     if (document.body.classList.contains("home-view")) return;
     if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); go(1); }

@@ -21,7 +21,7 @@ test("同じ借入額・同じ年数で、当時の金利なら毎月いくら�
 });
 
 test("⑧（今はいい）に、親御さまの頃との違いを入れる（値上がりはあてにしない・値下がりもありうる）", () => {
-  const t = S.talk(x)[8];
+  const t = S.talk(x)[9];
   assert.match(t.show, /親御さま/);
   assert.match(t.show, /8\.5%/);
   assert.ok(t.show.includes(S.man(S.bubble(x).bank, 1)));
