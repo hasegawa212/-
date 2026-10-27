@@ -437,12 +437,13 @@
         <p class="small glook"><b>金融機関が見ること（数字以外）</b>：${g.lookAt.map(esc).join("／")}</p></div></div>`;
   }
   function waitView(x) {
-    const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge;
+    const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge, b = S.bubble(x);
     const rows = w.map((r) => `<tr style="white-space:nowrap"><td>${r.years ? r.years + "年待つ" : "今の計画"}</td><td>${r.buyAge}歳</td><td>${r.years ? man(r.rentWhileWaiting) : "—"}</td><td>${r.payoffAge}歳</td><td>${r.loanYearsAfterRetire ? r.loanYearsAfterRetire + "年" : "なし"}</td><td>${man(r.pmt, 1)}</td><td class="${r.screen.ok ? "" : "minus"}">${Math.round(r.screen.ratio * 100)}%${r.screen.ok ? "" : " ⚠"}</td></tr>`).join("");
-    return `<div class="two"><div><table class="bd"><tr><th></th><th>購入</th><th>待つ間の家賃</th><th>完済</th><th>${ret}歳以降</th><th>毎月</th><th>返済比率</th></tr>${rows}</table>
+    return `<div class="two"><div style="min-width:0"><div style="overflow-x:auto"><table class="bd"><tr><th></th><th>購入</th><th>待つ間の家賃</th><th>完済</th><th>${ret}歳以降</th><th>毎月</th><th>返済比率</th></tr>${rows}</table></div>
       <p class="small">返済比率＝毎月の返済×12÷その年の年収（審査の目安：年収400万円未満30%・以上35%以内）。年齢が上がると期間が短くなり、団信に入れず審査が通りにくくなる場合も。仮に3年の間に金利が0.5%上がれば毎月 ${man(u.pmt, 1)}（下がることもあります）。</p></div>
       <div>${hbars(w.slice(1).map((r) => ({ label: `${r.years}年待つ`, parts: [["待つ間の家賃", r.rentWhileWaiting, "var(--rent)"]] })))}
-      <p class="small" style="margin-top:8px"><b>待つ理由をはっきりさせる</b><br>✓ 転勤・結婚・転職の時期が決まっていない → 決まる時期まで待つのも選択肢（その間に事前審査や貯金を進める）<br>✓ 貯金が足りない → いつまでにいくら貯めるかを決める<br>？「なんとなく」→ 待つ間の家賃と、遅れる完済年齢を知ったうえで決める</p></div></div>`;
+      <p class="small" style="margin-top:8px"><b>待つ理由をはっきりさせる</b><br>✓ 転勤・結婚・転職の時期が決まっていない → 決まる時期まで待つのも選択肢（その間に事前審査や貯金を進める）<br>✓ 貯金が足りない → いつまでにいくら貯めるかを決める<br>？「なんとなく」→ 待つ間の家賃と、遅れる完済年齢を知ったうえで決める</p>
+      <p class="small bubble" style="margin-top:8px"><b>親御さまに反対されたら（1990年前後との違い）</b><br>同じ ${man(x.loan.amount)}・${x.input.own.years}年でも、当時の金利 8.5%なら毎月 <b class="rent">${man(b.bank, 1)}</b>、公庫 5.5%でも ${man(b.public, 1)}。今の計画は <b class="own">${man(b.now, 1)}</b>。値上がりをあてにせず、住むために払える範囲で考えます（下落シナリオは⑦）。</p></div></div>`;
   }
   function breakdownTable(x) {
     const b = x.breakdown, r = b.rent, o = b.own, dash = "—";
