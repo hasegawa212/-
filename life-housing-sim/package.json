@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "serve": "python3 -m http.server 5191",
-    "build": "node tools/bundle.js"
+    "build": "node tools/bundle.js",
+    "deck": "node tools/deck-pdf.js"
   }
 }

@@ -89,6 +89,48 @@
   .toast { position:fixed; left:50%; top:16px; transform:translateX(-50%); background:#1f2a44; color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; z-index:9; display:none; }
   /* 提案書（A4・4ページ） */
   #proposal { display:none; }
+  /* お客様に見せる資料（16:9）：1枚＝1280×720。画面では幅に合わせて縮小、印刷は1枚1ページ */
+  #deck, .dtools { display:none; }
+  body.deck-view main, body.deck-view .pbar, body.deck-view header { display:none; }
+  body.deck-view #deck { display:block; padding:12px 0 40px; }
+  body.deck-view .dtools { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding:10px; position:sticky; top:0; background:var(--bg); z-index:5; }
+  .swrap { margin:0 auto 10px; position:relative; }
+  .slide { width:1280px; height:720px; background:#fff; position:relative; overflow:hidden; transform-origin:0 0; box-shadow:0 4px 18px rgba(0,0,0,.12); font-size:18px; color:var(--ink); }
+  .slide .sh { display:flex; align-items:center; gap:16px; padding:26px 48px 0; }
+  .slide .sh .mk { width:58px; height:58px; border-radius:50%; background:var(--navy); color:#fff; display:grid; place-items:center; font-size:30px; font-weight:800; flex:none; }
+  .slide .sh h2 { font-size:38px; margin:0; color:var(--navy); letter-spacing:.02em; }
+  .slide .sh .co { margin-left:auto; font-size:13px; color:var(--sub); align-self:flex-start; padding-top:6px; }
+  .slide .sl { font-size:23px; font-weight:700; line-height:1.5; margin:12px 48px 0; padding-left:14px; border-left:6px solid var(--gold); }
+  .slide .sb { position:absolute; left:48px; right:48px; top:186px; bottom:52px; display:grid; grid-template-columns:1.45fr 1fr; gap:24px; overflow:hidden; }
+  .slide .sb.wide { grid-template-columns:1fr; }
+  .slide .sv { min-width:0; overflow:hidden; font-size:15px; }
+  .slide .sk { display:flex; flex-direction:column; gap:12px; min-width:0; }
+  .slide .k { border:1px solid var(--line); border-radius:14px; padding:12px 16px; background:#fafaf8; }
+  .slide .k span { display:block; font-size:15px; color:var(--sub); } .slide .k b { display:block; font-size:40px; line-height:1.2; color:var(--navy); }
+  .slide .k.rent b { color:var(--rent); } .slide .k.own b { color:var(--own); } .slide .k em { font-style:normal; font-size:14px; color:var(--sub); }
+  .slide .sp { margin:2px 0 0; padding-left:18px; font-size:14.5px; line-height:1.55; } .slide .sp li { margin:2px 0; }
+  .slide .sf { position:absolute; left:48px; right:48px; bottom:16px; display:flex; justify-content:space-between; font-size:12px; color:var(--sub); border-top:1px solid var(--line); padding-top:8px; }
+  .slide.cover { background:linear-gradient(135deg,#1f2a44,#0f1626); color:#fff; }
+  .slide.cover .ct { position:absolute; left:90px; top:150px; right:90px; }
+  .slide.cover h1 { font-size:96px; margin:0; letter-spacing:.06em; color:#f2cd73; } .slide.cover .kana { font-size:28px; color:#e9dcc0; margin:4px 0 18px; }
+  .slide.cover .tg { font-size:30px; font-weight:700; } .slide.cover .to { font-size:34px; margin-top:56px; border-bottom:2px solid #b08d57; display:inline-block; padding-bottom:4px; min-width:360px; }
+  .slide.cover .pf { font-size:16px; color:#c9d3e6; margin-top:18px; line-height:1.6; } .slide.cover .fr { position:absolute; right:90px; bottom:56px; text-align:right; font-size:20px; color:#e9dcc0; }
+  .slide .nx { list-style:none; padding:0; margin:0; font-size:21px; line-height:1.5; } .slide .nx li { padding:8px 0 8px 44px; position:relative; border-bottom:1px dashed var(--line); }
+  .slide .nx li::before { content:""; position:absolute; left:4px; top:12px; width:24px; height:24px; border:2.5px solid var(--gold); border-radius:5px; }
+  .slide .cn { font-size:22px; font-weight:800; color:var(--navy); margin-top:14px; } .slide .nt { font-size:12px; color:var(--sub); line-height:1.5; margin:10px 0 0; padding-left:16px; }
+  .snote { max-width:1280px; margin:0 auto 26px; background:#fffaf0; border:1px dashed var(--gold); border-radius:10px; padding:10px 14px; font-size:14px; line-height:1.6; }
+  body.deck-nonotes .snote { display:none; }
+  /* 1枚ずつ見せる（スライドショー） */
+  .dt-show { display:none; } body.deck-show .dt-show { display:inline-block; } body.deck-show .dtools { background:#0f1626; } body.deck-show #dCount { color:#fff; }
+  body.deck-show .dtools .dt-hide { display:none; } body.deck-show .snote { display:none; }
+  body.deck-show #deck { padding:0; } body.deck-show .swrap { display:none; } body.deck-show .swrap.cur { display:block; margin:0 auto; }
+  body.deck-show { background:#0f1626; }
+  .slide .sv .two { grid-template-columns:1fr; } .slide .sv .kpis.dup { display:none; }
+  /* 資料では細かい注記を省き（脚注に「概算」）、図と表を大きく */
+  .slide .sv .small:not(.bubble), .slide .sv .dnote, .slide .sv .glook, .slide .sv .legend + .small { display:none; }
+  .slide .sv table td, .slide .sv table th { font-size:16px; padding:6px 8px; }
+  .slide .sv .rec { display:none; } .slide .sv .rentimg { text-align:center; } .slide .sv .rentimg img { max-height:470px; width:auto; max-width:100%; margin:0 auto; } .slide .sv .rentimg .hint { display:none; }
+  .slide.s7 .sp { font-size:13.5px; }
   .sheet { width:210mm; min-height:297mm; padding:14mm 14mm 12mm; background:#fff; margin:0 auto 12px; box-shadow:0 2px 10px rgba(0,0,0,.08); position:relative; font-size:12.5px; }
   .sheet h1 { font-size:26px; color:var(--navy); margin:0 0 4px; letter-spacing:.06em; }
   .sheet h2 { font-size:18px; color:var(--navy); margin:0 0 6px; border-left:5px solid var(--gold); padding-left:8px; }
@@ -260,6 +302,11 @@
     body.proposal-view #proposal { padding:0; }
     body.proposal-view .sheet { box-shadow:none; margin:0; page-break-after:always; break-after:page; height:297mm; overflow:hidden; }
     @page { size:A4; margin:0; }
+    body.deck-view .dtools, body.deck-view .snote { display:none !important; }
+    body.deck-view #deck { padding:0; } body.deck-view { background:#fff; }
+    body.deck-view .swrap { width:auto !important; height:auto !important; margin:0; display:block !important; }
+    body.deck-view .slide { transform:none !important; box-shadow:none; page:deck; break-after:page; }
+    @page deck { size:338.67mm 190.5mm; margin:0; }
   }
   @media print {
     header, .form, .tabs, .nav, .tools, .pbar, .toast { display:none !important; }
@@ -280,12 +327,14 @@
     <div class="tabs" id="tabs"></div>
     <div id="steps"></div>
     <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
-    <div class="tools"><button id="toHome" style="background:#b08d57;color:#fff;border-color:#b08d57">★ トップ（LIFE ROUTE）</button><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
+    <div class="tools"><button id="toHome" style="background:#b08d57;color:#fff;border-color:#b08d57">★ トップ（LIFE ROUTE）</button><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="deckBtn" style="background:#1f2a44;color:#fff;border-color:#1f2a44">お客様に見せる資料（16:9）</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
     <ul class="notes" id="notes"></ul>
   </section>
 </main>
 <div class="ptools"><button id="pvBack">← シミュレーターに戻る</button><button class="primary" id="pvPrint">印刷・PDFで保存</button></div>
 <section id="proposal"></section>
+<div class="dtools"><button id="dBack" class="dt-hide">← シミュレーターに戻る</button><button class="primary" id="dShow">▶ 1枚ずつ見せる</button><button id="dPrev" class="dt-show">←</button><span id="dCount" style="align-self:center;font-weight:700"></span><button id="dNext" class="dt-show">→</button><label class="dt-hide" style="align-self:center;font-size:14px"><input type="checkbox" id="dNotes" checked> 営業マン用ノートを表示</label><button id="dPrint" class="dt-hide">印刷・PDFで保存（ノートは入りません）</button></div>
+<section id="deck"></section>
 <div id="imgzoom" role="dialog" aria-label="拡大表示"><img alt=""></div>
 <div class="pbar"><button id="pExit">条件を変える</button><span><button id="pPrev">← 前へ</button> <span class="count" id="pCount"></span> <button class="primary" id="pNext">次へ →</button></span><span><button id="pFull">全画面</button> <span class="hint">← → キーでも移動</span></span></div>
 <div class="toast" id="toast"></div>
@@ -570,6 +619,64 @@
     });
     return h;
   }
+  // ───── お客様に見せる資料（16:9）：数字・文は S.deck、図はシミュレーターと同じ関数 ─────
+  let deckCur = 0;
+  function deckVisual(key, x) {
+    const v = {
+      fixed: () => (fixedView(x).match(/<div class="rentimg">[\s\S]*?<\/div>/) || [""])[0], portfolio: () => portfolioView(x), stages: () => stageTable(x), life: () => lineChart(x), old: () => oldBars(x),
+      prepare: () => hbars([{ label: "賃貸のまま", parts: [["準備", x.prepare.rentNeed, "var(--rent)"]] }, { label: "持ち家", parts: [["準備", x.prepare.ownNeed, "var(--own)"]] }]),
+      danshin: () => danshinView(x), gate: () => gateView(x), recommend: () => recommendView(x), wait: () => waitView(x),
+    }[key];
+    return v ? v() : "";
+  }
+  function deckHtml(x) {
+    const today = new Date(), date = `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`;
+    const D = S.deck(x, { ...meta, date }), n = D.slides.length;
+    const foot = (k) => `<div class="sf"><span>${esc(S.APP.name)}｜金額は概算です。将来の金利・価格・年金を約束するものではありません</span><span>${k + 1} / ${n}</span></div>`;
+    return D.slides.map((s, k) => {
+      let h;
+      if (s.kind === "cover") h = `<div class="slide cover"><div class="ct"><h1>${esc(s.title)}</h1><div class="kana">${esc(s.kana)}</div><div class="tg">${esc(s.tagline)}</div>
+        <div class="to">${esc(s.to || "　")}</div><div class="pf">${esc(s.profile)}</div></div><div class="fr">${esc(s.from)}<br>${esc(s.date)}</div></div>`;
+      else if (s.kind === "next") h = `<div class="slide"><div class="sh"><div class="mk">✓</div><h2>${esc(s.headline)}</h2></div>
+        <div class="sb" style="top:110px"><div><ul class="nx">${s.steps.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>
+        <div><div class="k"><span>ご相談・お問い合わせ</span><div class="cn">${esc(s.contact)}</div></div><ul class="nt">${s.notes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div></div>${foot(k)}</div>`;
+      else h = `<div class="slide${s.mark === "⑦" ? " s7" : ""}"><div class="sh"><div class="mk">${esc(s.mark)}</div><h2>${esc(s.headline)}</h2><div class="co">${esc(meta.company || S.DEFAULT_COMPANY)}</div></div>
+        <p class="sl">${esc(s.lead)}</p>
+        <div class="sb"><div class="sv">${deckVisual(s.visual, x)}</div>
+        <div class="sk">${s.kpis.map((v) => `<div class="k ${v.tone}"><span>${esc(v.label)}</span><b>${esc(v.value)}</b>${v.sub ? `<em>${esc(v.sub)}</em>` : ""}</div>`).join("")}
+        ${s.points.length ? `<ul class="sp">${s.points.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>` : ""}</div></div>${foot(k)}</div>`;
+      const note = s.notes && s.notes.say ? `<div class="snote"><b>営業マン用ノート（お客様には見せません）</b><br>話すこと：${esc(s.notes.say)}<br>質問：${esc(s.notes.ask)}</div>` : "";
+      return `<div class="swrap" data-k="${k}">${h}</div>${note}`;
+    }).join("");
+  }
+  // 1280×720 の枠に収まらない図は、その枠の中だけ縮める（文字の大きさは保つ）
+  function fitDeck() {
+    const show = document.body.classList.contains("deck-show");
+    const W = show ? window.innerWidth : Math.min(window.innerWidth - 24, 1280), H = show ? window.innerHeight - 64 : Infinity;
+    const sc = Math.min(1, W / 1280, H / 720);
+    document.querySelectorAll("#deck .swrap").forEach((w, k) => {
+      w.classList.toggle("cur", k === deckCur);
+      const sl = w.firstElementChild; sl.style.transform = `scale(${sc})`;
+      w.style.width = 1280 * sc + "px"; w.style.height = 720 * sc + "px";
+    });
+    document.querySelectorAll("#deck .sv, #deck .sk").forEach((v) => {
+      v.style.zoom = 1;
+      const r = Math.min(1, v.clientHeight / v.scrollHeight, v.clientWidth / v.scrollWidth);
+      if (r < 1) v.style.zoom = Math.max(0.45, r * 0.98);
+    });
+    const n = document.querySelectorAll("#deck .swrap").length;
+    $("dCount").textContent = show ? `${deckCur + 1} / ${n}` : `全${n}枚`;
+  }
+  function showDeck() {
+    $("deck").innerHTML = deckHtml(S.compute(state));
+    document.body.classList.remove("present", "proposal-view", "home-view");
+    document.body.classList.add("deck-view");
+    document.body.classList.toggle("deck-nonotes", !$("dNotes").checked);
+    $("deck").querySelectorAll(".rentimg img").forEach((im) => (im.onclick = () => { const z = $("imgzoom"); z.querySelector("img").src = im.src; z.querySelector("img").alt = im.alt; z.classList.add("on"); }));
+    deckCur = 0; fitDeck(); window.scrollTo(0, 0);
+  }
+  const deckGo = (d) => { const n = document.querySelectorAll("#deck .swrap").length; deckCur = Math.min(n - 1, Math.max(0, deckCur + d)); fitDeck(); };
+  const deckShow = (on) => { document.body.classList.toggle("deck-show", on); $("dShow").textContent = on ? "■ 一覧に戻る" : "▶ 1枚ずつ見せる"; fitDeck(); window.scrollTo(0, 0); };
   function showProposal() {
     $("proposal").innerHTML = proposalHtml(S.compute(state));
     document.body.classList.remove("present");
@@ -800,6 +907,13 @@
   const go = (d) => { cur = Math.min(LAST, Math.max(0, cur + d)); all = false; render(); toTop(); };
   $("present").onclick = () => present(true);
   $("prop").onclick = showProposal;
+  $("deckBtn").onclick = showDeck;
+  $("dBack").onclick = () => { deckShow(false); document.body.classList.remove("deck-view"); render(); };
+  $("dShow").onclick = () => deckShow(!document.body.classList.contains("deck-show"));
+  $("dPrev").onclick = () => deckGo(-1); $("dNext").onclick = () => deckGo(1);
+  $("dNotes").onchange = () => document.body.classList.toggle("deck-nonotes", !$("dNotes").checked);
+  $("dPrint").onclick = () => window.print();
+  window.addEventListener("resize", () => { if (document.body.classList.contains("deck-view")) fitDeck(); });
   $("pvBack").onclick = () => { document.body.classList.remove("proposal-view"); render(); };
   $("pvPrint").onclick = () => window.print();
   $("pExit").onclick = () => present(false);
@@ -814,6 +928,14 @@
   };
   $("imgzoom").onclick = () => $("imgzoom").classList.remove("on");
   document.addEventListener("keydown", (e) => {
+    if (document.body.classList.contains("deck-show") && !$("imgzoom").classList.contains("on")) {
+      if (["ArrowRight", "PageDown", " ", "Enter"].includes(e.key)) { e.preventDefault(); deckGo(1); }
+      else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); deckGo(-1); }
+      else if (e.key === "Escape") deckShow(false);
+      else if (e.key === "f" || e.key === "F") full();
+      return;
+    }
+    if (document.body.classList.contains("deck-view")) return;
     if ($("imgzoom").classList.contains("on")) { if (e.key === "Escape" || e.key === " " || e.key === "Enter") { $("imgzoom").classList.remove("on"); e.preventDefault(); } return; }
     if (e.target.tagName === "SELECT" || e.target.tagName === "INPUT") return;
     if (document.body.classList.contains("home-view")) return;

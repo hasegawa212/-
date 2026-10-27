@@ -561,6 +561,63 @@
     ];
   }
 
+  // 営業マンがお客様に見せる資料（16:9 スライド）：表紙 → ¥・⓪〜⑧（説明と同じ順番）→ 次の一歩
+  // お客様が見る面は「見出し・一言・大きな数字・図」。話すこと・質問（talk の say/ask）は営業マン用のノートに分ける
+  function deck(x, meta = {}) {
+    const i = x.input, t = talk(x), fc = fixedCost(x), rc = recommend(x), g = gate(x), P = proposal(x, meta);
+    const w5 = x.wait[3] || x.wait[x.wait.length - 1], name = meta.customer && String(meta.customer).trim();
+    const k = (label, value, sub = "", tone = "") => ({ label, value, sub, tone });
+    const by = {
+      "¥": { headline: "節約するなら、いちばん大きな固定費から", visual: "fixed",
+        lead: fc.rent ? `毎月の家賃は手取りの約${Math.round(fc.share * 100)}%。家賃は、オーナーのローンの返済や将来の備えにもなっています。` : "今は家賃なし。家を出ると、いちばん大きな固定費＝家賃が始まります。",
+        kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", fc.rent ? `手取りの約${Math.round(fc.share * 100)}%` : "実家など", "rent"),
+          k(fc.to65 ? `${i.retireAge}歳まで払い続けると` : `${i.lifeEnd}歳までの家賃`, man(fc.to65 || fc.toEnd), `${i.lifeEnd}歳までで ${man(fc.toEnd)}`, "rent")],
+        points: ["家賃は住まいの対価。受け取った家賃は、オーナーのローンの返済・管理・修繕・税金にあてられます", "同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか"] },
+      "⓪": { headline: "あなたのお金の全体像", visual: "portfolio",
+        lead: `これから一生で入ってくるお金は約 ${man(x.income.total)}。住まいは、その中でいちばん大きな支出です。`,
+        kpis: [k("一生で入ってくるお金", man(x.income.total), `給料＋年金`), k("住まいに使う割合（賃貸のまま）", Math.round(x.income.housingShare.rent * 100) + "%", "", "rent"), k("住まいに使う割合（持ち家）", Math.round(x.income.housingShare.own * 100) + "%", "", "own")],
+        points: [] },
+      "①": { headline: "これからの暮らしの段階", visual: "stages",
+        lead: `家賃は一生続きます。${i.retireAge}歳を過ぎても、${i.lifeEnd}歳まで住まいは必要です。`,
+        kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", "", "rent"), k("老後の家賃（毎月）", i.rent.old ? man(i.rent.old, 1) : "なし", `${x.old.years}年続く`, "rent")],
+        points: [`今から${i.lifeEnd}歳まで、家賃だけで ${man(fc.toEnd)}（更新料こみ）`, i.family.marryAge == null ? "持ち家なら、結婚しても住み続ける・貸す・売るを選べます" : "お子さまが生まれると広い部屋が必要になり、家賃も上がります"] },
+      "②": { headline: "一生でかかる住まいのお金", visual: "life",
+        lead: `今から${i.lifeEnd}歳まで、税金・保険・修繕まで入れて比べました。持ち家は住宅ローン控除で税金が戻ります。`,
+        kpis: [k("一生の住居費（賃貸のまま）", man(x.life.rent), "", "rent"), k("一生の住居費（持ち家）", man(x.life.own), `${i.retireAge}歳に家が残る（横ばい ${man(x.value65.flat)}）`, "own"), k("住宅ローン控除で戻る税金", man(x.credit.total), "", "own")],
+        points: [] },
+      "③": { headline: `${i.retireAge}歳からの${x.old.years}年`, visual: "old",
+        lead: `${i.retireAge}歳からは年金が中心。賃貸のままだと、年金から家賃を払い続けます。`,
+        kpis: [k("年金（概算・毎月）", man(x.pension.monthly, 1)), k("毎月の不足（賃貸のまま）", man(x.old.rent.gapMonthly, 1), "", "rent"), k("毎月の不足（持ち家）", man(x.old.own.gapMonthly, 1), `${x.loan.endAge}歳で完済`, "own")],
+        points: [] },
+      "④": { headline: "持たないなら、いくら準備が必要か", visual: "prepare",
+        lead: `賃貸のままなら、老後の家賃のぶんを${i.retireAge}歳までに準備しておく必要があります。`,
+        kpis: [k(`${i.retireAge}歳までに準備（賃貸のまま）`, man(x.prepare.rentNeed), `毎月 ${man(x.prepare.monthlyRent, 1)} の積立`, "rent"), k(`${i.retireAge}歳までに準備（持ち家）`, man(x.prepare.ownNeed), `毎月 ${man(x.prepare.monthlyOwn, 1)} の積立`, "own")],
+        points: [] },
+      "⑤": { headline: "もしものとき（団信と保険）", visual: "danshin",
+        lead: "住宅ローンには団体信用生命保険（団信）。万一のとき、残りのローンは保険で返済されます。",
+        kpis: [k("万一のとき残るローン", man(0), "団信", "own"), k("老後の賃貸の入居審査", Math.round(x.screening.rent.ratioOld * 100) + "%", "家賃÷年金（目安 33%以内）", "rent"), k("金利が1%上がったら（毎月）", man(x.whatIf.rateUpPmt, 1), `今の計画 ${man(x.whatIf.pmt, 1)}`)],
+        points: [] },
+      "⑥": { headline: "まず「できるか」を確かめる", visual: "gate",
+        lead: "住宅ローンを決めるのは金融機関。やるか・やらないかの前に、事前審査で「できるか」を確かめます。",
+        kpis: [k("審査が通るのは（当社の目安）", `${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人`), k("事前審査", "無料", "購入の義務はありません")],
+        points: [g.verdict] },
+      "⑦": { headline: "賃貸と購入、どちらがいいか", visual: "recommend",
+        lead: rc.headline.length <= 80 ? rc.headline : rc.headline.slice(0, rc.headline.indexOf("。") + 1),
+        kpis: rc.reasons.slice(0, 2).map((r) => k(r.label.replace(/（.*）/, ""), r.key === "old" ? man(r.own, 1) : man(r.own), `賃貸のまま ${r.key === "old" ? man(r.rent, 1) : man(r.rent)}`, "own")),
+        points: rc.cautions },
+      "⑧": { headline: "「今はいい」と思ったら", visual: "wait",
+        lead: "待つのも選択肢。待つ理由と、待つ間に払う家賃・遅れる完済年齢を知ったうえで決めましょう。",
+        kpis: w5 ? [k(`${w5.years}年待つ間の家賃`, man(w5.rentWhileWaiting), "", "rent"), k("完済の年齢", `${w5.payoffAge}歳`, `今なら ${x.loan.endAge}歳`)] : [k("毎月の返済", man(x.loan.pmt, 1)), k("完済の年齢", `${x.loan.endAge}歳`)],
+        points: [] },
+    };
+    const slides = [{ kind: "cover", title: APP.name, kana: APP.kana, tagline: APP.tagline,
+      to: name ? name + " 様" : "", from: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : ""].filter(Boolean).join("　"), date: meta.date || "", profile: P.cover.profile }];
+    t.forEach((s, n) => { const m = s.title.slice(0, 1); slides.push({ kind: "step", step: n, mark: m, ...by[m], notes: { say: s.say, ask: s.ask } }); });
+    slides.push({ kind: "next", headline: "次の一歩", steps: P.pages[3].nextSteps,
+      contact: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"), notes: NOTES.slice(0, 4) });
+    return { slides };
+  }
+
   // お客様にお渡しする提案書（A4・4ページ）。数字はすべて compute の結果から
   function proposal(x, meta = {}) {
     const i = x.input, single = i.family.marryAge == null, inc = x.income, pf = x.portfolio, b = x.breakdown;
@@ -734,5 +791,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
