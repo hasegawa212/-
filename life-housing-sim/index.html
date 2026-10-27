@@ -87,6 +87,33 @@
   .pbar .count { font-size:18px; letter-spacing:.1em; }
   .pbar .hint { font-size:12px; opacity:.7; }
   .toast { position:fixed; left:50%; top:16px; transform:translateX(-50%); background:#1f2a44; color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; z-index:9; display:none; }
+  /* 提案書（A4・4ページ） */
+  #proposal { display:none; }
+  .sheet { width:210mm; min-height:297mm; padding:14mm 14mm 12mm; background:#fff; margin:0 auto 12px; box-shadow:0 2px 10px rgba(0,0,0,.08); position:relative; font-size:12.5px; }
+  .sheet h1 { font-size:26px; color:var(--navy); margin:0 0 4px; letter-spacing:.06em; }
+  .sheet h2 { font-size:18px; color:var(--navy); margin:0 0 6px; border-left:5px solid var(--gold); padding-left:8px; }
+  .sheet .lead { font-size:14px; margin:0 0 10px; }
+  .sheet ul.pts { margin:0 0 10px; padding-left:1.2em; } .sheet ul.pts li { margin:3px 0; }
+  .sheet .meta { display:flex; justify-content:space-between; font-size:12px; color:var(--sub); border-bottom:2px solid var(--navy); padding-bottom:6px; margin-bottom:10px; }
+  .sheet .to { font-size:20px; font-weight:700; margin:10px 0 2px; }
+  .sheet .foot { position:absolute; left:14mm; right:14mm; bottom:8mm; font-size:10px; color:var(--sub); display:flex; justify-content:space-between; border-top:1px solid var(--line); padding-top:4px; }
+  .sheet .check li { list-style:none; margin:5px 0; font-size:13.5px; } .sheet .check { padding-left:0; }
+  .sheet .check li::before { content:"☐ "; font-size:16px; }
+  .sheet .notes2 { font-size:10px; color:var(--sub); padding-left:1.1em; }
+  .sheet table { font-size:12px; }
+  body.proposal-view main, body.proposal-view .pbar { display:none; }
+  body.proposal-view #proposal { display:block; padding:14px 0; }
+  .ptools { display:none; }
+  body.proposal-view .ptools { display:flex; gap:8px; justify-content:center; padding:10px; position:sticky; top:0; background:var(--bg); z-index:3; }
+  .ptools button { font:inherit; font-size:14px; border:1px solid var(--navy); background:#fff; color:var(--navy); border-radius:8px; padding:8px 16px; cursor:pointer; }
+  .ptools button.primary { background:var(--navy); color:#fff; }
+  .form input[type=text] { font:inherit; font-size:13px; padding:5px 6px; border:1px solid #c9b48a; border-radius:7px; background:#fff; width:150px; }
+  @media print {
+    body.proposal-view header, body.proposal-view .ptools { display:none !important; }
+    body.proposal-view #proposal { padding:0; }
+    body.proposal-view .sheet { box-shadow:none; margin:0; page-break-after:always; break-after:page; height:297mm; overflow:hidden; }
+    @page { size:A4; margin:0; }
+  }
   @media print {
     header, .form, .tabs, .nav, .tools, .pbar, .toast { display:none !important; }
     main { display:block; padding:0; } body { background:#fff; } .panel { border:none; padding:0; }
@@ -105,10 +132,12 @@
     <div class="tabs" id="tabs"></div>
     <div id="steps"></div>
     <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
-    <div class="tools"><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
+    <div class="tools"><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
     <ul class="notes" id="notes"></ul>
   </section>
 </main>
+<div class="ptools"><button id="pvBack">← シミュレーターに戻る</button><button class="primary" id="pvPrint">印刷・PDFで保存</button></div>
+<section id="proposal"></section>
 <div class="pbar"><button id="pExit">条件を変える</button><span><button id="pPrev">← 前へ</button> <span class="count" id="pCount"></span> <button class="primary" id="pNext">次へ →</button></span><span><button id="pFull">全画面</button> <span class="hint">← → キーでも移動</span></span></div>
 <div class="toast" id="toast"></div>
 <script src="lib/engine.js"></script>
@@ -159,6 +188,8 @@
     ["oldLiving.couple", "夫婦の場合", range(120_000, 350_000, 10_000), yen],
   ];
   const opened = window.LHSShare.decode(location.hash, S.defaults());
+  // 提案書の宛名・会社情報（この画面の中だけ。共有リンクや保存には入れない）
+  const meta = { customer: "", company: "株式会社 Martial Arts", staff: "", tel: "" };
   const state = opened.state;
   const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
@@ -173,7 +204,10 @@
       const cur = get(state, key);
       h += `<label>${esc(label)}<select data-k="${key}">${opts.map((v, i) => `<option value="${i}"${v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select></label>`;
     }
+    h += `<h2>提案書（お名前はリンクに入りません）</h2>` + [["customer", "お客様のお名前"], ["company", "会社名"], ["staff", "担当者"], ["tel", "電話番号"]]
+      .map(([k, l]) => `<label>${l}<input type="text" data-m="${k}" value="${esc(meta[k] || "")}"></label>`).join("");
     $("form").innerHTML = h;
+    $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
     $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
       const p = S.preset(b.dataset.p);
       state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome;
@@ -290,6 +324,43 @@
     return `<div class="kpis"><div class="kpi"><span>生命保険（${x.input.retireAge}歳まで・賃貸）</span><b>${man(s2.rentLife)}</b><span>毎月 ${man(s2.lifeMonthly, 1)}</span></div>
       <div class="kpi own"><span>生命保険（${x.input.retireAge}歳まで・持ち家）</span><b>${man(s2.ownLife)}</b><span>${s2.cut ? `団信で毎月 ${man(s2.cut, 1)} 見直した場合` : "見直さない場合（▼で設定）"}</span></div></div>`;
   }
+  function proposalHtml(x) {
+    const today = new Date();
+    const P = S.proposal(x, { ...meta, date: `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日` });
+    const c = P.cover, total = P.pages.length;
+    const foot = (n) => `<div class="foot"><span>${esc(c.company)}　${esc(c.contact)}</span><span>${n} / ${total}</span></div>`;
+    const visuals = {
+      1: hbars([
+        { label: "生涯収入", parts: [["給料", x.income.salaryMe + x.income.salaryPartner, "#1f2a44"], ["年金", x.income.pension, "#b08d57"]] },
+        { label: "住まい（賃貸）", parts: [["賃貸", x.life.rent, "var(--rent)"]] },
+        { label: "住まい（持ち家）", parts: [["持ち家", x.life.own, "var(--own)"]] },
+      ]) + hbars([
+        { label: "今の資産", parts: [["預貯金", x.portfolio.now.savings, "#8a9099"], ["NISA", x.portfolio.now.nisa, "#2e7d32"]] },
+        { label: `${x.input.retireAge}歳・賃貸`, parts: [["預貯金", x.portfolio.at65.rent.savings, "#8a9099"], ["NISA", x.portfolio.at65.rent.nisa, "#2e7d32"]] },
+        { label: `${x.input.retireAge}歳・持ち家`, parts: [["預貯金", x.portfolio.at65.own.savings, "#8a9099"], ["NISA", x.portfolio.at65.own.nisa, "#2e7d32"], ["不動産", x.portfolio.at65.own.realEstate, "var(--own)"]] },
+      ]) + legend([["給料", "#1f2a44"], ["年金", "#b08d57"], ["預貯金", "#8a9099"], ["NISA", "#2e7d32"], ["不動産（家の価値−残りのローン）", "var(--own)"]]),
+      2: lineChart(x) + breakdownTable(x),
+      3: oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>${x.input.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${x.input.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div></div>` + waitView(x),
+      4: "",
+    };
+    let h = "";
+    P.pages.forEach((p, idx) => {
+      h += `<div class="sheet">`;
+      if (idx === 0) h += `<div class="meta"><span>${esc(c.date)}</span><span>${esc(c.company)}</span></div><h1>${esc(c.title)}</h1><p class="small" style="margin:0">${esc(c.sub)}</p><p class="to">${esc(c.to)}</p><p class="small" style="margin:0 0 12px">前提：${esc(c.profile)}</p>`;
+      h += `<h2>${p.no}. ${esc(p.title)}</h2><p class="lead">${esc(p.lead)}</p><ul class="pts">${p.points.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>${visuals[p.no] || ""}`;
+      if (p.nextSteps) h += `<h2 style="margin-top:12px">次の一歩（選んでチェック）</h2><ul class="check">${p.nextSteps.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        <h2 style="margin-top:12px">ご注意</h2><ul class="notes2">${P.notes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        <p style="margin-top:10px;font-size:13px"><b>${esc(c.company)}</b>　${esc(c.contact)}</p>`;
+      h += foot(p.no) + `</div>`;
+    });
+    return h;
+  }
+  function showProposal() {
+    $("proposal").innerHTML = proposalHtml(S.compute(state));
+    document.body.classList.remove("present");
+    document.body.classList.add("proposal-view");
+    window.scrollTo(0, 0);
+  }
   let cur = opened.step, all = false, LAST = 7;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
   const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
@@ -318,6 +389,9 @@
   }
   const go = (d) => { cur = Math.min(LAST, Math.max(0, cur + d)); all = false; render(); };
   $("present").onclick = () => present(true);
+  $("prop").onclick = showProposal;
+  $("pvBack").onclick = () => { document.body.classList.remove("proposal-view"); render(); };
+  $("pvPrint").onclick = () => window.print();
   $("pExit").onclick = () => present(false);
   $("pPrev").onclick = () => go(-1);
   $("pNext").onclick = () => go(1);
