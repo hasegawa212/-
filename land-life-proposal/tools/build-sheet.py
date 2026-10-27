@@ -55,8 +55,8 @@ NUM = '#,##0.0'
 # タブ名（番号の順に見る。「参考：」は税率表など）
 S_EASY, S_IN, S_CALC = "① かんたん試算", "② 詳しい条件", "③ 詳しい試算"
 S_CR, S_RISK, S_SALE = "④ 住宅ローン控除", "⑤ 収入が減ったら", "⑥ 売却の目安"
-S_TAX, S_TAXT, S_RULE = "参考：税額の概算", "参考：税の前提", "参考：控除の制度"
-TAB = {S_EASY: GOLD, S_IN: "F1C232", S_CALC: NAVY, S_CR: NAVY, S_RISK: NAVY, S_SALE: NAVY, S_TAX: "A6A6A6", S_TAXT: "A6A6A6", S_RULE: "A6A6A6"}
+S_TAX, S_TAXT, S_RULE, S_OPT = "参考：税額の概算", "参考：税の前提", "参考：控除の制度", "参考：選択肢"
+TAB = {S_EASY: GOLD, S_IN: "F1C232", S_CALC: NAVY, S_CR: NAVY, S_RISK: NAVY, S_SALE: NAVY, S_TAX: "A6A6A6", S_TAXT: "A6A6A6", S_RULE: "A6A6A6", S_OPT: "A6A6A6"}
 BG_OK, BG_WARN, BG_NG = PatternFill("solid", fgColor="D9EAD3"), PatternFill("solid", fgColor="FFF2CC"), PatternFill("solid", fgColor="F4CCCC")
 
 KIND = {"new": "新築", "resale": "買取再販", "used": "中古"}
@@ -144,37 +144,107 @@ def build(ed, R, out_dir):
     WRAP = Alignment(wrap_text=True, vertical="center")
     e.ws.cell(row=1, column=1, value=f"資金計画シミュレーター　{b['name']}").font = Font(name="Arial", size=16, bold=True, color=NAVY)
     e.ws.cell(row=2, column=1, value="人生を、自分の土地から。　単身者向け 戸建ての資金計画（概算）").font = F_NOTE
-    e.ws.cell(row=3, column=1, value="使い方：① 黄色のマスに入力する　→　② 下の「結果」と「チェック」を見る　→　③ もっと詳しく見るときは ②〜⑥ のタブ").font = Font(name="Arial", size=11, bold=True, color=GOLD)
-    e.r = 4
-    dv_kind = DataValidation(type="list", formula1='"新築,買取再販,中古"', allow_blank=False)
-    e.ws.add_data_validation(dv_kind)
+    e.ws.cell(row=3, column=1, value="使い方：黄色のマスの ▼ から選ぶ（直接入力もできます）。すべて選ぶと、結果・チェック・まとめが表示されます。").font = Font(name="Arial", size=11, bold=True, color=GOLD)
+    e.ws.cell(row=4, column=1, value="ご説明の順番：❶ 毎月の支払いを今の家賃とくらべる　→　❷ チェック（◎ 安心　△ 注意　× 要相談）　→　❸ ひとことまとめ　→　グラフ").font = Font(name="Arial", size=10, color=NAVY)
+    e.r = 6
+    prog_row = e.r
+    e.cell(1, "入力の完成度", F_KEY, fill=BG_KEY)
+    e.name("e_prog", 2)
+    e.r += 1
 
-    def ein(key, label, value, fmt, hint, cols=(2,), dv=None):
+    # 選択肢（参考：選択肢 タブ）。ここを書き換えればプルダウンの中身が変わる
+    o = Sheet(wb, S_OPT, names, [16, 14, 14, 14, 14, 12, 10, 26, 14, 14, 10])
+    o.title_row("参考：選択肢", "① かんたん試算 のプルダウンの中身です。行を足す・消すと選択肢が変わります（リストにない値も直接入力できます）。")
+    opt_cols = {}
+
+    def opts(key, header, values, fmt):
+        col = len(opt_cols) + 1
+        top = o.r
+        o.ws.cell(row=top, column=col, value=header).font = F_HEAD
+        o.ws.cell(row=top, column=col).fill = BG_HEAD
+        for n, v in enumerate(values, 1):
+            cl = o.ws.cell(row=top + n, column=col, value=v)
+            cl.font = F_IN
+            if fmt:
+                cl.number_format = fmt
+        L = get_column_letter(col)
+        opt_cols[key] = f"'{S_OPT}'!${L}${top + 1}:${L}${top + len(values)}"
+
+    def steps(a, b_, st):
+        return [round(a + st * n, 6) for n in range(int(round((b_ - a) / st)) + 1)]
+
+    prop_names = ["新築注文住宅", "新築建売住宅", "リフォーム済み中古戸建て", "中古戸建て", "新築戸建て", "土地＋新築"]
+    for p in props:
+        if p["label"] not in prop_names:
+            prop_names.append(p["label"])
+    opts("e_gross", "年収", steps(200, 1500, 25), MAN)
+    opts("e_rent", "家賃", steps(20_000, 200_000, 5_000), YEN)
+    opts("e_park", "駐車場代", steps(0, 30_000, 1_000), YEN)
+    opts("e_sav", "預貯金", [0, 10, 20, 30, 50, 80, 100, 120, 150, 200, 250, 300, 400, 500, 600, 700, 800, 1000, 1200, 1500, 2000], MAN)
+    opts("e_exist", "車などの返済", steps(0, 80_000, 1_000), YEN)
+    opts("e_rate", "金利", steps(0.003, 0.03, 0.0005), PCT2)
+    opts("e_years", "返済年数", steps(10, 35, 1), YEARS)
+    opts("e_label", "物件の名前", prop_names, None)
+    opts("e_price", "物件価格", steps(500, 8000, 10), MAN)
+    opts("e_down", "頭金", steps(0, 2000, 10), MAN)
+    opts("e_kind", "区分", ["新築", "買取再販", "中古"], None)
+    in_keys = []
+
+    def ein(key, label, value, fmt, hint, cols=(2,)):
+        dv = DataValidation(type="list", formula1="=" + opt_cols[key.rstrip("#")], allow_blank=True, showErrorMessage=False)
+        e.ws.add_data_validation(dv)
         e.cell(1, label)
         for k, col in enumerate(cols):
             cl = e.cell(col, value[k] if isinstance(value, list) else value, F_IN, fmt, BG_IN)
-            if dv:
-                dv.add(cl)
-            e.name(key.replace("#", "AB"[k]) if "#" in key else key, col)
-        e.cell(5, hint, F_NOTE)
+            dv.add(cl)
+            nm = key.replace("#", "AB"[k]) if "#" in key else key
+            e.name(nm, col)
+            in_keys.append(nm)
+        e.cell(5, "▼ " + hint, F_NOTE)
         e.r += 1
 
-    e.section("STEP 1　あなたのこと", ["項目", "入力", "", "", "入力のヒント"])
-    ein("e_gross", "年収（税込）", round(c["gross"] / 10_000), MAN, "源泉徴収票の「支払金額」。万円で入力（450万円なら 450）")
+    step_marks = []
+
+    def step(title, heads):
+        e.section(title, heads)
+        step_marks.append((e.r - 2, len(in_keys)))
+
+    step("STEP 1　あなたのこと", ["項目", "選ぶ", "", "", "選び方のヒント"])
+    ein("e_gross", "年収（税込）", round(c["gross"] / 10_000), MAN, "源泉徴収票の「支払金額」（税込）")
     ein("e_rent", "今の家賃（月）", c["rent"], YEN, "管理費・共益費を含む")
     ein("e_park", "駐車場代（月）", c.get("rentParking", 0), YEN, "車を置いていなければ 0")
-    ein("e_sav", "預貯金", round(c["savings"] / 10_000), MAN, "すぐに使える預金の合計。万円で入力")
+    ein("e_sav", "預貯金", round(c["savings"] / 10_000), MAN, "すぐに使える預金の合計")
     ein("e_exist", "車などのローンの返済（月）", c.get("existingMonthly", 0), YEN, "なければ 0。ローン審査では住宅ローンと合わせて見られます")
-    e.section("STEP 2　住宅ローン", ["項目", "入力", "", "", "入力のヒント"])
+    step("STEP 2　住宅ローン", ["項目", "選ぶ", "", "", "選び方のヒント"])
     ein("e_rate", "金利（年）", s["loan"]["rate"], PCT2, "全期間この金利と仮定。変動金利なら今の金利")
     ein("e_years", "返済年数", s["loan"]["years"], YEARS, "35年が多い")
-    e.section("STEP 3　くらべる物件", ["項目", "", "物件A", "物件B", "入力のヒント"])
-    ein("e_label#", "物件の名前", [p["label"] for p in props], None, "わかりやすい呼び名", (3, 4))
-    ein("e_price#", "物件価格", [round(p["price"] / 10_000) for p in props], MAN, "販売価格。万円で入力", (3, 4))
-    ein("e_down#", "頭金", [round(p["down"] / 10_000) for p in props], MAN, "0でも試算できます。万円で入力", (3, 4))
-    ein("e_kind#", "区分", [KIND[p["kind"]] for p in props], None, "新築／買取再販（リフォーム済みの中古）／中古。住宅ローン控除の判定に使う", (3, 4), dv_kind)
+    step("STEP 3　くらべる物件", ["項目", "", "物件A", "物件B", "選び方のヒント"])
+    ein("e_label#", "物件の名前", [p["label"] for p in props], None, "よくある種類から選ぶか、呼び名を入力", (3, 4))
+    ein("e_price#", "物件価格", [round(p["price"] / 10_000) for p in props], MAN, "販売価格", (3, 4))
+    ein("e_down#", "頭金", [round(p["down"] / 10_000) for p in props], MAN, "0でも試算できます", (3, 4))
+    ein("e_kind#", "区分", [KIND[p["kind"]] for p in props], None, "新築／買取再販（リフォーム済みの中古）／中古。住宅ローン控除の判定に使う", (3, 4))
 
-    e.section("結果（自動で計算・概算）", ["項目", "今の賃貸", "物件A", "物件B", "この数字の意味"])
+    # 完成度：入力済みの数 → ■□バーと%、あと何項目
+    total = len(in_keys)
+    filled = "COUNTA(" + ",".join("{" + k + "}" for k in in_keys) + ")"
+    e.ws.cell(row=prog_row, column=2).value = e.f(f'REPT("■",{filled})&REPT("□",{total}-{filled})&"　"&TEXT({filled}/{total},"0%")')
+    e.ws.cell(row=prog_row, column=2).font = Font(name="Arial", size=12, bold=True, color=GOLD)
+    e.ws.merge_cells(start_row=prog_row, start_column=2, end_row=prog_row, end_column=3)
+    e.ws.cell(row=prog_row, column=4).value = e.f(f'IF({filled}={total},"✓ 入力完了","あと"&({total}-{filled})&"項目")')
+    e.ws.cell(row=prog_row, column=4).font = F_KEY
+    e.names["e_left"] = (S_EASY, f"$E${prog_row}")
+    e.ws.cell(row=prog_row, column=5).value = e.f(f"{total}-{filled}")
+    e.ws.cell(row=prog_row, column=5).font = Font(name="Arial", size=8, color="FFFFFF")  # 計算用（白文字）
+    e.ws.conditional_formatting.add(f"D{prog_row}", FormulaRule(formula=[f'LEFT(D{prog_row},1)="✓"'], fill=BG_OK))
+    e.ws.conditional_formatting.add(f"D{prog_row}", FormulaRule(formula=[f'LEFT(D{prog_row},1)<>"✓"'], fill=BG_WARN))
+    bounds = step_marks + [(None, len(in_keys))]
+    for (row_, a_), (_, b2) in zip(step_marks, bounds[1:]):
+        ks = in_keys[a_:b2]
+        cnt = "COUNTA(" + ",".join("{" + k + "}" for k in ks) + ")"
+        cl = e.ws.cell(row=row_, column=2, value=e.f(f'IF({cnt}={len(ks)},"✓ 入力済み","あと"&({len(ks)}-{cnt})&"項目")'))
+        cl.font = Font(name="Arial", size=10, bold=True, color=GOLD)
+
+    e.section("❶ 結果：毎月の支払いとお金の動き（自動で計算・概算）", ["項目", "今の賃貸", "物件A", "物件B", "この数字の意味"])
     head_row = e.r - 1
     DASH = Alignment(horizontal="center", vertical="center")
 
@@ -184,10 +254,10 @@ def build(ed, R, out_dir):
         if rent_expr is None:
             e.cell(2, "—", F_NOTE, align=DASH)
         else:
-            e.cell(2, e.f(rent_expr), font, fmt, fill)
+            e.cell(2, e.f(f'IF({{e_left}}>0,"",{rent_expr})'), font, fmt, fill)
         for k, L in enumerate("AB"):
             e.name(f"{key}{L}", 3 + k)
-            e.cell(3 + k, e.f(expr.replace("#", L)), font, fmt, fill, align=WRAP if fmt is None else None)
+            e.cell(3 + k, e.f(f'IF({{e_left}}>0,"",{expr.replace("#", L)})'), font, fmt, fill, align=WRAP if fmt is None else None)
         e.cell(5, meaning, F_NOTE)
         e.r += 1
 
@@ -201,14 +271,14 @@ def build(ed, R, out_dir):
     eout("eCr", "住宅ローン控除（最初の10年）", None, "{c10#}/10000", MAN1, "税金から戻る見込み額。税額が少ないと全額は戻りません")
     eout("eTn", "10年間の住まいの費用", "{t7A}/10000", "{t6#}/10000", MAN1, "10年分の支払い＋はじめの現金−控除。賃貸は今の家賃が続く場合", True)
 
-    e.section("チェック（◎ 安心　△ 注意　× 要相談）", ["チェック", "基準", "物件A", "物件B", "見かた"])
+    e.section("❷ チェック（◎ 安心　△ 注意　× 要相談）", ["チェック", "基準", "物件A", "物件B", "見かた"])
     chk_top = e.r
 
     def echk(label, crit, expr, meaning):
         e.cell(1, label, F_KEY)
         e.cell(2, e.f(crit), F_NOTE, align=WRAP)
         for k, L in enumerate("AB"):
-            e.cell(3 + k, e.f(expr.replace("#", L)), F_KEY, align=WRAP)
+            e.cell(3 + k, e.f(f'IF({{e_left}}>0,"—",{expr.replace("#", L)})'), F_KEY, align=WRAP)
         e.cell(5, meaning, F_NOTE)
         e.ws.row_dimensions[e.r].height = 36
         e.r += 1
@@ -229,16 +299,18 @@ def build(ed, R, out_dir):
     for mark, fill in (("◎", BG_OK), ("△", BG_WARN), ("×", BG_NG)):
         e.ws.conditional_formatting.add(rng, FormulaRule(formula=[f'LEFT(C{chk_top},1)="{mark}"'], fill=fill))
 
-    e.section("ひとことまとめ")
+    e.section("❸ ひとことまとめ")
     for L in "AB":
         e.cell(1, f"物件{L}", F_KEY)
         e.ws.merge_cells(start_row=e.r, start_column=2, end_row=e.r, end_column=5)
-        e.cell(2, e.f('"「"&{label' + L + '}&"」は、毎月 約"&TEXT({om' + L + '}/10000,"0.0")&"万円（今より"&IF({dm' + L + '}>=0,"＋","−")&TEXT(ABS({dm' + L + '})/10000,"0.0")&"万円）。'
-                      'はじめに現金 "&TEXT({co' + L + '}/10000,"0")&"万円、住宅ローン控除は最初の10年で約"&TEXT({c10' + L + '}/10000,"0")&"万円の見込みです。"'),
+        e.cell(2, e.f('IF({e_left}>0,"すべて入力すると、ここにまとめが表示されます。","「"&{label' + L + '}&"」は、毎月 約"&TEXT({om' + L + '}/10000,"0.0")&"万円（今より"&IF({dm' + L + '}>=0,"＋","−")&TEXT(ABS({dm' + L + '})/10000,"0.0")&"万円）。'
+                      'はじめに現金 "&TEXT({co' + L + '}/10000,"0")&"万円、住宅ローン控除は最初の10年で約"&TEXT({c10' + L + '}/10000,"0")&"万円の見込みです。")'),
                Font(name="Arial", size=11, color="000000"), align=WRAP)
         e.ws.row_dimensions[e.r].height = 36
         e.r += 1
 
+    chart_row = e.r + 2
+    e.r += 18
     e.section("ご注意")
     for t in [
         "・概算です。実際の返済額・審査結果・税額・控除額は、金融機関や税務署の判断、ご本人の所得で変わります。",
@@ -263,7 +335,14 @@ def build(ed, R, out_dir):
     for k_ in ("showSerName", "showCatName", "showLegendKey", "showPercent"):
         setattr(ch.dataLabels, k_, False)
     ch.height, ch.width = 7.5, 12
-    e.ws.add_chart(ch, "G4")
+    ch.height, ch.width = 7.5, 16
+    e.ws.add_chart(ch, f"A{chart_row}")
+    # 印刷：A4縦・横幅1ページ（お客様にそのまま渡せる）
+    e.ws.print_area = f"A1:E{e.r - 1}"
+    e.ws.page_setup.orientation = "portrait"
+    e.ws.page_setup.paperSize = e.ws.PAPERSIZE_A4
+    e.ws.sheet_properties.pageSetUpPr.fitToPage = True
+    e.ws.page_setup.fitToWidth, e.ws.page_setup.fitToHeight = 1, 0
 
     # ───────── 入力 ─────────
     i = Sheet(wb, S_IN, names, [34, 22, 22, 46])
@@ -683,7 +762,7 @@ def build(ed, R, out_dir):
             names[f"sale{L}{yrs}"] = (S_SALE, f"B{v.r - 1}:D{v.r - 1}")
 
     # タブの順：①〜⑥（見る順）→ 参考
-    order = [S_EASY, S_IN, S_CALC, S_CR, S_RISK, S_SALE, S_TAX, S_TAXT, S_RULE]
+    order = [S_EASY, S_IN, S_CALC, S_CR, S_RISK, S_SALE, S_TAX, S_TAXT, S_RULE, S_OPT]
     wb._sheets = [wb[n] for n in order]
     for ws in wb.worksheets:
         ws.sheet_view.showGridLines = False

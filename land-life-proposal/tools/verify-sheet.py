@@ -78,6 +78,33 @@ def main():
             checks += 1
             if not 0 < yellow <= 15:
                 fails.append(f"{id_} かんたん試算の入力欄が {yellow} か所（1〜15か所にする）")
+            # 第2版（§6）：入力欄はすべてプルダウン・完成度100%・未入力なら結果を出さない
+            ycells = [cl for row in first.iter_rows() for cl in row
+                      if cl.fill is not None and cl.fill.fgColor is not None and cl.fill.fgColor.rgb in ("00FFF2CC", "FFFFF2CC")]
+            listed = [str(dv.sqref) for dv in first.data_validations.dataValidation if dv.type == "list"]
+            for cl in ycells:
+                checks += 1
+                if not any(cl.coordinate in rng.split() for rng in listed):
+                    fails.append(f"{id_} {cl.coordinate} の入力欄がプルダウンではない")
+            k0 = wb["① かんたん試算"]
+            prog = k0.cell(find(k0, "入力の完成度"), 2).value or ""
+            checks += 1
+            if "100%" not in prog:
+                fails.append(f"{id_} サンプルの完成度が100%でない: {prog!r}")
+            blank = os.path.join(tmp, "blank", os.path.basename(path))
+            os.makedirs(os.path.dirname(blank), exist_ok=True)
+            bw = load_workbook(path)
+            bw.worksheets[0][ycells[0].coordinate].value = None
+            bw.save(blank)
+            bwb = recalc(blank, os.path.join(tmp, "blank", "out"))
+            b0 = bwb["① かんたん試算"]
+            checks += 3
+            if "あと1項目" not in str(b0.cell(find(b0, "入力の完成度"), 4).value):
+                fails.append(f"{id_} 1つ空にしても「あと1項目」と出ない: {b0.cell(find(b0, '入力の完成度'), 4).value!r}")
+            if b0.cell(find(b0, "毎月の住まいの支払い"), 3).value not in (None, ""):
+                fails.append(f"{id_} 未入力なのに結果が出ている")
+            if "すべて入力すると" not in str(b0.cell(find(b0, "物件A"), 2).value):
+                fails.append(f"{id_} 未入力なのにまとめが出ている")
             for ws in wb.worksheets:
                 for row in ws.iter_rows():
                     for cl in row:
