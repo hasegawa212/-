@@ -26,5 +26,6 @@ test("画面と送るファイルから、古い名前（住まいの一生シ�
   assert.doesNotMatch(html, /住まいの一生シミュレーター|ライフパートナー|LIFE PARTNER/);
   assert.match(html, /<title>LIFE ROUTE/);
   const dist = fs.readdirSync(path.join(root, "dist"));
-  assert.deepEqual(dist, ["ライフルート.html"]);
+  assert.ok(dist.includes("ライフルート.html"));
+  for (const f of dist) assert.match(f, /^ライフルート/, "送るファイルはすべて新しい名前（見本の資料PDFも）");
 });
