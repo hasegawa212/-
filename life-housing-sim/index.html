@@ -206,6 +206,17 @@
     .mdetail { position:relative; left:auto; bottom:auto; width:100%; order:9; }
     #ms { display:none; }
   }
+  .rec { display:flex; gap:12px; align-items:center; border-radius:12px; padding:10px 14px; margin:8px 0 10px; border:2px solid var(--own); background:#eef3fa; }
+  .rec b { white-space:nowrap; font-size:18px; color:#fff; background:var(--own); border-radius:8px; padding:4px 10px; }
+  .rec span { font-weight:700; color:var(--navy); line-height:1.5; }
+  .rec.check { border-color:var(--gold); background:#fffaf0; } .rec.check b { background:var(--gold); }
+  .rec.prep { border-color:#8a9099; background:#f3f4f6; } .rec.prep b { background:#8a9099; }
+  .rect td.mk { white-space:nowrap; font-weight:800; color:var(--own); }
+  .rect td.rent, .rect td.own { white-space:nowrap; }
+  body.present .rect td, body.present .rect th { padding:4px 8px; } body.present .rec + .two .small { font-size:12px; margin:2px 0; }
+  body.present .rec { padding:6px 12px; margin:4px 0 6px; } body.present .rec span { font-size:16px; }
+  body.present .rc-c { font-size:12.5px; line-height:1.5; }
+  @media (max-width:520px){ .rec { flex-direction:column; align-items:flex-start; } }
   .fixed { grid-template-columns:minmax(0,300px) 1fr; }
   .rentimg img { width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block; }
   .takebar { position:relative; height:30px; border-radius:8px; background:#e9e4da; overflow:hidden; margin:8px 0; }
@@ -467,6 +478,16 @@
         <div class="rflow"><div class="rf you">あなたの家賃<b>${f.rent ? man(f.rent, 1) : "なし"}</b>${f.rent ? "毎月" : "今は"}</div><div class="ra">→</div><div class="rf">オーナー</div><div class="ra">→</div>
           <div class="rfs"><span>ローンの返済</span><span>管理・修繕・税金</span><span>手元に残る収益</span></div></div>
         <p class="small">家賃は住まいの対価。同時に、オーナーの将来への備えにもつながっています。収益は経費や返済額で変わり、空室や修繕で赤字になる場合もあります。手取りは年収から社会保険料（15%と仮定）・所得税・住民税を引いた概算、家賃の合計は更新料こみ。</p></div></div>`;
+  }
+  // ⑦ 賃貸と購入、どちらがいいか：お客様の数字で、おすすめと理由と注意点
+  function recommendView(x) {
+    const r = S.recommend(x), fmt = (k, v) => (k === "old" ? `毎月 ${man(v, 1)}` : man(v));
+    const cls = r.verdict === "prepare" ? "prep" : r.verdict === "buy" ? "buy" : "check";
+    return `<div class="rec ${cls}"><b>${r.verdict === "prepare" ? "今は準備" : "購入をおすすめ"}</b><span>${esc(r.headline)}</span></div>
+      <div class="two"><div style="min-width:0"><table class="bd rect"><tr><th>くらべる数字</th><th>賃貸のまま</th><th>持ち家</th><th></th></tr>
+        ${r.reasons.map((v) => `<tr><td>${esc(v.label)}</td><td class="rent">${fmt(v.key, v.rent)}</td><td class="own">${fmt(v.key, v.own)}</td><td class="mk">${v.favorOwn ? "◎ 持ち家" : "△"}</td></tr>`).join("")}</table>
+        <p class="small">一生の住居費の持ち家は、${x.input.retireAge}歳に残る家の価値（横ばい ${man(x.value65.flat)}）を差し引いた実質（総額 ${man(x.life.own)}）。</p></div>
+      <div style="min-width:0"><p class="small rc-c"><b>注意点（一緒に確認）</b><br>${r.cautions.map((c) => "・" + esc(c)).join("<br>")}</p></div></div>`;
   }
   function waitView(x) {
     const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge, b = S.bubble(x);
@@ -761,7 +782,7 @@
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>`,
       `<div class="kpis"><div class="kpi rent"><span>老後の賃貸の入居審査（家賃÷年金）</span><b>${Math.round(x.screening.rent.ratioOld * 100)}%</b><span>目安は3分の1（33%）以内${x.screening.rent.hard ? "・通りにくくなる場合あり" : ""}</span></div><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>${x.input.family.marryAge == null ? "親や兄弟に残らない" : "家族に住まいが残る"}</span></div>${x.input.family.marryAge == null ? "" : `<div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div>`}<div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${danshinView(x)}`,
       gateView(x),
-      `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div><p style="font-size:13px;color:#5b616b;margin:0 0 8px">※家の価値は将来の価格を約束するものではありません。運用も元本保証はありません。</p>`,
+      recommendView(x),
       waitView(x),
     ];
     $("tabs").innerHTML = `<button class="home" data-home="1" title="トップ（LIFE ROUTE）">★</button>` + steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");

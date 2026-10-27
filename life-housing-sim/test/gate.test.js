@@ -59,8 +59,8 @@ test("説明の順番：⑤もしも → ⑥まず「できるか」（区切り
 
 test("提案書のまとめ（4ページ目）に区切りが入る：まず「できるか」→ その土台で「やるか」", () => {
   const p = S.proposal(x).pages[3];
-  assert.match(p.lead, /できるか/);
-  assert.match(p.points[0], /10人中2〜3人/);
+  assert.match(p.lead, /事前審査|準備/, "見出しはおすすめ（購入なら事前審査で確かめる）");
+  assert.match(p.points[0], /10人中2〜3人/, "区切りは先頭のまま");
   assert.match(p.nextSteps[1], /事前審査/, "CICの次に事前審査");
 });
 
