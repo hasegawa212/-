@@ -149,7 +149,7 @@
     const kind = CREDIT_KINDS[o.kind] || CREDIT_KINDS.none;
     const f = inp.family;
     const marriedAtBuy = f.marryAge != null && f.marryAge <= buyAge;
-    const kidAtBuy = f.kids > 0 && f.firstKidAge != null && f.firstKidAge <= buyAge;
+    const kidAtBuy = f.kids > 0 && f.firstKidAge != null && f.firstKidAge <= buyAge && buyAge - f.firstKidAge < 19; // 19歳未満の子がいる
     // 上乗せの対象世帯で、かつ限度額が上がる住宅のときだけ「上乗せ」として扱う
     const special = ((marriedAtBuy && buyAge < 40) || kidAtBuy) && kind.limit[1] > kind.limit[0];
     const limit = kind.limit[special ? 1 : 0];
@@ -157,7 +157,7 @@
     const resCap = Math.min(RES_CAP_MAX, Math.floor(tax.taxable * RES_CAP_RATE), tax.residentTax);
     const share = loan > 0 ? Math.min(1, Math.max(0, o.price - o.down) / loan) : 0;
     const creditRows = [];
-    for (let i = 1; i <= kind.years; i++) {
+    for (let i = 1; i <= kind.years && buyAge + i - 1 < inp.lifeEnd; i++) {
       const balance = balanceAfter(loan, o.rate, o.years, 12 * i) * share;
       const max = Math.floor((Math.min(balance, limit, o.price) * CREDIT_RATE) / 100) * 100;
       const fromIT = Math.min(max, tax.incomeTax);
@@ -213,7 +213,8 @@
 
     const tot = (k) => years.reduce((s2, y) => s2 + y[k], 0);
     const paid = tot("ownLoan");
-    const principal = Math.min(loan, paid);
+    const paidMonths = 12 * Math.max(0, Math.min(loanEnd, inp.lifeEnd) - buyAge);
+    const principal = paid > 0 ? loan - balanceAfter(loan, o.rate, o.years, paidMonths) : 0;
     const breakdown = {
       rent: {
         rent: { label: "家賃", amount: tot("rentPart") },
@@ -233,7 +234,7 @@
     };
     // 生命保険（住まいとは別に、両方で払う）。持ち家は団信で死亡保障が付くので、見直せる分を設定できる
     const lifeYears = Math.max(0, inp.retireAge - inp.age);
-    const ownedYears = Math.max(0, inp.retireAge - buyAge);
+    const ownedYears = Math.max(0, Math.min(inp.retireAge, loanEnd) - buyAge); // 団信が付いている（返している）年数
     const insurance = {
       rentHome: breakdown.rent.ins.amount, ownHome: breakdown.own.ins.amount,
       rentLife: inp.lifeIns.monthly * 12 * lifeYears,
