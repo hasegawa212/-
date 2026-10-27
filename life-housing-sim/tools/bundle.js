@@ -1,11 +1,15 @@
-// index.html と lib/engine.js を1つのHTMLにまとめる（メール・LINEで送って、そのまま開けるように）
+// index.html と lib/engine.js・lib/share.js を1つのHTMLにまとめる（メール・LINEで送って、そのまま開けるように）
 const fs = require("node:fs");
 const path = require("node:path");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-const engine = fs.readFileSync(path.join(root, "lib/engine.js"), "utf8");
-const out = html.replace('<script src="lib/engine.js"></script>', () => `<script>\n${engine}\n</script>`);
-if (out === html) throw new Error("engine の script タグが見つからない");
+let out = html;
+for (const f of ["lib/engine.js", "lib/share.js"]) {
+  const src = fs.readFileSync(path.join(root, f), "utf8");
+  const next = out.replace(`<script src="${f}"></script>`, () => `<script>\n${src}\n</script>`);
+  if (next === out) throw new Error(`${f} の script タグが見つからない`);
+  out = next;
+}
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist/住まいの一生シミュレーター.html"), out);
 console.log("dist/住まいの一生シミュレーター.html");

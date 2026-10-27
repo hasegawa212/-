@@ -44,8 +44,37 @@
   table { border-collapse:collapse; width:100%; font-size:13px; }
   th, td { border-bottom:1px solid var(--line); padding:6px 8px; text-align:right; }
   th:first-child, td:first-child { text-align:left; }
+  /* 画面共有モード（Zoom・Teams・大型モニター）：入力を隠し、文字を大きく、1画面に収める */
+  body.present header { padding:10px 24px; }
+  body.present header p { display:none; }
+  body.present main { grid-template-columns:1fr; max-width:none; padding:14px 28px 90px; }
+  body.present .form, body.present .tools, body.present .nav { display:none; }
+  body.present .panel { border:none; background:transparent; padding:0; }
+  body.present .tabs button { font-size:18px; padding:8px 18px; }
+  body.present .stage-title { font-size:36px; margin:6px 0 10px; }
+  body.present .say { font-size:22px; margin-bottom:8px; }
+  body.present .show { font-size:20px; }
+  body.present .ask { font-size:20px; }
+  body.present .ask::before { content:"考えてみましょう："; }
+  body.present .kpi b { font-size:30px; }
+  body.present .kpi span { font-size:15px; }
+  body.present table { font-size:19px; }
+  body.present svg { max-height:28vh; }
+  body.present .show { display:none; } /* 画面ではグラフ・カードが同じ数字を見せる（印刷・通常表示では出す） */
+  body.present .kpis { margin:6px 0; }
+  body.present .kpi { padding:6px 12px; }
+  body.present .show, body.present .ask { margin-bottom:8px; padding:8px 12px; }
+  body.present .notes { font-size:12px; }
+  .pbar { display:none; }
+  body.present .pbar { display:flex; position:fixed; left:0; right:0; bottom:0; gap:12px; align-items:center; justify-content:space-between;
+    padding:10px 24px; background:rgba(31,42,68,.96); color:#fff; z-index:5; }
+  .pbar button { font:inherit; font-size:16px; border:1px solid rgba(255,255,255,.6); background:transparent; color:#fff; border-radius:8px; padding:8px 18px; cursor:pointer; }
+  .pbar button.primary { background:#b08d57; border-color:#b08d57; }
+  .pbar .count { font-size:18px; letter-spacing:.1em; }
+  .pbar .hint { font-size:12px; opacity:.7; }
+  .toast { position:fixed; left:50%; top:16px; transform:translateX(-50%); background:#1f2a44; color:#fff; padding:10px 18px; border-radius:8px; font-size:14px; z-index:9; display:none; }
   @media print {
-    header, .form, .tabs, .nav, .tools { display:none !important; }
+    header, .form, .tabs, .nav, .tools, .pbar, .toast { display:none !important; }
     main { display:block; padding:0; } body { background:#fff; } .panel { border:none; padding:0; }
     .step { display:block !important; break-inside:avoid; margin-bottom:18px; }
   }
@@ -62,10 +91,12 @@
     <div class="tabs" id="tabs"></div>
     <div id="steps"></div>
     <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
-    <div class="tools"><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
+    <div class="tools"><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
     <ul class="notes" id="notes"></ul>
   </section>
 </main>
+<div class="pbar"><button id="pExit">条件を変える</button><span><button id="pPrev">← 前へ</button> <span class="count" id="pCount"></span> <button class="primary" id="pNext">次へ →</button></span><span><button id="pFull">全画面</button> <span class="hint">← → キーでも移動</span></span></div>
+<div class="toast" id="toast"></div>
 <script>
 // 住まいの一生シミュレーター（計算）：賃貸のまま／持ち家 を、今から95歳まで同じ前提で比べる
 // 依存なし。Node：require("./lib/engine")　ブラウザ：<script src="lib/engine.js"> で window.LHS
@@ -250,6 +281,75 @@
 
 </script>
 <script>
+// 共有リンク：条件を URL の # 以降に入れる（# 以降はサーバーに送られない）。お客様の名前は入れない
+// Node：require("./lib/share")　ブラウザ：<script src="lib/share.js"> で window.LHSShare
+(function (root, factory) {
+  const m = factory();
+  if (typeof module === "object" && module.exports) module.exports = m;
+  else root.LHSShare = m;
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+  const NULLABLE = new Set(["family.marryAge"]);
+  const MAX = 1e9; // ありえない金額は受け付けない
+  const b64e = (s) => (typeof btoa === "function" ? btoa(s) : Buffer.from(s, "binary").toString("base64")).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const b64d = (s) => {
+    const t = s.replace(/-/g, "+").replace(/_/g, "/");
+    return typeof atob === "function" ? atob(t) : Buffer.from(t, "base64").toString("binary");
+  };
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+
+  // 初期値と違う項目だけを取り出す
+  function diff(cur, def) {
+    const out = {};
+    for (const k of Object.keys(def)) {
+      const a = cur[k], b = def[k];
+      if (b && typeof b === "object") {
+        const d = diff(a || {}, b);
+        if (Object.keys(d).length) out[k] = d;
+      } else if (a !== b) out[k] = a;
+    }
+    return out;
+  }
+  // 初期値の形にあう項目だけを取り込む（知らない項目・型違い・範囲外は無視）
+  function merge(target, src, path) {
+    if (!src || typeof src !== "object") return;
+    for (const k of Object.keys(target)) {
+      if (!Object.prototype.hasOwnProperty.call(src, k)) continue;
+      const p = path ? path + "." + k : k, v = src[k], t = target[k];
+      if (t && typeof t === "object") merge(t, v, p);
+      else if (typeof t === "boolean" && typeof v === "boolean") target[k] = v;
+      else if (v === null && NULLABLE.has(p)) target[k] = null;
+      else if ((typeof t === "number" || NULLABLE.has(p)) && typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= MAX) target[k] = v;
+    }
+  }
+
+  function encode(state, { step = 0, present = false, defaults } = {}) {
+    const def = defaults || (typeof LHS !== "undefined" ? LHS.defaults() : require("./engine").defaults());
+    const parts = [];
+    const d = diff(state, def);
+    if (Object.keys(d).length) parts.push("s=" + b64e(JSON.stringify(d)));
+    if (step) parts.push("step=" + step);
+    if (present) parts.push("p=1");
+    return "#" + parts.join("&");
+  }
+
+  function decode(hash, defaults) {
+    const state = clone(defaults);
+    let step = 0, present = false;
+    const q = String(hash || "").replace(/^#/, "");
+    for (const kv of q.split("&")) {
+      const [k, v = ""] = kv.split("=");
+      if (k === "s") { try { merge(state, JSON.parse(b64d(decodeURIComponent(v))), ""); } catch (e) { /* 壊れたリンクは初期値で開く */ } }
+      if (k === "step") { const n = Number(v); if (Number.isInteger(n) && n >= 0 && n <= 5) step = n; }
+      if (k === "p") present = v === "1";
+    }
+    return { state, step, present };
+  }
+  return { encode, decode };
+});
+
+</script>
+<script>
 (function () {
   "use strict";
   const S = window.LHS, $ = (id) => document.getElementById(id), man = S.man;
@@ -282,7 +382,8 @@
     ["oldLiving.single", "ひとりの場合", range(80_000, 250_000, 10_000), yen],
     ["oldLiving.couple", "夫婦の場合", range(120_000, 350_000, 10_000), yen],
   ];
-  const state = S.defaults();
+  const opened = window.LHSShare.decode(location.hash, S.defaults());
+  const state = opened.state;
   const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
@@ -337,7 +438,10 @@
     return `<table><tr><th>暮らしの段階</th><th>年齢</th><th>家賃（毎月）</th></tr>${segs.map((s) => `<tr><td>${s.label}</td><td>${s.from}〜${s.to}歳</td><td>${man(s.rent, 1)}</td></tr>`).join("")}</table>`;
   }
 
-  let cur = 0, all = false;
+  let cur = opened.step, all = false;
+  const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
+  const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
+  const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
   function render() {
     const x = S.compute(state), steps = S.talk(x);
     const visual = [
@@ -346,7 +450,7 @@
       oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>`,
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>`,
       `<div class="kpis"><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>家族に住まいが残る</span></div><div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div><div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>`,
-      `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div>`,
+      `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div><p style="font-size:13px;color:#5b616b;margin:0 0 8px">※家の価値は将来の価格を約束するものではありません。運用も元本保証はありません。</p>`,
     ];
     $("tabs").innerHTML = steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.split("　")[0].split(" ")[0])}</button>`).join("");
     $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { cur = +b.dataset.i; all = false; render(); }));
@@ -354,12 +458,34 @@
       <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");
     $("prev").disabled = cur === 0; $("next").disabled = cur === steps.length - 1;
     $("notes").innerHTML = S.NOTES.map((n) => `<li>${esc(n)}</li>`).join("");
+    $("pCount").textContent = `${cur + 1} / ${steps.length}`;
+    syncUrl();
   }
-  $("prev").onclick = () => { cur = Math.max(0, cur - 1); all = false; render(); };
-  $("next").onclick = () => { cur = Math.min(5, cur + 1); all = false; render(); };
+  const go = (d) => { cur = Math.min(5, Math.max(0, cur + d)); all = false; render(); };
+  $("present").onclick = () => present(true);
+  $("pExit").onclick = () => present(false);
+  $("pPrev").onclick = () => go(-1);
+  $("pNext").onclick = () => go(1);
+  const full = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); };
+  $("pFull").onclick = full;
+  $("link").onclick = async () => {
+    const url = location.href.split("#")[0] + window.LHSShare.encode(state, { step: 0, present: true, defaults: S.defaults() });
+    try { await navigator.clipboard.writeText(url); toast("共有リンクをコピーしました（条件の数字だけが入り、お名前は入りません）"); }
+    catch (e) { prompt("このリンクをコピーしてください", url); }
+  };
+  document.addEventListener("keydown", (e) => {
+    if (e.target.tagName === "SELECT") return;
+    if (["ArrowRight", "PageDown", " "].includes(e.key)) { e.preventDefault(); go(1); }
+    else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); go(-1); }
+    else if (e.key === "p" || e.key === "P") present(!document.body.classList.contains("present"));
+    else if (e.key === "f" || e.key === "F") full();
+    else if (e.key === "Escape" && document.body.classList.contains("present") && !document.fullscreenElement) present(false);
+  });
+  $("prev").onclick = () => go(-1);
+  $("next").onclick = () => go(1);
   $("all").onclick = () => { all = !all; render(); };
   $("print").onclick = () => { all = true; render(); window.print(); };
-  buildForm(); render();
+  buildForm(); if (opened.present) document.body.classList.add("present"); render();
 })();
 </script>
 </body>
