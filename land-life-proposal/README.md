@@ -21,6 +21,7 @@
 | `人生を、自分の土地から。_<版名>.pdf` | 上のPDF版 | 配布・メール添付用 |
 | `パーソナル提案書_サンプル_<版名>.pdf` | シミュレーターが作るA4・3ページの提案書（サンプル入力） | 出力イメージの確認 |
 | `営業トーク集_<版名>.md` | 24ページ分の営業トークをまとめた台本 | 研修・ロールプレイ用 |
+| `資金計画シミュレーター_<版名>.xlsx` | 資金計画のスプレッドシート版（9シート・すべて数式）。入力シートの黄色のセルを変えると、返済・住居費・審査の目安・住宅ローン控除（年ごと）・10年総額・収入減少・売却の目安が再計算される | Googleスプレッドシートにアップロード、またはExcelで開く |
 
 ## シミュレーターを使う（インストール不要）
 
@@ -60,6 +61,7 @@ land-life-proposal/
 ├── deck/build.js        buildDeck(版) で24ページの資料を生成（数字は engine.js から）
 ├── test/                node --test：engine（計算）／finance（諸費用ローン・審査・家賃並み）／editions（2つの版）／deck（資料の構成と表現）
 ├── tools/sample-proposal.js  版ごとのサンプル提案書PDFを作る（任意・Playwright）
+├── tools/build-sheet.py      スプレッドシート版（数式は lib/engine.js と同じ式）／verify-sheet.py で一致を確認
 ├── docs/                ストーリーボード・操作マニュアル・品質評価
 └── dist/                成果物
 ```
@@ -73,6 +75,8 @@ npm test                   # 28件のテスト（計算・2つの版・資料の
 npm run build              # 2つの版の pptx と 営業トーク集 を作り直す（node deck/build.js martialarts で1版だけ）
 npm run pdf                # pptx → PDF（LibreOffice・2版とも）
 node tools/sample-proposal.js   # サンプル提案書PDF（Playwright がある環境）
+npm run sheet              # スプレッドシート版（xlsx）を作り直す（Python＋openpyxl）
+npm run sheet:verify       # LibreOffice で再計算し、lib/engine.js と同じ結果か確かめる
 ```
 
 | 直したいこと | 直す場所 |

@@ -7,7 +7,9 @@
     "test": "node --test test/*.test.js",
     "build": "node deck/build.js",
     "pdf": "soffice --headless --convert-to pdf --outdir dist dist/人生を、自分の土地から。_JM提案資料.pptx",
-    "serve": "python3 -m http.server 5190"
+    "serve": "python3 -m http.server 5190",
+    "sheet": "python3 tools/build-sheet.py",
+    "sheet:verify": "python3 tools/verify-sheet.py"
   },
   "devDependencies": {
     "pptxgenjs": "^4.0.1",
