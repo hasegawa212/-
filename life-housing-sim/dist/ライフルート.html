@@ -206,6 +206,17 @@
     .mdetail { position:relative; left:auto; bottom:auto; width:100%; order:9; }
     #ms { display:none; }
   }
+  .gflow { display:flex; align-items:stretch; gap:8px; margin:10px 0 6px; }
+  .gflow .gs { flex:1; border:2px solid var(--gold); border-radius:12px; padding:8px 10px; background:#fffaf0; }
+  .gflow .gs b { display:block; font-size:17px; color:var(--navy); } .gflow .gs span { font-size:12.5px; color:var(--sub); }
+  .gflow .ga { align-self:center; font-size:26px; color:var(--gold); font-weight:800; }
+  body.present .gpeople { max-height:44px; } body.present .gk { padding:4px 12px; } body.present .gk .gnote { display:none; }
+  body.present .gflow { margin:6px 0 2px; } body.present .gflow .gs { padding:4px 10px; } body.present .gflow .gs span { font-size:12px; }
+  body.present .gverdict { margin:6px 0; padding:6px 10px; font-size:15px; }
+  body.present .gk b { font-size:24px; } body.present .gflow + .small { display:none; }
+  body.present .glook { font-size:11.5px; line-height:1.45; margin:0; } body.present .gverdict { font-size:14px; line-height:1.45; }
+  .gverdict { font-weight:700; padding:8px 12px; border-radius:10px; margin:8px 0; }
+  .gverdict.ok { background:#eaf4ec; color:#1e5e2a; } .gverdict.ng { background:#fcefe6; color:#8a3a10; }
   .hnote { font-size:11px; color:#9fb0cc; padding:0 22px 18px; }
   .tabs button.home { font-weight:700; }
   @media print {
@@ -225,7 +236,7 @@
 <section id="home"></section>
 <header>
   <h1>LIFE ROUTE <small style="font-size:13px;font-weight:400;opacity:.85">ライフルート</small></h1>
-  <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑦ の同じ順番で説明します（概算・通信なし・保存なし）</p>
+  <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑧ の同じ順番で説明します（概算・通信なし・保存なし）</p>
 </header>
 <main>
   <section class="panel form" id="form"></section>
@@ -343,6 +354,9 @@
 
   // 名前（トップページ・提案書・画面で同じ）
   const APP = { name: "LIFE ROUTE", kana: "ライフルート", tagline: "住まいとお金、95歳までの道のり" };
+
+  // 住宅ローンの審査が通る割合の目安（当社で審査を申し込んだ方の実感。年・地域・金融機関・お客様の状況で変わる）
+  const PASS_RATE = { of: 10, low: 2, high: 3, note: "当社で審査を申し込んだ方の目安（年・地域・金融機関で変わります）" };
 
   // 会社名の初期値（トップページ・提案書。画面の「会社名」で変えられる）
   const DEFAULT_COMPANY = "合同会社ジャパンマネジメント";
@@ -615,6 +629,30 @@
     return `賃貸の入居審査：${s.ageFrom}歳からは収入が年金（毎月 ${man(x.pension.monthly, 1)}）だけになり、家賃 ${man(i.rent.old, 1)} は年金の${Math.round(s.ratioOld * 100)}%。家賃は収入の3分の1以内が一般的な審査の目安なので、${s.hard ? "高齢・保証人とあわせて通りにくくなる場合があります" : "目安の範囲ですが、年齢や保証人で断られる場合があります"}`;
   }
 
+  // 区切り：「やるか・やらないか」の前に、まず「できるか」を確かめる。決めるのは融資する金融機関
+  function gate(x) {
+    const i = x.input, L = x.loan, lim = i.income < 4_000_000 ? 0.3 : 0.35, mult = i.income > 0 ? L.amount / i.income : Infinity;
+    const pct = (v) => Math.round(v * 100) + "%";
+    const checks = [
+      { key: "ratio", label: "返済比率（毎月の返済×12÷年収）", value: `${pct(L.ratioNow)}（目安 ${pct(lim)}以内）`, ok: L.ratioNow <= lim },
+      { key: "multiple", label: "借りる額は年収の何倍か", value: `${mult.toFixed(1)}倍（目安 7倍以内）`, ok: mult <= 7 },
+      { key: "payoff", label: "完済の年齢", value: `${L.endAge}歳（目安 80歳まで）`, ok: L.endAge <= 80 },
+      { key: "reemploy", label: "定年後（再雇用）の返済", value: L.atReemploy.left > 0 ? `年収の${pct(L.ratioReemploy)}（目安 35%以内）` : "定年までに完済", ok: L.atReemploy.left === 0 || L.ratioReemploy <= 0.35 },
+    ];
+    const allOk = checks.every((c) => c.ok);
+    return {
+      passRate: PASS_RATE, checks, allOk,
+      verdict: allOk ? "数字の目安の上では、土台に乗る可能性があります。ただし、実際は融資する金融機関が決めます。"
+        : "目安を超える項目があります。借りる額・頭金・返済期間を見直してから確かめましょう。実際は融資する金融機関が決めます。",
+      lookAt: ["勤続年数・雇用形態（正社員・派遣など）", "他の借入（車のローン・カード・リボ・奨学金）", "返済の遅れがないか（信用情報）", "健康状態（団信に入れるか）", "物件の担保評価"],
+      steps: [
+        "① できるか：住宅ローンの事前審査（無料・購入の義務はありません）で、金融機関に借りられる額を確かめる",
+        "② その土台に乗ったら：通った金額の範囲で、やるか・やらないかを決める",
+        "通らなかったら：理由になりそうな点（他の借入・勤続・頭金）を整えて時期を改める／賃貸のまま準備する",
+      ],
+    };
+  }
+
   // どのお客様にも同じ順番で説明する6ステップ（話すこと・見せる数字・お客様への質問）
   function talk(x) {
     const i = x.input, o = i.own;
@@ -626,7 +664,12 @@
     const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
       show: `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${Math.round(inc.vsAverage * 100)}%）／これから一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）／そのうち住まいに使う割合　賃貸のまま ${Math.round(inc.housingShare.rent * 100)}%・持ち家 ${Math.round(inc.housingShare.own * 100)}%／今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
       ask: "今の預金・NISA・保険・不動産のバランスに、満足していますか。" };
-    const seven = wt.length ? { title: "⑦「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
+    const g = gate(x);
+    const six = { title: "⑥ まず「できるか」を確かめる（区切り）",
+      say: `ここで一度、区切りをつけます。住宅ローンは、借りたい人や私たちが決めるのではなく、融資する金融機関が決めます。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほどです（目安）。ですから、やるか・やらないかを決める前に、まず「できるか」をこちらで確認させてください。その土台に乗ったら、やるか・やらないかを決めていただければ大丈夫です。できるかわからないまま決めても意味がないので、お客様のお時間を無駄にしないための順番です。`,
+      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}／金融機関が見ること：${g.lookAt.join("・")}`,
+      ask: "まず、できるかどうかを確かめてみませんか（事前審査は無料・購入の義務はありません）。" };
+    const seven = wt.length ? { title: "⑧「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
       show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}・住宅ローンの審査の返済比率 ${Math.round(r.screen.ratio * 100)}%（目安 ${Math.round(r.screen.limit * 100)}%以内${r.screen.ok ? "" : "を超える"}${r.screen.shorter ? "・返済期間が短くなる" : ""}）`).join("／") +
         "。年齢が上がるほど返済期間が短くなり、健康状態によっては団信に入れず、審査が通りにくくなる場合があります" +
         (wu ? `／仮に3年の間に金利が0.5%上がった場合、毎月 ${man(wu.pmt, 1)}（下がる場合もあります）` : ""),
@@ -657,7 +700,8 @@
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
         show: `${rentScreenLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
         ask: "ご家族に、どんな形で住まいを残したいですか。金利が上がったときの備えはありますか。" },
-      { title: "⑥ まとめ：持つ・持たない、それぞれの準備", say: `どちらが正解ということはありません。持つなら、無理のない返済と修繕の備え。持たないなら、老後の家賃のための積立。「持たない」を選ぶ場合も、準備が必要だと知ったうえで選ぶことが大切です。`,
+      six,
+      { title: "⑦ まとめ：持つ・持たない、それぞれの準備", say: `「できる」とわかったうえで、どちらが正解ということはありません。持つなら、無理のない返済と修繕の備え。持たないなら、老後の家賃のための積立。「持たない」を選ぶ場合も、準備が必要だと知ったうえで選ぶことが大切です。`,
         show: `${i.retireAge}歳時点の家の価値（概算）　下落 ${man(x.value65.down)}／横ばい ${man(x.value65.flat)}／上昇 ${man(x.value65.up)}　※将来の価格を約束するものではありません／参考：差額を積み立てて運用した場合 ${man(x.fair.rentInvested65)}（${x.fair.note}）`,
         ask: "どちらの準備なら、ご自身に合っていると思いますか。" },
       ...(seven ? [seven] : []),
@@ -708,8 +752,9 @@
             : `団信があるので、万一のときは残りのローンがなくなり、ご家族に住まいが残ります（賃貸ならご家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続けます）。`,
           `金利が1%上がった場合の毎月の返済 ${man(x.whatIf.rateUpPmt, 1)}（今の計画 ${man(x.whatIf.pmt, 1)}）`,
         ] },
-      { no: 4, title: "まとめと、次の一歩", lead: "どちらが正解ということはありません。それぞれに必要な準備を知ったうえで、ご自身に合う道を選んでください。",
+      { no: 4, title: "まとめと、次の一歩", lead: "やるか・やらないかを決める前に、まず「できるか」を確かめます。その土台に乗ったら、どちらが正解ということはなく、ご自身に合う道を選んでください。",
         points: [
+          `区切り：住宅ローンを決めるのは融資する金融機関です。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほど（目安）。数字の目安：${gate(x).checks.map((c) => `${c.ok ? "○" : "△"}${c.label.replace(/（.*）/, "")} ${c.value.replace(/（.*）/, "")}`).join("・")}`,
           `持つなら：無理のない返済（毎月 ${man(x.loan.pmt, 1)}）と、修繕・固定資産税の備え。${i.retireAge}歳の家の価値（概算）は ${man(x.value65.down)}〜${man(x.value65.up)}（将来の価格を約束するものではありません）`,
           `持たないなら：老後の家賃のための積立（毎月 ${man(x.prepare.monthlyRent, 1)}）。差額を年${(x.fair.rate * 100).toFixed(0)}%で運用できた場合 ${man(x.fair.rentInvested65)}（元本保証なし）`,
           `待つ場合：5年待つと、その間の家賃 ${man(w5.rentWhileWaiting)}・完済 ${w5.payoffAge}歳${w5.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${w5.loanYearsAfterRetire}年返済）` : ""}・住宅ローンの審査の返済比率 ${Math.round(w5.screen.ratio * 100)}%（目安 ${Math.round(w5.screen.limit * 100)}%以内）。年齢が上がると期間が短くなり審査が通りにくくなる場合もあります。待つ理由がはっきりしていれば、待つのも選択肢です`,
@@ -803,7 +848,7 @@
       actions: [
         { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: 0, icon: "nisa" },
         { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: 2, icon: "home" },
-        { title: "もしもに備える", sub: "団信・保険・金利が上がったら", step: 5, icon: "ins" },
+        { title: "まず「できるか」を確かめる", sub: "決めるのは金融機関。事前審査は無料・購入の義務なし", step: 6, icon: "ins" },
         { title: "提案書をつくる", sub: "A4・4ページでお渡し", go: "proposal", icon: "plan" },
       ],
     };
@@ -826,7 +871,7 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
 
 </script>
@@ -893,7 +938,7 @@
     for (const kv of q.split("&")) {
       const [k, v = ""] = kv.split("=");
       if (k === "s") { try { merge(state, JSON.parse(b64d(decodeURIComponent(v))), ""); } catch (e) { /* 壊れたリンクは初期値で開く */ } }
-      if (k === "step") { const n = Number(v); if (Number.isInteger(n) && n >= 0 && n <= 7) step = n; }
+      if (k === "step") { const n = Number(v); if (Number.isInteger(n) && n >= 0 && n <= 8) step = n; }
       if (k === "p") present = v === "1";
     }
     return { state, step, present };
@@ -1058,6 +1103,24 @@
         { label: `${x.input.retireAge}歳・持ち家`, parts: [["預貯金", pf.at65.own.savings, C.sav], ["NISA", pf.at65.own.nisa, C.nisa], ["不動産", pf.at65.own.realEstate, C.re]] },
       ])}${legend([["預貯金", C.sav], ["NISA", C.nisa], ["不動産（家の価値−残りのローン）", C.re]])}
       <p class="small">保険：毎月 ${man(pf.now.insuranceMonthly, 1)}（${x.input.retireAge}歳まで ${man(x.insurance.rentLife)}）。NISA は毎月 ${man(pf.now.nisaMonthly, 1)} を年${(x.input.nisa.rate * 100).toFixed(0)}%で運用できた場合（元本保証なし）。</p></div></div>`;
+  }
+  // ⑥ 区切り：10人中2〜3人（人の形）／できるか → やるか の2段階／数字の目安（○△）
+  function gateView(x) {
+    const g = S.gate(x), R = g.passRate;
+    const person = (k) => {
+      const c = k < R.low ? "#b08d57" : k < R.high ? "url(#halfGold)" : "#d5d9e0";
+      return `<g transform="translate(${k * 46 + 6},6)"><circle cx="17" cy="11" r="10" fill="${c}"/><path d="M2 58 C2 34 32 34 32 58Z" fill="${c}"/></g>`;
+    };
+    const people = `<svg class="gpeople" viewBox="0 0 470 70" width="100%" style="max-width:470px" aria-label="${R.of}人中${R.low}〜${R.high}人"><defs><linearGradient id="halfGold" x1="0" x2="1"><stop offset=".5" stop-color="#b08d57"/><stop offset=".5" stop-color="#d5d9e0"/></linearGradient></defs>${Array.from({ length: R.of }, (_, k) => person(k)).join("")}</svg>`;
+    return `<div class="two"><div>
+        <div class="kpi gk" style="margin-bottom:6px"><span>審査を申し込んだ方のうち、通るのは（目安）</span><b>${R.of}人中 ${R.low}〜${R.high}人</b><span class="gnote">${esc(R.note)}</span></div>${people}
+        <div class="gflow"><div class="gs"><b>① できるか</b><span>事前審査で金融機関に確かめる<br>（無料・購入の義務はありません）</span></div><div class="ga">→</div>
+          <div class="gs"><b>② やるか・やらないか</b><span>通った金額の範囲で、<br>お客様が決める</span></div></div>
+        <p class="small">通らなかったら：他の借入・勤続・頭金を整えて時期を改める／賃貸のまま準備する</p></div>
+      <div><table class="bd"><tr><th>数字で見る目安</th><th></th><th></th></tr>
+        ${g.checks.map((c) => `<tr><td>${esc(c.label)}</td><td>${esc(c.value)}</td><td class="${c.ok ? "own" : "rent"}" style="font-weight:700">${c.ok ? "○" : "△ 見直し"}</td></tr>`).join("")}</table>
+        <p class="gverdict ${g.allOk ? "ok" : "ng"}">${esc(g.verdict)}</p>
+        <p class="small glook"><b>金融機関が見ること（数字以外）</b>：${g.lookAt.map(esc).join("／")}</p></div></div>`;
   }
   function waitView(x) {
     const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge;
@@ -1321,7 +1384,7 @@
   }
   function openHome() { document.body.classList.remove("present", "proposal-view"); document.body.classList.add("home-view"); renderHome(); window.scrollTo(0, 0); }
   function openStep(i) { document.body.classList.remove("home-view"); cur = i; all = false; render(); window.scrollTo(0, 0); }
-  let cur = opened.step, all = false, LAST = 7;
+  let cur = opened.step, all = false, LAST = 8;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
   const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
   const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
@@ -1335,6 +1398,7 @@
       oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>`,
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>`,
       `<div class="kpis"><div class="kpi rent"><span>老後の賃貸の入居審査（家賃÷年金）</span><b>${Math.round(x.screening.rent.ratioOld * 100)}%</b><span>目安は3分の1（33%）以内${x.screening.rent.hard ? "・通りにくくなる場合あり" : ""}</span></div><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>${x.input.family.marryAge == null ? "親や兄弟に残らない" : "家族に住まいが残る"}</span></div>${x.input.family.marryAge == null ? "" : `<div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div>`}<div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${insurancePanel(x)}`,
+      gateView(x),
       `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div><p style="font-size:13px;color:#5b616b;margin:0 0 8px">※家の価値は将来の価格を約束するものではありません。運用も元本保証はありません。</p>`,
       waitView(x),
     ];

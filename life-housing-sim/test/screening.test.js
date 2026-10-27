@@ -50,10 +50,10 @@ test("住宅ローンの審査：待つほど年齢が上がり、返済期間�
   assert.ok(late.wait[3].screen.ratio > late.wait[0].screen.ratio, "期間が短くなると返済比率が上がる");
 });
 
-test("説明：②に更新料、⑤に入居審査、⑦に住宅ローンの審査（断定しない・あおらない）", () => {
+test("説明：②に更新料、⑤に入居審査、⑧に住宅ローンの審査（断定しない・あおらない）", () => {
   const x = S.compute(S.defaults());
   const t = S.talk(x);
-  const two = t.find((s) => s.title.startsWith("②")), five = t.find((s) => s.title.startsWith("⑤")), seven = t.find((s) => s.title.startsWith("⑦"));
+  const two = t.find((s) => s.title.startsWith("②")), five = t.find((s) => s.title.startsWith("⑤")), seven = t.find((s) => s.title.startsWith("⑧"));
   assert.match(two.show, /更新料/);
   assert.ok(two.show.includes(S.man(x.renew.total)));
   assert.match(five.show, /入居審査/);

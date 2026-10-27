@@ -69,10 +69,10 @@ test("結婚しない・子どもなしでも計算できる", () => {
   assert.ok(x.years.every((y) => y.age >= 65 || y.rentMonthly === base.rent.single));
 });
 
-test("説明のステップ（⓪ポートフォリオ〜⑦今はいい？）は全部、話すこと・見せる数字・お客様への質問がある", () => {
+test("説明のステップ（⓪ポートフォリオ〜⑥できるか〜⑧今はいい？）は全部、話すこと・見せる数字・お客様への質問がある", () => {
   const steps = S.talk(S.compute(base));
-  assert.equal(steps.length, 8);
-  assert.ok(steps[0].title.startsWith("⓪") && steps[7].title.startsWith("⑦"));
+  assert.equal(steps.length, 9);
+  assert.ok(steps[0].title.startsWith("⓪") && steps[8].title.startsWith("⑧"));
   for (const st of steps) for (const k of ["title", "say", "show", "ask"]) assert.ok(st[k] && st[k].length > 3, `${st.title} ${k}`);
 });
 
@@ -187,7 +187,7 @@ test("「今はいい」：1・3・5年待つと、待つ間の家賃・完済�
 test("待つ間に金利が0.5%上がった場合も見せる（上がるとは断定しない）", () => {
   const x = S.compute(base);
   assert.ok(x.waitRateUp.pmt > x.wait[0].pmt);
-  const s7 = S.talk(x)[7];
+  const s7 = S.talk(x)[8];
   assert.ok(/仮に|場合/.test(s7.show), "仮定として示す");
   assert.ok(/理由/.test(s7.ask), "待つ理由を聞く");
 });
