@@ -3,7 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const S = require("../lib/engine");
 
-const base = S.defaults(); // 27歳・年収390万・家賃3万・貯金140万・30歳で結婚（商談報告の中央値に近いお客様像）
+const base = S.preset("family"); // 27歳・年収390万・貯金140万・30歳で結婚・子ども1人（家族向けの計算を確かめる）
 
 test("住宅ローンの毎月の返済（元利均等）", () => {
   assert.equal(Math.round(S.payment(30_000_000, 0.015, 35)), 91_855);
@@ -190,4 +190,37 @@ test("待つ間に金利が0.5%上がった場合も見せる（上がるとは�
   const s7 = S.talk(x)[7];
   assert.ok(/仮に|場合/.test(s7.show), "仮定として示す");
   assert.ok(/理由/.test(s7.ask), "待つ理由を聞く");
+});
+
+// ───── 独身向け（商談のお客様の大半：独身・結婚願望「無し・あまり無し」71%） ─────
+test("初期値は独身向け（結婚・子どもなし、老後もひとり暮らし）", () => {
+  const d = S.defaults();
+  assert.equal(d.family.marryAge, null);
+  assert.equal(d.family.kids, 0);
+  assert.deepEqual(S.defaults(), S.preset("single"));
+  const x = S.compute(d);
+  assert.ok(x.years.every((y) => y.stage === "single" || y.stage === "old"));
+  assert.equal(x.pension.living, d.oldLiving.single, "老後の生活費はひとり分");
+  assert.equal(x.pension.partnerYearly, 0, "年金もひとり分");
+});
+
+test("独身向けの説明：結婚しても住み続ける・貸す・売るを選べる、老後ひとりの賃貸、団信は家族に家が残る話をしない", () => {
+  const t = S.talk(S.compute(S.defaults()));
+  const all = t.map((s) => s.say + s.show + s.ask).join("\n");
+  assert.ok(/結婚しても|結婚したら/.test(all), "結婚したらの答え");
+  assert.ok(/ひとり/.test(t.find((s) => s.title.startsWith("③")).say), "老後ひとり");
+  const s5 = t.find((s) => s.title.startsWith("⑤"));
+  assert.ok(!/家族に住まいが残/.test(s5.say), "独身に家族の話をしない");
+  assert.ok(/年齢|保証人/.test(s5.say), "高齢のひとりの賃貸");
+});
+
+test("独身でも住宅ローン控除は一般の限度額で計算される（上乗せなし）", () => {
+  const x = S.compute({ ...S.defaults(), own: { ...S.defaults().own, kind: "new_zeh" } });
+  assert.equal(x.credit.limit, 35_000_000);
+  assert.equal(x.credit.special, false);
+});
+
+test("家族向けの説明は従来どおり（団信で家族に住まいが残る）", () => {
+  const s5 = S.talk(S.compute(S.preset("family"))).find((s) => s.title.startsWith("⑤"));
+  assert.ok(/家族に住まいが残/.test(s5.say));
 });
