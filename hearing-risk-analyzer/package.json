@@ -1,0 +1,11 @@
+{
+  "name": "hearing-risk-analyzer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "商談ヒアリング（#03_商談報告）→ 将来のリスクと、不動産の価値の伝え方",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "analyze": "node tools/analyze.js",
+    "serve": "python3 -m http.server 5189"
+  }
+}
