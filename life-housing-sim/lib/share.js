@@ -7,6 +7,8 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
   const NULLABLE = new Set(["family.marryAge"]);
+  // 文字の項目は決まった選択肢だけ受け付ける
+  const ENUMS = { "own.kind": ["new_cert", "new_zeh", "new_energy", "used_zeh", "used_energy", "used_other", "none"] };
   const MAX = 1e9; // ありえない金額は受け付けない
   const b64e = (s) => (typeof btoa === "function" ? btoa(s) : Buffer.from(s, "binary").toString("base64")).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const b64d = (s) => {
@@ -35,6 +37,7 @@
       const p = path ? path + "." + k : k, v = src[k], t = target[k];
       if (t && typeof t === "object") merge(t, v, p);
       else if (typeof t === "boolean" && typeof v === "boolean") target[k] = v;
+      else if (ENUMS[p]) { if (ENUMS[p].includes(v)) target[k] = v; }
       else if (v === null && NULLABLE.has(p)) target[k] = null;
       else if ((typeof t === "number" || NULLABLE.has(p)) && typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= MAX) target[k] = v;
     }

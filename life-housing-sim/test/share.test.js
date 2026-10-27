@@ -34,3 +34,17 @@ test("壊れたリンクでも初期値で開ける", () => {
   assert.deepEqual(back.state, S.defaults());
   assert.equal(back.present, false);
 });
+
+test("住宅の種類（文字の選択肢）も共有でき、知らない値は無視する", () => {
+  const st = S.defaults(); st.own.kind = "new_zeh"; st.lifeIns.cutWithDanshin = 5000;
+  const back = decode(encode(st, {}), S.defaults());
+  assert.equal(back.state.own.kind, "new_zeh");
+  assert.equal(back.state.lifeIns.cutWithDanshin, 5000);
+  const bad = decode("#s=" + Buffer.from(JSON.stringify({ own: { kind: "<img onerror>" } })).toString("base64"), S.defaults());
+  assert.equal(bad.state.own.kind, S.defaults().own.kind);
+});
+
+test("共有リンクで受け付ける住宅の種類は、計算の住宅の種類と同じ", () => {
+  const src = require("node:fs").readFileSync(require.resolve("../lib/share"), "utf8");
+  for (const k of Object.keys(S.CREDIT_KINDS)) assert.ok(src.includes(`"${k}"`), k);
+});

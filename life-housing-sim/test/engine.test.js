@@ -38,7 +38,7 @@ test("持ち家：完済後は返済がなくなり、税金・保険・修繕�
 test("老後（65〜95歳）：賃貸は年金から家賃を払い続ける → 毎月の不足が大きい", () => {
   const x = S.compute(base);
   assert.ok(x.old.rent.gapMonthly > x.old.own.gapMonthly);
-  assert.equal(Math.round(x.old.rent.rentTotal), base.rent.old * 12 * 30 + Math.round((base.rent.old * base.rent.renewMonths / base.rent.renewEvery) * 30));
+  assert.equal(Math.round(x.old.rent.rentTotal), base.rent.old * 12 * 30 + Math.round((base.rent.old * base.rent.renewMonths / base.rent.renewEvery) * 30) + base.rent.insYear * 30, "家賃＋更新料＋家財保険");
   assert.ok(x.prepare.rentExtra > 0, "賃貸のままなら、老後の家賃のぶん多く準備が必要");
   assert.ok(Math.abs(x.prepare.monthlyRent - x.prepare.rentNeed / ((65 - 27) * 12)) < 1);
 });
@@ -78,4 +78,63 @@ test("説明の6ステップは全部、話すこと・見せる数字・お客�
 test("禁止表現を使わない（家賃は無駄・必ず値上がり・今買わないと損 など）", () => {
   const all = JSON.stringify(S.talk(S.compute(base))) + JSON.stringify(S.NOTES);
   for (const re of S.FORBIDDEN) assert.ok(!re.test(all), String(re));
+});
+
+// ───── 追加：保険・税金・住宅ローン控除 ─────
+test("税額の概算（給与のみ・令和8・9年分の特例）：所得税・住民税", () => {
+  const t = S.estimateTax(3_900_000);
+  assert.equal(t.incomeTax, 52_750);
+  assert.equal(t.residentTax, 164_000);
+  assert.equal(t.taxable, 1_055_000);
+  assert.equal(S.estimateTax(5_000_000).incomeTax, 88_500);
+});
+
+test("住宅ローン控除：住宅の種類ごとの限度額・期間で、税額を超えない範囲（控除しきれない額は数えない）", () => {
+  const x = S.compute({ ...base, own: { ...base.own, kind: "used_other" } });
+  const c = x.credit;
+  assert.equal(c.limit, 20_000_000);
+  assert.equal(c.years, 10);
+  assert.equal(c.rows.length, 10);
+  for (const r of c.rows) {
+    assert.ok(r.actual <= r.max, "上限以下");
+    assert.ok(r.actual <= 52_750 + Math.min(97_500, Math.floor(1_055_000 * 0.05), 164_000), "所得税＋住民税の上限以下");
+  }
+  assert.ok(c.total > 0 && c.total <= 20_000_000 * 0.007 * 10);
+  assert.equal(S.compute({ ...base, own: { ...base.own, kind: "none" } }).credit.total, 0);
+});
+
+test("結婚後（40歳未満）に買えば若者夫婦世帯の上乗せ（ZEHは4,500万円）。単身なら一般（3,500万円）", () => {
+  const married = S.compute({ ...base, own: { ...base.own, kind: "new_zeh", buyAge: 31 } });
+  const single = S.compute({ ...base, family: { marryAge: null, kids: 0 }, own: { ...base.own, kind: "new_zeh", buyAge: 31 } });
+  assert.equal(married.credit.limit, 45_000_000);
+  assert.equal(single.credit.limit, 35_000_000);
+});
+
+test("控除は持ち家の年間費用から差し引かれ、一生の内訳の合計＝一生の住居費", () => {
+  const x = S.compute(base);
+  const credited = x.years.filter((y) => y.ownCredit > 0);
+  assert.equal(credited.length, x.credit.rows.filter((r) => r.actual > 0).length);
+  const sum = (o) => Object.values(o).reduce((s, v) => s + v.amount * (v.sign || 1), 0);
+  assert.ok(Math.abs(sum(x.breakdown.rent) - x.life.rent) < 1);
+  assert.ok(Math.abs(sum(x.breakdown.own) - x.life.own) < 1);
+  assert.ok(x.breakdown.own.interest.amount > 0, "利息も見える");
+  assert.ok(x.breakdown.own.tax.amount > 0 && x.breakdown.own.ins.amount > 0, "税金・保険も見える");
+  assert.ok(x.breakdown.rent.ins.amount > 0, "賃貸の家財保険");
+});
+
+test("保険：生命保険は団信で見直せる分を持ち家側で減らせる（設定したときだけ）", () => {
+  const a = S.compute({ ...base, lifeIns: { monthly: 10_000, cutWithDanshin: 0 } });
+  const b = S.compute({ ...base, lifeIns: { monthly: 10_000, cutWithDanshin: 5_000 } });
+  assert.equal(a.insurance.ownLife, a.insurance.rentLife);
+  assert.ok(b.insurance.ownLife < b.insurance.rentLife);
+});
+
+test("ステップ②の説明に、税金・保険・住宅ローン控除が出てくる", () => {
+  const s2 = S.talk(S.compute(base))[1];
+  for (const w of ["税金", "保険", "住宅ローン控除"]) assert.ok((s2.say + s2.show).includes(w), w);
+});
+
+test("限度額が同じ住宅（中古その他など）では「上乗せ」と表示しない", () => {
+  const x = S.compute({ ...base, own: { ...base.own, kind: "used_other", buyAge: 31 } });
+  assert.equal(x.credit.special, false);
 });
