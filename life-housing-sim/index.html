@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>住まいの一生シミュレーター</title>
+<style>
+  :root { --navy:#1f2a44; --gold:#b08d57; --ink:#1d1f23; --sub:#5b616b; --line:#dcdfe4; --bg:#f6f4ef; --card:#fff;
+          --rent:#c2581e; --own:#2a5c9a; --ok:#2e7d32; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+  header { background:var(--navy); color:#fff; padding:14px 20px; display:flex; gap:14px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:19px; letter-spacing:.05em; }
+  header p { margin:0; font-size:12px; opacity:.8; }
+  main { display:grid; grid-template-columns:minmax(260px,330px) 1fr; gap:16px; padding:16px; max-width:1400px; margin:0 auto; }
+  @media (max-width:920px){ main{ grid-template-columns:1fr; } }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .form h2 { font-size:13px; color:var(--navy); margin:12px 0 6px; border-left:4px solid var(--gold); padding-left:7px; }
+  .form h2:first-child { margin-top:0; }
+  label { display:grid; grid-template-columns:1fr 140px; gap:8px; align-items:center; font-size:13px; margin:5px 0; }
+  select { font:inherit; font-size:13px; padding:5px 6px; border:1px solid #c9b48a; border-radius:7px; background:#fff8e6; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .tabs button { font:inherit; font-size:13px; border:1px solid var(--line); background:#fff; border-radius:999px; padding:6px 12px; cursor:pointer; color:var(--sub); }
+  .tabs button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .stage-title { font-size:22px; color:var(--navy); margin:4px 0 8px; }
+  .say { font-size:17px; margin:0 0 12px; }
+  .show { font-size:15px; background:#faf7f0; border:1px solid #eadfc8; border-radius:10px; padding:10px 12px; margin:0 0 12px; }
+  .ask { font-size:14px; color:var(--navy); background:#eef2f8; border-radius:10px; padding:8px 12px; margin:0 0 12px; }
+  .ask::before { content:"お客様に聞く："; font-weight:700; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; margin:10px 0; }
+  .kpi { border:1px solid var(--line); border-radius:10px; padding:10px 12px; background:#fff; }
+  .kpi span { font-size:12px; color:var(--sub); display:block; }
+  .kpi b { font-size:22px; font-variant-numeric:tabular-nums; }
+  .kpi.rent b { color:var(--rent); } .kpi.own b { color:var(--own); }
+  .legend { display:flex; gap:16px; font-size:12px; color:var(--sub); margin:4px 0; }
+  .legend i { display:inline-block; width:14px; height:3px; vertical-align:middle; margin-right:5px; }
+  svg text { font-family:inherit; }
+  .nav { display:flex; justify-content:space-between; margin-top:12px; }
+  .nav button, .tools button { font:inherit; font-size:14px; border:1px solid var(--navy); background:#fff; color:var(--navy); border-radius:8px; padding:8px 16px; cursor:pointer; }
+  .nav button.primary { background:var(--navy); color:#fff; }
+  .tools { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .notes { font-size:11px; color:var(--sub); margin-top:14px; }
+  .notes li { margin:2px 0; }
+  table { border-collapse:collapse; width:100%; font-size:13px; }
+  th, td { border-bottom:1px solid var(--line); padding:6px 8px; text-align:right; }
+  th:first-child, td:first-child { text-align:left; }
+  @media print {
+    header, .form, .tabs, .nav, .tools { display:none !important; }
+    main { display:block; padding:0; } body { background:#fff; } .panel { border:none; padding:0; }
+    .step { display:block !important; break-inside:avoid; margin-bottom:18px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>住まいの一生シミュレーター</h1>
+  <p>賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ①〜⑥ の同じ順番で説明します（概算・通信なし・保存なし）</p>
+</header>
+<main>
+  <section class="panel form" id="form"></section>
+  <section class="panel">
+    <div class="tabs" id="tabs"></div>
+    <div id="steps"></div>
+    <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
+    <div class="tools"><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
+    <ul class="notes" id="notes"></ul>
+  </section>
+</main>
+<script src="lib/engine.js"></script>
+<script>
+(function () {
+  "use strict";
+  const S = window.LHS, $ = (id) => document.getElementById(id), man = S.man;
+  const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const range = (a, b, st) => { const o = []; for (let v = a; v <= b + 1e-9; v += st) o.push(Math.round(v * 1e6) / 1e6); return o; };
+  const yen = (v) => man(v, v % 10000 ? 1 : 0);
+
+  // 選ぶだけの入力（値は円・歳・率）
+  const FIELDS = [
+    ["あなたのこと"],
+    ["age", "今の年齢", range(20, 55, 1), (v) => v + "歳"],
+    ["income", "年収（税込）", range(2_500_000, 12_000_000, 100_000), yen],
+    ["savings", "今の貯金", [0, 300_000, 500_000, 800_000, 1_000_000, 1_400_000, 2_000_000, 3_000_000, 5_000_000, 8_000_000, 10_000_000], yen],
+    ["これからの暮らし"],
+    ["family.marryAge", "結婚する年齢", [null, ...range(22, 45, 1)], (v) => (v == null ? "結婚しない・未定" : v + "歳")],
+    ["family.kids", "子ども", [0, 1, 2], (v) => (v ? v + "人" : "なし")],
+    ["family.firstKidAge", "第1子が生まれる年齢", range(22, 45, 1), (v) => v + "歳"],
+    ["partnerIncome", "パートナーの年収", [0, 1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000], (v) => (v ? yen(v) : "なし・扶養内")],
+    ["賃貸の家賃（毎月・その地域の目安）"],
+    ["rent.single", "ひとり暮らし", range(30_000, 120_000, 5_000), yen],
+    ["rent.couple", "2人暮らし", range(40_000, 150_000, 5_000), yen],
+    ["rent.family", "子育て期（広い部屋）", range(50_000, 180_000, 5_000), yen],
+    ["rent.old", "老後", range(30_000, 150_000, 5_000), yen],
+    ["持ち家（買う場合）"],
+    ["own.buyAge", "買う年齢", range(20, 55, 1), (v) => v + "歳"],
+    ["own.price", "物件価格", range(10_000_000, 60_000_000, 1_000_000), yen],
+    ["own.rate", "金利（年）", range(0.005, 0.03, 0.001), (v) => (v * 100).toFixed(1) + "%"],
+    ["own.years", "返済年数", range(20, 35, 1), (v) => v + "年"],
+    ["老後の生活費（住居費を除く・毎月）"],
+    ["oldLiving.single", "ひとりの場合", range(80_000, 250_000, 10_000), yen],
+    ["oldLiving.couple", "夫婦の場合", range(120_000, 350_000, 10_000), yen],
+  ];
+  const state = S.defaults();
+  const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
+  const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
+
+  function buildForm() {
+    let h = "";
+    for (const f of FIELDS) {
+      if (f.length === 1) { h += `<h2>${esc(f[0])}</h2>`; continue; }
+      const [key, label, opts, fmt] = f;
+      const cur = get(state, key);
+      h += `<label>${esc(label)}<select data-k="${key}">${opts.map((v, i) => `<option value="${i}"${v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select></label>`;
+    }
+    $("form").innerHTML = h;
+    $("form").querySelectorAll("select").forEach((sel) => {
+      const f = FIELDS.find((x) => x[0] === sel.dataset.k);
+      if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
+      sel.onchange = () => { set(state, f[0], f[2][sel.value]); render(); };
+    });
+  }
+
+  // ───── グラフ（SVG・手書き） ─────
+  function lineChart(x) {
+    const W = 720, H = 260, L = 64, B = 30, T = 14;
+    let cr = 0, co = 0;
+    const pts = x.years.map((y) => ({ age: y.age, r: (cr += y.rentYear), o: (co += y.ownYear) }));
+    const max = Math.max(cr, co) * 1.05, a0 = pts[0].age, a1 = pts.at(-1).age;
+    const X = (a) => L + ((a - a0) / (a1 - a0)) * (W - L - 12), Y = (v) => T + (1 - v / max) * (H - T - B);
+    const path = (k) => pts.map((p, i) => `${i ? "L" : "M"}${X(p.age).toFixed(1)},${Y(p[k]).toFixed(1)}`).join("");
+    let g = "";
+    for (let v = 0; v <= max; v += 10_000_000) g += `<line x1="${L}" x2="${W - 12}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eceef1"/><text x="${L - 6}" y="${Y(v) + 4}" font-size="11" text-anchor="end" fill="#5b616b">${(v / 1e4).toLocaleString()}万</text>`;
+    for (let a = Math.ceil(a0 / 10) * 10; a <= a1; a += 10) g += `<text x="${X(a)}" y="${H - 10}" font-size="11" text-anchor="middle" fill="#5b616b">${a}歳</text>`;
+    const ret = x.input.retireAge;
+    g += `<line x1="${X(ret)}" x2="${X(ret)}" y1="${T}" y2="${H - B}" stroke="#b08d57" stroke-dasharray="4 4"/><text x="${X(ret) + 4}" y="${T + 12}" font-size="11" fill="#b08d57">${ret}歳（年金生活）</text>`;
+    const end = pts.at(-1);
+    g += `<path d="${path("r")}" fill="none" stroke="var(--rent)" stroke-width="3"/><path d="${path("o")}" fill="none" stroke="var(--own)" stroke-width="3"/>`;
+    g += `<text x="${X(end.age) - 4}" y="${Y(end.r) - 6}" font-size="12" text-anchor="end" fill="var(--rent)" font-weight="700">賃貸 ${man(end.r)}</text>`;
+    g += `<text x="${X(end.age) - 4}" y="${Y(end.o) + 16}" font-size="12" text-anchor="end" fill="var(--own)" font-weight="700">持ち家 ${man(end.o)}</text>`;
+    return `<div class="legend"><span><i style="background:var(--rent)"></i>賃貸のまま（累計）</span><span><i style="background:var(--own)"></i>持ち家（累計）</span></div><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="住居費の累計">${g}</svg>`;
+  }
+  function oldBars(x) {
+    const rows = [["年金（概算）", x.pension.monthly, "#2e7d32"], ["賃貸のままの支出", x.old.rent.outMonthly, "var(--rent)"], ["持ち家の支出", x.old.own.outMonthly, "var(--own)"]];
+    const max = Math.max(...rows.map((r) => r[1])) * 1.1, W = 720, rowH = 44;
+    let g = "";
+    rows.forEach(([lb, v, c], i) => {
+      const y = 8 + i * rowH, w = (v / max) * (W - 200);
+      g += `<text x="0" y="${y + 20}" font-size="13" fill="#1d1f23">${lb}</text><rect x="150" y="${y + 4}" width="${w}" height="24" rx="4" fill="${c}"/><text x="${156 + w}" y="${y + 21}" font-size="13" font-weight="700" fill="${c}">毎月 ${man(v, 1)}</text>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${rows.length * rowH + 10}" width="100%" role="img" aria-label="老後の毎月">${g}</svg>`;
+  }
+  function stageTable(x) {
+    const segs = [];
+    for (const y of x.years) { const last = segs.at(-1); if (last && last.label === y.stageLabel) last.to = y.age; else segs.push({ label: y.stageLabel, from: y.age, to: y.age, rent: y.rentMonthly }); }
+    return `<table><tr><th>暮らしの段階</th><th>年齢</th><th>家賃（毎月）</th></tr>${segs.map((s) => `<tr><td>${s.label}</td><td>${s.from}〜${s.to}歳</td><td>${man(s.rent, 1)}</td></tr>`).join("")}</table>`;
+  }
+
+  let cur = 0, all = false;
+  function render() {
+    const x = S.compute(state), steps = S.talk(x);
+    const visual = [
+      stageTable(x),
+      `<div class="kpis"><div class="kpi rent"><span>一生の住居費（賃貸のまま）</span><b>${man(x.life.rent)}</b></div><div class="kpi own"><span>一生の住居費（持ち家）</span><b>${man(x.life.own)}</b></div><div class="kpi"><span>毎月の返済（${(state.own.rate * 100).toFixed(1)}%・${state.own.years}年）</span><b>${man(x.loan.pmt, 1)}</b></div></div>${lineChart(x)}`,
+      oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>`,
+      `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>`,
+      `<div class="kpis"><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>家族に住まいが残る</span></div><div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div><div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>`,
+      `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div>`,
+    ];
+    $("tabs").innerHTML = steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.split("　")[0].split(" ")[0])}</button>`).join("");
+    $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { cur = +b.dataset.i; all = false; render(); }));
+    $("steps").innerHTML = steps.map((s, i) => `<div class="step" style="display:${all || i === cur ? "block" : "none"}">
+      <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");
+    $("prev").disabled = cur === 0; $("next").disabled = cur === steps.length - 1;
+    $("notes").innerHTML = S.NOTES.map((n) => `<li>${esc(n)}</li>`).join("");
+  }
+  $("prev").onclick = () => { cur = Math.max(0, cur - 1); all = false; render(); };
+  $("next").onclick = () => { cur = Math.min(5, cur + 1); all = false; render(); };
+  $("all").onclick = () => { all = !all; render(); };
+  $("print").onclick = () => { all = true; render(); window.print(); };
+  buildForm(); render();
+})();
+</script>
+</body>
+</html>
