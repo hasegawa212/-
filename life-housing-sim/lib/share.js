@@ -48,21 +48,24 @@
     const parts = [];
     const d = diff(state, def);
     if (Object.keys(d).length) parts.push("s=" + b64e(JSON.stringify(d)));
-    if (step) parts.push("step=" + step);
+    if (step) parts.push("step=" + step, "v=2"); // v=2：先頭に「¥」が入った並び（それより前のリンクは1つずらして開く）
     if (present) parts.push("p=1");
     return "#" + parts.join("&");
   }
 
+  const LAST_STEP = 9; // ¥・⓪〜⑧
   function decode(hash, defaults) {
     const state = clone(defaults);
-    let step = 0, present = false;
+    let step = 0, present = false, raw = null, v2 = false;
     const q = String(hash || "").replace(/^#/, "");
     for (const kv of q.split("&")) {
       const [k, v = ""] = kv.split("=");
       if (k === "s") { try { merge(state, JSON.parse(b64d(decodeURIComponent(v))), ""); } catch (e) { /* 壊れたリンクは初期値で開く */ } }
-      if (k === "step") { const n = Number(v); if (Number.isInteger(n) && n >= 0 && n <= 8) step = n; }
+      if (k === "step") raw = Number(v);
+      if (k === "v") v2 = v === "2";
       if (k === "p") present = v === "1";
     }
+    if (raw != null) { const n = v2 ? raw : raw + 1; if (Number.isInteger(n) && n >= 0 && n <= LAST_STEP) step = n; }
     return { state, step, present };
   }
   return { encode, decode };

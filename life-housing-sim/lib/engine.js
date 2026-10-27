@@ -379,6 +379,16 @@
     return work + "／" + loan + at + end;
   }
 
+  // いちばん大きな固定費＝住まい。今の家賃・手取り（概算：社会保険料15%と所得税・住民税を引く）・割合・払い続けた場合の合計
+  function fixedCost(x) {
+    const i = x.input, now = x.years[0], t = estimateTax(i.income);
+    const takeHome = (i.income - i.income * 0.15 - t.incomeTax - t.residentTax) / 12;
+    const rentOnly = (y) => y.rentPart + y.renewPart;
+    const to65 = x.years.filter((y) => y.age < i.retireAge).reduce((s, y) => s + rentOnly(y), 0);
+    const toEnd = x.years.reduce((s, y) => s + rentOnly(y), 0);
+    return { rent: now.rentMonthly, yearly: now.rentMonthly * 12, takeHome, share: takeHome > 0 ? now.rentMonthly / takeHome : 0, to65, toEnd };
+  }
+
   // 親御さまの頃（バブル期）の住宅ローン金利：都市銀行の変動金利 最高8.5%（1990〜91年）、住宅金融公庫 約5.5%（1990年）
   const BUBBLE = { bankRate: 0.085, publicRate: 0.055, source: "1990〜91年の住宅ローン金利（都市銀行の変動金利の最高 8.5%、住宅金融公庫 約5.5%）。金融機関・解説記事の金利推移より" };
   function bubble(x) {
@@ -467,7 +477,11 @@
     const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
       show: `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${Math.round(inc.vsAverage * 100)}%）／これから一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）／そのうち住まいに使う割合　賃貸のまま ${Math.round(inc.housingShare.rent * 100)}%・持ち家 ${Math.round(inc.housingShare.own * 100)}%／今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
       ask: "今の預金・NISA・保険・不動産のバランスに、満足していますか。" };
-    const g = gate(x), bb = bubble(x);
+    const g = gate(x), bb = bubble(x), fc = fixedCost(x);
+    const intro = { title: "¥ 節約するなら、いちばん大きな固定費から",
+      say: `日本は「節約しなさい」と言われて育つ国です。では、何を節約すると一番効くでしょうか。答えは、毎月いちばん大きな固定費＝住まい（家賃）です。家賃は住まいの対価で、同時にオーナーのローンの返済や将来の備えにもつながっています。どちらが正解ということはありません。同じ住まいのお金の使い方を、一緒に見ていきましょう。`,
+      show: `今の家賃 毎月 ${man(fc.rent, 1)}（手取りの約${Math.round(fc.share * 100)}%・手取りは概算 毎月 ${man(fc.takeHome, 1)}）／1年で ${man(fc.yearly)}／${i.retireAge}歳まで払い続けると ${man(fc.to65)}、${i.lifeEnd}歳までで ${man(fc.toEnd)}（更新料こみ・家財保険は含まない）／家賃の行き先：オーナーのローンの返済・管理や修繕・固定資産税など → 残りがオーナーの収益（空室や修繕で赤字になる場合もあります）`,
+      ask: "毎月の固定費で、いちばん大きいものは何ですか。その家賃は、誰の将来の備えになっていると思いますか。" };
     const six = { title: "⑥ まず「できるか」を確かめる（区切り）",
       say: `ここで一度、区切りをつけます。住宅ローンは、借りたい人や私たちが決めるのではなく、融資する金融機関が決めます。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほどです（目安）。ですから、やるか・やらないかを決める前に、まず「できるか」をこちらで確認させてください。その土台に乗ったら、やるか・やらないかを決めていただければ大丈夫です。できるかわからないまま決めても意味がないので、お客様のお時間を無駄にしないための順番です。`,
       show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}`,
@@ -478,7 +492,7 @@
         (wu ? `／仮に3年の間に金利が0.5%上がった場合、毎月 ${man(wu.pmt, 1)}（下がる場合もあります）` : "") +
         `／親御さまの頃（1990年前後）とは条件が違います：同じ ${man(x.loan.amount)}・${i.own.years}年でも、当時の金利 8.5%なら毎月 ${man(bb.bank, 1)}、公庫 5.5%でも ${man(bb.public, 1)}。今の計画（${(i.own.rate * 100).toFixed(1)}%）は ${man(bb.now, 1)}。当時は値上がりを見込んだ買い方が多かったが、今回は値上がりをあてにせず、住むために払える範囲で考えます（値下がりもありうるので⑦の下落シナリオも一緒に）`,
       ask: "待つ理由は何ですか。その理由がなくなるのはいつ頃ですか。" } : null;
-    return [zero,
+    return [intro, zero,
       { title: "① これからの暮らしの段階", say: sh
           ? `今は社宅で家賃が抑えられていますが、社宅はだいたい${sh.until}歳ごろまでです。出たあとは、ふつうの家賃を${i.lifeEnd}歳まで払うことになります。社宅の間は、貯金と住まいの準備ができる時期です。`
           : single
@@ -517,6 +531,7 @@
     const i = x.input, single = i.family.marryAge == null, inc = x.income, pf = x.portfolio, b = x.breakdown;
     const pct = (v) => Math.round(v * 100) + "%";
     const w5 = x.wait[3] || x.wait[x.wait.length - 1];
+    const fc = fixedCost(x);
     const cover = {
       title: APP.name,
       sub: `${APP.kana}｜賃貸のまま／持ち家 を、今から${i.lifeEnd}歳まで同じ物差しでくらべました`,
@@ -531,6 +546,7 @@
         points: [
           `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${pct(inc.vsAverage)}）`,
           `一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）`,
+          `毎月いちばん大きな固定費は住まい：今の家賃 ${man(fc.rent, 1)}（手取りの約${pct(fc.share)}）。${i.retireAge}歳まで払い続けると ${man(fc.to65)}。家賃は住まいの対価で、オーナーのローンの返済・管理・修繕・税金にあてられます`,
           `そのうち住まいに使うお金　賃貸のまま ${man(x.life.rent)}（${pct(inc.housingShare.rent)}）／持ち家 ${man(x.life.own)}（${pct(inc.housingShare.own)}）`,
           `今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
           `${i.retireAge}歳の資産（概算）　賃貸のまま ${man(pf.at65.rent.total)}／持ち家 ${man(pf.at65.own.total)}（うち家 ${man(pf.at65.own.realEstate)}）`,
@@ -615,13 +631,14 @@
     const lv = (k) => 1 + M.filter((m) => m.area === k && m.done).length;
     const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
     // big＝カードで大きく見せる数字（1つ）、bigLabel＝その数字が何か
+    const AT = (n) => n + 1; // 説明の先頭に「¥ いちばん大きな固定費」があるので、⓪ は1番目
     const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
     const areas = [
-      area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：家賃の6か月分 ${man(rentNow * 6)}`, 0),
-      area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
-      area("ins", "保険エリア", "もしもの時に備える", man(i.lifeIns.monthly, 1), "毎月の保険料", "団信で万一のときローンは残らない", 5),
-      area("home", "不動産エリア", "住まいで人生を豊かに", man(L.pmt, 1), "毎月の返済", `${L.buyAge}歳で ${man(o.price)}・${L.months}回・${L.endAge}歳で完済`, 2),
-      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", man(x.life.own), "一生の住居費（持ち家）", `賃貸のまま ${man(x.life.rent)}`, 1),
+      area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：家賃の6か月分 ${man(rentNow * 6)}`, AT(0)),
+      area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, AT(0)),
+      area("ins", "保険エリア", "もしもの時に備える", man(i.lifeIns.monthly, 1), "毎月の保険料", "団信で万一のときローンは残らない", AT(5)),
+      area("home", "不動産エリア", "住まいで人生を豊かに", man(L.pmt, 1), "毎月の返済", `${L.buyAge}歳で ${man(o.price)}・${L.months}回・${L.endAge}歳で完済`, AT(2)),
+      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", man(x.life.own), "一生の住居費（持ち家）", `賃貸のまま ${man(x.life.rent)}`, AT(1)),
     ];
     // ライフイベント：出来事と、そのときの数字（stat）。地図の道の印・グラフの点・一覧で同じ文を使う
     const f = i.family, sh = x.shataku, re = x.income.reemploy;
@@ -653,9 +670,9 @@
       goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
       areas, missions: M, events: ev, milestones,
       actions: [
-        { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: 0, icon: "nisa" },
-        { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: 2, icon: "home" },
-        { title: "まず「できるか」を確かめる", sub: "決めるのは金融機関。事前審査は無料・購入の義務なし", step: 6, icon: "ins" },
+        { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: AT(0), icon: "nisa" },
+        { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: AT(2), icon: "home" },
+        { title: "まず「できるか」を確かめる", sub: "決めるのは金融機関。事前審査は無料・購入の義務なし", step: AT(6), icon: "ins" },
         { title: "提案書をつくる", sub: "A4・4ページでお渡し", go: "proposal", icon: "plan" },
       ],
     };
@@ -678,5 +695,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

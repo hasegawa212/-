@@ -10,6 +10,13 @@ for (const f of ["lib/engine.js", "lib/share.js"]) {
   if (next === out) throw new Error(`${f} の script タグが見つからない`);
   out = next;
 }
+// 画像も1つのファイルに入れる（送った先でそのまま表示されるように）
+for (const img of ["img/rent-mechanism.jpg"]) {
+  const data = "data:image/jpeg;base64," + fs.readFileSync(path.join(root, img)).toString("base64");
+  const next = out.split(`src="${img}"`).join(`src="${data}"`);
+  if (next === out) throw new Error(`${img} の img タグが見つからない`);
+  out = next;
+}
 fs.mkdirSync(path.join(root, "dist"), { recursive: true });
 fs.writeFileSync(path.join(root, "dist/ライフルート.html"), out);
 console.log("dist/ライフルート.html");

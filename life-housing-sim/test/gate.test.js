@@ -46,14 +46,14 @@ test("借入が重い条件では「見直し」になる（年収280万・物�
 
 test("説明の順番：⑤もしも → ⑥まず「できるか」（区切り） → ⑦まとめ（やる・やらない） → ⑧「今はいい」", () => {
   const t = S.talk(x);
-  assert.equal(t.length, 9);
-  assert.match(t[6].title, /^⑥ まず「できるか」/);
-  assert.match(t[6].say, /金融機関/);
-  assert.match(t[6].say, /10人中2〜3人/);
-  assert.match(t[6].say, /やるか.*やらないか/);
-  assert.match(t[6].ask, /無料.*購入の義務はありません/);
-  assert.match(t[7].title, /^⑦ まとめ/);
-  assert.match(t[8].title, /^⑧「今はいい」/);
+  assert.equal(t.length, 10);
+  assert.match(t[7].title, /^⑥ まず「できるか」/);
+  assert.match(t[7].say, /金融機関/);
+  assert.match(t[7].say, /10人中2〜3人/);
+  assert.match(t[7].say, /やるか.*やらないか/);
+  assert.match(t[7].ask, /無料.*購入の義務はありません/);
+  assert.match(t[8].title, /^⑦ まとめ/);
+  assert.match(t[9].title, /^⑧「今はいい」/);
   for (const s of t) for (const re of S.FORBIDDEN) assert.doesNotMatch(s.say + s.show + s.ask, re);
 });
 
@@ -67,10 +67,10 @@ test("提案書のまとめ（4ページ目）に区切りが入る：まず「�
 test("トップのおすすめアクションに「まず『できるか』を確かめる」（⑥へ）", () => {
   const a = S.home(x).actions.find((v) => /できるか/.test(v.title));
   assert.ok(a);
-  assert.equal(a.step, 6);
+  assert.match(S.talk(x)[a.step].title, /^⑥/);
 });
 
 test("共有リンクは⑧まで開ける", () => {
-  assert.equal(Share.decode("#step=8", S.defaults()).step, 8);
-  assert.equal(Share.decode("#step=9", S.defaults()).step, 0);
+  assert.equal(Share.decode("#step=9&v=2", S.defaults()).step, 9);
+  assert.equal(Share.decode("#step=10&v=2", S.defaults()).step, 0);
 });

@@ -56,7 +56,7 @@ test("独身なら「親や兄弟にローンが残らない」、家族なら�
 });
 
 test("⑤の説明と提案書（3ページ目）に団信と生命保険の比較が入る（断定しない）", () => {
-  const five = S.talk(x)[5];
+  const five = S.talk(x)[6];
   assert.match(five.show, /団信.*金利に含まれ/);
   assert.match(five.show, /生命保険/);
   const p3 = JSON.stringify(S.proposal(x).pages[2]);
