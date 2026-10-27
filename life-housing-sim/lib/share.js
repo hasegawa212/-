@@ -60,7 +60,7 @@
     for (const kv of q.split("&")) {
       const [k, v = ""] = kv.split("=");
       if (k === "s") { try { merge(state, JSON.parse(b64d(decodeURIComponent(v))), ""); } catch (e) { /* 壊れたリンクは初期値で開く */ } }
-      if (k === "step") { const n = Number(v); if (Number.isInteger(n) && n >= 0 && n <= 5) step = n; }
+      if (k === "step") { const n = Number(v); if (Number.isInteger(n) && n >= 0 && n <= 7) step = n; }
       if (k === "p") present = v === "1";
     }
     return { state, step, present };

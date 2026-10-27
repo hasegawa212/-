@@ -8,7 +8,10 @@
   "use strict";
 
   // お客様に言わない表現（事実に反する・断定・あおり）
-  const FORBIDDEN = [/必ず値上がり/, /絶対に損(し|は)ない/, /今買わないと損/, /家賃は(無駄|捨て)/, /返済(は|が)(すべて|全部)資産/, /必ず売れる/, /土地は必ず/, /残りわずか/, /今だけ/];
+  // 一般の年収：国税庁「民間給与実態統計調査」令和5年分の平均給与（1年を通じて勤務した給与所得者）
+  const AVG_SALARY = 4_595_000;
+
+  const FORBIDDEN = [/今しかない/, /二度と(買えない|ない)/, /必ず値上がり/, /絶対に損(し|は)ない/, /今買わないと損/, /家賃は(無駄|捨て)/, /返済(は|が)(すべて|全部)資産/, /必ず売れる/, /土地は必ず/, /残りわずか/, /今だけ/];
 
   // 年金の概算に使う数字（令和8年度。日本年金機構の資料による。毎年度改定）
   const PENSION = {
@@ -100,6 +103,8 @@
       own: { buyAge: 30, price: 28_000_000, landShare: 0.35, down: 0, costRate: 0.07, financeCosts: true, rate: 0.012, years: 35,
         propTax: 100_000, ins: 30_000, repairYear: 150_000, repairUpAfter: 20, repairUpRate: 1.5, kind: "used_other" },
       lifeIns: { monthly: 10_000, cutWithDanshin: 0 },
+      nisa: { monthly: 10_000, balance: 300_000, rate: 0.03 },
+      raise: 0.01, // 年収の上がり方（年率・仮定）
       oldLiving: { single: 130_000, couple: 220_000 },
       landRates: { down: -0.01, flat: 0, up: 0.01 },
       invest: { on: false, rate: 0.03 },
@@ -115,12 +120,12 @@
   }
   const STAGE_LABEL = { single: "ひとり暮らし", couple: "2人暮らし", family: "子育て", old: "老後" };
 
-  function compute(input) {
+  function compute(input, nested) {
     const d = defaults();
     const inp = { ...d, ...input, family: { ...d.family, ...(input.family || {}) }, rent: { ...d.rent, ...(input.rent || {}) },
       own: { ...d.own, ...(input.own || {}) }, oldLiving: { ...d.oldLiving, ...(input.oldLiving || {}) },
       landRates: { ...d.landRates, ...(input.landRates || {}) }, invest: { ...d.invest, ...(input.invest || {}) },
-      lifeIns: { ...d.lifeIns, ...(input.lifeIns || {}) } };
+      lifeIns: { ...d.lifeIns, ...(input.lifeIns || {}) }, nisa: { ...d.nisa, ...(input.nisa || {}) } };
     const o = inp.own, R = inp.rent;
     const married = inp.family.marryAge != null;
     const cost = o.price * o.costRate;
@@ -231,9 +236,58 @@
       lifeMonthly: inp.lifeIns.monthly, cut: inp.lifeIns.cutWithDanshin,
     };
 
+    // 生涯収入（これからの給料＋年金）と、そのうち住まいに使う割合
+    let salaryMe = 0, salaryPartner = 0;
+    for (let a = inp.age; a < inp.retireAge; a++) {
+      const g = Math.pow(1 + inp.raise, a - inp.age);
+      salaryMe += inp.income * g;
+      if (married && a >= inp.family.marryAge) salaryPartner += inp.partnerIncome * g;
+    }
+    const pensionTotal = pensionYearly * oldYears.length;
+    const life = { rent: sum(years, "rentYear"), own: sum(years, "ownYear") };
+    const incomeTotal = salaryMe + salaryPartner + pensionTotal;
+    const income = {
+      salaryMe, salaryPartner, pension: pensionTotal, total: incomeTotal,
+      vsAverage: inp.income / AVG_SALARY, average: AVG_SALARY, averageLifetime: AVG_SALARY * Math.max(0, inp.retireAge - inp.workStart),
+      housingShare: { rent: incomeTotal ? life.rent / incomeTotal : 0, own: incomeTotal ? life.own / incomeTotal : 0 },
+    };
+
+    // ポートフォリオ：今の資産と、65歳時点の資産（預貯金は今のまま、NISAは積立＋運用と仮定）
+    const n = Math.max(0, inp.retireAge - inp.age), nr = inp.nisa.rate;
+    const nisa65 = inp.nisa.balance * Math.pow(1 + nr, n) + (nr === 0 ? inp.nisa.monthly * 12 * n : (inp.nisa.monthly * 12 * (Math.pow(1 + nr, n) - 1)) / nr);
+    const houseNet = Math.max(0, value65.flat - value65.balance);
+    const portfolio = {
+      now: { savings: inp.savings, nisa: inp.nisa.balance, realEstate: 0, insuranceMonthly: inp.lifeIns.monthly, nisaMonthly: inp.nisa.monthly },
+      at65: {
+        nisa: nisa65,
+        rent: { savings: inp.savings, nisa: nisa65, realEstate: 0, total: inp.savings + nisa65 },
+        own: { savings: inp.savings, nisa: nisa65, realEstate: houseNet, total: inp.savings + nisa65 + houseNet },
+      },
+    };
+
+    // 「今はいい」と思ったら：1・3・5年待った場合（返済は80歳までに終わる期間に縮める）
+    let wait = [], waitRateUp = null;
+    if (!nested) {
+      const b0 = buyAge;
+      const at = (k, rateAdd = 0) => {
+        const b = b0 + k, yrs = Math.max(10, Math.min(o.years, 80 - b));
+        const sub = compute({ ...input, own: { ...o, buyAge: b, years: yrs, rate: o.rate + rateAdd } }, true);
+        const waited = years.filter((y) => y.age >= b0 && y.age < b);
+        return { years: k, buyAge: b, loanYears: yrs, payoffAge: b + yrs, pmt: sub.loan.pmt,
+          rentWhileWaiting: waited.reduce((s2, y) => s2 + y.rentYear, 0), loanYearsAfterRetire: Math.max(0, b + yrs - inp.retireAge),
+          lifeOwn: sub.life.own, oldGapOwn: sub.old.own.gapMonthly };
+      };
+      wait = [0, 1, 3, 5].map((k) => at(k));
+      waitRateUp = { ...at(3, 0.005), rateAdd: 0.005 };
+    }
+
     return {
       input: inp,
       years,
+      income,
+      portfolio,
+      wait,
+      waitRateUp,
       tax,
       credit: { kind: o.kind, label: kind.label, limit, years: kind.years, special, rows: creditRows, total: creditRows.reduce((s2, r) => s2 + r.actual, 0),
         totalMax: creditRows.reduce((s2, r) => s2 + r.max, 0), first: creditRows.length ? creditRows[0].actual : 0 },
@@ -242,7 +296,7 @@
       acquisition: { cost, costRate: o.costRate },
       loan: { amount: loan, pmt, cashAtBuy, buyAge, endAge: loanEnd },
       pension: { me, partnerYearly: partner.yearly, yearly: pensionYearly, monthly: pensionYearly / 12, living },
-      life: { rent: sum(years, "rentYear"), own: sum(years, "ownYear") },
+      life,
       old: { rent: oldRent, own: oldOwn, years: oldYears.length },
       prepare: { rentNeed: oldRent.need, ownNeed: oldOwn.need, rentExtra: oldRent.need - oldOwn.need,
         monthlyRent: oldRent.need / monthsToRetire, monthlyOwn: oldOwn.need / monthsToRetire, months: monthsToRetire },
@@ -257,7 +311,15 @@
     const i = x.input, o = i.own;
     const stages = [...new Set(x.years.map((y) => y.stageLabel))];
     const r = x.old.rent, w = x.old.own;
-    return [
+    const inc = x.income, pf = x.portfolio, wt = x.wait, wu = x.waitRateUp;
+    const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
+      show: `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${Math.round(inc.vsAverage * 100)}%）／これから一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）／そのうち住まいに使う割合　賃貸のまま ${Math.round(inc.housingShare.rent * 100)}%・持ち家 ${Math.round(inc.housingShare.own * 100)}%／今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
+      ask: "今の預金・NISA・保険・不動産のバランスに、満足していますか。" };
+    const seven = wt.length ? { title: "⑦「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
+      show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}`).join("／") +
+        (wu ? `／仮に3年の間に金利が0.5%上がった場合、毎月 ${man(wu.pmt, 1)}（下がる場合もあります）` : ""),
+      ask: "待つ理由は何ですか。その理由がなくなるのはいつ頃ですか。" } : null;
+    return [zero,
       { title: "① これからの暮らしの段階", say: `家賃は暮らしの段階で変わります。${stages.join(" → ")} と進むと、広い部屋が必要な時期に家賃も上がります。`,
         show: x.input.family.marryAge != null ? `ひとり ${man(i.rent.single, 1)} → 2人 ${man(i.rent.couple, 1)} → 子育て ${man(i.rent.family, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）` : `ひとり ${man(i.rent.single, 1)} → 老後 ${man(i.rent.old, 1)}（毎月）`,
         ask: "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
@@ -276,6 +338,7 @@
       { title: "⑥ まとめ：持つ・持たない、それぞれの準備", say: `どちらが正解ということはありません。持つなら、無理のない返済と修繕の備え。持たないなら、老後の家賃のための積立。「持たない」を選ぶ場合も、準備が必要だと知ったうえで選ぶことが大切です。`,
         show: `${i.retireAge}歳時点の家の価値（概算）　下落 ${man(x.value65.down)}／横ばい ${man(x.value65.flat)}／上昇 ${man(x.value65.up)}　※将来の価格を約束するものではありません／参考：差額を積み立てて運用した場合 ${man(x.fair.rentInvested65)}（${x.fair.note}）`,
         ask: "どちらの準備なら、ご自身に合っていると思いますか。" },
+      ...(seven ? [seven] : []),
     ];
   }
 
@@ -286,8 +349,11 @@
     "家の価値は、土地は年−1%／0%／＋1%、建物は30年で1割まで下がると仮定した3つのシナリオです。",
     "高齢期の賃貸は、年齢や保証人を理由に入居を断られる場合がある（一般的な傾向）。",
     "住宅ローン控除は2026〜2027年入居の制度（令和8年度税制改正）で概算。単身は一般の限度額、結婚後（40歳未満）や子育て中に入居すると上乗せ。所得税→住民税（課税所得×5%・最高97,500円）の順に、払った税金の範囲で戻り、控除しきれない額は数えない。税額は給与収入だけの単身として概算〔要確認：源泉徴収票で確認〕。",
+    "一般の年収は国税庁「民間給与実態統計調査」令和5年分の平均給与 459.5万円。生涯収入は今の年収が毎年1%上がると仮定（▼で変更）した給料と、年金（概算）の合計。",
+    "NISAは今の残高と毎月の積立を年3%で運用できたと仮定（元本保証なし）。預貯金は今のまま。65歳の不動産は家の価値（横ばい）から残りのローンを引いた額。",
+    "待った場合の計算は、物件価格・金利が今と同じ前提（上がることも下がることもある）。返済は80歳までに終わる期間に縮める。",
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

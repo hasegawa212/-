@@ -124,6 +124,11 @@
     ["age", "今の年齢", range(20, 55, 1), (v) => v + "歳"],
     ["income", "年収（税込）", range(2_500_000, 12_000_000, 100_000), yen],
     ["savings", "今の貯金", [0, 300_000, 500_000, 800_000, 1_000_000, 1_400_000, 2_000_000, 3_000_000, 5_000_000, 8_000_000, 10_000_000], yen],
+    ["raise", "年収の上がり方（年）", [0, 0.005, 0.01, 0.015, 0.02, 0.03], (v) => (v ? (v * 100).toFixed(1) + "%" : "上がらない")],
+    ["NISA・投資"],
+    ["nisa.balance", "NISAの残高", [0, 100_000, 300_000, 500_000, 1_000_000, 2_000_000, 3_000_000, 5_000_000, 10_000_000], (v) => (v ? yen(v) : "なし")],
+    ["nisa.monthly", "NISAの毎月の積立", range(0, 100_000, 5_000), (v) => (v ? yen(v) : "していない")],
+    ["nisa.rate", "運用の利回り（年・仮定）", [0, 0.01, 0.02, 0.03, 0.04, 0.05], (v) => (v * 100).toFixed(0) + "%"],
     ["これからの暮らし"],
     ["family.marryAge", "結婚する年齢", [null, ...range(22, 45, 1)], (v) => (v == null ? "結婚しない・未定" : v + "歳")],
     ["family.kids", "子ども", [0, 1, 2], (v) => (v ? v + "人" : "なし")],
@@ -206,6 +211,50 @@
     return `<table><tr><th>暮らしの段階</th><th>年齢</th><th>家賃（毎月）</th></tr>${segs.map((s) => `<tr><td>${s.label}</td><td>${s.from}〜${s.to}歳</td><td>${man(s.rent, 1)}</td></tr>`).join("")}</table>`;
   }
 
+  function hbars(rows, unit = "") {
+    const W = 560, rowH = 34, max = Math.max(...rows.map((r) => r.parts.reduce((s2, p) => s2 + p[1], 0))) * 1.12 || 1;
+    let g = "";
+    rows.forEach((r, i) => {
+      const y = 4 + i * rowH; let x0 = 130, total = 0;
+      g += `<text x="0" y="${y + 18}" font-size="13" fill="#1d1f23">${esc(r.label)}</text>`;
+      for (const [nm, v, c] of r.parts) {
+        const w2 = (v / max) * (W - 230);
+        if (w2 > 0) g += `<rect x="${x0}" y="${y + 4}" width="${w2}" height="20" fill="${c}" rx="2"><title>${esc(nm)} ${man(v)}</title></rect>`;
+        x0 += w2; total += v;
+      }
+      g += `<text x="${x0 + 6}" y="${y + 19}" font-size="13" font-weight="700" fill="#1d1f23">${r.text || man(total) + unit}</text>`;
+    });
+    return `<svg viewBox="0 0 ${W} ${rows.length * rowH + 8}" width="100%" role="img">${g}</svg>`;
+  }
+  const legend = (items) => `<div class="legend">${items.map(([n, c]) => `<span><i style="background:${c};height:10px"></i>${esc(n)}</span>`).join("")}</div>`;
+  function portfolioView(x) {
+    const inc = x.income, pf = x.portfolio, C = { sav: "#8a9099", nisa: "#2e7d32", re: "var(--own)", sal: "#1f2a44", pen: "#b08d57" };
+    return `<div class="kpis dup"><div class="kpi"><span>年収（一般の平均 ${man(inc.average, 1)}）</span><b>${man(x.input.income)}</b><span>平均の ${Math.round(inc.vsAverage * 100)}%</span></div>
+      <div class="kpi"><span>これから一生で入ってくるお金</span><b>${man(inc.total)}</b><span>給料 ${man(inc.salaryMe + inc.salaryPartner)}＋年金 ${man(inc.pension)}</span></div>
+      <div class="kpi"><span>今の資産</span><b>${man(pf.now.savings + pf.now.nisa)}</b><span>預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし</span></div></div>
+      <div class="two"><div><p class="small" style="margin:0 0 4px"><b>年収と、一生で入ってくるお金</b></p>${hbars([
+        { label: "あなたの年収", parts: [["年収", x.input.income, C.sal]] },
+        { label: "一般の平均給与", parts: [["平均", inc.average, "#c9ccd2"]] },
+      ])}${hbars([
+        { label: "生涯収入", parts: [["給料", inc.salaryMe + inc.salaryPartner, C.sal], ["年金", inc.pension, C.pen]] },
+        { label: "住まい（賃貸）", parts: [["賃貸", x.life.rent, "var(--rent)"]], text: `${man(x.life.rent)}（${Math.round(inc.housingShare.rent * 100)}%）` },
+        { label: "住まい（持ち家）", parts: [["持ち家", x.life.own, "var(--own)"]], text: `${man(x.life.own)}（${Math.round(inc.housingShare.own * 100)}%）` },
+      ])}${legend([["給料", C.sal], ["年金", C.pen]])}</div>
+      <div><p class="small" style="margin:0 0 4px"><b>${x.input.retireAge}歳のときの資産（ポートフォリオ）</b></p>${hbars([
+        { label: "今", parts: [["預貯金", pf.now.savings, C.sav], ["NISA", pf.now.nisa, C.nisa]] },
+        { label: `${x.input.retireAge}歳・賃貸のまま`, parts: [["預貯金", pf.at65.rent.savings, C.sav], ["NISA", pf.at65.rent.nisa, C.nisa]] },
+        { label: `${x.input.retireAge}歳・持ち家`, parts: [["預貯金", pf.at65.own.savings, C.sav], ["NISA", pf.at65.own.nisa, C.nisa], ["不動産", pf.at65.own.realEstate, C.re]] },
+      ])}${legend([["預貯金", C.sav], ["NISA", C.nisa], ["不動産（家の価値−残りのローン）", C.re]])}
+      <p class="small">保険：毎月 ${man(pf.now.insuranceMonthly, 1)}（${x.input.retireAge}歳まで ${man(x.insurance.rentLife)}）。NISA は毎月 ${man(pf.now.nisaMonthly, 1)} を年${(x.input.nisa.rate * 100).toFixed(0)}%で運用できた場合（元本保証なし）。</p></div></div>`;
+  }
+  function waitView(x) {
+    const w = x.wait, u = x.waitRateUp, ret = x.input.retireAge;
+    const rows = w.map((r) => `<tr><td>${r.years ? r.years + "年待つ" : "今の計画"}</td><td>${r.buyAge}歳</td><td>${r.years ? man(r.rentWhileWaiting) : "—"}</td><td>${r.payoffAge}歳</td><td>${r.loanYearsAfterRetire ? r.loanYearsAfterRetire + "年" : "なし"}</td><td>${man(r.pmt, 1)}</td></tr>`).join("");
+    return `<div class="two"><div><table class="bd"><tr><th></th><th>買う年齢</th><th>待つ間の家賃</th><th>完済</th><th>${ret}歳を過ぎて返す</th><th>毎月の返済</th></tr>${rows}</table>
+      <p class="small">仮に3年待つ間に金利が0.5%上がった場合、毎月 ${man(u.pmt, 1)}。物件価格や金利は、上がることも下がることもあります。</p></div>
+      <div>${hbars(w.slice(1).map((r) => ({ label: `${r.years}年待つ`, parts: [["待つ間の家賃", r.rentWhileWaiting, "var(--rent)"]] })))}
+      <p class="small" style="margin-top:8px"><b>待つ理由をはっきりさせる</b><br>✓ 転勤・結婚・転職の時期が決まっていない → 決まる時期まで待つのも選択肢（その間に事前審査や貯金を進める）<br>✓ 貯金が足りない → いつまでにいくら貯めるかを決める<br>？「なんとなく」→ 待つ間の家賃と、遅れる完済年齢を知ったうえで決める</p></div></div>`;
+  }
   function breakdownTable(x) {
     const b = x.breakdown, r = b.rent, o = b.own, dash = "—";
     const rows = [
@@ -231,21 +280,24 @@
     return `<div class="kpis"><div class="kpi"><span>生命保険（${x.input.retireAge}歳まで・賃貸）</span><b>${man(s2.rentLife)}</b><span>毎月 ${man(s2.lifeMonthly, 1)}</span></div>
       <div class="kpi own"><span>生命保険（${x.input.retireAge}歳まで・持ち家）</span><b>${man(s2.ownLife)}</b><span>${s2.cut ? `団信で毎月 ${man(s2.cut, 1)} 見直した場合` : "見直さない場合（▼で設定）"}</span></div></div>`;
   }
-  let cur = opened.step, all = false;
+  let cur = opened.step, all = false, LAST = 7;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
   const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
   const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
   function render() {
     const x = S.compute(state), steps = S.talk(x);
+    LAST = steps.length - 1;
     const visual = [
+      portfolioView(x),
       stageTable(x),
       `<div class="kpis dup"><div class="kpi rent"><span>一生の住居費（賃貸のまま）</span><b>${man(x.life.rent)}</b></div><div class="kpi own"><span>一生の住居費（持ち家・控除後）</span><b>${man(x.life.own)}</b></div><div class="kpi"><span>住宅ローン控除で戻る税金</span><b style="color:var(--ok)">${man(x.credit.total)}</b><span>${x.credit.years}年・1年目 ${man(x.credit.first, 1)}</span></div></div><div class="two"><div>${lineChart(x)}${breakdownNote(x)}</div><div>${breakdownTable(x)}</div></div>`,
       oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>`,
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>`,
       `<div class="kpis"><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>家族に住まいが残る</span></div><div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div><div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${insurancePanel(x)}`,
       `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div><p style="font-size:13px;color:#5b616b;margin:0 0 8px">※家の価値は将来の価格を約束するものではありません。運用も元本保証はありません。</p>`,
+      waitView(x),
     ];
-    $("tabs").innerHTML = steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.split("　")[0].split(" ")[0])}</button>`).join("");
+    $("tabs").innerHTML = steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");
     $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { cur = +b.dataset.i; all = false; render(); }));
     $("steps").innerHTML = steps.map((s, i) => `<div class="step" style="display:${all || i === cur ? "block" : "none"}">
       <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");
@@ -254,7 +306,7 @@
     $("pCount").textContent = `${cur + 1} / ${steps.length}`;
     syncUrl();
   }
-  const go = (d) => { cur = Math.min(5, Math.max(0, cur + d)); all = false; render(); };
+  const go = (d) => { cur = Math.min(LAST, Math.max(0, cur + d)); all = false; render(); };
   $("present").onclick = () => present(true);
   $("pExit").onclick = () => present(false);
   $("pPrev").onclick = () => go(-1);

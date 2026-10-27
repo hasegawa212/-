@@ -69,9 +69,10 @@ test("結婚しない・子どもなしでも計算できる", () => {
   assert.ok(x.years.every((y) => y.age >= 65 || y.rentMonthly === base.rent.single));
 });
 
-test("説明の6ステップは全部、話すこと・見せる数字・お客様への質問がある", () => {
+test("説明のステップ（⓪ポートフォリオ〜⑦今はいい？）は全部、話すこと・見せる数字・お客様への質問がある", () => {
   const steps = S.talk(S.compute(base));
-  assert.equal(steps.length, 6);
+  assert.equal(steps.length, 8);
+  assert.ok(steps[0].title.startsWith("⓪") && steps[7].title.startsWith("⑦"));
   for (const st of steps) for (const k of ["title", "say", "show", "ask"]) assert.ok(st[k] && st[k].length > 3, `${st.title} ${k}`);
 });
 
@@ -130,11 +131,63 @@ test("保険：生命保険は団信で見直せる分を持ち家側で減ら�
 });
 
 test("ステップ②の説明に、税金・保険・住宅ローン控除が出てくる", () => {
-  const s2 = S.talk(S.compute(base))[1];
+  const s2 = S.talk(S.compute(base)).find((t) => t.title.startsWith("②"));
   for (const w of ["税金", "保険", "住宅ローン控除"]) assert.ok((s2.say + s2.show).includes(w), w);
 });
 
 test("限度額が同じ住宅（中古その他など）では「上乗せ」と表示しない", () => {
   const x = S.compute({ ...base, own: { ...base.own, kind: "used_other", buyAge: 31 } });
   assert.equal(x.credit.special, false);
+});
+
+// ───── 追加：ポートフォリオ・生涯年収・「今はいい」への答え ─────
+test("年収を一般（国税庁の平均給与459.5万円）と比べる", () => {
+  const x = S.compute(base);
+  assert.equal(S.AVG_SALARY, 4_595_000);
+  assert.ok(Math.abs(x.income.vsAverage - 3_900_000 / 4_595_000) < 1e-9);
+});
+
+test("生涯収入＝これからの給料（昇給を仮定）＋年金。そのうち住まいに使う割合", () => {
+  const x = S.compute({ ...base, raise: 0 });
+  const inc = x.income;
+  assert.equal(Math.round(inc.salaryMe), 3_900_000 * (65 - 27));
+  assert.equal(Math.round(inc.pension), Math.round(x.pension.yearly * 30));
+  assert.ok(inc.total >= inc.salaryMe + inc.pension);
+  assert.ok(Math.abs(inc.housingShare.rent - x.life.rent / inc.total) < 1e-9);
+  assert.ok(inc.housingShare.rent > inc.housingShare.own);
+  assert.ok(S.compute({ ...base, raise: 0.01 }).income.salaryMe > inc.salaryMe, "昇給ありなら多い");
+});
+
+test("ポートフォリオ：今の資産と、65歳時点の資産（賃貸のまま／持ち家）", () => {
+  const x = S.compute({ ...base, nisa: { monthly: 10_000, balance: 300_000, rate: 0.03 } });
+  const p = x.portfolio;
+  assert.equal(p.now.savings, base.savings);
+  assert.equal(p.now.nisa, 300_000);
+  assert.equal(p.now.realEstate, 0);
+  assert.ok(p.at65.nisa > 300_000 + 10_000 * 12 * 38, "積立＋運用益");
+  assert.equal(p.at65.rent.realEstate, 0);
+  assert.ok(p.at65.own.realEstate > 0, "持ち家は家の価値−残りのローン");
+  assert.ok(p.at65.own.total > p.at65.rent.total);
+});
+
+test("「今はいい」：1・3・5年待つと、待つ間の家賃・完済年齢・65歳を過ぎて返す年数が増える", () => {
+  const x = S.compute(base);
+  const w = x.wait;
+  assert.deepEqual(w.map((r) => r.years), [0, 1, 3, 5]);
+  assert.equal(w[0].rentWhileWaiting, 0);
+  for (let i = 1; i < w.length; i++) {
+    assert.ok(w[i].rentWhileWaiting > w[i - 1].rentWhileWaiting);
+    assert.ok(w[i].payoffAge >= w[i - 1].payoffAge);
+    assert.ok(w[i].loanYearsAfterRetire >= w[i - 1].loanYearsAfterRetire);
+  }
+  assert.ok(w[3].payoffAge <= 80, "80歳までに完済する返済期間に縮める");
+  assert.ok(w[3].pmt >= w[0].pmt, "期間が短くなれば毎月は増える");
+});
+
+test("待つ間に金利が0.5%上がった場合も見せる（上がるとは断定しない）", () => {
+  const x = S.compute(base);
+  assert.ok(x.waitRateUp.pmt > x.wait[0].pmt);
+  const s7 = S.talk(x)[7];
+  assert.ok(/仮に|場合/.test(s7.show), "仮定として示す");
+  assert.ok(/理由/.test(s7.ask), "待つ理由を聞く");
 });

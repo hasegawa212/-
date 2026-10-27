@@ -27,6 +27,7 @@ test("知らない項目・数字でない値・範囲外のステップは無�
   assert.equal(back.state.foo, undefined);
   assert.equal(back.state.own.price, S.defaults().own.price, "ありえない金額は無視");
   assert.equal(back.step, 0);
+  assert.equal(decode("#step=7", S.defaults()).step, 7, "⑦まで");
 });
 
 test("壊れたリンクでも初期値で開ける", () => {
