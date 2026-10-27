@@ -144,7 +144,7 @@
   .mis .d { text-decoration:line-through; text-decoration-color:rgba(242,205,115,.7); color:#b9c3d6; }
   .map { position:relative; border-radius:16px; overflow:hidden; aspect-ratio:16/10; min-height:420px; border:1px solid rgba(242,205,115,.28); }
   .map > svg { position:absolute; inset:0; width:100%; height:100%; }
-  .area { position:absolute; width:226px; padding:8px 10px 9px; cursor:pointer; text-align:left; font:inherit; color:#fff;
+  .area { position:absolute; width:21%; padding:8px 10px 9px; cursor:pointer; text-align:left; font:inherit; color:#fff;
     background:linear-gradient(180deg, rgba(14,24,48,.92), rgba(8,16,34,.92)); border:1px solid #d9b968; border-radius:12px; box-shadow:0 0 0 1px rgba(0,0,0,.4), 0 0 18px rgba(242,205,115,.25); }
   .area:hover { transform:translateY(-2px); box-shadow:0 0 24px rgba(242,205,115,.5); }
   .area .t { display:flex; align-items:center; gap:8px; font-size:15px; white-space:nowrap; font-weight:800; letter-spacing:.04em; }
@@ -154,9 +154,9 @@
   .bar { flex:1; height:7px; background:rgba(255,255,255,.12); border-radius:9px; overflow:hidden; }
   .bar i { display:block; height:100%; background:linear-gradient(90deg,#b98a2e,#f6d98a); border-radius:9px; }
   .bar.blue i { background:linear-gradient(90deg,#2d6be0,#7fb2ff); }
-  .hero { position:absolute; left:3%; bottom:0; width:26%; max-width:250px; pointer-events:none; }
-  .flag { position:absolute; left:4%; bottom:46%; background:rgba(8,16,34,.9); border:1px solid #f2cd73; color:#fff; border-radius:10px; padding:4px 10px; font-size:13px; font-weight:700; }
-  .nextbtn { position:absolute; left:50%; bottom:5%; transform:translateX(-50%); font:inherit; font-size:18px; font-weight:800; letter-spacing:.06em; color:#fff; cursor:pointer;
+  .map > svg.hero { position:absolute; inset:auto; left:27%; bottom:0; width:15%; max-width:170px; height:auto; pointer-events:none; }
+  .flag { position:absolute; left:26%; bottom:31%; background:rgba(8,16,34,.9); border:1px solid #f2cd73; color:#fff; border-radius:10px; padding:4px 10px; font-size:13px; font-weight:700; }
+  .nextbtn { position:absolute; right:2.5%; bottom:4%; font:inherit; font-size:18px; font-weight:800; letter-spacing:.06em; color:#fff; cursor:pointer;
     padding:12px 30px; border-radius:999px; border:2px solid #f2cd73; background:linear-gradient(180deg, rgba(40,30,8,.9), rgba(12,10,4,.95)); box-shadow:0 0 22px rgba(242,205,115,.55); }
   .pin { position:absolute; transform:translate(-50%,-100%); font-size:12px; font-weight:800; color:#2a1d02; background:linear-gradient(#ffe79a,#d9a93a); border-radius:6px; padding:2px 8px; box-shadow:0 0 12px rgba(242,205,115,.8); }
   .acts { margin-top:12px; padding:12px; }
@@ -167,7 +167,8 @@
     .area { position:relative; left:auto !important; top:auto !important; width:calc(50% - 4px); }
     .area .t { font-size:13px; white-space:normal; } .area .s { margin-left:0; }
     .hero, .flag, .pin { display:none; }
-    .nextbtn { position:relative; left:auto; bottom:auto; transform:none; width:100%; margin-top:4px; }
+    .mdetail { position:relative; left:auto; bottom:auto; width:100%; }
+    .nextbtn { position:relative; right:auto; bottom:auto; width:100%; margin-top:4px; }
     .hh .ttl h1 { font-size:30px; } .hh .logo { min-width:0; } .hgrid { padding:0 10px 14px; } .hh { padding:12px 12px; }
     .who input { width:120px; }
     .hnav { display:grid; grid-template-columns:1fr 1fr; } .hnav button { font-size:12.5px; padding:7px 8px; }
@@ -189,6 +190,21 @@
   .ev li { display:grid; grid-template-columns:14px 52px 1fr; gap:6px; align-items:center; font-size:13.5px; padding:6px 0; border-top:1px solid rgba(255,255,255,.07); }
   .ev li::before { content:""; width:9px; height:9px; border-radius:50%; background:#f2cd73; box-shadow:0 0 8px #f2cd73; }
   .ev li.now::before { background:#7fb2ff; box-shadow:0 0 8px #7fb2ff; }
+  .area .bg { margin-top:4px; line-height:1.2; }
+  .area .bg b { display:block; font-size:24px; color:#ffe39a; letter-spacing:.01em; }
+  .area .bg span { font-size:11.5px; color:#cfd8e8; }
+  .area .v { color:#b8c4d8; }
+  .ms { cursor:pointer; } .ms circle { transition:all .15s; }
+  .ms.hl circle { fill:#f2cd73; } .ms.hl text:first-of-type { fill:#2a1d02; } .ms.hl rect { fill:rgba(60,44,8,.95); stroke:#ffe39a; stroke-width:2; }
+  .sdot { cursor:pointer; } .sdot.hl circle { r:8; fill:#ffe39a; } .sdot.hl line { stroke-opacity:1; }
+  .ev li { cursor:pointer; border-radius:8px; } .ev li.hl { background:rgba(242,205,115,.14); }
+  .ev li small { display:block; font-size:11.5px; color:#9fb0cc; }
+  .mdetail { position:absolute; left:2%; bottom:3%; width:23%; background:rgba(8,16,34,.9); border:1px solid #f2cd73; border-radius:12px; padding:8px 12px; font-size:13px; display:flex; flex-direction:column; gap:2px; box-shadow:0 0 18px rgba(242,205,115,.35); }
+  .mdetail b { font-size:15px; color:#ffe39a; } .mdetail .as { font-size:12px; color:#9fd0ff; }
+  @media (max-width:820px){ /* スマホ：地図はカードを並べるだけ。道の印の数字は下の「ライフイベント」と詳しい欄で見せる */
+    .mdetail { position:relative; left:auto; bottom:auto; width:100%; order:9; }
+    #ms { display:none; }
+  }
   .hnote { font-size:11px; color:#9fb0cc; padding:0 22px 18px; }
   .tabs button.home { font-weight:700; }
   @media print {
@@ -740,23 +756,36 @@
     ].map((m) => ({ ...m, done: m.auto ? !!m.done : !!done[m.id] }));
     const lv = (k) => 1 + M.filter((m) => m.area === k && m.done).length;
     const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
-    const area = (key, label, sub, value, step) => ({ key, label, sub, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
+    // big＝カードで大きく見せる数字（1つ）、bigLabel＝その数字が何か
+    const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
     const areas = [
-      area("cash", "現預金エリア", "安心の土台をつくる", `預貯金 ${man(i.savings)}`, 0),
-      area("nisa", "NISAエリア", "未来の資産を育てる", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)} → ${i.retireAge}歳 ${man(pf.at65.nisa)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
-      area("ins", "保険エリア", "もしもの時に備える", `生命保険 毎月 ${man(i.lifeIns.monthly, 1)}・団信で万一のときローンは残らない`, 5),
-      area("home", "不動産エリア", "住まいで人生を豊かに", `${L.buyAge}歳で ${man(o.price)} の家・毎月 ${man(L.pmt, 1)}・${L.endAge}歳で完済`, 2),
-      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}`, 1),
+      area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：家賃の6か月分 ${man(rentNow * 6)}`, 0),
+      area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
+      area("ins", "保険エリア", "もしもの時に備える", man(i.lifeIns.monthly, 1), "毎月の保険料", "団信で万一のときローンは残らない", 5),
+      area("home", "不動産エリア", "住まいで人生を豊かに", man(L.pmt, 1), "毎月の返済", `${L.buyAge}歳で ${man(o.price)}・${L.months}回・${L.endAge}歳で完済`, 2),
+      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", man(x.life.own), "一生の住居費（持ち家）", `賃貸のまま ${man(x.life.rent)}`, 1),
     ];
-    const f = i.family, ev = [{ age: i.age, label: "今（ここからスタート）" }];
-    if (x.shataku && x.shataku.until > i.age) ev.push({ age: x.shataku.until, label: "社宅を出る" });
-    if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚" });
-    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる" });
-    ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）` });
-    if (x.income.reemploy.age < i.retireAge) ev.push({ age: x.income.reemploy.age, label: "定年・再雇用" });
-    ev.push({ age: i.retireAge, label: "年金生活" });
-    ev.push({ age: L.endAge, label: "ローン完済" });
+    // ライフイベント：出来事と、そのときの数字（stat）。地図の道の印・グラフの点・一覧で同じ文を使う
+    const f = i.family, sh = x.shataku, re = x.income.reemploy;
+    const ev = [{ age: i.age, label: "今（ここからスタート）", stat: `資産 ${man(now)}・家賃 毎月 ${manY(rentNow)}` }];
+    if (sh && sh.until > i.age) ev.push({ age: sh.until, label: "社宅を出る", stat: `家賃 ${manY(sh.self)}→${manY(sh.after)}（毎月 +${manY(sh.jump)}）` });
+    if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚", stat: `2人暮らしの家賃 ${manY(i.rent.couple)}` });
+    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる", stat: `子育て期の家賃 ${manY(i.rent.family)}` });
+    ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）`, stat: `毎月 ${man(L.pmt, 1)}×${L.months}回` });
+    if (re.age < i.retireAge) ev.push({ age: re.age, label: "定年・再雇用", stat: L.atReemploy.left > 0 ? `年収 ${man(i.income * re.rate)}・ローン残り${L.atReemploy.left}回（残高 ${man(L.atReemploy.balance)}）` : `年収 ${man(i.income * re.rate)}・ローンは完済` });
+    ev.push({ age: i.retireAge, label: "年金生活", stat: `年金 毎月 ${man(x.pension.monthly, 1)}` });
+    ev.push({ age: L.endAge, label: "ローン完済", stat: `${L.months}回の返済が終わる` });
     ev.sort((p, q) => p.age - q.age);
+    // 道の印：今（t=0）からGOAL（65歳、t=1）まで。同じ年齢の出来事は1つにまとめ、65歳より後の出来事はGOALの印に年齢つきで入れる
+    const span = Math.max(1, i.retireAge - i.age), milestones = [];
+    for (const e of ev) {
+      const age = Math.min(e.age, i.retireAge), late = e.age > i.retireAge;
+      const label = late ? `${e.label}（${e.age}歳）` : e.label;
+      const last = milestones.at(-1);
+      if (last && last.age === age) { last.label += "・" + label; last.stat += "／" + e.stat; continue; }
+      const p = path.find((q) => q.age === age);
+      milestones.push({ age, t: (age - i.age) / span, label, stat: e.stat, assets: p ? p.own : 0 });
+    }
     const doneN = M.filter((m) => m.done).length;
     return {
       hero: { title: "ライフパートナー", catch: "人生のすべてのステージに、最高のパートナーを。", sub: "描こう、あなたの理想の未来を。",
@@ -764,7 +793,7 @@
         company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age },
       assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
       goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
-      areas, missions: M, events: ev,
+      areas, missions: M, events: ev, milestones,
       actions: [
         { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: 0, icon: "nisa" },
         { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: 2, icon: "home" },
@@ -1142,15 +1171,15 @@
       <path d="M0 236h1000" stroke="#fff" stroke-opacity=".25"/>
       <ellipse cx="190" cy="360" rx="190" ry="95" fill="#e9d7a8"/><ellipse cx="190" cy="352" rx="176" ry="86" fill="url(#isl)"/>
       <ellipse cx="560" cy="350" rx="230" ry="110" fill="#e9d7a8"/><ellipse cx="560" cy="342" rx="216" ry="100" fill="url(#isl)"/>
-      <ellipse cx="740" cy="170" rx="140" ry="62" fill="#e9d7a8"/><ellipse cx="740" cy="164" rx="128" ry="55" fill="url(#isl)"/>
+      <ellipse cx="560" cy="150" rx="150" ry="58" fill="#e9d7a8"/><ellipse cx="560" cy="144" rx="138" ry="52" fill="url(#isl)"/>
       <ellipse cx="860" cy="470" rx="150" ry="80" fill="#e9d7a8"/><ellipse cx="860" cy="462" rx="138" ry="72" fill="url(#isl)"/>
       ${trees}${city}${houses}
-      <g transform="translate(740,150)"><rect x="-34" y="-46" width="68" height="46" fill="#f5ecd6"/><rect x="-46" y="-30" width="16" height="30" fill="#efe2c2"/><rect x="30" y="-30" width="16" height="30" fill="#efe2c2"/>
+      <g transform="translate(560,128)"><rect x="-34" y="-46" width="68" height="46" fill="#f5ecd6"/><rect x="-46" y="-30" width="16" height="30" fill="#efe2c2"/><rect x="30" y="-30" width="16" height="30" fill="#efe2c2"/>
         <path d="M-38 -46 0 -72 38 -46Z" fill="#c9a24b"/><rect x="-6" y="-20" width="12" height="20" fill="#ffd36e"/></g>
       <g transform="translate(860,450)"><rect x="-40" y="-40" width="80" height="44" fill="#f2efe8"/><rect x="-40" y="-52" width="80" height="12" fill="#3d5f8f"/><rect x="-30" y="-30" width="60" height="20" fill="#9cc4ea"/></g>
-      <path id="road" d="M520 640 C 470 560, 600 520, 560 450 S 430 380, 520 330 S 700 300, 660 240 S 700 180, 740 132" fill="none" stroke="#ffd36e" stroke-width="16" opacity=".55" filter="url(#glow)"/>
-      <path d="M520 640 C 470 560, 600 520, 560 450 S 430 380, 520 330 S 700 300, 660 240 S 700 180, 740 132" fill="none" stroke="#ffe9a8" stroke-width="7" stroke-linecap="round"/>
-      <path d="M520 640 C 470 560, 600 520, 560 450 S 430 380, 520 330 S 700 300, 660 240 S 700 180, 740 132" fill="none" stroke="#b98a2e" stroke-width="2" stroke-dasharray="2 12" stroke-linecap="round"/>
+      <path id="road" d="M470 640 C 420 570, 600 540, 540 470 S 380 410, 460 340 S 660 300, 600 240 S 500 190, 560 132" fill="none" stroke="#ffd36e" stroke-width="16" opacity=".55" filter="url(#glow)"/>
+      <path d="M470 640 C 420 570, 600 540, 540 470 S 380 410, 460 340 S 660 300, 600 240 S 500 190, 560 132" fill="none" stroke="#ffe9a8" stroke-width="7" stroke-linecap="round" id="roadLine"/><g id="ms"></g>
+      <path d="M470 640 C 420 570, 600 540, 540 470 S 380 410, 460 340 S 660 300, 600 240 S 500 190, 560 132" fill="none" stroke="#b98a2e" stroke-width="2" stroke-dasharray="2 12" stroke-linecap="round"/>
       <path d="M330 470 q90 -40 140 -10" stroke="#e8dcc0" stroke-width="6" fill="none"/><path d="M330 470 q90 -40 140 -10" stroke="#9a8b6a" stroke-width="1" fill="none"/>
       <g fill="#fff" opacity=".9"><path d="M60 520 h46 l-8 10 h-32Z"/><path d="M880 280 h34 l-6 8 h-24Z"/><path d="M300 560 h60 l-10 12 h-42Z"/></g>
     </svg>`;
@@ -1163,13 +1192,48 @@
     <rect x="108" y="140" width="24" height="30" fill="#c99a76"/>
     <circle cx="120" cy="112" r="40" fill="#2b1c14"/><path d="M84 100 q10 -40 40 -38 q34 2 40 38 q-8 -14 -16 -10 q-6 -16 -24 -12 q-16 -6 -26 10 q-8 -2 -14 12Z" fill="#3a2619"/>
     <ellipse cx="80" cy="118" rx="6" ry="10" fill="#c99a76"/><ellipse cx="160" cy="118" rx="6" ry="10" fill="#c99a76"/></svg>`;
-  function sparkline(path) {
-    const W = 300, H = 70, max = Math.max(...path.map((p) => p.own)) * 1.05 || 1, a0 = path[0].age, a1 = path.at(-1).age;
-    const X = (a) => 4 + ((a - a0) / Math.max(1, a1 - a0)) * (W - 8), Y = (v) => H - 4 - (v / max) * (H - 10);
+  // 資産の見通し（持ち家／賃貸のまま）。道の印と同じ年齢に点を打ち、押すと地図・一覧と一緒に光る
+  function sparkline(path, ms) {
+    const W = 300, H = 120, B = 18, max = Math.max(...path.map((p) => p.own)) * 1.12 || 1, a0 = path[0].age, a1 = path.at(-1).age;
+    const X = (a) => 8 + ((a - a0) / Math.max(1, a1 - a0)) * (W - 16), Y = (v) => H - B - (v / max) * (H - B - 14);
     const line = (k) => path.map((p, i) => `${i ? "L" : "M"}${X(p.age).toFixed(1)},${Y(p[k]).toFixed(1)}`).join("");
-    return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" aria-label="今から65歳までの資産の見通し">
-      <path d="${line("own")}L${X(a1)},${H}L${X(a0)},${H}Z" fill="#2d8cff" opacity=".14"/><path d="${line("own")}" fill="none" stroke="#5fb0ff" stroke-width="2.5"/>
-      <path d="${line("rent")}" fill="none" stroke="#c9d3e6" stroke-width="1.5" stroke-dasharray="4 4"/><circle cx="${X(a1)}" cy="${Y(path.at(-1).own)}" r="4" fill="#9fd0ff"/></svg>`;
+    const last = path.at(-1);
+    let dots = "", lastX = -99;
+    for (const m of ms) { const showAge = X(m.age) - lastX > 26; if (showAge) lastX = X(m.age); dots += `<g class="sdot" data-age="${m.age}" tabindex="0"><line x1="${X(m.age)}" x2="${X(m.age)}" y1="${Y(m.assets)}" y2="${H - B}" stroke="#f2cd73" stroke-opacity=".35" stroke-dasharray="2 3"/>
+      <circle cx="${X(m.age)}" cy="${Y(m.assets)}" r="5" fill="#f2cd73" stroke="#0a1430" stroke-width="2"/>${showAge ? `<text x="${X(m.age)}" y="${H - 4}" text-anchor="${m.age === a0 ? "start" : m.age === a1 ? "end" : "middle"}" font-size="10" fill="#cfd8e8">${m.age}歳</text>` : ""}</g>`; }
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" aria-label="今から${a1}歳までの資産の見通し">
+      <path d="${line("own")}L${X(a1)},${H - B}L${X(a0)},${H - B}Z" fill="#2d8cff" opacity=".14"/><path d="${line("own")}" fill="none" stroke="#5fb0ff" stroke-width="2.5"/>
+      <path d="${line("rent")}" fill="none" stroke="#c9d3e6" stroke-width="1.5" stroke-dasharray="4 4"/>${dots}
+      <text x="${W - 6}" y="${Y(last.own) - 9}" text-anchor="end" font-size="11" font-weight="700" fill="#9fd0ff">${esc(man(last.own))}</text></svg>`;
+  }
+  // 地図の道の上に、ライフイベントの印を置く（道の長さに対して t の位置）
+  function placeMilestones(ms) {
+    const road = $("roadLine"), g = $("ms");
+    if (!road || !g || !road.getTotalLength) return;
+    const L = road.getTotalLength();
+    let f0 = 0; // 画面の下端（y=600）より上から始める
+    for (let f = 0; f < 0.3; f += 0.005) { if (road.getPointAtLength(L * f).y < 600) { f0 = f; break; } }
+    const f1 = 0.985;
+    g.innerHTML = ms.map((m, k) => {
+      // 年齢の比率と等間隔をまぜて、印が重ならないように並べる（順番と年齢は変えない）
+      const pos = 0.4 * m.t + 0.6 * (ms.length > 1 ? k / (ms.length - 1) : 0);
+      const pt = road.getPointAtLength(L * (f0 + (f1 - f0) * pos));
+      const short = m.label.replace(/（.*?）/g, "");
+      const lab = short.length > 10 ? short.slice(0, 9) + "…" : short;
+      const w = lab.length * 15 + 58, right = pt.x < 520, tx = right ? pt.x + 22 : pt.x - 22 - w;
+      return `<g class="ms" data-age="${m.age}" tabindex="0" role="button" aria-label="${esc(m.age + "歳 " + m.label + " " + m.stat)}">
+        <circle cx="${pt.x}" cy="${pt.y}" r="17" fill="#0b1630" stroke="#f2cd73" stroke-width="3"/>
+        <text x="${pt.x}" y="${pt.y + 5}" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">${m.age}</text>
+        <rect x="${tx}" y="${pt.y - 14}" width="${w}" height="28" rx="14" fill="rgba(8,16,34,.86)" stroke="#d9b968"/>
+        <text x="${tx + 14}" y="${pt.y + 5}" font-size="14" font-weight="700" fill="#fff">${m.age}歳 ${esc(lab)}</text></g>`;
+    }).join("");
+  }
+  // 1つの年齢を選ぶと、地図の印・グラフの点・ライフイベントの行が一緒に光り、数字の説明が出る
+  function focusAge(age, ms) {
+    const m = ms.find((v) => v.age === age) || ms[0];
+    focusAge.cur = m.age;
+    $("home").querySelectorAll("[data-age]").forEach((el) => el.classList.toggle("hl", +el.dataset.age === m.age));
+    $("mDetail").innerHTML = `<b>${m.age}歳　${esc(m.label)}</b><span>${esc(m.stat)}</span><span class="as">この年の資産（持ち家の場合・概算）${esc(man(m.assets))}</span>`;
   }
   function ring(pct) {
     const r = 34, c = 2 * Math.PI * r;
@@ -1178,15 +1242,15 @@
       <text x="48" y="54" text-anchor="middle" font-size="19" font-weight="800" fill="#fff">${Math.round(pct * 100)}%</text></svg>`;
   }
   const NAV = [["top", "マイページ", "home"], ["map", "お金の全体像", 0], ["life", "暮らしの段階", 1], ["home", "一生の住居費", 2], ["old", "65歳からの暮らし", 3], ["nisa", "持たない場合の準備", 4], ["ins", "もしものとき", 5], ["plan", "まとめ", 6], ["cash", "「今はいい」と思ったら", 7], ["doc", "提案書（PDF）", "proposal"], ["zoom", "画面共有（Zoom）", "present"], ["gear", "条件を変える", "form"]];
-  const POS = { nisa: [3, 6], home: [36, 4], ins: [75, 30], plan: [75, 53], cash: [64, 76] };
+  const POS = { nisa: [2, 4], home: [2, 30], ins: [76, 4], plan: [76, 30], cash: [76, 56] };
   function homeHtml(x) {
     const h = S.home(x, missionDone, meta), A = h.assets;
     const DOT = { realEstate: "#e7b84a", nisa: "#26c6b5", savings: "#3b82f6" };
     const open = h.missions.filter((m) => !m.done).length;
-    const areaCard = (a) => `<button class="area" style="left:${POS[a.key][0]}%;top:${POS[a.key][1]}%" data-step="${a.step}">
+    const areaCard = (a) => `<button class="area" style="left:${POS[a.key][0]}%;top:${POS[a.key][1]}%" data-step="${a.step}" title="${esc(a.value)}">
         <div class="t">${ico(a.key, 26)}<span>${esc(a.label)}</span></div><div class="s">${esc(a.sub)}</div>
         <div class="lvrow">Lv.${a.level}<span class="bar${a.key === "nisa" ? " blue" : ""}"><i style="width:${Math.max(6, a.progress * 100)}%"></i></span></div>
-        <div class="v">${esc(a.value)}</div></button>`;
+        <div class="bg"><b>${esc(a.big)}</b><span>${esc(a.bigLabel)}</span></div></button>`;
     return `<div class="hh">
         <div class="logo">${ico("plan", 40)}<div><b>${esc(h.hero.company || "会社名")}</b><small>LIFE PARTNER</small></div></div>
         <div class="ttl"><h1 class="gold">${esc(h.hero.title)}</h1><p>${esc(h.hero.catch)}</p></div>
@@ -1202,9 +1266,10 @@
         </div>
         <div>
           <div class="map">${mapArt()}
-            <span class="pin" style="left:74%;top:19%">GOAL ${x.input.retireAge}歳</span>
+            <span class="pin" style="left:56%;top:12%">GOAL ${x.input.retireAge}歳</span>
             ${h.areas.map(areaCard).join("")}
             ${heroArt()}<span class="flag">${esc(h.hero.name)}（${h.hero.age}歳）</span>
+            <div class="mdetail" id="mDetail" aria-live="polite"></div>
             <button class="nextbtn" data-step="0">次のステージへ ›</button>
           </div>
           <div class="glass acts"><h3>${ico("top")}おすすめのアクション</h3><div class="row">
@@ -1214,12 +1279,12 @@
         <div>
           <div class="glass rc"><h3>今の資産</h3><div class="big">${esc(man(A.now).replace("万円", ""))}<small>万円</small></div>
             <div class="sub">${x.input.retireAge}歳の見通し（概算）　持ち家 ${esc(man(A.at65.own))}／賃貸のまま ${esc(man(A.at65.rent))}</div>
-            ${sparkline(A.path)}<div class="sub">━ 持ち家の場合　┅ 賃貸のまま（NISA年${(x.input.nisa.rate * 100).toFixed(0)}%と仮定・元本保証なし）</div>
+            ${sparkline(A.path, h.milestones)}<div class="sub">━ 持ち家の場合　┅ 賃貸のまま（NISA年${(x.input.nisa.rate * 100).toFixed(0)}%と仮定・元本保証なし）</div>
             <ul>${A.parts.map((p) => `<li><span class="dot" style="background:${DOT[p.key]}"></span><span>${esc(p.label)}</span><span class="r">${Math.round(p.share * 100)}%</span><span class="r">${esc(man(p.amount))}</span></li>`).join("")}
               <li><span class="dot" style="background:#a78bfa"></span><span>保険</span><span class="r"></span><span class="r">毎月 ${esc(man(x.input.lifeIns.monthly, 1))}</span></li></ul></div>
           <div class="glass rc"><h3>人生の目標</h3><div class="ring">${ring(h.goal.pct)}<div><div style="font-size:13px;font-weight:700">${esc(h.goal.label)}</div>
             <div class="sub">目標 ${esc(man(h.goal.target))}（持ち家なら ${esc(man(h.goal.ownTarget))}）</div><div class="sub">今 ${esc(man(h.goal.now))}</div></div></div></div>
-          <div class="glass rc"><h3>ライフイベント</h3><ul class="ev">${h.events.map((e, k) => `<li class="${k === 0 ? "now" : ""}"><b>${e.age}歳</b><span>${esc(e.label)}</span></li>`).join("")}</ul></div>
+          <div class="glass rc"><h3>ライフイベント</h3><ul class="ev">${h.events.map((e, k) => `<li class="${k === 0 ? "now" : ""}" data-age="${Math.min(e.age, x.input.retireAge)}"><b>${e.age}歳</b><span>${esc(e.label)}<small>${esc(e.stat)}</small></span></li>`).join("")}</ul></div>
         </div>
       </div>
       <p class="hnote">数字はすべて、このシミュレーションの条件から計算した概算です（将来の価格・運用の結果を約束するものではありません）。ミッションのチェックとお名前は、この画面の中だけで使い、保存・共有しません。</p>`;
@@ -1227,6 +1292,13 @@
   function renderHome() {
     const x = S.compute(state);
     $("home").innerHTML = homeHtml(x);
+    const H = S.home(x, missionDone, meta);
+    placeMilestones(H.milestones);
+    $("home").querySelectorAll("[data-age]").forEach((el) => {
+      const on = () => focusAge(+el.dataset.age, H.milestones);
+      el.addEventListener("mouseenter", on); el.addEventListener("click", on); el.addEventListener("focus", on);
+    });
+    focusAge(focusAge.cur ?? H.milestones[0].age, H.milestones);
     $("home").querySelectorAll("[data-step]").forEach((b) => (b.onclick = () => openStep(+b.dataset.step)));
     $("home").querySelectorAll("[data-go]").forEach((b) => (b.onclick = () => {
       const g = b.dataset.go;

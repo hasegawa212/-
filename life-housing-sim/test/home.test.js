@@ -39,11 +39,11 @@ test("5つのエリア：現預金・NISA・保険・不動産・ライフプラ
   const h = S.home(x);
   assert.deepEqual(h.areas.map((a) => a.key), ["cash", "nisa", "ins", "home", "plan"]);
   const a = Object.fromEntries(h.areas.map((v) => [v.key, v]));
-  assert.ok(a.cash.value.includes(S.man(x.input.savings)));
-  assert.ok(a.nisa.value.includes(S.man(x.portfolio.at65.nisa)));
-  assert.ok(a.ins.value.includes(S.man(x.input.lifeIns.monthly, 1)));
-  assert.ok(a.home.value.includes(S.man(x.input.own.price)));
-  assert.ok(a.plan.value.includes(S.man(x.life.rent)));
+  assert.ok((a.cash.big + a.cash.value).includes(S.man(x.input.savings)));
+  assert.ok((a.nisa.big + a.nisa.value).includes(S.man(x.portfolio.at65.nisa)));
+  assert.ok((a.ins.big + a.ins.value).includes(S.man(x.input.lifeIns.monthly, 1)));
+  assert.ok((a.home.big + a.home.value).includes(S.man(x.input.own.price)));
+  assert.ok((a.plan.big + a.plan.value).includes(S.man(x.life.rent)));
   for (const v of h.areas) assert.ok(Number.isInteger(v.step) && v.step >= 0 && v.step <= 7, "押すと説明のステップへ");
 });
 

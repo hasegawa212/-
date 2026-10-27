@@ -513,23 +513,36 @@
     ].map((m) => ({ ...m, done: m.auto ? !!m.done : !!done[m.id] }));
     const lv = (k) => 1 + M.filter((m) => m.area === k && m.done).length;
     const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
-    const area = (key, label, sub, value, step) => ({ key, label, sub, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
+    // big＝カードで大きく見せる数字（1つ）、bigLabel＝その数字が何か
+    const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
     const areas = [
-      area("cash", "現預金エリア", "安心の土台をつくる", `預貯金 ${man(i.savings)}`, 0),
-      area("nisa", "NISAエリア", "未来の資産を育てる", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)} → ${i.retireAge}歳 ${man(pf.at65.nisa)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
-      area("ins", "保険エリア", "もしもの時に備える", `生命保険 毎月 ${man(i.lifeIns.monthly, 1)}・団信で万一のときローンは残らない`, 5),
-      area("home", "不動産エリア", "住まいで人生を豊かに", `${L.buyAge}歳で ${man(o.price)} の家・毎月 ${man(L.pmt, 1)}・${L.endAge}歳で完済`, 2),
-      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}`, 1),
+      area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：家賃の6か月分 ${man(rentNow * 6)}`, 0),
+      area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, 0),
+      area("ins", "保険エリア", "もしもの時に備える", man(i.lifeIns.monthly, 1), "毎月の保険料", "団信で万一のときローンは残らない", 5),
+      area("home", "不動産エリア", "住まいで人生を豊かに", man(L.pmt, 1), "毎月の返済", `${L.buyAge}歳で ${man(o.price)}・${L.months}回・${L.endAge}歳で完済`, 2),
+      area("plan", "ライフプランエリア", "これからの暮らしをデザイン", man(x.life.own), "一生の住居費（持ち家）", `賃貸のまま ${man(x.life.rent)}`, 1),
     ];
-    const f = i.family, ev = [{ age: i.age, label: "今（ここからスタート）" }];
-    if (x.shataku && x.shataku.until > i.age) ev.push({ age: x.shataku.until, label: "社宅を出る" });
-    if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚" });
-    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる" });
-    ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）` });
-    if (x.income.reemploy.age < i.retireAge) ev.push({ age: x.income.reemploy.age, label: "定年・再雇用" });
-    ev.push({ age: i.retireAge, label: "年金生活" });
-    ev.push({ age: L.endAge, label: "ローン完済" });
+    // ライフイベント：出来事と、そのときの数字（stat）。地図の道の印・グラフの点・一覧で同じ文を使う
+    const f = i.family, sh = x.shataku, re = x.income.reemploy;
+    const ev = [{ age: i.age, label: "今（ここからスタート）", stat: `資産 ${man(now)}・家賃 毎月 ${manY(rentNow)}` }];
+    if (sh && sh.until > i.age) ev.push({ age: sh.until, label: "社宅を出る", stat: `家賃 ${manY(sh.self)}→${manY(sh.after)}（毎月 +${manY(sh.jump)}）` });
+    if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚", stat: `2人暮らしの家賃 ${manY(i.rent.couple)}` });
+    if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる", stat: `子育て期の家賃 ${manY(i.rent.family)}` });
+    ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）`, stat: `毎月 ${man(L.pmt, 1)}×${L.months}回` });
+    if (re.age < i.retireAge) ev.push({ age: re.age, label: "定年・再雇用", stat: L.atReemploy.left > 0 ? `年収 ${man(i.income * re.rate)}・ローン残り${L.atReemploy.left}回（残高 ${man(L.atReemploy.balance)}）` : `年収 ${man(i.income * re.rate)}・ローンは完済` });
+    ev.push({ age: i.retireAge, label: "年金生活", stat: `年金 毎月 ${man(x.pension.monthly, 1)}` });
+    ev.push({ age: L.endAge, label: "ローン完済", stat: `${L.months}回の返済が終わる` });
     ev.sort((p, q) => p.age - q.age);
+    // 道の印：今（t=0）からGOAL（65歳、t=1）まで。同じ年齢の出来事は1つにまとめ、65歳より後の出来事はGOALの印に年齢つきで入れる
+    const span = Math.max(1, i.retireAge - i.age), milestones = [];
+    for (const e of ev) {
+      const age = Math.min(e.age, i.retireAge), late = e.age > i.retireAge;
+      const label = late ? `${e.label}（${e.age}歳）` : e.label;
+      const last = milestones.at(-1);
+      if (last && last.age === age) { last.label += "・" + label; last.stat += "／" + e.stat; continue; }
+      const p = path.find((q) => q.age === age);
+      milestones.push({ age, t: (age - i.age) / span, label, stat: e.stat, assets: p ? p.own : 0 });
+    }
     const doneN = M.filter((m) => m.done).length;
     return {
       hero: { title: "ライフパートナー", catch: "人生のすべてのステージに、最高のパートナーを。", sub: "描こう、あなたの理想の未来を。",
@@ -537,7 +550,7 @@
         company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age },
       assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
       goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
-      areas, missions: M, events: ev,
+      areas, missions: M, events: ev, milestones,
       actions: [
         { title: i.nisa.monthly > 0 ? "NISAを続ける" : "NISAを始める", sub: "少しずつ、未来の資産を育てる", step: 0, icon: "nisa" },
         { title: "住まいの一生を見る", sub: "賃貸のまま／持ち家を同じ物差しで", step: 2, icon: "home" },
