@@ -207,13 +207,15 @@
     #ms { display:none; }
   }
   .gflow { display:flex; align-items:stretch; gap:8px; margin:10px 0 6px; }
-  .gflow .gs { flex:1; border:2px solid var(--gold); border-radius:12px; padding:8px 10px; background:#fffaf0; }
+  .gflow .gs { flex:1 1 0; min-width:0; border:2px solid var(--gold); border-radius:12px; padding:8px 10px; background:#fffaf0; }
   .gflow .gs b { display:block; font-size:17px; color:var(--navy); } .gflow .gs span { font-size:12.5px; color:var(--sub); }
   .gflow .ga { align-self:center; font-size:26px; color:var(--gold); font-weight:800; }
   body.present .gpeople { max-height:44px; } body.present .gk { padding:4px 12px; } body.present .gk .gnote { display:none; }
   body.present .gflow { margin:6px 0 2px; } body.present .gflow .gs { padding:4px 10px; } body.present .gflow .gs span { font-size:12px; }
   body.present .gverdict { margin:6px 0; padding:6px 10px; font-size:15px; }
-  body.present .gk b { font-size:24px; } body.present .gflow + .small { display:none; }
+  body.present .gk b { font-size:24px; } body.present .gflow ~ .small { display:none; }
+  body.present .gflow .gs span br { display:none; } body.present .gflow .gs span { font-size:11.5px; line-height:1.35; display:block; }
+  @media (max-width:760px){ .gflow { flex-direction:column; } .gflow .ga { transform:rotate(90deg); align-self:center; } }
   body.present .glook { font-size:11.5px; line-height:1.45; margin:0; } body.present .gverdict { font-size:14px; line-height:1.45; }
   .gverdict { font-weight:700; padding:8px 12px; border-radius:10px; margin:8px 0; }
   .gverdict.ok { background:#eaf4ec; color:#1e5e2a; } .gverdict.ng { background:#fcefe6; color:#8a3a10; }
@@ -421,8 +423,9 @@
     const people = `<svg class="gpeople" viewBox="0 0 470 70" width="100%" style="max-width:470px" aria-label="${R.of}人中${R.low}〜${R.high}人"><defs><linearGradient id="halfGold" x1="0" x2="1"><stop offset=".5" stop-color="#b08d57"/><stop offset=".5" stop-color="#d5d9e0"/></linearGradient></defs>${Array.from({ length: R.of }, (_, k) => person(k)).join("")}</svg>`;
     return `<div class="two"><div>
         <div class="kpi gk" style="margin-bottom:6px"><span>審査を申し込んだ方のうち、通るのは（目安）</span><b>${R.of}人中 ${R.low}〜${R.high}人</b><span class="gnote">${esc(R.note)}</span></div>${people}
-        <div class="gflow"><div class="gs"><b>① できるか</b><span>事前審査で金融機関に確かめる<br>（無料・購入の義務はありません）</span></div><div class="ga">→</div>
+        <div class="gflow"><div class="gs"><b>⓪ CICを取り寄せる</b><span>自分の信用情報を確かめる<br>ネット${S.CIC.methods[0].fee}円・郵送${S.CIC.methods[1].fee.toLocaleString()}円</span></div><div class="ga">→</div><div class="gs"><b>① できるか</b><span>事前審査で金融機関に確かめる<br>（無料・購入の義務はありません）</span></div><div class="ga">→</div>
           <div class="gs"><b>② やるか・やらないか</b><span>通った金額の範囲で、<br>お客様が決める</span></div></div>
+        <p class="small gcic"><b>CIC（本人開示）</b>：${S.CIC.methods.map((m) => `${esc(m.name)} ${m.fee.toLocaleString()}円（${esc(m.how)}）`).join("／")}。${esc(S.CIC.note)}</p>
         <p class="small">通らなかったら：他の借入・勤続・頭金を整えて時期を改める／賃貸のまま準備する</p></div>
       <div><table class="bd"><tr><th>数字で見る目安</th><th></th><th></th></tr>
         ${g.checks.map((c) => `<tr><td>${esc(c.label)}</td><td>${esc(c.value)}</td><td class="${c.ok ? "own" : "rent"}" style="font-weight:700">${c.ok ? "○" : "△ 見直し"}</td></tr>`).join("")}</table>

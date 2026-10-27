@@ -32,10 +32,10 @@ test("gate(x)：金融機関が見ること（数字以外）と、2段階の進
   const g = S.gate(x);
   const lookAt = g.lookAt.join("／");
   for (const w of ["勤続", "他の借入", "信用情報", "団信", "担保"]) assert.match(lookAt, new RegExp(w));
-  assert.equal(g.steps.length, 3);
-  assert.match(g.steps[0], /できるか.*事前審査.*無料.*購入の義務はありません/);
-  assert.match(g.steps[1], /やるか.*やらないか/);
-  assert.match(g.steps[2], /通らなかった/, "通らなかったときの道も示す");
+  assert.equal(g.steps.length, 4, "⓪CIC → ①できるか → ②やるか → 通らなかったら");
+  assert.match(g.steps[1], /できるか.*事前審査.*無料.*購入の義務はありません/);
+  assert.match(g.steps[2], /やるか.*やらないか/);
+  assert.match(g.steps[3], /通らなかった/, "通らなかったときの道も示す");
 });
 
 test("借入が重い条件では「見直し」になる（年収280万・物件4,000万）", () => {
@@ -61,7 +61,7 @@ test("提案書のまとめ（4ページ目）に区切りが入る：まず「�
   const p = S.proposal(x).pages[3];
   assert.match(p.lead, /できるか/);
   assert.match(p.points[0], /10人中2〜3人/);
-  assert.match(p.nextSteps[0], /事前審査/);
+  assert.match(p.nextSteps[1], /事前審査/, "CICの次に事前審査");
 });
 
 test("トップのおすすめアクションに「まず『できるか』を確かめる」（⑥へ）", () => {
