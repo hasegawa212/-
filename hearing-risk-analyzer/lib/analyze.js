@@ -1,10 +1,10 @@
 // ヒアリング（parse の結果）→ 将来のリスク・強み・数字・不動産の価値の伝え方・次回の確認事項
 // ルールは RISKS / STRENGTHS の配列。足す・直すときはここだけ（画面と CLI は表示だけ）
 (function (root, factory) {
-  const m = factory();
+  const m = factory(typeof module === "object" && module.exports ? require("./objections") : root.HRA);
   if (typeof module === "object" && module.exports) module.exports = m;
   else Object.assign((root.HRA = root.HRA || {}), m);
-})(typeof self !== "undefined" ? self : this, function () {
+})(typeof self !== "undefined" ? self : this, function (OBJ) {
   "use strict";
 
   // お客様に言わない表現（事実に反する・断定・あおり）
@@ -274,7 +274,9 @@
     if (has("costUp") || has("savings")) story.push("「無理のない数字」：低い年の年収・ボーナスなしでも返せる予算から始める。手元のお金を残す計画にする。");
     if (has("fxInsurance") || has("investLoan")) story.push("「お金の全体を整える」：保険・投資用ローン・車のローンをまとめて見直し、住まいに回せるお金を増やす。");
     if (has("publicJob") || has("young")) story.push("「安定した収入と時間が味方」：安定した勤め先と若さで、長く無理なく返す計画が立てやすい。");
-    return { customer: { age: h.age, employer: h.employer, rank: h.rank, negotiations: h.negotiations, motive: h.motive, wish: h.wish }, numbers: c.n, risks, strengths, story,
+    const objections = OBJ && OBJ.detect ? OBJ.detect([h.summary, ...h.notes].join("\n")).map((f) => ({ id: f.id, stage: f.stage, label: f.label, evidence: f.evidence,
+      accept: f.o.accept, ask: f.o.ask, fact: f.o.fact, next: f.o.next, avoid: f.o.avoid })) : [];
+    return { objections, customer: { age: h.age, employer: h.employer, rank: h.rank, negotiations: h.negotiations, motive: h.motive, wish: h.wish }, numbers: c.n, risks, strengths, story,
       questions: risks.map((r) => r.ask), nextActions, docs: { done, total: h.docs.length, missing: h.docs.filter((d) => !d.done).map((d) => d.name), stages: stages(h.docs) } };
   }
 

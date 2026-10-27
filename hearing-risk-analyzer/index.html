@@ -69,6 +69,7 @@
   <section class="panel" id="out"><div class="empty">左に商談報告を貼り付けて「分析する」を押してください。</div></section>
 </main>
 <script src="lib/parse.js"></script>
+<script src="lib/objections.js"></script>
 <script src="lib/analyze.js"></script>
 <script src="lib/report.js"></script>
 <script>
@@ -147,6 +148,12 @@
       const p = Math.round((st.done / st.total) * 100);
       html += `<p style="margin:6px 0 0"><b>${esc(st.name)}</b>　${st.done}/${st.total}（${p}%）</p><div class="bar"><i style="width:${p}%"></i></div><p class="muted">未回収：${esc(st.missing.join("、") || "なし")}</p>`;
     }
+    html += `<h2>8. このお客様の断り文句と切り返し</h2>`;
+    if (!a.objections.length) html += `<p class="muted">報告の文章から読み取れる断り文句はありません。</p>`;
+    for (const o of a.objections) html += `<div class="risk l-中"><h3>${esc(o.label)}</h3><dl>
+      <dt>根拠（ヒアリング）</dt><dd>${esc(o.evidence)}</dd><dt>① 受け止める</dt><dd>${esc(o.accept)}</dd><dt>② 聞く</dt><dd>${esc(o.ask)}</dd>
+      <dt>③ 事実で返す</dt><dd class="value">${esc(o.fact)}</dd><dt>④ 次の一歩</dt><dd>${esc(o.next)}</dd><dt>言わない</dt><dd>${esc(o.avoid)}</dd></dl></div>`;
+    html += `<p class="muted">断り文句の一覧は <a href="objections.html">切り返し早見表</a>。</p>`;
     html += `<p class="muted">概算・一般的な傾向にもとづく分析です。審査結果・税額・控除額は金融機関・税務署の判断で変わります。お客様への説明では断定しないでください。</p>`;
     $("out").innerHTML = html;
   }

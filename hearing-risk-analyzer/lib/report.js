@@ -68,6 +68,19 @@
     for (const st of a.docs.stages) out.push(`| ${st.name} | ${st.done}/${st.total} | ${st.missing.join("、") || "なし"} |`);
     if (!a.docs.stages.length) out.push("| — | — | — |");
     out.push("");
+    out.push("## 8. このお客様の断り文句と切り返し");
+    out.push("");
+    if (!a.objections || !a.objections.length) out.push("（報告の文章から読み取れる断り文句はありません）");
+    for (const o of a.objections || []) {
+      out.push(`### ${o.label}`);
+      out.push(`- **根拠（ヒアリング）**：${o.evidence}`);
+      out.push(`- **① 受け止める**：${o.accept}`);
+      out.push(`- **② 聞く**：${o.ask}`);
+      out.push(`- **③ 事実で返す**：${o.fact}`);
+      out.push(`- **④ 次の一歩**：${o.next}`);
+      out.push(`- **言わない**：${o.avoid}`);
+      out.push("");
+    }
     out.push("---");
     out.push("概算・一般的な傾向にもとづく分析です。審査結果・税額・控除額は金融機関・税務署の判断で変わります。お客様への説明では断定しないでください。");
     return out.join("\n");
