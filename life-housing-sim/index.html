@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>住まいの一生シミュレーター</title>
+<title>LIFE ROUTE（ライフルート）｜住まいとお金、95歳までの道のり</title>
 <style>
   :root { --navy:#1f2a44; --gold:#b08d57; --ink:#1d1f23; --sub:#5b616b; --line:#dcdfe4; --bg:#f6f4ef; --card:#fff;
           --rent:#c2581e; --own:#2a5c9a; --ok:#2e7d32; }
@@ -109,7 +109,7 @@
   .ptools button.primary { background:var(--navy); color:#fff; }
   .form input[type=text] { font:inherit; font-size:13px; padding:5px 6px; border:1px solid #c9b48a; border-radius:7px; background:#fff; width:150px; }
 
-  /* ───── トップページ「ライフパートナー」（お客様が主人公） ───── */
+  /* ───── トップページ（LIFE ROUTE・お客様が主人公） ───── */
   #home { display:none; }
   body.home-view header, body.home-view main, body.home-view .pbar { display:none !important; }
   body.home-view { background:#071229; }
@@ -121,6 +121,7 @@
   .hh .logo b { font-size:17px; letter-spacing:.04em; color:#fff; } .hh .logo small { display:block; font-size:10px; letter-spacing:.3em; color:#d9b968; }
   .hh .ttl { flex:1; min-width:280px; }
   .hh .ttl h1 { margin:0; font-size:44px; line-height:1.1; letter-spacing:.06em; font-weight:800; }
+  .hh .ttl h1 .kana { font-size:15px; letter-spacing:.3em; margin-left:14px; color:#d9b968; -webkit-text-fill-color:#d9b968; font-weight:600; vertical-align:middle; }
   .hh .ttl p { margin:2px 0 0; font-size:14px; letter-spacing:.12em; color:#dfe6f3; }
   .who { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.06); border:1px solid rgba(242,205,115,.35); border-radius:14px; padding:8px 14px; }
   .who .av { width:44px; height:44px; border-radius:50%; background:#1c2f57; border:2px solid #f2cd73; display:grid; place-items:center; }
@@ -223,7 +224,7 @@
 <body>
 <section id="home"></section>
 <header>
-  <h1>住まいの一生シミュレーター</h1>
+  <h1>LIFE ROUTE <small style="font-size:13px;font-weight:400;opacity:.85">ライフルート</small></h1>
   <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑦ の同じ順番で説明します（概算・通信なし・保存なし）</p>
 </header>
 <main>
@@ -232,7 +233,7 @@
     <div class="tabs" id="tabs"></div>
     <div id="steps"></div>
     <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
-    <div class="tools"><button id="toHome" style="background:#b08d57;color:#fff;border-color:#b08d57">★ トップ（ライフパートナー）</button><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
+    <div class="tools"><button id="toHome" style="background:#b08d57;color:#fff;border-color:#b08d57">★ トップ（LIFE ROUTE）</button><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
     <ul class="notes" id="notes"></ul>
   </section>
 </main>
@@ -270,7 +271,7 @@
     ["partnerIncome", "パートナーの年収", [0, 1_000_000, 2_000_000, 3_000_000, 4_000_000, 5_000_000], (v) => (v ? yen(v) : "なし・扶養内")],
     ["賃貸の家賃（毎月・その地域の目安）"],
     ["rent.single", "ひとり暮らし（初期値＝当社のお客様の平均）", [...range(30_000, 120_000, 5_000), S.RENT_AVG.single].sort((a, b) => a - b), yen],
-    ["rent.couple", "2人暮らし", range(40_000, 150_000, 5_000), yen],
+    ["rent.couple", "2人暮らし", [0, ...range(40_000, 150_000, 5_000)], (v) => (v ? yen(v) : "なし（ひとり暮らしと同じ）")],
     ["rent.family", "子育て期（広い部屋）", range(50_000, 180_000, 5_000), yen],
     ["rent.old", "老後", [...range(30_000, 150_000, 5_000), S.RENT_AVG.single].sort((a, b) => a - b), yen],
     ["rent.insYear", "家財保険（年）", range(5_000, 30_000, 1_000), yen],
@@ -472,7 +473,7 @@
     window.scrollTo(0, 0);
   }
 
-  // ───── トップページ「ライフパートナー」：お客様が主人公 ─────
+  // ───── トップページ（LIFE ROUTE）：お客様が主人公 ─────
   const missionDone = {}; // チェックしたミッション（この画面の中だけ。保存・共有しない）
   const ICON = {
     cash: '<path d="M4 15c0-2 3.6-3.5 8-3.5s8 1.5 8 3.5-3.6 3.5-8 3.5S4 17 4 15Z"/><path d="M4 15v3c0 2 3.6 3.5 8 3.5s8-1.5 8-3.5v-3M6 9.5C6 8 8.7 7 12 7s6 1 6 2.5S15.3 12 12 12 6 11 6 9.5Z"/>',
@@ -598,8 +599,8 @@
         <div class="lvrow">Lv.${a.level}<span class="bar${a.key === "nisa" ? " blue" : ""}"><i style="width:${Math.max(6, a.progress * 100)}%"></i></span></div>
         <div class="bg"><b>${esc(a.big)}</b><span>${esc(a.bigLabel)}</span></div></button>`;
     return `<div class="hh">
-        <div class="logo">${ico("plan", 40)}<div><b>${esc(h.hero.company || "会社名")}</b><small>LIFE PARTNER</small></div></div>
-        <div class="ttl"><h1 class="gold">${esc(h.hero.title)}</h1><p>${esc(h.hero.catch)}</p></div>
+        <div class="logo">${ico("plan", 40)}<div><b>${esc(h.hero.company || "会社名")}</b><small>LIFE ROUTE</small></div></div>
+        <div class="ttl"><h1 class="gold">${esc(h.hero.title)}<span class="kana">${esc(h.hero.kana)}</span></h1><p>${esc(h.hero.catch)}</p></div>
         <div class="who"><div class="av">${ico("old", 26, "#fff")}</div><div><input id="hName" placeholder="お名前を入力" value="${esc(meta.customer || "")}" aria-label="お客様のお名前"><span style="font-size:13px"> 様</span>
           <div class="lv">準備 Lv.${h.hero.level}　<span style="color:#cfd8e8;font-weight:400">${h.hero.age}歳からの物語</span></div></div></div>
       </div>
@@ -678,7 +679,7 @@
       `<div class="kpis"><div class="kpi"><span>${state.retireAge}歳の家の価値（横ばい）</span><b>${man(x.value65.flat)}</b><span>下落 ${man(x.value65.down)}／上昇 ${man(x.value65.up)}</span></div><div class="kpi"><span>参考：差額を積み立て運用した場合</span><b>${man(x.fair.rentInvested65)}</b><span>年${(x.fair.rate * 100).toFixed(0)}%・元本保証なし</span></div></div><p style="font-size:13px;color:#5b616b;margin:0 0 8px">※家の価値は将来の価格を約束するものではありません。運用も元本保証はありません。</p>`,
       waitView(x),
     ];
-    $("tabs").innerHTML = `<button class="home" data-home="1" title="トップ（ライフパートナー）">★</button>` + steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");
+    $("tabs").innerHTML = `<button class="home" data-home="1" title="トップ（LIFE ROUTE）">★</button>` + steps.map((s, i) => `<button class="${i === cur && !all ? "on" : ""}" data-i="${i}">${esc(s.title.slice(0, 1))}</button>`).join("");
     $("tabs").querySelectorAll("button").forEach((b) => (b.onclick = () => { if (b.dataset.home) return openHome(); cur = +b.dataset.i; all = false; render(); }));
     $("steps").innerHTML = steps.map((s, i) => `<div class="step" style="display:${all || i === cur ? "block" : "none"}">
       <h2 class="stage-title">${esc(s.title)}</h2><p class="say">${esc(s.say)}</p>${visual[i]}<p class="show">${esc(s.show)}</p><p class="ask">${esc(s.ask)}</p></div>`).join("");

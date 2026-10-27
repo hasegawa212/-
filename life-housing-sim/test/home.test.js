@@ -1,4 +1,4 @@
-// TDD：トップページ「ライフパートナー」— お客様が主人公。数字はすべてシミュレーションから（見本の数字は使わない）
+// TDD：トップページ（LIFE ROUTE）— お客様が主人公。数字はすべてシミュレーションから（見本の数字は使わない）
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const S = require("../lib/engine");
@@ -9,7 +9,7 @@ test("主人公はお客様：名前があれば「◯◯ 様」、なければ�
   assert.equal(S.home(x, {}, { customer: "山田 太郎" }).hero.name, "山田 太郎 様");
   assert.equal(S.home(x).hero.name, "あなた");
   assert.equal(S.home(x, {}, { company: "株式会社 Martial Arts" }).hero.company, "株式会社 Martial Arts", "入力した会社名");
-  assert.equal(S.home(x).hero.title, "ライフパートナー");
+  assert.equal(S.home(x).hero.title, S.APP.name);
 });
 
 test("今の資産：預貯金＋NISA（不動産なし）。内訳の割合は合計100%", () => {

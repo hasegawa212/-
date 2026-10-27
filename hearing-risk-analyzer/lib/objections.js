@@ -9,7 +9,7 @@
   "use strict";
 
   const STAGES = { apo: "アポ（玄関・電話）", cancel: "キャンセル・不在を防ぐ", deal: "商談" };
-  const SIM = "住まいの一生シミュレーター";
+  const SIM = "LIFE ROUTE（ライフルート）";
 
   const OBJECTIONS = [
     // ───── アポ段階 ─────
