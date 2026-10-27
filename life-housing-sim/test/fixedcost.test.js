@@ -34,7 +34,8 @@ test("説明のいちばん最初（¥）：節約 → いちばん大きな固�
   assert.match(s.say, /オーナー/);
   assert.match(s.say, /ローンの返済/);
   assert.match(s.say, /住まいの対価/);
-  assert.match(s.say, /どちらが正解ということはありません/, "家賃を否定しない");
+  assert.match(s.say, /自分の資産/, "家賃は否定せず、資産に変える道を示す");
+  assert.doesNotMatch(s.say, /無駄|捨て/);
   assert.ok(s.show.includes(S.man(S.fixedCost(x).rent, 1)), "今の家賃");
   assert.ok(s.show.includes(S.man(S.fixedCost(x).to65)), "65歳までの家賃");
   assert.match(s.show, /赤字/, "オーナーも空室や修繕で赤字になる場合がある（画像の注記と同じ）");
