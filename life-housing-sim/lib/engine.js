@@ -394,6 +394,30 @@
     };
   }
 
+  // 今の経済の数字（2026年10月時点）。変わるので、使う前に出典で確かめる。物価・金利は「仮に続いた場合」として使い、断定しない
+  const ECONOMY = {
+    asOf: "2026年10月時点",
+    cpi: { rate: 0.021, month: "2026年9月", label: "全国の消費者物価（生鮮食品を除く総合）前年同月比 +2.1%", src: "総務省統計局 消費者物価指数（2026年10月23日公表）" },
+    deposit: { rate: 0.005, from: "2026年11月2日", label: "3メガバンクの普通預金金利 年0.5%（税引前）", src: "各行の発表（ゆうちょ銀行は11月9日から）" },
+    report2000: { gapMonthly: 55_000, years: 30, total: 20_000_000, who: "夫65歳以上・妻60歳以上の無職の夫婦（当時の平均）",
+      src: "金融審議会 市場ワーキング・グループ報告書「高齢社会における資産形成・管理」（2019年6月）" },
+    savingsIns: "貯蓄型の保険は、早く解約すると払った額より戻りが少ない（元本割れ）場合があります。保障（もしものとき）と貯蓄（ふやす）は分けて考えると比べやすくなります",
+  };
+  function economy(x) {
+    const i = x.input, E = ECONOMY, n = Math.max(0, i.retireAge - i.age);
+    const factor = Math.pow(1 + E.cpi.rate, n);
+    const nominal65 = i.savings * Math.pow(1 + E.deposit.rate, n), real65 = i.savings * Math.pow((1 + E.deposit.rate) / (1 + E.cpi.rate), n);
+    const R = E.report2000, rent = x.old.rent.need, own = x.old.own.need;
+    return {
+      years: n, factor, living65: x.pension.living * factor,
+      savings: { now: i.savings, nominal65, real65, lossRate: i.savings > 0 ? 1 - real65 / i.savings : 0 },
+      vs2000: { report: R.total, rent, own,
+        line: `老後2000万円問題：2019年の報告書の2000万円は、${R.who}の毎月約${(R.gapMonthly / 10000).toFixed(1)}万円の不足×${R.years}年の計算です。あなたの場合（${i.retireAge}〜${i.lifeEnd}歳）の不足は　賃貸のまま ${man(rent)}／持ち家 ${man(own)}` },
+      line: `物価と預金（${E.asOf}）：${E.cpi.month}の物価は前年より+${(E.cpi.rate * 100).toFixed(1)}%、メガバンクの普通預金は年${(E.deposit.rate * 100).toFixed(1)}%。仮にこのまま${n}年続くと、${i.retireAge}歳の生活費は今の毎月 ${man(x.pension.living, 1)} が ${man(x.pension.living * factor, 1)} 相当に` +
+        (i.savings > 0 ? `、預金 ${man(i.savings)} は利息で ${man(nominal65)} になっても、買える量は今の ${man(real65)} 分（約${Math.round((1 - real65 / i.savings) * 100)}%目減り）` : "") + `。物価も金利も上がったり下がったりします（この試算の金額は物価を一定で計算）`,
+    };
+  }
+
   // 定年・再雇用とローンの回数（説明と提案書で同じ文を使う）
   function workLoanLine(x) {
     const i = x.input, L = x.loan, re = x.income.reemploy, r = L.atReemploy;
@@ -564,7 +588,7 @@
     const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
       show: `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${Math.round(inc.vsAverage * 100)}%）／これから一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）／そのうち住まいに使う割合　賃貸のまま ${Math.round(inc.housingShare.rent * 100)}%・持ち家 ${Math.round(inc.housingShare.own * 100)}%／今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
       ask: "今の預金・NISA・保険・不動産のバランスに、満足していますか。" };
-    const g = gate(x), bb = bubble(x), fc = fixedCost(x), rc = recommend(x), cc = costCompare(x);
+    const g = gate(x), bb = bubble(x), fc = fixedCost(x), rc = recommend(x), cc = costCompare(x), ec = economy(x);
     const intro = { title: "¥ 節約するなら、いちばん大きな固定費から",
       say: `日本は「節約しなさい」と言われて育つ国です。では、何を節約すると一番効くでしょうか。答えは、毎月いちばん大きな固定費＝住まい（家賃）です。家賃は住まいの対価で、同時にオーナーのローンの返済や将来の備えにもつながっています。同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか。一緒に数字で見ていきましょう。`,
       show: (fc.rent ? `今の家賃 毎月 ${man(fc.rent, 1)}（手取りの約${Math.round(fc.share * 100)}%・手取りは概算 毎月 ${man(fc.takeHome, 1)}）／1年で ${man(fc.yearly)}／` : `今の家賃 なし（実家など）。家賃がかからない今は、貯金と住まいの準備ができる時期です／`) + `${fc.to65 ? `${i.retireAge}歳まで払い続けると ${man(fc.to65)}、${i.lifeEnd}歳までで ${man(fc.toEnd)}` : `${i.lifeEnd}歳までに払う家賃 ${man(fc.toEnd)}`}（更新料こみ・家財保険は含まない）／家賃の行き先：オーナーのローンの返済・管理や修繕・固定資産税など → 残りがオーナーの収益（空室や修繕で赤字になる場合もあります）`,
@@ -594,16 +618,16 @@
       { title: `③ ${i.retireAge}歳からの${x.old.years}年`, say: single
           ? `${i.retireAge}歳からは、ひとり分の年金が収入の中心です。賃貸のままだと、その年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`
           : `${i.retireAge}歳からは年金が収入の中心です。賃貸のままだと、年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`,
-        show: `${workLoanLine(x)}／年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸 ${man(r.outMonthly, 1)}・持ち家 ${man(w.outMonthly, 1)}／毎月の不足　賃貸 ${man(r.gapMonthly, 1)}・持ち家 ${man(w.gapMonthly, 1)}`,
+        show: `${workLoanLine(x)}／年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸 ${man(r.outMonthly, 1)}・持ち家 ${man(w.outMonthly, 1)}／毎月の不足　賃貸 ${man(r.gapMonthly, 1)}・持ち家 ${man(w.gapMonthly, 1)}／${ec.vs2000.line}`,
         ask: "老後の住まいは、どこで、どんな家に住んでいたいですか。" },
       { title: "④ 持たないなら、いくら準備が必要か", say: `賃貸のままでも、老後の家賃のぶんを今から準備できれば大丈夫です。そのために必要な金額を見てみましょう。`,
-        show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）`,
+        show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）／${ec.line}`,
         ask: `毎月 ${man(x.prepare.monthlyRent, 1)} を${i.retireAge}歳まで積み立て続けられそうですか。` },
       single ? { title: "⑤ もしものとき", say: `ひとりで暮らす場合、いちばんの心配は「年を取ってからの住まい」です。高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。持ち家なら、返済が終わったあとは住む場所が確保できます。住宅ローンには団体信用生命保険（団信）が付くので、万一のときもローンが親や兄弟に残りません。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 ${i.rent.old ? `毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）` : "なし"}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 ${i.rent.old ? `毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）` : "なし"}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}／${ECONOMY.savingsIns}`,
         ask: "ひとりで年を重ねたとき、どこに住んでいたいですか。金利が上がったときの備えはありますか。" } :
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／${danshinLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}／${ECONOMY.savingsIns}`,
         ask: "ご家族に、どんな形で住まいを残したいですか。金利が上がったときの備えはありますか。" },
       six,
       { title: "⑦ まとめ：賃貸と購入、どちらがいいか", say: rc.verdict === "prepare"
@@ -760,7 +784,7 @@
           `毎月の不足　賃貸のまま ${man(x.old.rent.gapMonthly, 1)}・持ち家 ${man(x.old.own.gapMonthly, 1)}`,
           rentScreenLine(x),
           danshinLine(x),
-          `持たない場合に${i.retireAge}歳までに準備したいお金 ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）`,
+          `持たない場合に${i.retireAge}歳までに準備したいお金 ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）＝あなたの「老後2000万円問題」（持ち家なら ${man(x.old.own.need)}）`,
           single ? `高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。団信があるので、万一のときもローンは親や兄弟に残りません。`
             : `団信があるので、万一のときは残りのローンがなくなり、ご家族に住まいが残ります（賃貸ならご家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続けます）。`,
           `金利が1%上がった場合の毎月の返済 ${man(x.whatIf.rateUpPmt, 1)}（今の計画 ${man(x.whatIf.pmt, 1)}）`,
@@ -896,8 +920,9 @@
     "一般の年収は国税庁「民間給与実態統計調査」令和5年分の平均給与 459.5万円。生涯収入は今の年収が毎年1%上がると仮定（▼で変更）した給料と、年金（概算）の合計。",
     "NISAは今の残高と毎月の積立を年3%で運用できたと仮定（元本保証なし）。預貯金は今のまま。65歳の不動産は家の価値（横ばい）から残りのローンを引いた額。",
     "待った場合の計算は、物件価格・金利が今と同じ前提（上がることも下がることもある）。返済は80歳までに終わる期間に縮める。",
+    `物価：総務省 2026年9月分 +${(ECONOMY.cpi.rate * 100).toFixed(1)}%（生鮮食品を除く）。預金：メガバンク普通預金 年${(ECONOMY.deposit.rate * 100).toFixed(1)}%（2026年11月から）。老後2000万円問題：金融審議会 報告書（2019年）の当時の平均の夫婦の計算。数字は変わるので最新で確認。試算は物価一定。`,
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
