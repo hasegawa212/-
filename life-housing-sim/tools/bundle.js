@@ -4,7 +4,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 let out = html;
-for (const f of ["lib/engine.js", "lib/share.js"]) {
+for (const f of ["lib/engine.js", "lib/share.js", "lib/customers.js"]) {
   const src = fs.readFileSync(path.join(root, f), "utf8");
   const next = out.replace(`<script src="${f}"></script>`, () => `<script>\n${src}\n</script>`);
   if (next === out) throw new Error(`${f} の script タグが見つからない`);

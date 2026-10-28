@@ -114,6 +114,21 @@
     note: "窓口での開示は終了。手数料・方法は変わることがあるので、申し込む前にCIC公式サイトで確認してください。銀行系の借入は全国銀行個人信用情報センター（KSC）、消費者金融系はJICCにも記録があります。",
   };
 
+  // 審査に必要な書類（事前審査の前にそろえる）
+  const SCREEN_DOCS = [
+    { key: "cic", name: "信用情報（CIC）", what: `本人開示 ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円（自分で取り寄せて確かめる）` },
+    { key: "id", name: "本人確認書類", what: "運転免許証・健康保険証・マイナンバーカードのどれか" },
+    { key: "income", name: "源泉徴収票", what: "2期分（直近2年分）" },
+  ];
+  // 審査のあとの流れ（いつ・何をするか）
+  const FLOW = [
+    { name: "事前審査", what: "借りられる額を金融機関に確かめる（無料・購入の義務はありません）" },
+    { name: "内見", what: "通った金額の範囲で、物件を実際に見る" },
+    { name: "売買契約", what: "買う物件を決めて契約する（重要事項の説明を受ける）" },
+    { name: "本申込（本審査）", what: "金融機関に住宅ローンを正式に申し込む" },
+    { name: "金銭消費貸借契約", what: "住宅ローンの契約（金消契約）を結ぶ" },
+    { name: "決済・引き渡し", what: "残りの代金を払い、鍵を受け取る" },
+  ];
   // 会社名の初期値（トップページ・提案書。画面の「会社名」で変えられる）
   const DEFAULT_COMPANY = "合同会社ジャパンマネジメント";
 
@@ -511,13 +526,30 @@
       passRate: PASS_RATE, checks, allOk,
       verdict: allOk ? "数字の目安の上では、土台に乗る可能性があります。ただし、実際は融資する金融機関が決めます。"
         : "目安を超える項目があります。借りる額・頭金・返済期間を見直してから確かめましょう。実際は融資する金融機関が決めます。",
+      docs: SCREEN_DOCS, flow: FLOW,
       lookAt: ["勤続年数・雇用形態（正社員・派遣など）", "他の借入（車のローン・カード・リボ・奨学金）", "返済の遅れがないか（信用情報）", "健康状態（団信に入れるか）", "物件の担保評価"],
       steps: [
         `⓪ まず自分で：CICで信用情報を取り寄せる（本人開示：ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円）。${CIC.why}`,
-        "① できるか：住宅ローンの事前審査（無料・購入の義務はありません）で、金融機関に借りられる額を確かめる",
-        "② その土台に乗ったら：通った金額の範囲で、やるか・やらないかを決める",
+        `① できるか：本人確認書類（${SCREEN_DOCS[1].what}）と源泉徴収票（${SCREEN_DOCS[2].what}）をそろえて、住宅ローンの事前審査（無料・購入の義務はありません）で、金融機関に借りられる額を確かめる`,
+        `② その土台に乗ったら：通った金額の範囲で、やるか・やらないかを決める（このあと ${FLOW.slice(1).map((f) => f.name).join(" → ")}）`,
         "通らなかったら：理由になりそうな点（他の借入・勤続・頭金）を整えて時期を改める／賃貸のまま準備する",
       ],
+    };
+  }
+
+  // くらべ方：持ち家の合計には「家そのものの代金」（払ったあと自分の家として残る）が入っている。
+  // 消えるお金＝賃貸は家賃の全部、持ち家は合計から家の代金を引いた分（利息・税金・保険・修繕・諸費用・買うまでの家賃−控除）
+  function costCompare(x) {
+    const o = x.input.own, b = x.breakdown.own, L = x.loan;
+    const paid = L.amount > 0 ? Math.min(1, b.principal.amount / L.amount) : 1;
+    const house = Math.min(o.price, o.down + (o.price - o.down) * paid);
+    const ownLoan = L.pmt, ownUpkeep = (o.propTax + o.ins + o.repairYear) / 12;
+    return {
+      rent: { total: x.life.rent, spent: x.life.rent },
+      own: { total: x.life.own, house, spent: x.life.own - house,
+        items: [["利息", b.interest.amount], ["固定資産税・都市計画税", b.tax.amount], ["火災・地震保険", b.ins.amount], ["修繕", b.repair.amount], ["買うまでの家賃", b.preRent.amount], ["住宅ローン控除で戻る", -b.credit.amount]]
+          .map(([label, amount]) => ({ label, amount })) },
+      monthly: { rent: x.years[0].rentMonthly, ownLoan, ownUpkeep, own: ownLoan + ownUpkeep },
     };
   }
 
@@ -532,14 +564,14 @@
     const zero = { title: "⓪ あなたのお金の全体像", say: "まず、今の資産と、これから一生で入ってくるお金を一緒に見ます。住まいは、その中でいちばん大きな支出です。",
       show: `年収 ${man(i.income)}（一般の平均給与 ${man(inc.average, 1)} の ${Math.round(inc.vsAverage * 100)}%）／これから一生で入ってくるお金 ${man(inc.total)}（給料 ${man(inc.salaryMe + inc.salaryPartner)}・年金 ${man(inc.pension)}）／そのうち住まいに使う割合　賃貸のまま ${Math.round(inc.housingShare.rent * 100)}%・持ち家 ${Math.round(inc.housingShare.own * 100)}%／今の資産　預貯金 ${man(pf.now.savings)}・NISA ${man(pf.now.nisa)}・不動産 なし・保険 毎月 ${man(pf.now.insuranceMonthly, 1)}`,
       ask: "今の預金・NISA・保険・不動産のバランスに、満足していますか。" };
-    const g = gate(x), bb = bubble(x), fc = fixedCost(x), rc = recommend(x);
+    const g = gate(x), bb = bubble(x), fc = fixedCost(x), rc = recommend(x), cc = costCompare(x);
     const intro = { title: "¥ 節約するなら、いちばん大きな固定費から",
       say: `日本は「節約しなさい」と言われて育つ国です。では、何を節約すると一番効くでしょうか。答えは、毎月いちばん大きな固定費＝住まい（家賃）です。家賃は住まいの対価で、同時にオーナーのローンの返済や将来の備えにもつながっています。同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか。一緒に数字で見ていきましょう。`,
       show: (fc.rent ? `今の家賃 毎月 ${man(fc.rent, 1)}（手取りの約${Math.round(fc.share * 100)}%・手取りは概算 毎月 ${man(fc.takeHome, 1)}）／1年で ${man(fc.yearly)}／` : `今の家賃 なし（実家など）。家賃がかからない今は、貯金と住まいの準備ができる時期です／`) + `${fc.to65 ? `${i.retireAge}歳まで払い続けると ${man(fc.to65)}、${i.lifeEnd}歳までで ${man(fc.toEnd)}` : `${i.lifeEnd}歳までに払う家賃 ${man(fc.toEnd)}`}（更新料こみ・家財保険は含まない）／家賃の行き先：オーナーのローンの返済・管理や修繕・固定資産税など → 残りがオーナーの収益（空室や修繕で赤字になる場合もあります）`,
       ask: "毎月の固定費で、いちばん大きいものは何ですか。その家賃は、誰の将来の備えになっていると思いますか。" };
     const six = { title: "⑥ まず「できるか」を確かめる（区切り）",
       say: `ここで一度、区切りをつけます。住宅ローンは、借りたい人や私たちが決めるのではなく、融資する金融機関が決めます。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほどです（目安）。ですから、やるか・やらないかを決める前に、まず「できるか」をこちらで確認させてください。その土台に乗ったら、やるか・やらないかを決めていただければ大丈夫です。できるかわからないまま決めても意味がないので、お客様のお時間を無駄にしないための順番です。`,
-      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}`,
+      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}／そろえる書類：${SCREEN_DOCS.map((v) => `${v.name}（${v.what}）`).join("・")}／このあとの流れ：${FLOW.map((f) => f.name).join(" → ")}`,
       ask: "まずCICで信用情報を取り寄せ、できるかを確かめませんか（事前審査は無料・購入の義務はありません）。" };
     const seven = wt.length ? { title: "⑧「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
       show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}・住宅ローンの審査の返済比率 ${Math.round(r.screen.ratio * 100)}%（目安 ${Math.round(r.screen.limit * 100)}%以内${r.screen.ok ? "" : "を超える"}${r.screen.shorter ? "・返済期間が短くなる" : ""}）`).join("／") +
@@ -556,8 +588,8 @@
         show: (sh ? `社宅 ${manY(sh.self)}（${sh.until}歳まで）→ 社宅を出たあと ${manY(sh.after)}（毎月 ${manY(sh.jump)}・年 ${manY(sh.jump * 12)} 増える。家賃は当社のお客様の平均）／` : "") +
           (x.input.family.marryAge != null ? `ひとり ${rentTxt(i.rent.single)} → 2人 ${i.rent.couple ? man(i.rent.couple, 1) : "（ひとりと同じ）"} → 子育て ${i.rent.family ? man(i.rent.family, 1) : "（2人と同じ）"} → 老後 ${rentTxt(i.rent.old)}（毎月）` : `ひとり ${rentTxt(i.rent.single)}${i.rent.single === RENT_AVG.single ? "（当社のお客様の家賃の平均）" : ""} → 老後 ${rentTxt(i.rent.old)}（毎月）`),
         ask: sh ? `社宅を出るのは何歳ごろの予定ですか。出たあと、どこに住みたいですか。` : single ? "これからも、ひとりで自由に暮らしていきたいですか。結婚したら、住まいはどうしたいですか。" : "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
-      { title: "② 一生でかかる住まいのお金", say: `今から${i.lifeEnd}歳まで、住まいには一生お金がかかります。賃貸は家賃と保険を払い続け、持ち家は返済が終わったあとは税金・保険・修繕だけになります。持ち家は住宅ローン控除で、払った税金の一部が戻ります。`,
-        show: `一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（${o.buyAge}歳で${man(o.price)}の家を買った場合）。持ち家のうち 税金（固定資産税・都市計画税）${man(x.breakdown.own.tax.amount)}・保険（火災・地震）${man(x.breakdown.own.ins.amount)}・利息 ${man(x.breakdown.own.interest.amount)}、住宅ローン控除で戻る税金 ${man(x.credit.total)}（${x.credit.label}・${x.credit.years}年）。賃貸の家財保険 ${man(x.breakdown.rent.ins.amount)}・更新料 ${man(x.renew.total)}（${x.renew.every}年ごとに家賃${x.renew.months}か月分、${i.lifeEnd}歳までに${x.renew.times}回。うち${i.retireAge}歳から ${man(x.renew.old)}）`,
+      { title: "② 一生でかかる住まいのお金", say: `今から${i.lifeEnd}歳まで、住まいには一生お金がかかります。賃貸は家賃を払い続け、持ち家は返済が終わったあとは税金・保険・修繕だけになります。合計だけだと持ち家が高く見えますが、持ち家には「家そのものの代金」が入っていて、払い終わった家は自分のものとして残ります。なので「消えるお金」どうしでくらべます。`,
+        show: `消えるお金で比べると　賃貸のまま ${man(cc.rent.spent)}／持ち家 ${man(cc.own.spent)}（合計 ${man(cc.own.total)} のうち 家の代金 ${man(cc.own.house)} は自分の家として残る）。毎月の住居費　今の家賃 ${man(cc.monthly.rent, 1)}／買ったあと ${man(cc.monthly.own, 1)}（返済 ${man(cc.monthly.ownLoan, 1)}＋税金・保険・修繕 ${man(cc.monthly.ownUpkeep, 1)}）。一生の住居費　賃貸のまま ${man(x.life.rent)}／持ち家 ${man(x.life.own)}（${o.buyAge}歳で${man(o.price)}の家を買った場合）。持ち家のうち 税金（固定資産税・都市計画税）${man(x.breakdown.own.tax.amount)}・保険（火災・地震）${man(x.breakdown.own.ins.amount)}・利息 ${man(x.breakdown.own.interest.amount)}、住宅ローン控除で戻る税金 ${man(x.credit.total)}（${x.credit.label}・${x.credit.years}年）。賃貸の家財保険 ${man(x.breakdown.rent.ins.amount)}・更新料 ${man(x.renew.total)}（${x.renew.every}年ごとに家賃${x.renew.months}か月分、${i.lifeEnd}歳までに${x.renew.times}回。うち${i.retireAge}歳から ${man(x.renew.old)}）`,
         ask: "一生の住まいのお金を、今まで計算したことはありますか。税金や保険まで含めて考えたことはありますか。" },
       { title: `③ ${i.retireAge}歳からの${x.old.years}年`, say: single
           ? `${i.retireAge}歳からは、ひとり分の年金が収入の中心です。賃貸のままだと、その年金から家賃を払い続けることになります。持ち家は${x.loan.endAge}歳で返済が終わる計画です。`
@@ -744,7 +776,8 @@
         ],
         nextSteps: [
           `CICで自分の信用情報を取り寄せる（ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円、${CIC.url.replace("https://", "")}）`,
-          "住宅ローンの事前審査で、借りられる額を確かめる（無料・購入の義務はありません）",
+          `本人確認書類（${SCREEN_DOCS[1].what}）と源泉徴収票（${SCREEN_DOCS[2].what}）をそろえ、住宅ローンの事前審査で借りられる額を確かめる（無料・購入の義務はありません）`,
+          `事前審査のあとの流れ：${FLOW.slice(1).map((f) => f.name).join(" → ")}`,
           "ねんきんネットで、ご自身の年金の見込額を確かめる",
           "条件（エリア・広さ・駐車場・毎月の上限）を書き出して、物件を見る",
           single ? "今は賃貸のまま、老後の家賃のための積立を始める" : "今は賃貸のまま、ご家族で話し合う時間をとる",
@@ -866,5 +899,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
