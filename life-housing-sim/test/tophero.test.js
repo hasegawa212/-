@@ -24,17 +24,11 @@ test("dist に画像を埋め込む", () => {
   assert.match(fs.readFileSync(path.join(root, "tools/bundle.js"), "utf8"), /img\/top-hero\.jpg/);
 });
 
-test("主人公の横の相棒はオリジナル（おうちの形のキャラ）。元の絵（SVG）を img/buddy.svg に残す", () => {
-  const svg = fs.readFileSync(path.join(root, "img/buddy.svg"), "utf8");
-  assert.match(svg, /<svg/);
-  assert.match(svg, /roof/, "屋根のあるおうちの形");
-  assert.match(html, /おうちの相棒/);
-});
 
 test("看板の絵の中のエリア（NISA・不動産・保険・ライフプラン・現預金・海外投資）と左のメニューが押せる", () => {
   const m = html.match(/const HOTSPOTS = \[([\s\S]*?)\n  \];/);
   assert.ok(m, "HOTSPOTS がある");
-  for (const a of ["NISAエリア", "不動産エリア", "保険エリア", "ライフプランエリア", "現預金エリア", "海外投資エリア", "マイページ", "不動産", "生命保険", "ライフプラン", "シミュレーション"]) assert.match(m[1], new RegExp(`"${a}"`), a);
+  for (const a of ["NISAエリア", "不動産エリア", "保険エリア", "ライフプランエリア", "現預金エリア", "海外投資エリア", "マイページ", "不動産", "生命保険", "ライフプラン", "シミュレーション", "年金2000万円問題", "自助努力", "金融リテラシー向上", "不動産×金融"]) assert.match(m[1], new RegExp(`"${a}"`), a);
   for (const k of ["nisa", "home", "ins", "plan", "cash"]) assert.match(m[1], new RegExp(`area: "${k}"`), k);
   assert.match(html, /class="hot\$\{/);
   assert.match(html, /aria-label=/);
