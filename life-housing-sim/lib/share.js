@@ -8,7 +8,7 @@
   "use strict";
   const NULLABLE = new Set(["family.marryAge"]);
   // 文字の項目は決まった選択肢だけ受け付ける
-  const ENUMS = { "own.kind": ["new_cert", "new_zeh", "new_energy", "used_zeh", "used_energy", "used_other", "none"] };
+  const ENUMS = { job: ["employee", "self"], "own.kind": ["new_cert", "new_zeh", "new_energy", "used_zeh", "used_energy", "used_other", "none"] };
   const MAX = 1e9; // ありえない金額は受け付けない
   const b64e = (s) => (typeof btoa === "function" ? btoa(s) : Buffer.from(s, "binary").toString("base64")).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const b64d = (s) => {
