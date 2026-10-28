@@ -246,6 +246,11 @@
   @media (hover:none) { #tophero #heroGo { border-color:rgba(243,213,140,.55); } }
   body.present #tophero, body.deck-view #tophero, body.proposal-view #tophero, body.form-closed:not(.home-view) #tophero { display:none; }
   @media print { #tophero { display:none !important; } }
+  /* 入力の画面：説明文は看板の枠の中（ボタンの下）に入れ、紺の帯（header）は出さない。説明の画面・Zoom・資料・提案書では今までどおり header */
+  body:not(.form-closed):not(.present):not(.deck-view):not(.proposal-view) > header { display:none; }
+  #heroCap { line-height:1.6; text-align:left; color:#eef2fa; padding:10px 16px 14px; width:min(100%, 1280px, 125vh); margin:0 auto; box-sizing:border-box; border-top:1px solid rgba(243,213,140,.25); }
+  #heroCap h1 { margin:0 0 2px; font-size:19px; letter-spacing:.05em; color:#f3d58c; } #heroCap p { margin:0; font-size:13px; opacity:.85; }
+  body.home-view #heroCap { display:none; }
   body.home-view header, body.home-view main, body.home-view .pbar { display:none !important; }
   body.home-view { background:#071229; }
   body.home-view #home { display:block; min-height:100vh; color:#eef2fa;
@@ -414,7 +419,7 @@
 <section id="home"></section>
 <header>
   <h1>LIFE ROUTE <small style="font-size:13px;font-weight:400;opacity:.85">ライフルート</small></h1>
-  <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑧ の同じ順番で説明します（概算・通信なし・保存なし）</p>
+  <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑧ の同じ順番で説明します（概算・通信なし。保存はこの端末の中だけ）</p>
 </header>
 <main>
   <section class="panel formbar" id="formbar"><span id="fbText"></span><button id="fbOpen">条件を変える</button><button id="fbCust">保存したお客様</button></section>
@@ -1273,6 +1278,7 @@
   // スマホでは絵が小さいので、看板の下に大きなボタンの列（行き先は絵のボタンと同じ）
   $("tophero").insertAdjacentHTML("beforeend", `<div id="heroLinks"><button class="primary" data-go="start">はじめる ›</button>${HOTSPOTS.map((h, i) => [h, i]).filter(([h]) => h.quick)
     .map(([h, i]) => `<button data-h="${i}">${esc(h.label.replace(/エリア$/, ""))}</button>`).join("")}</div>`);
+  $("tophero").insertAdjacentHTML("beforeend", `<div id="heroCap">${document.querySelector("header").innerHTML}</div>`); // 説明文を看板の枠の中へ（入力の画面）
   $("heroLinks").querySelectorAll("button").forEach((b) => (b.onclick = () => (b.dataset.go ? $("heroGo").click() : hotGo(HOTSPOTS[+b.dataset.h]))));
   $("hwrap").querySelectorAll(".hot[data-h]").forEach((b) => (b.onclick = () => hotGo(HOTSPOTS[+b.dataset.h])));
   function hotGo(h) {
