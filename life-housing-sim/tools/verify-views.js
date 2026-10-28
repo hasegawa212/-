@@ -79,6 +79,24 @@ const errs = [], ok = (c, msg) => { if (!c) errs.push(msg); };
     for (const v of want) { ok(zt.includes(v), `${name}：Zoom に ${v} がない`); ok(dt.includes(v), `${name}：資料に ${v} がない`); ok(pt.includes(v), `${name}：PDF に ${v} がない`); }
     console.log(`${name}：iPhone 10画面・Zoom 10画面＋資料${n}枚・PDF ${pages}ページ を確認`);
   }
+  // ── iPhone：はじめて開いたときは1問ずつ（独身・社宅・家族それぞれ最後まで進めて説明が始まる）
+  for (const k of ["single", "shataku", "family"]) {
+    const w = await b.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    w.on("pageerror", (e) => errs.push(`1問ずつ JSエラー：${e.message}`));
+    await w.goto(file); await w.waitForTimeout(300);
+    await w.tap(`.wopts button[data-p="${k}"]`); await w.waitForTimeout(250);
+    let n = 0;
+    while (await w.$(".wsel, .wopts button[data-i]")) {
+      const sw = await w.evaluate(() => document.documentElement.scrollWidth); ok(sw <= 390, `1問ずつ ${k}：横スクロール ${sw}px`);
+      if (await w.$(".wsel")) await w.selectOption(".wsel", { index: 3 }); else await w.tap(".wopts button >> nth=1");
+      await w.waitForTimeout(250); if (++n > 20) break;
+    }
+    ok(n === S.askFields(S.preset(k)).length, `1問ずつ ${k}：質問が ${n} 問（${S.askFields(S.preset(k)).length} 問のはず）`);
+    await w.tap("#wizNext"); await w.waitForTimeout(150); await w.tap("#wizStart"); await w.waitForTimeout(250);
+    ok(await w.evaluate(() => document.body.classList.contains("form-closed") && /^¥/.test(document.querySelector('#steps .step[style*="block"] h2').textContent)), `1問ずつ ${k}：最後に説明が始まらない`);
+    await w.close();
+  }
+  console.log("1問ずつの入力：独身・社宅・家族 を最後まで確認");
   await b.close();
   if (errs.length) { console.error("NG\n- " + errs.join("\n- ")); process.exit(1); }
   console.log("OK：3つの見せ方とも問題なし");

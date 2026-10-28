@@ -52,3 +52,11 @@ test("共有リンクには、お客様ごとの項目を初期値と同じで�
   assert.match(html2(), /keep: need\(\)\.length \? \[\] : S\.askFields\(state\)/);
 });
 function html2() { return fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8"); }
+
+test("はじめて開いたときの入力は1問ずつ：タイプ → お客様ごとの項目 → お名前（任意）→ 確認して説明を始める", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  assert.match(html, /const wizSteps = \(\) => \["type", \.\.\.S\.askFields\(state\), "name", "done"\]/);
+  for (const k of [...S.ASK_FIELDS, "shataku.self", "shataku.until"]) assert.match(html, new RegExp(`"?${k.replace(".", "\\.")}"?: "[^"]+？"`), `${k} の質問文`);
+  assert.match(html, /let wizOn = need\(\)\.length > 0/, "空の項目があるときだけ1問ずつ");
+  assert.match(html, /詳しい条件も見る/);
+});
