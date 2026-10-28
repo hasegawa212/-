@@ -12,7 +12,7 @@ test("トップの看板：画像があり、本文（ヘッダー・トップ�
   const i = html.indexOf('id="tophero"');
   assert.ok(i > 0 && i < html.indexOf('<section id="home">') && i < html.indexOf("<header>"));
   assert.match(html, /src="img\/top-hero\.jpg"/);
-  assert.match(html, /id="tophero"><img src="img\/top-hero\.jpg" alt="[^"]*GOAL[^"]*"/);
+  assert.match(html, /id="tophero"><div class="hwrap" id="hwrap"><img src="img\/top-hero\.jpg" alt="[^"]*GOAL[^"]*"/);
 });
 
 test("看板は説明・資料・提案書・画面共有・印刷では出さない（お客様に見せる画面を邪魔しない）", () => {
@@ -29,4 +29,13 @@ test("主人公の横の相棒はオリジナル（おうちの形のキャラ�
   assert.match(svg, /<svg/);
   assert.match(svg, /roof/, "屋根のあるおうちの形");
   assert.match(html, /おうちの相棒/);
+});
+
+test("看板の絵の中のエリア（NISA・不動産・保険・ライフプラン・現預金・海外投資）と左のメニューが押せる", () => {
+  const m = html.match(/const HOTSPOTS = \[([\s\S]*?)\n  \];/);
+  assert.ok(m, "HOTSPOTS がある");
+  for (const a of ["NISAエリア", "不動産エリア", "保険エリア", "ライフプランエリア", "現預金エリア", "海外投資エリア", "マイページ", "不動産", "生命保険", "ライフプラン", "シミュレーション"]) assert.match(m[1], new RegExp(`"${a}"`), a);
+  for (const k of ["nisa", "home", "ins", "plan", "cash"]) assert.match(m[1], new RegExp(`area: "${k}"`), k);
+  assert.match(html, /class="hot\$\{/);
+  assert.match(html, /aria-label=/);
 });

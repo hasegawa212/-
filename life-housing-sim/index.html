@@ -169,9 +169,15 @@
   /* ───── トップページ（LIFE ROUTE・お客様が主人公） ───── */
   #home { display:none; }
   #tophero { position:relative; background:#071229; text-align:center; line-height:0; }
-  #tophero img { width:min(100%, 1280px, 125vh); height:auto; display:block; margin:0 auto; } /* 縦は画面の約7割まで：下を切らず、主人公と相棒まで見せる */
-  #tophero button { position:absolute; left:50%; bottom:5%; transform:translateX(-50%); line-height:1.2; padding:12px 34px; font-size:18px; font-weight:800; color:#1b2440; background:linear-gradient(#f3d58c,#c9a24f); border:none; border-radius:999px; box-shadow:0 4px 18px rgba(0,0,0,.45); cursor:pointer; }
-  @media (max-width:600px) { #tophero button { font-size:14px; padding:7px 18px; bottom:4%; left:34%; } }
+  #tophero .hwrap { position:relative; width:min(100%, 1280px, 125vh); margin:0 auto; } /* 縦は画面の約7割まで：下を切らず、主人公と相棒まで見せる */
+  #tophero img { width:100%; height:auto; display:block; }
+  /* 絵の中のエリア・メニューの上に重ねる透明ボタン（押すとそのステップへ） */
+  #tophero .hot { position:absolute; padding:0; background:transparent; border:2px solid transparent; border-radius:10px; cursor:pointer; transition:border-color .15s, box-shadow .15s, background .15s; }
+  #tophero .hot:hover, #tophero .hot:focus-visible { border-color:#f3d58c; box-shadow:0 0 0 3px rgba(243,213,140,.35), 0 0 18px rgba(243,213,140,.55); background:rgba(243,213,140,.08); outline:none; }
+  @media (hover:none) { #tophero .hot.ha { border-color:rgba(243,213,140,.55); } } /* スマホ：押せるエリアに薄い枠 */
+  #tophero .hot:active { background:rgba(243,213,140,.22); }
+  #heroGo { position:absolute; left:50%; bottom:5%; transform:translateX(-50%); line-height:1.2; padding:12px 34px; font-size:18px; font-weight:800; color:#1b2440; background:linear-gradient(#f3d58c,#c9a24f); border:none; border-radius:999px; box-shadow:0 4px 18px rgba(0,0,0,.45); cursor:pointer; }
+  @media (max-width:600px) { #heroGo { font-size:14px; padding:7px 18px; bottom:4%; left:34%; } }
   body.present #tophero, body.deck-view #tophero, body.proposal-view #tophero, body.form-closed:not(.home-view) #tophero { display:none; }
   @media print { #tophero { display:none !important; } }
   body.home-view header, body.home-view main, body.home-view .pbar { display:none !important; }
@@ -338,7 +344,7 @@
 </style>
 </head>
 <body>
-<section id="tophero"><img src="img/top-hero.jpg" alt="人生のすべてのステージに、最高のパートナーを。NISA・不動産・保険・ライフプラン・海外投資・現預金のエリアをめぐり、GOALへ向かう道のり。主人公の横には、鍵を持ったおうちの相棒（イメージ）"><button id="heroGo">はじめる ›</button></section>
+<section id="tophero"><div class="hwrap" id="hwrap"><img src="img/top-hero.jpg" alt="人生のすべてのステージに、最高のパートナーを。NISA・不動産・保険・ライフプラン・海外投資・現預金のエリアをめぐり、GOALへ向かう道のり。主人公の横には、鍵を持ったおうちの相棒（イメージ）"><button id="heroGo">はじめる ›</button></div></section>
 <section id="home"></section>
 <header>
   <h1>LIFE ROUTE <small style="font-size:13px;font-weight:400;opacity:.85">ライフルート</small></h1>
@@ -1022,6 +1028,35 @@
   $("all").onclick = () => { all = !all; render(); };
   $("print").onclick = () => { all = true; render(); window.print(); };
   $("toHome").onclick = openHome;
+  // 看板の絵の中のエリアと左のメニュー（座標は絵の中の位置・1100×626 を基準）。area＝トップページの同じエリアと同じステップを開く
+  const HOTSPOTS = [
+    { label: "NISAエリア", box: [295, 182, 470, 280], area: "nisa" },
+    { label: "不動産エリア", box: [595, 152, 772, 245], area: "home" },
+    { label: "保険エリア", box: [848, 210, 1035, 305], area: "ins" },
+    { label: "ライフプランエリア", box: [865, 338, 1080, 432], area: "plan" },
+    { label: "海外投資エリア", box: [240, 420, 418, 515], area: "nisa" },
+    { label: "現預金エリア", box: [922, 477, 1085, 570], area: "cash" },
+    { label: "マイページ", box: [0, 102, 210, 148], go: "home" },
+    { label: "資産マップ", box: [0, 152, 210, 196], go: "home" },
+    { label: "ポートフォリオ", box: [0, 198, 210, 240], area: "nisa" },
+    { label: "不動産", box: [0, 244, 210, 286], area: "home" },
+    { label: "NISA・投資信託", box: [0, 290, 210, 332], area: "nisa" },
+    { label: "生命保険", box: [0, 336, 210, 378], area: "ins" },
+    { label: "ライフプラン", box: [0, 383, 210, 425], area: "plan" },
+    { label: "シミュレーション", box: [0, 430, 210, 472], step: 0 },
+    { label: "設定", box: [0, 570, 210, 612], go: "form" },
+  ];
+  $("hwrap").insertAdjacentHTML("beforeend", HOTSPOTS.map((h, i) => { const [x1, y1, x2, y2] = h.box;
+    return `<button class="hot${/エリア$/.test(h.label) ? " ha" : ""}" data-h="${i}" aria-label="${esc(h.label)}を開く" title="${esc(h.label)}" style="left:${(x1 / 11).toFixed(2)}%;top:${(y1 / 6.26).toFixed(2)}%;width:${((x2 - x1) / 11).toFixed(2)}%;height:${((y2 - y1) / 6.26).toFixed(2)}%"></button>`; }).join(""));
+  $("hwrap").querySelectorAll(".hot").forEach((b) => (b.onclick = () => {
+    const h = HOTSPOTS[+b.dataset.h];
+    if (h.go === "form") { document.body.classList.remove("home-view"); return openForm(); }
+    if (guard()) return; // 入力がまだなら入力へ（見本の数字は出さない）
+    if (h.go === "home") return openHome();
+    closeForm();
+    if (h.area) return openStep(S.home(S.compute(state), missionDone, meta).areas.find((a) => a.key === h.area).step);
+    openStep(h.step);
+  }));
   // トップの看板の「はじめる」：入力がまだなら入力へ、済んでいればトップページの中身へ
   $("heroGo").onclick = () => { const t = document.body.classList.contains("home-view") ? $("home") : need().length ? $("form").querySelector("label.need select") || $("form") : $("form"); t.scrollIntoView({ behavior: "smooth", block: need().length ? "center" : "start" }); };
   buildForm(); if (opened.present) document.body.classList.add("present");
