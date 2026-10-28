@@ -37,6 +37,11 @@ index.html をダブルクリック（または dist/ライフルート.html を
 - お客様名・会社名・担当者・電話は左の「提案書」欄で入力（共有リンクや保存には入りません）
 - 中身は `lib/engine.js` の `proposal(x, meta)`（テストあり）。画面は表示だけ
 
+## ホーム画面に追加（アイコン）
+- iPhone：Safari で開く → 共有ボタン →「ホーム画面に追加」→ 名前は「ライフルート」、アイコンはコンパスの LIFE ROUTE
+- Android：Chrome のメニュー →「ホーム画面に追加」（`manifest.webmanifest`）
+- 画像：`img/icon-180.png`（iPhone）・`icon-192/512.png`（Android）・`icon-32.png`（タブ）
+
 ## iPhone・Zoom・PDF（同じ計算、3つの見せ方）
 - **iPhone**：入力は縦1列、説明中は下に進み具合と「前へ・次へ」を固定。計算の前提は折りたたみ
 - **Zoom**：「画面共有モード（Zoom）」または「お客様に見せる資料（16:9）」→「1枚ずつ見せる」。入力・営業マン用のメモは出ません
