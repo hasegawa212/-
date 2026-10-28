@@ -561,61 +561,71 @@
     ];
   }
 
-  // 営業マンがお客様に見せる資料（16:9 スライド）：表紙 → ¥・⓪〜⑧（説明と同じ順番）→ 次の一歩
-  // お客様が見る面は「見出し・一言・大きな数字・図」。話すこと・質問（talk の say/ask）は営業マン用のノートに分ける
+  // 営業マンがお客様に見せる資料（16:9）＝「賃貸より、購入。」をお客様の数字で示す
+  // 表紙 → 固定費 → 結論 → 理由（1枚に1つ）→ 待つと → 親御さまの頃 → 注意点 → 進め方 → 次の一歩
+  // 理由はすべて compute の数字。持ち家が有利な項目だけ「理由1・2…」と番号。数字が合わない人には「おすすめ」と書かない
+  // お客様が見る面＝見出し・一言・大きな数字・図。話すこと・質問は営業マン用ノート（talk の文を使う）
   function deck(x, meta = {}) {
-    const i = x.input, t = talk(x), fc = fixedCost(x), rc = recommend(x), g = gate(x), P = proposal(x, meta);
-    const w5 = x.wait[3] || x.wait[x.wait.length - 1], name = meta.customer && String(meta.customer).trim();
+    const i = x.input, t = talk(x), fc = fixedCost(x), rc = recommend(x), g = gate(x), bb = bubble(x), P = proposal(x, meta);
+    const buy = rc.verdict !== "prepare", w5 = x.wait[3] || x.wait[x.wait.length - 1], name = meta.customer && String(meta.customer).trim();
     const k = (label, value, sub = "", tone = "") => ({ label, value, sub, tone });
-    const by = {
-      "¥": { headline: "節約するなら、いちばん大きな固定費から", visual: "fixed",
-        lead: fc.rent ? `毎月の家賃は手取りの約${Math.round(fc.share * 100)}%。家賃は、オーナーのローンの返済や将来の備えにもなっています。` : "今は家賃なし。家を出ると、いちばん大きな固定費＝家賃が始まります。",
-        kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", fc.rent ? `手取りの約${Math.round(fc.share * 100)}%` : "実家など", "rent"),
-          k(fc.to65 ? `${i.retireAge}歳まで払い続けると` : `${i.lifeEnd}歳までの家賃`, man(fc.to65 || fc.toEnd), `${i.lifeEnd}歳までで ${man(fc.toEnd)}`, "rent")],
-        points: ["家賃は住まいの対価。受け取った家賃は、オーナーのローンの返済・管理・修繕・税金にあてられます", "同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか"] },
-      "⓪": { headline: "あなたのお金の全体像", visual: "portfolio",
-        lead: `これから一生で入ってくるお金は約 ${man(x.income.total)}。住まいは、その中でいちばん大きな支出です。`,
-        kpis: [k("一生で入ってくるお金", man(x.income.total), `給料＋年金`), k("住まいに使う割合（賃貸のまま）", Math.round(x.income.housingShare.rent * 100) + "%", "", "rent"), k("住まいに使う割合（持ち家）", Math.round(x.income.housingShare.own * 100) + "%", "", "own")],
-        points: [] },
-      "①": { headline: "これからの暮らしの段階", visual: "stages",
-        lead: `家賃は一生続きます。${i.retireAge}歳を過ぎても、${i.lifeEnd}歳まで住まいは必要です。`,
-        kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", "", "rent"), k("老後の家賃（毎月）", i.rent.old ? man(i.rent.old, 1) : "なし", `${x.old.years}年続く`, "rent")],
-        points: [`今から${i.lifeEnd}歳まで、家賃だけで ${man(fc.toEnd)}（更新料こみ）`, i.family.marryAge == null ? "持ち家なら、結婚しても住み続ける・貸す・売るを選べます" : "お子さまが生まれると広い部屋が必要になり、家賃も上がります"] },
-      "②": { headline: "一生でかかる住まいのお金", visual: "life",
-        lead: `今から${i.lifeEnd}歳まで、税金・保険・修繕まで入れて比べました。持ち家は住宅ローン控除で税金が戻ります。`,
-        kpis: [k("一生の住居費（賃貸のまま）", man(x.life.rent), "", "rent"), k("一生の住居費（持ち家）", man(x.life.own), `${i.retireAge}歳に家が残る（横ばい ${man(x.value65.flat)}）`, "own"), k("住宅ローン控除で戻る税金", man(x.credit.total), "", "own")],
-        points: [] },
-      "③": { headline: `${i.retireAge}歳からの${x.old.years}年`, visual: "old",
-        lead: `${i.retireAge}歳からは年金が中心。賃貸のままだと、年金から家賃を払い続けます。`,
-        kpis: [k("年金（概算・毎月）", man(x.pension.monthly, 1)), k("毎月の不足（賃貸のまま）", man(x.old.rent.gapMonthly, 1), "", "rent"), k("毎月の不足（持ち家）", man(x.old.own.gapMonthly, 1), `${x.loan.endAge}歳で完済`, "own")],
-        points: [] },
-      "④": { headline: "持たないなら、いくら準備が必要か", visual: "prepare",
-        lead: `賃貸のままなら、老後の家賃のぶんを${i.retireAge}歳までに準備しておく必要があります。`,
-        kpis: [k(`${i.retireAge}歳までに準備（賃貸のまま）`, man(x.prepare.rentNeed), `毎月 ${man(x.prepare.monthlyRent, 1)} の積立`, "rent"), k(`${i.retireAge}歳までに準備（持ち家）`, man(x.prepare.ownNeed), `毎月 ${man(x.prepare.monthlyOwn, 1)} の積立`, "own")],
-        points: [] },
-      "⑤": { headline: "もしものとき（団信と保険）", visual: "danshin",
-        lead: "住宅ローンには団体信用生命保険（団信）。万一のとき、残りのローンは保険で返済されます。",
-        kpis: [k("万一のとき残るローン", man(0), "団信", "own"), k("老後の賃貸の入居審査", Math.round(x.screening.rent.ratioOld * 100) + "%", "家賃÷年金（目安 33%以内）", "rent"), k("金利が1%上がったら（毎月）", man(x.whatIf.rateUpPmt, 1), `今の計画 ${man(x.whatIf.pmt, 1)}`)],
-        points: [] },
-      "⑥": { headline: "まず「できるか」を確かめる", visual: "gate",
-        lead: "住宅ローンを決めるのは金融機関。やるか・やらないかの前に、事前審査で「できるか」を確かめます。",
-        kpis: [k("審査が通るのは（当社の目安）", `${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人`), k("事前審査", "無料", "購入の義務はありません")],
-        points: [g.verdict] },
-      "⑦": { headline: "賃貸と購入、どちらがいいか", visual: "recommend",
-        lead: rc.headline.length <= 80 ? rc.headline : rc.headline.slice(0, rc.headline.indexOf("。") + 1),
-        kpis: rc.reasons.slice(0, 2).map((r) => k(r.label.replace(/（.*）/, ""), r.key === "old" ? man(r.own, 1) : man(r.own), `賃貸のまま ${r.key === "old" ? man(r.rent, 1) : man(r.rent)}`, "own")),
-        points: rc.cautions },
-      "⑧": { headline: "「今はいい」と思ったら", visual: "wait",
-        lead: "待つのも選択肢。待つ理由と、待つ間に払う家賃・遅れる完済年齢を知ったうえで決めましょう。",
-        kpis: w5 ? [k(`${w5.years}年待つ間の家賃`, man(w5.rentWhileWaiting), "", "rent"), k("完済の年齢", `${w5.payoffAge}歳`, `今なら ${x.loan.endAge}歳`)] : [k("毎月の返済", man(x.loan.pmt, 1)), k("完済の年齢", `${x.loan.endAge}歳`)],
-        points: [] },
-    };
-    const slides = [{ kind: "cover", title: APP.name, kana: APP.kana, tagline: APP.tagline,
-      to: name ? name + " 様" : "", from: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : ""].filter(Boolean).join("　"), date: meta.date || "", profile: P.cover.profile }];
-    t.forEach((s, n) => { const m = s.title.slice(0, 1); slides.push({ kind: "step", step: n, mark: m, ...by[m], notes: { say: s.say, ask: s.ask } }); });
-    slides.push({ kind: "next", headline: "次の一歩", steps: P.pages[3].nextSteps,
+    const by = (mark) => t.find((s) => s.title.startsWith(mark)) || t[0];
+    const note = (mark) => ({ say: by(mark).say, ask: by(mark).ask });
+    const R = Object.fromEntries(rc.reasons.map((r) => [r.key, r]));
+    let n = 0;
+    const reason = (key, yes, no) => { const r = R[key], f = buy && r.favorOwn; return { reason: f, headline: f ? `理由${++n}　${yes}` : no }; };
+    const slides = [];
+    const step = (key, o) => slides.push({ kind: "step", key, points: [], reason: false, ...o });
+    slides.push({ kind: "cover", key: "cover", title: APP.name, kana: APP.kana, tagline: APP.tagline,
+      headline: buy ? "家賃を払い続けるより、自分の家を。" : "賃貸と購入、数字でくらべました",
+      to: name ? name + " 様" : "", from: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : ""].filter(Boolean).join("　"), date: meta.date || "", profile: P.cover.profile });
+    step("fixed", { headline: "節約するなら、いちばん大きな固定費から", visual: "fixed",
+      lead: fc.rent ? `毎月の家賃は手取りの約${Math.round(fc.share * 100)}%。その家賃は、オーナーのローンの返済や将来の備えになっています。` : "今は家賃なし。家を出ると、いちばん大きな固定費＝家賃が始まります。",
+      kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", fc.rent ? `手取りの約${Math.round(fc.share * 100)}%` : "実家など", "rent"),
+        k(fc.to65 ? `${i.retireAge}歳まで払い続けると` : `${i.lifeEnd}歳までの家賃`, man(fc.to65 || fc.toEnd), `${i.lifeEnd}歳までで ${man(fc.toEnd)}`, "rent")],
+      points: ["家賃は住まいの対価。受け取った家賃は、オーナーのローンの返済・管理・修繕・税金にあてられます", "同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか"], notes: note("¥") });
+    step("conclusion", { headline: buy ? "結論：あなたには、購入をおすすめします" : "結論：今は賃貸のまま、準備を進めましょう", visual: "recommend",
+      lead: buy ? `持ち家が有利な項目が${rc.favor}つ。${rc.verdict === "buy" ? "まず事前審査で、この計画が通るか確かめましょう。" : "△の項目を見直し、事前審査で確かめてから進めましょう。"}` : `持ち家が有利な項目は${rc.favor}つ。条件（買う年齢・価格・頭金）が変われば、もう一度くらべます。`,
+      kpis: [k("持ち家が有利な項目", `4つ中${rc.favor}つ`, "", buy ? "own" : ""), k("毎月の返済（持ち家）", man(x.loan.pmt, 1), `${x.loan.buyAge}歳で買い ${x.loan.endAge}歳で完済`, "own")],
+      notes: note("⑦") });
+    const life = R.life;
+    step("life", { ...reason("life", "一生の住居費は、持ち家のほうが少ない", "くらべ：一生の住居費"), visual: "life",
+      lead: `${i.lifeEnd}歳までの住居費を、税金・保険・修繕まで入れて比べました。持ち家は${i.retireAge}歳に残る家の価値を差し引いた実質です。`,
+      kpis: [k("賃貸のまま", man(life.rent), "", "rent"), k("持ち家（実質）", man(life.own), `総額 ${man(x.life.own)}−家の価値 ${man(x.value65.flat)}`, "own")], notes: note("②") });
+    step("old", { ...reason("old", "老後の毎月が、ぐっと楽になる", "くらべ：老後の毎月"), visual: "old",
+      lead: `${i.retireAge}歳からは年金が中心。持ち家は返済が終われば家賃がかからず、毎月の不足が小さくなります。`,
+      kpis: [k("毎月の不足（賃貸のまま）", man(R.old.rent, 1), "", "rent"), k("毎月の不足（持ち家）", man(R.old.own, 1), `${x.loan.endAge}歳で完済`, "own"), k("年金（概算・毎月）", man(x.pension.monthly, 1))], notes: note("③") });
+    step("asset", { ...reason("asset", `${i.retireAge}歳に、家という資産が残る`, `くらべ：${i.retireAge}歳の資産`), visual: "portfolio",
+      lead: `家賃は払えば終わりですが、返済は家として残ります。${i.retireAge}歳の資産（預貯金・NISA・家の価値−残りのローン）を比べました。`,
+      kpis: [k(`${i.retireAge}歳の資産（賃貸のまま）`, man(R.asset.rent), "", "rent"), k(`${i.retireAge}歳の資産（持ち家）`, man(R.asset.own), `うち家 ${man(x.portfolio.at65.own.realEstate)}`, "own")], notes: note("⓪") });
+    step("prepare", { ...reason("prepare", "老後に向けて準備するお金が少なくてすむ", "くらべ：老後への準備"), visual: "prepare",
+      lead: `賃貸のままなら、老後の家賃のぶんも${i.retireAge}歳までに準備が必要です。持ち家なら、その準備が少なくてすみます。`,
+      kpis: [k(`${i.retireAge}歳までに準備（賃貸のまま）`, man(R.prepare.rent), `毎月 ${man(x.prepare.monthlyRent, 1)} の積立`, "rent"), k(`${i.retireAge}歳までに準備（持ち家）`, man(R.prepare.own), `毎月 ${man(x.prepare.monthlyOwn, 1)} の積立`, "own")], notes: note("④") });
+    step("danshin", { reason: buy, headline: buy ? `理由${++n}　もしものときも、ローンは残らない` : "もしものとき（団信と保険）", visual: "danshin",
+      lead: "住宅ローンには団体信用生命保険（団信）。万一のとき残りのローンは保険で返済され、住まいが残ります。",
+      kpis: [k("万一のとき残るローン", man(0), "団信", "own"), k("老後の賃貸の入居審査", Math.round(x.screening.rent.ratioOld * 100) + "%", "家賃÷年金（目安 33%以内）", "rent")], notes: note("⑤") });
+    step("credit", { reason: buy && x.credit.total > 0, headline: buy && x.credit.total > 0 ? `理由${++n}　住宅ローン控除で、税金が戻る` : "住宅ローン控除", visual: "credit",
+      lead: x.credit.total > 0 ? `買った年から${x.credit.years}年間、払った所得税・住民税の一部が戻ります（${x.credit.label}）。` : "この物件の種類では、住宅ローン控除の対象外です。",
+      kpis: [k("戻る税金（合計・概算）", man(x.credit.total), `${x.credit.years}年間`, "own"), k("1年目", man(x.credit.rows[0] ? x.credit.rows[0].actual : 0), "所得税→住民税の順", "own")], notes: { say: `住宅ローン控除は、ローンの残高の0.7%を上限に、払った所得税と住民税から戻る仕組みです。この計画だと${x.credit.years}年間で約${man(x.credit.total)}。払った税金より多くは戻らないので、年収に合わせて計算しています。`, ask: "源泉徴収票の所得税の額を、あとで一緒に確認させてください。" } });
+    step("wait", { headline: "待つと、家賃が出ていき、完済が遅れる", visual: "wait",
+      lead: w5 ? `待つのも選択肢です。ただ${w5.years}年待つと、その間の家賃 ${man(w5.rentWhileWaiting)}が出ていき、完済は${w5.payoffAge}歳に。` : "待つ理由と、待つ間に払う家賃を知ったうえで決めましょう。",
+      kpis: w5 ? [k(`${w5.years}年待つ間の家賃`, man(w5.rentWhileWaiting), "", "rent"), k("完済の年齢", `${w5.payoffAge}歳`, `今なら ${x.loan.endAge}歳`)] : [k("毎月の返済", man(x.loan.pmt, 1)), k("完済の年齢", `${x.loan.endAge}歳`)], notes: note("⑧") });
+    step("bubble", { headline: "親御さまの頃とは、金利も買い方も違う", visual: "bubble",
+      lead: `同じ ${man(x.loan.amount)}・${i.own.years}年でも、1990年前後の金利 8.5%なら毎月 ${man(bb.bank, 1)}。今の計画は ${man(bb.now, 1)}です。`,
+      kpis: [k("1990年前後（8.5%）", man(bb.bank, 1), "毎月", "rent"), k(`今の計画（${(i.own.rate * 100).toFixed(1)}%）`, man(bb.now, 1), "毎月", "own")],
+      points: ["当時は値上がりを見込んだ買い方が多かった。今回は値上がりをあてにせず、住むために払える範囲で考えます", "値下がりもありうるので、次の注意点も一緒に確認します"],
+      notes: { say: "ご両親が心配されるのは当然です。当時は金利が高く、値上がりを見込んで買う方が多かった時代でした。今回は、値上がりをあてにせず、住むために払える範囲で考えています。", ask: "親御さまにも見ていただけるよう、この資料をお渡ししましょうか。" } });
+    step("cautions", { headline: "購入する前に、確認しておくこと", visual: "none",
+      lead: "良いことだけでなく、注意点もお伝えします。どれも数字で確認しておけば備えられます。",
+      kpis: [k("金利が1%上がったら（毎月）", man(x.whatIf.rateUpPmt, 1), `今の計画 ${man(x.whatIf.pmt, 1)}`), k(`${i.retireAge}歳の家の価値（下落した場合）`, man(x.value65.down), `横ばい ${man(x.value65.flat)}`)],
+      points: rc.cautions, notes: { say: "購入には注意点もあります。金利が上がる、修繕や税金がかかる、家の値段が下がることもある。賃貸のまま差額を運用し続けられれば、資産が増える場合もあります。ここまで知ったうえで決めていただきたいです。", ask: "この中で、いちばん気になる点はどれですか。" } });
+    step("steps", { headline: "進め方：まず「できるか」を確かめる", visual: "gate",
+      lead: "住宅ローンを決めるのは金融機関。やるか・やらないかの前に、事前審査で「できるか」を確かめます。",
+      kpis: [k("審査が通るのは（当社の目安）", `${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人`), k("事前審査", "無料", "購入の義務はありません")],
+      points: [g.verdict], notes: note("⑥") });
+    slides.push({ kind: "next", key: "next", headline: "次の一歩", steps: P.pages[3].nextSteps,
       contact: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"), notes: NOTES.slice(0, 4) });
-    return { slides };
+    return { slides, verdict: rc.verdict };
   }
 
   // お客様にお渡しする提案書（A4・4ページ）。数字はすべて compute の結果から
