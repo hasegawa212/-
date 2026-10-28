@@ -536,7 +536,7 @@
   // ¥ いちばん大きな固定費：賃貸の仕組みの絵 ＋ お客様の家賃の数字（絵の「毎月の家賃」がこの金額）
   function fixedView(x) {
     const f = S.fixedCost(x), pct = Math.max(0, Math.min(100, Math.round(f.share * 100))), i = x.input;
-    return `<div class="two fixed"><div class="rentimg"><img src="img/rent-mechanism.jpg" alt="賃貸の仕組み：入居者は毎月の家賃を払い、オーナーは住まいを提供する。家賃はオーナーのローンの返済、管理・修繕・税金にあてられ、残りがオーナーの収益になる"><span class="hint">絵を押すと大きく表示</span></div>
+    return `<div class="two fixed"><div class="rentimg"><img src="${S.rentImage(x).src}" alt="${esc(S.rentImage(x).alt)}"><span class="hint">絵を押すと大きく表示</span></div>
       <div style="min-width:0"><div class="kpis"><div class="kpi rent"><span>いちばん大きな固定費（今の家賃）</span><b>${f.rent ? man(f.rent, 1) : "なし"}</b><span>${f.rent ? `毎月・手取りの約${pct}%` : "実家など・家を出ると始まる"}</span></div>
         <div class="kpi rent"><span>${f.to65 ? `${i.retireAge}歳まで払い続けると` : `${i.lifeEnd}歳までに払う家賃`}</span><b>${man(f.to65 || f.toEnd)}</b><span>${f.to65 ? `${i.lifeEnd}歳までで ${man(f.toEnd)}` : "家を出たあとの家賃"}</span></div></div>
         <div class="takebar" title="手取り（概算）毎月 ${man(f.takeHome, 1)}"><i style="width:${pct}%"></i><span>家賃 ${pct}%</span><em>手取り（概算）毎月 ${man(f.takeHome, 1)}</em></div>
