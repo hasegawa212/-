@@ -31,6 +31,19 @@
   .form h2:first-child { margin-top:0; }
   label { display:grid; grid-template-columns:1fr 150px; gap:8px; align-items:center; font-size:13px; margin:5px 0; }
   select { max-width:150px; }
+  /* 1問ずつの入力 */
+  .wiz .wtop { display:flex; align-items:center; gap:10px; font-size:13px; color:var(--sub); margin-bottom:12px; } .wiz .wtop span { white-space:nowrap; }
+  .wiz .wbar { flex:1; height:6px; background:#e6e9ee; border-radius:3px; overflow:hidden; } .wiz .wbar i { display:block; height:100%; background:var(--gold); }
+  .wiz .wq { font-size:22px; margin:6px 0 4px; border:none; padding:0; color:var(--navy); }
+  .wiz .wh { font-size:14px; color:var(--sub); margin:0 0 14px; line-height:1.6; }
+  .wiz .wopts { display:grid; grid-template-columns:repeat(auto-fill, minmax(130px, 1fr)); gap:8px; } .wiz .wopts.w1 { grid-template-columns:1fr; }
+  .wiz .wopts button { min-height:52px; font:inherit; font-size:16px; padding:10px; border:1.5px solid #c9b48a; background:#fff; border-radius:12px; cursor:pointer; }
+  .wiz .wopts button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+  .wiz .wsel { width:100%; min-height:54px; font-size:18px; padding:8px 10px; border:2px solid #b08d57; border-radius:12px; background:#fffaf0; }
+  .wiz .wtext { display:block; font-size:14px; margin:10px 0; } .wiz .wtext input { width:100%; min-height:48px; font-size:16px; margin-top:4px; padding:8px 10px; box-sizing:border-box; }
+  .wiz .wnav { display:flex; gap:10px; margin-top:18px; } .wiz .wnav button { flex:1; min-height:50px; font-size:16px; border-radius:12px; }
+  .wiz .wsum { list-style:none; padding:0; margin:0 0 6px; } .wiz .wsum li { border-bottom:1px solid var(--line); } .wiz .wsum button { display:flex; justify-content:space-between; gap:10px; width:100%; min-height:44px; align-items:center; padding:6px 0; background:none; border:none; font:inherit; font-size:15px; text-align:left; cursor:pointer; color:inherit; } .wiz .wsum b { text-align:right; white-space:nowrap; }
+  .wiz .wlink { display:block; width:100%; margin-top:10px; background:none; border:none; color:var(--sub); text-decoration:underline; font-size:14px; cursor:pointer; min-height:44px; }
   .preset { display:flex; gap:6px; margin:2px 0 6px; }
   .preset button { flex:1; font:inherit; font-size:13px; padding:7px 8px; border:1px solid #c9b48a; background:#fff; border-radius:8px; cursor:pointer; }
   .preset button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
@@ -1411,7 +1424,73 @@
   const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
+  // ───── 入力は1問ずつ（はじめて開いたとき）：タイプ → お客様ごとの項目 → お名前（任意）→ 確認して説明を始める ─────
+  let wizOn = need().length > 0, wizAt = 0;
+  const WIZ_HELP = {
+    age: "今の年齢を選んでください。",
+    income: "源泉徴収票の「支払金額」（税込の年収）。だいたいで大丈夫です。",
+    savings: "預貯金の合計。だいたいで大丈夫です（ない場合は「なし」）。",
+    "nisa.balance": "NISA・投資信託の今の残高（していなければ「なし」）。",
+    "nisa.monthly": "NISAで毎月積み立てている金額（していなければ「していない」）。",
+    "rent.single": "今の家賃（管理費・共益費こみ）。実家なら「なし」。",
+    "shataku.self": "社宅で毎月自分が払っている金額。",
+    "shataku.until": "会社の規定で社宅を出る年齢。",
+    "own.price": "検討している物件の価格（決まっていなければ目安で）。",
+    "lifeIns.monthly": "生命保険・医療保険の毎月の保険料（入っていなければ「なし」）。",
+    "lifeIns.cover": "亡くなったときに出る保険金（保障額）。",
+  };
+  const WIZ_Q = { age: "今の年齢は？", income: "年収（税込）は？", savings: "今の貯金は？", "nisa.balance": "NISAの残高は？", "nisa.monthly": "NISAで毎月いくら積み立てていますか？",
+    "rent.single": "今の家賃（毎月）は？", "shataku.self": "社宅の自己負担（毎月）は？", "shataku.until": "社宅を出る年齢は？", "own.price": "検討している物件の価格は？",
+    "lifeIns.monthly": "生命保険の保険料（毎月）は？", "lifeIns.cover": "生命保険の保障額は？" };
+  const wizSteps = () => ["type", ...S.askFields(state), "name", "done"];
+  const curPreset = () => (state.shataku.on ? "shataku" : state.family.marryAge == null ? "single" : "family");
+  function applyPreset(k) {
+    const p = S.preset(k);
+    state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome; state.shataku = p.shataku; state.own.buyAge = p.own.buyAge;
+  }
+  const startTalk = () => { wizOn = false; buildForm(); closeForm(); render(); toTop(); }; // 「条件を変える」では全項目を出す
+  function buildWizard() {
+    const steps = wizSteps(); wizAt = Math.max(0, Math.min(wizAt, steps.length - 1));
+    const key = steps[wizAt], n = steps.length, filled = (k) => !blank.has(k);
+    let body = "", canNext = true;
+    if (key === "type") {
+      body = `<h2 class="wq">お客様のタイプは？</h2><p class="wh">あとから変えられます。</p><div class="wopts w1">${Object.entries(S.PRESETS).map(([k, v]) =>
+        `<button data-p="${k}" class="${k === curPreset() ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
+    } else if (key === "name") {
+      body = `<h2 class="wq">提案書のお名前（なくても大丈夫）</h2><p class="wh">提案書の表紙にだけ使います。共有リンクや保存には入りません。</p>` +
+        [["customer", "お客様のお名前"], ["staff", "担当者"]].map(([k, l]) => `<label class="wtext">${l}<input type="text" data-m="${k}" value="${esc(meta[k] || "")}" autocomplete="off"></label>`).join("");
+    } else if (key === "done") {
+      const x = S.compute(state);
+      body = `<h2 class="wq">この条件で説明を始めます</h2><p class="wh">${esc(S.proposal(x).cover.profile)}</p>
+        <ul class="wsum">${S.askFields(state).map((k) => { const f = FIELDS.find((v) => v[0] === k), lb = k === "nisa.monthly" ? "NISAの毎月の積立" : (WIZ_Q[k] || f[1]).replace(/は？$/, "");
+          return `<li><button data-j="${steps.indexOf(k)}" title="変える"><span>${esc(lb)}</span><b>${esc(f[3](get(state, k)))} ›</b></button></li>`; }).join("")}</ul><p class="wh" style="margin-top:6px">変えたい項目を押すと、その質問に戻ります。</p>
+        <button class="startbtn" id="wizStart">この条件で説明を始める ›</button><button class="wlink" id="wizFull">金利・老後の生活費など、詳しい条件も見る</button>`;
+    } else {
+      const f = FIELDS.find((v) => v[0] === key), [, label, opts, fmt] = f, cur = get(state, key), has = filled(key);
+      canNext = has;
+      body = `<h2 class="wq">${esc(WIZ_Q[key] || label + "は？")}</h2><p class="wh">${esc(WIZ_HELP[key] || "")}</p>` + (opts.length <= 12
+        ? `<div class="wopts">${opts.map((v, i) => `<button data-i="${i}" class="${has && v === cur ? "on" : ""}">${esc(fmt(v))}</button>`).join("")}</div>`
+        : `<select class="wsel" data-k="${key}">${has ? "" : `<option value="" selected>選んでください</option>`}${opts.map((v, i) => `<option value="${i}"${has && v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select>`);
+    }
+    const last = key === "done";
+    $("form").innerHTML = `<div class="wiz" id="wiz"><div class="wtop"><span>質問 ${wizAt + 1} / ${n}</span><div class="wbar"><i style="width:${((wizAt + 1) / n) * 100}%"></i></div></div>${body}
+      <div class="wnav"><button id="wizBack"${wizAt === 0 ? " disabled" : ""}>← 戻る</button>${last ? "" : `<button class="primary" id="wizNext"${canNext ? "" : " disabled"}>次へ →</button>`}</div></div>`;
+    const go = (d) => { wizAt += d; buildWizard(); $("form").scrollIntoView({ block: "start" }); };
+    $("wizBack").onclick = () => go(-1);
+    if (!last) $("wizNext").onclick = () => go(1);
+    $("form").querySelectorAll(".wopts button[data-p]").forEach((b) => (b.onclick = () => { applyPreset(b.dataset.p); render(); go(1); }));
+    if (key !== "type" && key !== "name" && key !== "done") {
+      const f = FIELDS.find((v) => v[0] === key), pick = (i) => { set(state, key, f[2][i]); blank.delete(key); render(); setTimeout(() => go(1), 120); };
+      $("form").querySelectorAll(".wopts button[data-i]").forEach((b) => (b.onclick = () => { b.classList.add("on"); pick(+b.dataset.i); }));
+      const sel = $("form").querySelector(".wsel");
+      if (sel) sel.onchange = () => { if (sel.value !== "") pick(+sel.value); };
+    }
+    $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
+    $("form").querySelectorAll(".wsum button[data-j]").forEach((b) => (b.onclick = () => { wizAt = +b.dataset.j; buildWizard(); }));
+    if (last) { $("wizStart").onclick = startTalk; $("wizFull").onclick = () => { wizOn = false; buildForm(); $("form").scrollIntoView({ block: "start" }); }; }
+  }
   function buildForm() {
+    if (wizOn) return buildWizard();
     const curP = state.shataku.on ? "shataku" : state.family.marryAge == null ? "single" : "family";
     let h = `<h2>お客様のタイプ</h2><div class="preset">${Object.entries(S.PRESETS).map(([k, v]) =>
       `<button data-p="${k}" class="${k === curP ? "on" : ""}">${esc(v)}</button>`).join("")}</div>`;
@@ -1425,14 +1504,10 @@
       .map(([k, l]) => `<label>${l}<input type="text" data-m="${k}" value="${esc(meta[k] || "")}"></label>`).join("");
     h += `<button class="startbtn" id="startBtn"></button>`;
     $("form").innerHTML = h;
-    $("startBtn").onclick = () => { if (need().length) return firstNeed(); closeForm(); render(); toTop(); };
+    $("startBtn").onclick = () => { if (need().length) return firstNeed(); startTalk(); };
     updStart();
     $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
-    $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
-      const p = S.preset(b.dataset.p);
-      state.family = p.family; state.rent.old = p.rent.old; state.partnerIncome = p.partnerIncome; state.shataku = p.shataku; state.own.buyAge = p.own.buyAge;
-      buildForm(); render();
-    }));
+    $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => { applyPreset(b.dataset.p); buildForm(); render(); }));
     $("form").querySelectorAll("select").forEach((sel) => {
       const f = FIELDS.find((x) => x[0] === sel.dataset.k);
       if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
