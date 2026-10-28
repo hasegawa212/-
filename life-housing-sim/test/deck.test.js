@@ -45,7 +45,7 @@ test("表紙：「家賃を払い続けるより、自分の家を。」＋お�
 test("結論は2枚目：数字が購入に向いていれば「購入をおすすめします」", () => {
   const c = d.slides.find((s) => s.key === "conclusion");
   assert.match(c.headline, /購入をおすすめします/);
-  assert.equal(c.visual, "recommend");
+  assert.equal(c.visual, "asset", "購入をすすめるときは「今払ってる賃料が将来の資産になる」の絵");
   assert.ok(c.kpis.length >= 2);
 });
 

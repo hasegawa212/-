@@ -473,6 +473,12 @@
       ? { src: "img/space-single.jpg", alt: "買うのは、家だけじゃない。自分の好きに使える空間だ。一人暮らしに、戸建てという選択。趣味に没頭する部屋・仕事に集中する部屋・心からくつろぐ部屋。一人だからこそ、暮らしを自由に。" }
       : null;
   }
+  // 「今払ってる賃料が将来の資産になる」（ユーザーの絵）。家賃そのものではなく、家賃のかわりに返した元金（＋頭金）が家の代金として残る、と正直に添える
+  function assetImage(x) {
+    const cc = costCompare(x);
+    return { src: "img/rent-to-asset.jpg", alt: "今払ってる賃料が将来の資産になる。積み上がる硬貨と右肩上がりの矢印、木の家の模型、街並みと戸建て・マンション（イメージ）",
+      caption: `家賃のかわりに返したローンの元金（頭金を含む）${man(cc.own.house)}は、家の代金として自分の家に残ります。家の価値は上がることも下がることもあります（イメージ）` };
+  }
   function fixedCost(x) {
     const i = x.input, now = x.years[0], t = estimateTax(i.income);
     const takeHome = (i.income - i.income * 0.15 - t.incomeTax - t.residentTax) / 12;
@@ -670,9 +676,11 @@
       points: rentImage(x).single
         ? ["家賃は住まいの対価。オーナーのローンの返済・管理・修繕・税金にあてられます", "自分が戸建てを持つと：① 暮らしに合わせて使う　② 返済を通じて借入残高を減らす　③ 将来の売却・賃貸も選択肢に", "購入には税金・修繕費などが必要です。売却価格や賃貸収入は、立地や建物の状態によって変わります"]
         : ["家賃は住まいの対価。受け取った家賃は、オーナーのローンの返済・管理・修繕・税金にあてられます", "同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか"], notes: note("¥") });
-    step("conclusion", { headline: buy ? "結論：あなたには、購入をおすすめします" : "結論：今は賃貸のまま、準備を進めましょう", visual: "recommend",
+    step("conclusion", { headline: buy ? "結論：あなたには、購入をおすすめします" : "結論：今は賃貸のまま、準備を進めましょう", visual: buy ? "asset" : "recommend",
       lead: buy ? `持ち家が有利な項目が${rc.favor}つ。${rc.verdict === "buy" ? "まず事前審査で、この計画が通るか確かめましょう。" : "△の項目を見直し、事前審査で確かめてから進めましょう。"}` : `持ち家が有利な項目は${rc.favor}つ。条件（買う年齢・価格・頭金）が変われば、もう一度くらべます。`,
-      kpis: [k("持ち家が有利な項目", `4つ中${rc.favor}つ`, "", buy ? "own" : ""), k("毎月の返済（持ち家）", man(x.loan.pmt, 1), `${x.loan.buyAge}歳で買い ${x.loan.endAge}歳で完済`, "own")],
+      kpis: [k("持ち家が有利な項目", `4つ中${rc.favor}つ`, "", buy ? "own" : ""), k("毎月の返済（持ち家）", man(x.loan.pmt, 1), `${x.loan.buyAge}歳で買い ${x.loan.endAge}歳で完済`, "own"),
+        ...(buy ? [k("家の代金（自分の家に残る）", man(costCompare(x).own.house), "返した元金＋頭金", "own")] : [])],
+      points: buy ? [`消えるお金でくらべると　賃貸のまま ${man(costCompare(x).rent.spent)}／持ち家 ${man(costCompare(x).own.spent)}`, "家賃のかわりに返した元金が、家の代金として残ります", "家の価値は上がることも下がることもあります"] : [],
       notes: note("⑦") });
     const life = R.life;
     step("life", { ...reason("life", "一生の住居費は、持ち家のほうが少ない", "くらべ：一生の住居費"), visual: "life",
@@ -924,5 +932,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

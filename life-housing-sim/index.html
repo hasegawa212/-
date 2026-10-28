@@ -230,7 +230,7 @@
   .gnext li { counter-increment:f; padding:3px 8px; border:1px solid var(--gold); border-radius:999px; background:#fffaf0; } .gnext li::before { content:counter(f) ". "; color:var(--gold); font-weight:700; }
   .cmpm { font-size:14px; margin:4px 0 8px; }
   /* Zoom：②は「消えるお金」の3枚＋グラフ、⑥は書類と流れを優先（内訳表・人数の箱は話す言葉と重なるので省く） */
-  body.present .econ.ins, body.present .gcic, body.present .gfail, body.present .gpeople, body.present .gk, body.present .cmpTable, body.present .cmpTwo .small { display:none; }
+  body.present .assetimg, body.present .econ.ins, body.present .gcic, body.present .gfail, body.present .gpeople, body.present .gk, body.present .cmpTable, body.present .cmpTwo .small { display:none; }
   .cmp ~ .kpis.dup .kpi.rent, .cmp ~ .kpis.dup .kpi.own { display:none; } /* 合計どうしのカードは「消えるお金」と並ぶと迷うので出さない（合計は表の最後の行） */
   body.present .cmpTwo { grid-template-columns:1fr; }
   body.present .cmpTwo svg { max-height:130px; width:auto; max-width:100%; display:block; margin:0 auto; }
@@ -371,6 +371,7 @@
   .rflow .rfs { display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
   .rflow .rfs span { border:1px solid var(--gold); background:#fffaf0; border-radius:8px; padding:3px 8px; font-size:13px; font-weight:700; color:var(--navy); }
   body.present .rentimg img { max-height:245px; width:auto; max-width:100%; margin:0 auto; }
+  .assetimg { max-width:720px; margin:10px auto; } .slide .sv .assetimg p.small { display:none; }
   .rentimg img { cursor:zoom-in; } .rentimg .hint { display:block; text-align:center; font-size:12px; color:var(--sub); margin-top:4px; }
   #imgzoom { display:none; position:fixed; inset:0; background:rgba(15,20,32,.88); z-index:50; align-items:center; justify-content:center; cursor:zoom-out; }
   #imgzoom.on { display:flex; } #imgzoom img { max-height:96vh; max-width:96vw; border-radius:10px; }
@@ -719,6 +720,11 @@
     if (kind === "ins") return `<p class="econ ins">${esc(E.savingsIns)}</p>`;
     return `<p class="econ"><b>物価と預金（${esc(E.asOf)}）</b>　物価 +${(E.cpi.rate * 100).toFixed(1)}%（${esc(E.cpi.month)}）・普通預金 年${(E.deposit.rate * 100).toFixed(1)}%。仮にこのまま${e.years}年続くと、${state.retireAge}歳の生活費は毎月 ${man(x.pension.living, 1)} → <b>${man(e.living65, 1)}</b> 相当${state.savings > 0 ? `、預金 ${man(state.savings)} の買える量は <b class="r">${man(e.savings.real65)}</b> 分（約${Math.round(e.savings.lossRate * 100)}%目減り）` : ""}。上がることも下がることもあります</p>`;
   }
+  // 「今払ってる賃料が将来の資産になる」の絵（②・資料の結論）。説明は assetImage の正直な一文
+  function assetView(x) {
+    const im = S.assetImage(x);
+    return `<div class="rentimg assetimg"><img src="${im.src}" alt="${esc(im.alt)}"><p class="small">${esc(im.caption)}</p><span class="hint">タップで拡大</span></div>`;
+  }
   function costView(x) {
     const c = S.costCompare(x);
     return `<div class="kpis cmp"><div class="kpi rent"><span>消えるお金（賃貸のまま）</span><b>${man(c.rent.spent)}</b><span>家賃・更新料・家財保険の全部</span></div>
@@ -841,6 +847,7 @@
   let deckCur = 0;
   function deckVisual(key, x) {
     const v = {
+      asset: () => assetView(x),
       space: () => { const im = S.spaceImage(x); return im ? `<div class="rentimg space"><img src="${im.src}" alt="${esc(im.alt)}"></div>` : ""; },
       fixed: () => (fixedView(x).match(/<div class="rentimg">[\s\S]*?<\/div>/) || [""])[0], portfolio: () => portfolioView(x), stages: () => stageTable(x), life: () => lineChart(x), old: () => oldBars(x),
       prepare: () => hbars([{ label: "賃貸のまま", parts: [["準備", x.prepare.rentNeed, "var(--rent)"]] }, { label: "持ち家", parts: [["準備", x.prepare.ownNeed, "var(--own)"]] }]),
@@ -1125,7 +1132,7 @@
       fixedView(x),
       portfolioView(x),
       stageTable(x),
-      costView(x) + `<div class="kpis dup"><div class="kpi rent"><span>一生の住居費（賃貸のまま）</span><b>${man(x.life.rent)}</b></div><div class="kpi own"><span>一生の住居費（持ち家・控除後）</span><b>${man(x.life.own)}</b></div><div class="kpi"><span>住宅ローン控除で戻る税金</span><b style="color:var(--ok)">${man(x.credit.total)}</b><span>${x.credit.years}年・1年目 ${man(x.credit.first, 1)}</span></div></div><div class="two cmpTwo"><div>${lineChart(x)}${breakdownNote(x)}</div><div class="cmpTable">${breakdownTable(x)}</div></div>`,
+      costView(x) + assetView(x) + `<div class="kpis dup"><div class="kpi rent"><span>一生の住居費（賃貸のまま）</span><b>${man(x.life.rent)}</b></div><div class="kpi own"><span>一生の住居費（持ち家・控除後）</span><b>${man(x.life.own)}</b></div><div class="kpi"><span>住宅ローン控除で戻る税金</span><b style="color:var(--ok)">${man(x.credit.total)}</b><span>${x.credit.years}年・1年目 ${man(x.credit.first, 1)}</span></div></div><div class="two cmpTwo"><div>${lineChart(x)}${breakdownNote(x)}</div><div class="cmpTable">${breakdownTable(x)}</div></div>`,
       oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>` + econView(x, "2000"),
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>` + econView(x),
       `<div class="kpis"><div class="kpi rent"><span>老後の賃貸の入居審査（家賃÷年金）</span><b>${Math.round(x.screening.rent.ratioOld * 100)}%</b><span>目安は3分の1（33%）以内${x.screening.rent.hard ? "・通りにくくなる場合あり" : ""}</span></div><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>${x.input.family.marryAge == null ? "親や兄弟に残らない" : "家族に住まいが残る"}</span></div>${x.input.family.marryAge == null ? "" : `<div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div>`}<div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${danshinView(x)}${econView(x, "ins")}`,

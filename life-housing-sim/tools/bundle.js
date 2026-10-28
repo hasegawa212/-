@@ -12,7 +12,7 @@ for (const f of ["lib/engine.js", "lib/share.js", "lib/customers.js"]) {
 }
 // 画像も1つのファイルに入れる（送った先でそのまま表示されるように）
 // 絵のファイル名は lib/engine.js の rentImage() にある → 1つのファイルに入れるときは中身（data URI）に置き換える
-for (const img of ["img/rent-mechanism.jpg", "img/rent-mechanism-single.jpg", "img/space-single.jpg", "img/top-hero.jpg", "img/icon-180.png", "img/icon-32.png"]) {
+for (const img of ["img/rent-mechanism.jpg", "img/rent-mechanism-single.jpg", "img/space-single.jpg", "img/rent-to-asset.jpg", "img/top-hero.jpg", "img/icon-180.png", "img/icon-32.png"]) {
   const data = `data:image/${img.endsWith(".png") ? "png" : "jpeg"};base64,` + fs.readFileSync(path.join(root, img)).toString("base64");
   const next = out.split(`"${img}"`).join(`"${data}"`);
   if (next === out) throw new Error(`${img} が見つからない`);
