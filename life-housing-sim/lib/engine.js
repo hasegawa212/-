@@ -657,6 +657,34 @@
   }
 
   // お客様にお渡しする提案書（A4・4ページ）。数字はすべて compute の結果から
+  // 年齢別の比較：今・買う年齢・10年ごと・定年・最後の年齢で、住まいのお金の累計（賃貸のまま／持ち家）
+  function ageTable(x) {
+    const i = x.input, set = new Set([i.age, i.own.buyAge, i.retireAge, i.lifeEnd]);
+    for (let a = Math.ceil((i.age + 1) / 10) * 10; a < i.lifeEnd; a += 10) set.add(a);
+    const ages = [...set].filter((a) => a >= i.age && a <= i.lifeEnd).sort((a, b) => a - b);
+    let cr = 0, co = 0;
+    const cum = new Map();
+    for (const y of x.years) { cr += y.rentYear; co += y.ownYear; cum.set(y.age, [cr, co]); }
+    return ages.map((age) => { const [rent, own] = cum.get(age) || [cr, co]; return { age, rent, own, diff: rent - own }; });
+  }
+  // 計算の条件：入力した数字と、計算の仮定（お名前は入れない）
+  function conditions(x) {
+    const i = x.input, o = i.own, f = i.family, pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+    const fam = f.marryAge == null ? "結婚しない・未定" : `${f.marryAge}歳で結婚` + (f.kids ? `・子ども${f.kids}人（第1子 ${f.firstKidAge}歳）` : "") + (i.partnerIncome ? `・パートナー年収 ${man(i.partnerIncome)}` : "");
+    const rentTxt = (v) => (v ? manY(v) : "なし");
+    return [
+      { group: "あなたのこと", items: [["年齢", i.age + "歳"], ["年収（税込）", man(i.income)], ["年収の上がり方", i.raise ? `年${pct(i.raise)}（仮定）` : "上がらない"], ["貯金", man(i.savings)],
+        ["定年と再雇用", i.reemploy && i.reemploy.age < i.retireAge ? `${i.reemploy.age}歳で定年・${i.retireAge}歳まで年収の${Math.round(i.reemploy.rate * 10)}割（仮定）` : `${i.retireAge}歳まで今の働き方`], ["暮らし", fam]] },
+      { group: "NISA・保険", items: [["NISA", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}・利回り年${pct(i.nisa.rate, 0)}（仮定・元本保証なし）`],
+        ["生命保険", i.lifeIns.monthly ? `毎月 ${man(i.lifeIns.monthly, 1)}・保障 ${man(i.lifeIns.cover)}` : "なし"]] },
+      { group: "賃貸のまま", items: [["家賃（毎月）", x.shataku ? `社宅 自己負担 ${manY(x.shataku.self)}（${x.shataku.until}歳まで）→ ひとり ${rentTxt(i.rent.single)}` : `ひとり ${rentTxt(i.rent.single)}・2人 ${rentTxt(i.rent.couple)}・子育て ${rentTxt(i.rent.family)}・老後 ${rentTxt(i.rent.old)}`],
+        ["更新料・家財保険", `${i.rent.renewMonths ? `家賃の${i.rent.renewMonths}か月分を${i.rent.renewEvery}年ごと` : "更新料なし"}・家財保険 年${man(i.rent.insYear, 1)}`]] },
+      { group: "持ち家（買う場合）", items: [["物件価格", man(o.price)], ["買う年齢", o.buyAge + "歳"], ["住宅ローン", `金利 年${pct(o.rate)}（全期間同じと仮定）・返済 ${o.years}年（${o.years * 12}回）・頭金 ${o.down ? man(o.down) : "なし"}`],
+        ["諸費用", `物件価格の${pct(o.costRate, 0)}（${o.financeCosts ? "ローンに含める" : "現金で払う"}）`], ["住宅ローン控除", (CREDIT_KINDS[o.kind] || {}).label || "—"],
+        ["税金・保険・修繕（年）", `固定資産税 ${man(o.propTax, 1)}・火災地震保険 ${man(o.ins, 1)}・修繕 ${man(o.repairYear, 1)}（${o.repairUpAfter}年目から${o.repairUpRate}倍）`]] },
+      { group: "老後", items: [["老後の生活費（住居費を除く・毎月）", `ひとり ${manY(i.oldLiving.single)}・夫婦 ${manY(i.oldLiving.couple)}`], ["年金（概算・毎月）", man(x.pension.monthly, 1)], ["計算する期間", `今から${i.lifeEnd}歳まで`]] },
+    ];
+  }
   function proposal(x, meta = {}) {
     const i = x.input, single = i.family.marryAge == null, inc = x.income, pf = x.portfolio, b = x.breakdown;
     const pct = (v) => Math.round(v * 100) + "%";
@@ -721,7 +749,11 @@
           "今回は見送り、状況が変わったら（転勤・結婚・貯金）もう一度試算する",
         ] },
     ];
-    return { cover, pages, notes: NOTES.slice() };
+    const appendix = [
+      { no: 5, title: "年齢別の比較（住まいのお金の累計）", lead: `今から${i.lifeEnd}歳まで、同じ物差しで住まいにかかるお金を足していくと、こうなります（持ち家は控除後・家の価値は含めない）。`, table: ageTable(x) },
+      { no: 6, title: "計算の条件と注意事項", lead: "この提案書の数字は、次の条件と仮定から計算した概算です。条件が変われば結果も変わります。", conditions: conditions(x), notes: NOTES.slice() },
+    ];
+    return { cover, pages, appendix, notes: NOTES.slice() };
   }
 
   // トップページ（LIFE ROUTE）：お客様が主人公。数字はすべて compute の結果から（見本の数字は使わない）
@@ -832,5 +864,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
