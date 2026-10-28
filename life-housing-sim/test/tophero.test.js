@@ -33,3 +33,11 @@ test("看板の絵の中のエリア（NISA・不動産・保険・ライフプ�
   assert.match(html, /class="hot\$\{/);
   assert.match(html, /aria-label=/);
 });
+
+test("入力の画面では、説明文（LIFE ROUTE ライフルート・独身の方にも…）を看板の枠の中に入れ、別の紺の帯は出さない", () => {
+  assert.match(html, /id="heroCap"/);
+  assert.match(html, /insertAdjacentHTML\("beforeend", `<div id="heroCap">\$\{document\.querySelector\("header"\)\.innerHTML\}<\/div>`\)/);
+  assert.match(html, /body:not\(\.form-closed\):not\(\.present\):not\(\.deck-view\):not\(\.proposal-view\) > header \{ display:none; \}/);
+  assert.match(html, /body\.home-view #heroCap \{ display:none; \}/);
+  assert.ok(!/保存なし/.test(html), "保存したお客様があるので「保存なし」とは書かない");
+});
