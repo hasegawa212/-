@@ -412,6 +412,13 @@
 
   // いちばん大きな固定費＝住まい。今の家賃・手取り（概算：社会保険料15%と所得税・住民税を引く）・割合・払い続けた場合の合計
   const rentTxt = (v) => (v ? man(v, 1) : "なし");
+  // ¥ の絵：独身（社宅も）は「一人で暮らす。戸建てという選択。」、結婚・子どもありは「賃貸の仕組み」
+  function rentImage(x) {
+    const single = x.input.family.marryAge == null;
+    return single
+      ? { src: "img/rent-mechanism-single.jpg", single, alt: "一人で暮らす。戸建てという選択。賃貸の戸建てにはオーナーがいて、家賃はオーナーのローンの返済、管理・修繕・税金にあてられ、残りが収益になる。自分が戸建てを持つと、暮らしに合わせて使い、返済で借入残高を減らし、将来の売却・賃貸も選択肢になる" }
+      : { src: "img/rent-mechanism.jpg", single, alt: "賃貸の仕組み：入居者は毎月の家賃を払い、オーナーは住まいを提供する。家賃はオーナーのローンの返済、管理・修繕・税金にあてられ、残りがオーナーの収益になる" };
+  }
   function fixedCost(x) {
     const i = x.input, now = x.years[0], t = estimateTax(i.income);
     const takeHome = (i.income - i.income * 0.15 - t.incomeTax - t.residentTax) / 12;
@@ -583,7 +590,9 @@
       lead: fc.rent ? `毎月の家賃は手取りの約${Math.round(fc.share * 100)}%。その家賃は、オーナーのローンの返済や将来の備えになっています。` : "今は家賃なし。家を出ると、いちばん大きな固定費＝家賃が始まります。",
       kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", fc.rent ? `手取りの約${Math.round(fc.share * 100)}%` : "実家など", "rent"),
         k(fc.to65 ? `${i.retireAge}歳まで払い続けると` : `${i.lifeEnd}歳までの家賃`, man(fc.to65 || fc.toEnd), `${i.lifeEnd}歳までで ${man(fc.toEnd)}`, "rent")],
-      points: ["家賃は住まいの対価。受け取った家賃は、オーナーのローンの返済・管理・修繕・税金にあてられます", "同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか"], notes: note("¥") });
+      points: rentImage(x).single
+        ? ["家賃は住まいの対価。オーナーのローンの返済・管理・修繕・税金にあてられます", "自分が戸建てを持つと：① 暮らしに合わせて使う　② 返済を通じて借入残高を減らす　③ 将来の売却・賃貸も選択肢に", "購入には税金・修繕費などが必要です。売却価格や賃貸収入は、立地や建物の状態によって変わります"]
+        : ["家賃は住まいの対価。受け取った家賃は、オーナーのローンの返済・管理・修繕・税金にあてられます", "同じ住まいのお金を、家賃として払い続けるか、自分の資産に変えていくか"], notes: note("¥") });
     step("conclusion", { headline: buy ? "結論：あなたには、購入をおすすめします" : "結論：今は賃貸のまま、準備を進めましょう", visual: "recommend",
       lead: buy ? `持ち家が有利な項目が${rc.favor}つ。${rc.verdict === "buy" ? "まず事前審査で、この計画が通るか確かめましょう。" : "△の項目を見直し、事前審査で確かめてから進めましょう。"}` : `持ち家が有利な項目は${rc.favor}つ。条件（買う年齢・価格・頭金）が変われば、もう一度くらべます。`,
       kpis: [k("持ち家が有利な項目", `4つ中${rc.favor}つ`, "", buy ? "own" : ""), k("毎月の返済（持ち家）", man(x.loan.pmt, 1), `${x.loan.buyAge}歳で買い ${x.loan.endAge}歳で完済`, "own")],
@@ -804,5 +813,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
