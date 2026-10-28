@@ -7,7 +7,9 @@ const { chromium } = require("playwright");
   const root = path.join(__dirname, "..");
   const b = await chromium.launch();
   const p = await b.newPage({ viewport: { width: 1360, height: 900 } });
-  await p.goto("file://" + path.join(root, "dist/ライフルート.html") + "#step=1&v=2");
+  // 見本＝初期値の架空のお客様。お客様ごとの項目もリンクに入れて「入力済み」で開く
+  const S = require("../lib/engine"), Share = require("../lib/share"), d = S.defaults();
+  await p.goto("file://" + path.join(root, "dist/ライフルート.html") + Share.encode(d, { step: 1, defaults: d, keep: S.askFields(d) }));
   await p.evaluate(() => document.getElementById("deckBtn").click());
   await p.waitForTimeout(500);
   await p.emulateMedia({ media: "print" });

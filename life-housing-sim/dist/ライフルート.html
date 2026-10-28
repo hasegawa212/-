@@ -229,7 +229,8 @@
     .acts .row { grid-template-columns:1fr 1fr; }
     .map { aspect-ratio:auto; min-height:0; display:flex; flex-wrap:wrap; gap:8px; padding:10px; }
     .area { position:relative; left:auto !important; top:auto !important; width:calc(50% - 4px); }
-    .area .t { font-size:13px; white-space:normal; } .area .s { margin-left:0; }
+    .area .t { font-size:13px; white-space:normal; word-break:keep-all; overflow-wrap:anywhere; } .area .s { margin-left:0; }
+    .area .t { font-size:clamp(11px, 3.1vw, 13px); letter-spacing:0; gap:6px; } .area .t svg { width:20px; height:20px; flex:none; }
     .hero, .flag, .pin { display:none; }
     .mdetail { position:relative; left:auto; bottom:auto; width:100%; }
     .nextbtn { position:relative; right:auto; bottom:auto; width:100%; margin-top:4px; }
@@ -1246,10 +1247,18 @@
     }
   }
 
-  function encode(state, { step = 0, present = false, defaults } = {}) {
+  // keep：初期値と同じでも必ず入れる項目（お客様ごとに選んだ項目。開いた側で「未入力」と区別するため）
+  function encode(state, { step = 0, present = false, defaults, keep = [] } = {}) {
     const def = defaults || (typeof LHS !== "undefined" ? LHS.defaults() : require("./engine").defaults());
     const parts = [];
     const d = diff(state, def);
+    for (const p of keep) {
+      const ks = p.split("."); let a = d, v = state;
+      for (const k of ks) v = v == null ? v : v[k];
+      if (v === undefined) continue;
+      ks.slice(0, -1).forEach((k) => (a = a[k] = a[k] || {}));
+      a[ks.at(-1)] = v;
+    }
     if (Object.keys(d).length) parts.push("s=" + b64e(JSON.stringify(d)));
     if (step) parts.push("step=" + step, "v=2"); // v=2：先頭に「¥」が入った並び（それより前のリンクは1つずらして開く）
     if (present) parts.push("p=1");
@@ -1334,7 +1343,8 @@
   const meta = { customer: "", company: S.DEFAULT_COMPANY, staff: "", tel: "" };
   const state = opened.state;
   // お客様ごとに選ぶ項目は空から始める（共有リンクで開いたときは、リンクの条件がそのお客様の数字）
-  const blank = new Set(/(^|[#&])(s|step)=/.test(location.hash) ? [] : [...S.ASK_FIELDS, "shataku.self", "shataku.until"]);
+  // 条件（s=）が入ったリンクだけを入力済みとみなす（#step=3 だけのときは、前の画面の続きなので空から）
+  const blank = new Set(/(^|[#&])s=/.test(location.hash) ? [] : [...S.ASK_FIELDS, "shataku.self", "shataku.until"]);
   const need = () => S.missing(state, blank);
   const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
@@ -1842,7 +1852,7 @@
   let cur = opened.step, all = false, LAST = 9;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
   const present = (on) => { if (on && guard()) return; document.body.classList.toggle("present", on); all = false; render(); };
-  const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
+  const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults(), keep: need().length ? [] : S.askFields(state) }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
   function render() {
     const n = need().length;
     if (n) {
@@ -1904,7 +1914,7 @@
   $("pFull").onclick = full;
   $("link").onclick = async () => {
     if (guard()) return;
-    const url = location.href.split("#")[0] + window.LHSShare.encode(state, { step: 0, present: true, defaults: S.defaults() });
+    const url = location.href.split("#")[0] + window.LHSShare.encode(state, { step: 0, present: true, defaults: S.defaults(), keep: need().length ? [] : S.askFields(state) });
     try { await navigator.clipboard.writeText(url); toast("共有リンクをコピーしました（条件の数字だけが入り、お名前は入りません）"); }
     catch (e) { prompt("このリンクをコピーしてください", url); }
   };
