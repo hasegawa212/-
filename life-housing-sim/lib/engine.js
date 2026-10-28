@@ -145,6 +145,13 @@
   }
   const PRESETS = { single: "独身・賃貸（家賃は平均）", shataku: "独身・社宅（30歳ごろまで）", family: "結婚・子どもあり" };
   function defaults() { return preset("single"); }
+  // お客様ごとに必ず選ぶ項目（画面の初期値は空。見本の数字をお客様に見せない）。それ以外は仮定の初期値のまま
+  const ASK_FIELDS = ["age", "income", "savings", "nisa.balance", "nisa.monthly", "rent.single", "own.price", "lifeIns.monthly", "lifeIns.cover"];
+  function askFields(inp) {
+    return inp.shataku && inp.shataku.on ? ASK_FIELDS.flatMap((k) => (k === "rent.single" ? ["shataku.self", "shataku.until"] : [k])) : ASK_FIELDS.slice();
+  }
+  // blank＝まだ選んでいない項目の集合 → そのうち今選ぶべきもの
+  function missing(inp, blank) { return askFields(inp).filter((k) => blank.has(k)); }
 
   function stage(inp, age) {
     const f = inp.family || {};
@@ -419,6 +426,12 @@
       ? { src: "img/rent-mechanism-single.jpg", single, alt: "一人で暮らす。戸建てという選択。賃貸の戸建てにはオーナーがいて、家賃はオーナーのローンの返済、管理・修繕・税金にあてられ、残りが収益になる。自分が戸建てを持つと、暮らしに合わせて使い、返済で借入残高を減らし、将来の売却・賃貸も選択肢になる" }
       : { src: "img/rent-mechanism.jpg", single, alt: "賃貸の仕組み：入居者は毎月の家賃を払い、オーナーは住まいを提供する。家賃はオーナーのローンの返済、管理・修繕・税金にあてられ、残りがオーナーの収益になる" };
   }
+  // 独身のお客様に見せる「買うのは、家だけじゃない。自分の好きに使える空間だ。」（趣味・仕事・くつろぎの部屋）。結婚・子どもありには出さない
+  function spaceImage(x) {
+    return x.input.family.marryAge == null
+      ? { src: "img/space-single.jpg", alt: "買うのは、家だけじゃない。自分の好きに使える空間だ。一人暮らしに、戸建てという選択。趣味に没頭する部屋・仕事に集中する部屋・心からくつろぐ部屋。一人だからこそ、暮らしを自由に。" }
+      : null;
+  }
   function fixedCost(x) {
     const i = x.input, now = x.years[0], t = estimateTax(i.income);
     const takeHome = (i.income - i.income * 0.15 - t.incomeTax - t.residentTax) / 12;
@@ -586,6 +599,12 @@
     slides.push({ kind: "cover", key: "cover", title: APP.name, kana: APP.kana, tagline: APP.tagline,
       headline: buy ? "家賃を払い続けるより、自分の家を。" : "賃貸と購入、数字でくらべました",
       to: name ? name + " 様" : "", from: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : ""].filter(Boolean).join("　"), date: meta.date || "", profile: P.cover.profile });
+    if (spaceImage(x)) step("space", { headline: "買うのは、家だけじゃない。自分の空間だ", visual: "space",
+      lead: "一人だからこそ、部屋の使い方は自由。いまの自分にも、これからの自分にも。",
+      kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", fc.rent ? "借りている部屋" : "実家など", "rent"),
+        k("持ち家の毎月の返済", man(x.loan.pmt, 1), `${x.loan.buyAge}歳で買い ${x.loan.endAge}歳で完済`, "own")],
+      points: ["部屋の使い方・内装・庭を、自分で決められる", "在宅の仕事部屋・趣味の部屋・将来の同居や賃貸にも使い方を変えられる", "そのぶん、修繕や管理は自分で。費用は次のページから数字でお見せします"],
+      notes: { say: "家を買うというと、お金の話になりがちですが、まず暮らしの話です。一人だからこそ、部屋をどう使うかは自由です。趣味の部屋、仕事に集中する部屋、くつろぐ部屋。いまの家賃と、持ち家の毎月の返済を並べておきます。", ask: "もし部屋がひとつ増えたら、何に使いたいですか？" } });
     step("fixed", { headline: "節約するなら、いちばん大きな固定費から", visual: "fixed",
       lead: fc.rent ? `毎月の家賃は手取りの約${Math.round(fc.share * 100)}%。その家賃は、オーナーのローンの返済や将来の備えになっています。` : "今は家賃なし。家を出ると、いちばん大きな固定費＝家賃が始まります。",
       kpis: [k("今の家賃（毎月）", fc.rent ? man(fc.rent, 1) : "なし", fc.rent ? `手取りの約${Math.round(fc.share * 100)}%` : "実家など", "rent"),
@@ -813,5 +832,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

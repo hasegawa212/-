@@ -10,8 +10,26 @@ const meta = { customer: "山田", company: "合同会社ジャパンマネジ�
 const d = S.deck(x, meta);
 const keys = (v) => v.slides.map((s) => s.key);
 
-test("構成：表紙 → 固定費 → 結論 → 理由（住居費・老後・資産・準備・もしも・控除）→ 待つと → 親御さまの頃 → 注意点 → 進め方 → 次の一歩", () => {
-  assert.deepEqual(keys(d), ["cover", "fixed", "conclusion", "life", "old", "asset", "prepare", "danshin", "credit", "wait", "bubble", "cautions", "steps", "next"]);
+const BODY = ["fixed", "conclusion", "life", "old", "asset", "prepare", "danshin", "credit", "wait", "bubble", "cautions", "steps", "next"];
+test("構成：表紙 →（独身なら）自分の空間 → 固定費 → 結論 → 理由（住居費・老後・資産・準備・もしも・控除）→ 待つと → 親御さまの頃 → 注意点 → 進め方 → 次の一歩", () => {
+  assert.deepEqual(keys(d), ["cover", "space", ...BODY]);
+  assert.deepEqual(keys(S.deck(S.compute(S.preset("shataku")))), ["cover", "space", ...BODY], "社宅の独身も");
+  assert.deepEqual(keys(S.deck(S.compute(S.preset("family")))), ["cover", ...BODY], "結婚・子どもありは14枚のまま");
+});
+
+test("独身の2枚目「買うのは、家だけじゃない。」：絵＋今の家賃と毎月の返済（同じ物差し）、断定しない", () => {
+  const s = d.slides.find((v) => v.key === "space");
+  assert.match(s.headline, /家だけじゃない/);
+  assert.equal(s.visual, "space");
+  assert.equal(S.spaceImage(x).src, "img/space-single.jpg");
+  assert.match(S.spaceImage(x).alt, /趣味/);
+  assert.equal(S.spaceImage(S.compute(S.preset("family"))), null);
+  assert.ok(s.kpis.some((k) => k.value === S.man(S.fixedCost(x).rent, 1)));
+  assert.ok(s.kpis.some((k) => k.value === S.man(x.loan.pmt, 1)));
+  assert.ok(s.notes.say && s.notes.ask);
+  assert.match(s.points.join("／"), /管理|修繕/, "自分で手入れする責任も書く");
+  const late = S.deck(S.compute({ ...S.defaults(), age: 50, own: { ...S.defaults().own, buyAge: 50 } })).slides.find((v) => v.key === "space");
+  assert.doesNotMatch(JSON.stringify(late), /おすすめ/);
 });
 
 test("表紙：「家賃を払い続けるより、自分の家を。」＋お客様のお名前・会社・担当・日付", () => {

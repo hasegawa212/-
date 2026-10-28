@@ -21,6 +21,8 @@
   body.form-closed .formbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; padding:10px 14px; }
   .formbar span { flex:1 1 260px; min-width:0; font-size:13.5px; color:var(--sub); line-height:1.5; } .formbar b { color:var(--navy); }
   .formbar button { white-space:nowrap; background:var(--gold); color:#fff; border:none; border-radius:8px; padding:7px 14px; font-weight:700; cursor:pointer; }
+  .form label.need select { border:2px solid #b08d57; background:#fffaf0; }
+  .startbtn.wait { background:#8a909a; }
   .startbtn { width:100%; margin-top:16px; padding:14px; font-size:17px; font-weight:800; border-radius:12px; background:var(--navy); color:#fff; border:none; cursor:pointer; }
   body.present .formbar { display:none !important; }
   @media print { .formbar, .startbtn { display:none !important; } }
@@ -412,6 +414,9 @@
   // 提案書の宛名・会社情報（この画面の中だけ。共有リンクや保存には入れない）
   const meta = { customer: "", company: S.DEFAULT_COMPANY, staff: "", tel: "" };
   const state = opened.state;
+  // お客様ごとに選ぶ項目は空から始める（共有リンクで開いたときは、リンクの条件がそのお客様の数字）
+  const blank = new Set(/(^|[#&])(s|step)=/.test(location.hash) ? [] : [...S.ASK_FIELDS, "shataku.self", "shataku.until"]);
+  const need = () => S.missing(state, blank);
   const get = (o, p) => p.split(".").reduce((a, k) => a?.[k], o);
   const set = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => (a = a[k])); a[ks.at(-1)] = v; };
 
@@ -422,14 +427,15 @@
     for (const f of FIELDS) {
       if (f.length === 1) { h += `<h2>${esc(f[0])}</h2>`; continue; }
       const [key, label, opts, fmt] = f;
-      const cur = get(state, key);
-      h += `<label>${esc(label)}<select data-k="${key}">${opts.map((v, i) => `<option value="${i}"${v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select></label>`;
+      const cur = get(state, key), empty = need().includes(key);
+      h += `<label class="${empty ? "need" : ""}">${esc(label)}<select data-k="${key}">${empty ? `<option value="" selected>選んでください</option>` : ""}${opts.map((v, i) => `<option value="${i}"${!empty && v === cur ? " selected" : ""}>${esc(fmt(v))}</option>`).join("")}</select></label>`;
     }
     h += `<h2>提案書（お名前はリンクに入りません）</h2>` + [["customer", "お客様のお名前"], ["company", "会社名"], ["staff", "担当者"], ["tel", "電話番号"]]
       .map(([k, l]) => `<label>${l}<input type="text" data-m="${k}" value="${esc(meta[k] || "")}"></label>`).join("");
-    h += `<button class="startbtn" id="startBtn">この条件で説明を始める ›</button>`;
+    h += `<button class="startbtn" id="startBtn"></button>`;
     $("form").innerHTML = h;
-    $("startBtn").onclick = () => { closeForm(); toTop(); };
+    $("startBtn").onclick = () => { if (need().length) return firstNeed(); closeForm(); render(); toTop(); };
+    updStart();
     $("form").querySelectorAll("input[data-m]").forEach((el) => (el.oninput = () => { meta[el.dataset.m] = el.value; }));
     $("form").querySelectorAll(".preset button").forEach((b) => (b.onclick = () => {
       const p = S.preset(b.dataset.p);
@@ -439,9 +445,24 @@
     $("form").querySelectorAll("select").forEach((sel) => {
       const f = FIELDS.find((x) => x[0] === sel.dataset.k);
       if (![...sel.options].some((o) => o.selected)) { f[2].push(get(state, f[0])); }
-      sel.onchange = () => { set(state, f[0], f[2][sel.value]); if (f[0] === "family.marryAge" || f[0] === "shataku.on") buildForm(); render(); };
+      sel.onchange = () => {
+        if (sel.value === "") return;
+        set(state, f[0], f[2][sel.value]);
+        if (blank.delete(f[0])) { sel.querySelector('option[value=""]')?.remove(); sel.closest("label").classList.remove("need"); }
+        if (f[0] === "family.marryAge" || f[0] === "shataku.on") buildForm(); render(); updStart();
+      };
     });
   }
+
+  function updStart() {
+    const n = need().length, b = $("startBtn");
+    if (!b) return;
+    b.textContent = n ? `あと${n}項目 選んでください` : "この条件で説明を始める ›";
+    b.classList.toggle("wait", n > 0);
+  }
+  const firstNeed = () => { const el = $("form").querySelector("label.need select"); if (el) { el.scrollIntoView({ block: "center" }); el.focus(); } };
+  // 空の項目があるあいだは、数字の画面（トップ・説明・提案書・資料）を開かず入力へ
+  const guard = () => { if (!need().length) return false; document.body.classList.remove("home-view", "present", "proposal-view", "deck-view", "form-closed"); render(); window.scrollTo(0, 0); toast(`お客様の数字を入れてください（あと${need().length}項目）`); return true; };
 
   // ───── グラフ（SVG・手書き） ─────
   function lineChart(x) {
@@ -639,6 +660,7 @@
   let deckCur = 0;
   function deckVisual(key, x) {
     const v = {
+      space: () => { const im = S.spaceImage(x); return im ? `<div class="rentimg space"><img src="${im.src}" alt="${esc(im.alt)}"></div>` : ""; },
       fixed: () => (fixedView(x).match(/<div class="rentimg">[\s\S]*?<\/div>/) || [""])[0], portfolio: () => portfolioView(x), stages: () => stageTable(x), life: () => lineChart(x), old: () => oldBars(x),
       prepare: () => hbars([{ label: "賃貸のまま", parts: [["準備", x.prepare.rentNeed, "var(--rent)"]] }, { label: "持ち家", parts: [["準備", x.prepare.ownNeed, "var(--own)"]] }]),
       danshin: () => danshinView(x), gate: () => gateView(x), recommend: () => recommendView(x), wait: () => waitView(x),
@@ -691,6 +713,7 @@
     $("dCount").textContent = show ? `${deckCur + 1} / ${n}` : `全${n}枚`;
   }
   function showDeck() {
+    if (guard()) return;
     $("deck").innerHTML = deckHtml(S.compute(state));
     document.body.classList.remove("present", "proposal-view", "home-view");
     document.body.classList.add("deck-view");
@@ -701,6 +724,7 @@
   const deckGo = (d) => { const n = document.querySelectorAll("#deck .swrap").length; deckCur = Math.min(n - 1, Math.max(0, deckCur + d)); fitDeck(); };
   const deckShow = (on) => { document.body.classList.toggle("deck-show", on); $("dShow").textContent = on ? "■ 一覧に戻る" : "▶ 1枚ずつ見せる"; fitDeck(); window.scrollTo(0, 0); };
   function showProposal() {
+    if (guard()) return;
     $("proposal").innerHTML = proposalHtml(S.compute(state));
     document.body.classList.remove("present");
     document.body.classList.add("proposal-view");
@@ -894,13 +918,23 @@
     nm.oninput = () => { meta.customer = nm.value; const f = $("form").querySelector('input[data-m="customer"]'); if (f) f.value = nm.value; };
     nm.onchange = () => { renderHome(); $("hName").focus(); };
   }
-  function openHome() { document.body.classList.remove("present", "proposal-view"); document.body.classList.add("home-view"); renderHome(); window.scrollTo(0, 0); }
+  function openHome() { if (guard()) return; document.body.classList.remove("present", "proposal-view"); document.body.classList.add("home-view"); renderHome(); window.scrollTo(0, 0); }
   function openStep(i) { document.body.classList.remove("home-view"); cur = i; all = false; render(); window.scrollTo(0, 0); }
   let cur = opened.step, all = false, LAST = 9;
   const toast = (t) => { const el = $("toast"); el.textContent = t; el.style.display = "block"; clearTimeout(toast.h); toast.h = setTimeout(() => (el.style.display = "none"), 2200); };
-  const present = (on) => { document.body.classList.toggle("present", on); all = false; render(); };
+  const present = (on) => { if (on && guard()) return; document.body.classList.toggle("present", on); all = false; render(); };
   const syncUrl = () => { try { history.replaceState(null, "", window.LHSShare.encode(state, { step: cur, present: document.body.classList.contains("present"), defaults: S.defaults() }) || "#"); } catch (e) { /* file:// などで使えない場合は何もしない */ } };
   function render() {
+    const n = need().length;
+    if (n) {
+      document.body.classList.remove("form-closed");
+      $("fbText").textContent = "";
+      $("tabs").innerHTML = "";
+      $("steps").innerHTML = `<div class="step waitbox"><h2 class="stage-title">まず、お客様の数字を入れてください</h2><p class="say">左の入力欄の「選んでください」（あと${n}項目）を選ぶと、ここにお客様だけの数字が出ます。見本の数字は出しません。</p><p class="ask">選び終わったら「この条件で説明を始める」を押してください。</p></div>`;
+      $("prev").disabled = $("next").disabled = true;
+      $("notes").innerHTML = S.NOTES.map((v) => `<li>${esc(v)}</li>`).join("");
+      return;
+    }
     const x = S.compute(state), steps = S.talk(x);
     $("fbText").innerHTML = `<b>条件</b>　${esc(S.proposal(x).cover.profile)}`;
     LAST = steps.length - 1;
@@ -932,7 +966,7 @@
   function closeForm() { document.body.classList.add("form-closed"); for (const st of ["localStorage", "sessionStorage"]) { try { window[st].setItem("lhs_form_done", "1"); } catch (e) { /* 使えなくても動く */ } } }
   function openForm() { document.body.classList.remove("form-closed", "present"); render(); window.scrollTo(0, 0); }
   $("fbOpen").onclick = openForm;
-  const go = (d) => { cur = Math.min(LAST, Math.max(0, cur + d)); all = false; closeForm(); render(); toTop(); };
+  const go = (d) => { if (guard()) return; cur = Math.min(LAST, Math.max(0, cur + d)); all = false; closeForm(); render(); toTop(); };
   $("present").onclick = () => present(true);
   $("prop").onclick = showProposal;
   $("deckBtn").onclick = showDeck;
@@ -950,6 +984,7 @@
   const full = () => { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.(); };
   $("pFull").onclick = full;
   $("link").onclick = async () => {
+    if (guard()) return;
     const url = location.href.split("#")[0] + window.LHSShare.encode(state, { step: 0, present: true, defaults: S.defaults() });
     try { await navigator.clipboard.writeText(url); toast("共有リンクをコピーしました（条件の数字だけが入り、お名前は入りません）"); }
     catch (e) { prompt("このリンクをコピーしてください", url); }
@@ -982,10 +1017,10 @@
   // 共有リンクで開いた・前に入力を済ませた・ステップを指定して開いた → 入力は畳んで始める
   let formDone = false;
   for (const st of ["localStorage", "sessionStorage"]) { try { if (window[st].getItem("lhs_form_done") === "1") formDone = true; } catch (e) { /* なし */ } }
-  if (formDone || /(^|[#&])s=/.test(location.hash) || opened.step > 0) document.body.classList.add("form-closed");
+  if (!need().length && (formDone || /(^|[#&])s=/.test(location.hash) || opened.step > 0)) document.body.classList.add("form-closed");
   render();
-  // 最初に開いたときはトップページ（共有リンクで step・画面共有の指定があるときはそのステップから）
-  if (!opened.present && !/step=/.test(location.hash)) openHome();
+  // 最初に開いたときはトップページ（共有リンクで step・画面共有の指定があるときはそのステップから）。入力がまだなら入力から
+  if (!need().length && !opened.present && !/step=/.test(location.hash)) openHome();
 })();
 </script>
 </body>
