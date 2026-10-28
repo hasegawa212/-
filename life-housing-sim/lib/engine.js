@@ -738,7 +738,9 @@
     const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
     // big＝カードで大きく見せる数字（1つ）、bigLabel＝その数字が何か
     const AT = (n) => n + 1; // 説明の先頭に「¥ いちばん大きな固定費」があるので、⓪ は1番目
-    const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
+    // 準備 ◯/◯ できた＝そのエリアの「やること」のうち、できた数（Lv. より意味が伝わる）
+    const count = (k) => { const ms = M.filter((m) => m.area === k), d = ms.filter((m) => m.done).length; return { doneCount: d, total: ms.length, readiness: `準備 ${d}/${ms.length} できた` }; };
+    const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), ...count(key), missions: M.filter((m) => m.area === key) });
     const areas = [
       area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：${rentWord}の6か月分 ${man(rentBase * 6)}`, AT(0)),
       area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, AT(0)),
@@ -771,7 +773,8 @@
     return {
       hero: { title: APP.name, kana: APP.kana, catch: APP.tagline,
         name: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "あなた",
-        company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age },
+        company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age,
+        doneCount: doneN, total: M.length, readiness: `準備 ${doneN}/${M.length} できた`, howto: "下の「やること」をチェックすると、できた数が増えます" },
       assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
       goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
       areas, missions: M, events: ev, milestones,

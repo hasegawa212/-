@@ -1093,7 +1093,9 @@
     const prog = (k) => M.filter((m) => m.area === k && m.done).length / M.filter((m) => m.area === k).length;
     // big＝カードで大きく見せる数字（1つ）、bigLabel＝その数字が何か
     const AT = (n) => n + 1; // 説明の先頭に「¥ いちばん大きな固定費」があるので、⓪ は1番目
-    const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), missions: M.filter((m) => m.area === key) });
+    // 準備 ◯/◯ できた＝そのエリアの「やること」のうち、できた数（Lv. より意味が伝わる）
+    const count = (k) => { const ms = M.filter((m) => m.area === k), d = ms.filter((m) => m.done).length; return { doneCount: d, total: ms.length, readiness: `準備 ${d}/${ms.length} できた` }; };
+    const area = (key, label, sub, big, bigLabel, value, step) => ({ key, label, sub, big, bigLabel, value, step, level: lv(key), progress: prog(key), ...count(key), missions: M.filter((m) => m.area === key) });
     const areas = [
       area("cash", "現預金エリア", "安心の土台をつくる", man(i.savings), "今の預貯金", `急な出費の備え：${rentWord}の6か月分 ${man(rentBase * 6)}`, AT(0)),
       area("nisa", "NISAエリア", "未来の資産を育てる", man(pf.at65.nisa), `${i.retireAge}歳のNISA（見込み）`, `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}（年${(nr * 100).toFixed(0)}%と仮定）`, AT(0)),
@@ -1126,7 +1128,8 @@
     return {
       hero: { title: APP.name, kana: APP.kana, catch: APP.tagline,
         name: meta.customer && String(meta.customer).trim() ? String(meta.customer).trim() + " 様" : "あなた",
-        company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age },
+        company: meta.company || DEFAULT_COMPANY, level: 1 + doneN, age: i.age,
+        doneCount: doneN, total: M.length, readiness: `準備 ${doneN}/${M.length} できた`, howto: "下の「やること」をチェックすると、できた数が増えます" },
       assets: { now, parts, path, at65: { rent: pf.at65.rent.total, own: pf.at65.own.total } },
       goal: { label: `${i.retireAge}歳までに準備したいお金（賃貸のままの場合）`, target, ownTarget: x.prepare.ownNeed, now, pct: target > 0 ? Math.min(1, now / target) : 1 },
       areas, missions: M, events: ev, milestones,
@@ -1711,18 +1714,18 @@
     const open = h.missions.filter((m) => !m.done).length;
     const areaCard = (a) => `<button class="area" style="left:${POS[a.key][0]}%;top:${POS[a.key][1]}%" data-step="${a.step}" title="${esc(a.value)}">
         <div class="t">${ico(a.key, 26)}<span>${esc(a.label)}</span></div><div class="s">${esc(a.sub)}</div>
-        <div class="lvrow">Lv.${a.level}<span class="bar${a.key === "nisa" ? " blue" : ""}"><i style="width:${Math.max(6, a.progress * 100)}%"></i></span></div>
+        <div class="lvrow" title="このエリアのやることのうち、できた数">${esc(a.readiness)}<span class="bar${a.key === "nisa" ? " blue" : ""}"><i style="width:${Math.max(6, a.progress * 100)}%"></i></span></div>
         <div class="bg"><b>${esc(a.big)}</b><span>${esc(a.bigLabel)}</span></div></button>`;
     return `<div class="hh">
         <div class="logo">${ico("plan", 40)}<div><b>${esc(h.hero.company || "会社名")}</b><small>LIFE ROUTE</small></div></div>
         <div class="ttl"><h1 class="gold">${esc(h.hero.title)}<span class="kana">${esc(h.hero.kana)}</span></h1><p>${esc(h.hero.catch)}</p></div>
         <div class="who"><div class="av">${ico("old", 26, "#fff")}</div><div><input id="hName" placeholder="お名前を入力" value="${esc(meta.customer || "")}" aria-label="お客様のお名前"><span style="font-size:13px"> 様</span>
-          <div class="lv">準備 Lv.${h.hero.level}　<span style="color:#cfd8e8;font-weight:400">${h.hero.age}歳からの物語</span></div></div></div>
+          <div class="lv" title="${esc(h.hero.howto)}">${esc(h.hero.readiness)}　<span style="color:#cfd8e8;font-weight:400">${h.hero.age}歳からの物語</span></div><div style="font-size:11px;color:#cfd8e8">${esc(h.hero.howto)}</div></div></div>
       </div>
       <div class="hgrid">
         <div>
           <nav class="glass hnav">${NAV.map(([ic, l, t]) => `<button data-go="${t}" class="${t === "home" ? "on" : ""}">${ico(ic)}<span>${esc(l)}</span></button>`).join("")}</nav>
-          <div class="glass mis"><h3>${ico("doc")}ミッション<span class="n">${open}</span></h3>
+          <div class="glass mis"><h3>${ico("doc")}やること<span class="n">${open}</span></h3>
             ${h.missions.map((m) => `<label class="${m.auto ? "auto" : ""}"><input type="checkbox" data-m="${m.id}" ${m.done ? "checked" : ""} ${m.auto ? "disabled" : ""}><span class="${m.done ? "d" : ""}">${esc(m.label)}${m.auto ? "（自動）" : ""}</span></label>`).join("")}
           </div>
         </div>
@@ -1749,7 +1752,7 @@
           <div class="glass rc"><h3>ライフイベント</h3><ul class="ev">${h.events.map((e, k) => `<li class="${k === 0 ? "now" : ""}" data-age="${Math.min(e.age, x.input.retireAge)}"><b>${e.age}歳</b><span>${esc(e.label)}<small>${esc(e.stat)}</small></span></li>`).join("")}</ul></div>
         </div>
       </div>
-      <p class="hnote">数字はすべて、このシミュレーションの条件から計算した概算です（将来の価格・運用の結果を約束するものではありません）。ミッションのチェックとお名前は、この画面の中だけで使い、保存・共有しません。</p>`;
+      <p class="hnote">数字はすべて、このシミュレーションの条件から計算した概算です（将来の価格・運用の結果を約束するものではありません）。やることのチェックとお名前は、この画面の中だけで使い、保存・共有しません。</p>`;
   }
   function renderHome() {
     const x = S.compute(state);
