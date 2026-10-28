@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>立候補シート｜株式会社 Martial Arts</title>
+<style>
+  :root{
+    --ink:#1b1b1f; --sub:#5b5b66; --line:#c9c3b4; --gold:#a8863a; --gold-soft:#f5efe1; --paper:#ffffff; --bg:#ecebe7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo","IPAGothic",sans-serif;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #bar{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;justify-content:center;
+    padding:10px 16px;background:#1b1b1f;color:#fff;font-size:13px;flex-wrap:wrap}
+  #bar button{font:inherit;padding:6px 14px;border-radius:6px;border:1px solid var(--gold);background:var(--gold);color:#fff;cursor:pointer}
+  #bar button.ghost{background:transparent}
+  .page{width:794px;height:1123px;margin:24px auto;background:var(--paper);padding:44px 52px 36px;
+    box-shadow:0 2px 10px rgba(0,0,0,.12);position:relative;overflow:hidden;display:flex;flex-direction:column}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--gold);padding-bottom:10px}
+  .head h1{margin:0;font-size:30px;letter-spacing:.12em}
+  .head .co{font-size:11px;color:var(--sub);text-align:right;line-height:1.6}
+  .lead{margin:12px 0 14px;font-size:12.5px;line-height:1.75;color:var(--sub)}
+  .lead b{color:var(--ink)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+  .f{margin-bottom:11px}
+  .f label{display:flex;align-items:baseline;gap:8px;font-size:13px;font-weight:700;margin-bottom:4px}
+  .f label .no{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;
+    background:var(--gold);color:#fff;font-size:11px;flex:none}
+  .f label small{font-weight:400;color:var(--sub);font-size:11px}
+  input[type=text],textarea{width:100%;border:none;border-bottom:1px solid var(--line);font:inherit;font-size:13px;
+    padding:4px 2px;background:transparent;color:var(--ink);outline:none}
+  textarea{resize:none;border:none;line-height:28px;padding:0 2px;
+    background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 27px,var(--line) 27px,var(--line) 28px);
+    background-attachment:local}
+  input:focus,textarea:focus{background-color:#fffbf0}
+  .choice{display:grid;grid-template-columns:88px 1fr 92px;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+  .choice div{padding:7px 8px;border-bottom:1px solid var(--line);font-size:12.5px;display:flex;align-items:center}
+  .choice div:nth-last-child(-n+3){border-bottom:none}
+  .choice .k{background:var(--gold-soft);font-weight:700;justify-content:center}
+  .choice .id{border-left:1px solid var(--line);justify-content:center;color:var(--sub);font-size:11px}
+  .choice input{border-bottom:none;padding:0}
+  .steps{display:grid;grid-template-columns:22px 1fr;gap:0 6px;align-items:end}
+  .steps span{font-size:13px;color:var(--gold);font-weight:700;padding-bottom:6px}
+  .rec{display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap}
+  .rec .box{display:inline-block;width:13px;height:13px;border:1.5px solid var(--ink);vertical-align:-2px;margin-right:4px}
+  .rec input{flex:1;min-width:160px}
+  .sign{margin-top:auto;border:1.5px solid var(--gold);border-radius:8px;padding:12px 16px;background:var(--gold-soft)}
+  .sign p{margin:0 0 10px;font-size:12.5px;line-height:1.7}
+  .sign .row{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:10px;align-items:end;font-size:12.5px}
+  .foot{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:10px}
+  /* page 2 */
+  h2{font-size:17px;margin:14px 0 8px;padding-left:10px;border-left:4px solid var(--gold)}
+  table{width:100%;border-collapse:collapse;font-size:11.5px}
+  th,td{border-bottom:1px solid #e3dfd4;padding:5.5px 6px;text-align:left;vertical-align:top}
+  th{background:var(--gold-soft);font-size:11px}
+  td.id{font-weight:700;white-space:nowrap;width:44px}
+  td.u{white-space:nowrap;width:40px;text-align:center}
+  td.t{white-space:nowrap;width:46px;color:var(--sub)}
+  .u1{color:#b3261e;font-weight:700}.u2{color:#8a6d00;font-weight:700}.u3{color:#2e6b3a;font-weight:700}
+  .grp td{background:#f7f6f2;font-weight:700;font-size:11px;color:var(--sub)}
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:11.5px;line-height:1.65;margin:0;padding:0;list-style:none}
+  .rules li{padding-left:14px;position:relative}
+  .rules li::before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;background:var(--gold);border-radius:50%}
+  .sched{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px}
+  .sched div{border:1px solid var(--line);border-radius:6px;padding:7px 6px;text-align:center;font-size:11px;line-height:1.5}
+  .sched b{display:block;font-size:12.5px;color:var(--gold)}
+  .motto{margin-top:auto;text-align:center;font-size:13px;letter-spacing:.08em;color:var(--sub)}
+  .motto b{color:var(--ink);font-size:15px}
+  @media screen and (max-width:820px){
+    .page{width:auto;height:auto;margin:12px 16px;padding:24px 18px}
+    .grid,.rules{grid-template-columns:1fr}
+    .sched{grid-template-columns:repeat(2,1fr)}
+  }
+  @page{size:A4;margin:0}
+  @media print{
+    html,body{background:#fff}
+    #bar{display:none}
+    .page{margin:0;box-shadow:none;width:210mm;height:296mm;page-break-after:always;break-after:page}
+    .page:last-child{page-break-after:auto;break-after:auto}
+    input:focus,textarea:focus{background-color:transparent}
+  }
+</style>
+</head>
+<body>
+<div id="bar">
+  <span>画面で打ち込んでも、印刷して手書きでもOK</span>
+  <button onclick="window.print()">印刷・PDF</button>
+  <button class="ghost" onclick="clearAll()">入力を消す</button>
+</div>
+
+<!-- ===== 1枚目：立候補シート ===== -->
+<section class="page">
+  <div class="head">
+    <h1>立候補シート</h1>
+    <div class="co">株式会社 Martial Arts<br>第1回 社内公募（2026年11月）</div>
+  </div>
+  <p class="lead">
+    会社の空いている席は、裏面（2枚目）にすべて載っています。<b>やりたい席に、自分で手を挙げてください。</b><br>
+    会社の第一案と同じ席でも、違う席でもかまいません。<b>全員が1枚出します。</b>
+    提出：<b>11/4（水）〜11/13（金）</b>／代表まで（手渡し・写真でも可）
+  </p>
+
+  <div class="grid">
+    <div class="f"><label><span class="no">1</span>氏名</label><input type="text" aria-label="氏名"></div>
+    <div class="f"><label><span class="no">2</span>今の担当・役割</label><input type="text" aria-label="今の担当・役割"></div>
+  </div>
+
+  <div class="f">
+    <label><span class="no">3</span>立候補する席 <small>裏面の ID と名前を書く（第1希望だけでもOK）</small></label>
+    <div class="choice">
+      <div class="k">第1希望</div><div><input type="text" aria-label="第1希望"></div><div class="id">ID：</div>
+      <div class="k">第2希望</div><div><input type="text" aria-label="第2希望"></div><div class="id">ID：</div>
+      <div class="k">第3希望</div><div><input type="text" aria-label="第3希望"></div><div class="id">ID：</div>
+    </div>
+  </div>
+
+  <div class="f">
+    <label><span class="no">4</span>なぜ、この席をやりたいか <small>3行以内</small></label>
+    <textarea rows="3" aria-label="なぜこの席をやりたいか"></textarea>
+  </div>
+
+  <div class="f">
+    <label><span class="no">5</span>この席で、会社の何を良くしたいか</label>
+    <textarea rows="2" aria-label="会社の何を良くしたいか"></textarea>
+  </div>
+
+  <div class="f">
+    <label><span class="no">6</span>最初の90日でやること <small>3つ・できるだけ数字で</small></label>
+    <div class="steps">
+      <span>1.</span><input type="text" aria-label="90日でやること1">
+      <span>2.</span><input type="text" aria-label="90日でやること2">
+      <span>3.</span><input type="text" aria-label="90日でやること3">
+    </div>
+  </div>
+
+  <div class="f">
+    <label><span class="no">7</span>今の仕事で手放すもの と その引き継ぎ先（案）
+      <small>持てるのは 主2つ・合計3つまで</small></label>
+    <textarea rows="2" aria-label="手放すものと引き継ぎ先"></textarea>
+  </div>
+
+  <div class="f">
+    <label><span class="no">8</span>会社に用意してほしいサポート <small>研修・時間・道具・資格取得など</small></label>
+    <textarea rows="2" aria-label="会社に用意してほしいサポート"></textarea>
+  </div>
+
+  <div class="f">
+    <label><span class="no">9</span>推薦</label>
+    <div class="rec">
+      <span><span class="box"></span>自薦</span>
+      <span><span class="box"></span>他薦（本人も同意している）</span>
+      推薦者：<input type="text" aria-label="推薦者">
+    </div>
+  </div>
+
+  <div class="sign">
+    <p>この席に選ばれたら、<b>3ヶ月のお試し期間</b>で90日の計画をやり切ります。<br>
+       選ばれなかった場合も、フィードバックを受けて次に活かします。</p>
+    <div class="row">
+      <span>提出日</span><input type="text" aria-label="提出日" placeholder="2026年　月　日">
+      <span>署名</span><input type="text" aria-label="署名">
+    </div>
+  </div>
+  <div class="foot"><span>※ 誰が何に立候補したかは、発表まで代表と選考者以外には伝えません。</span><span>1 / 2</span></div>
+</section>
+
+<!-- ===== 2枚目：公募している席 ===== -->
+<section class="page">
+  <div class="head">
+    <h1 style="font-size:24px">いま空いている席　全18</h1>
+    <div class="co">🔴 11月中に決める　🟡 年内　🟢 来期の頭まで<br>役職＝肩書き・決裁あり／役割＝主担当・副担当</div>
+  </div>
+
+  <table aria-label="公募している席">
+    <thead><tr><th>ID</th><th>席の名前</th><th>何をするか（ひとことで）</th><th>種別</th><th>急ぎ</th></tr></thead>
+    <tbody>
+      <tr class="grp"><td colspan="5">経営</td></tr>
+      <tr><td class="id">M-1</td><td>経営企画・CEO補佐</td><td>会社の数字を毎月まとめ、週次の案件会議を回し、CEOへの判断依頼を整理する</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr class="grp"><td colspan="5">営業部</td></tr>
+      <tr><td class="id">S-1</td><td>営業 係長</td><td>現場で結果を出しながらアポ同行・声かけでチームの数字を引き上げる</td><td class="t">役職</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">S-2</td><td>新人教育 第一責任者</td><td>入社から90日で一人立ちできる研修の流れを作り、結果に責任を持つ</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">S-3</td><td>数字・案件管理 担当</td><td>5段階目標を毎週集計して共有、止まっている案件を見逃さない</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">S-5</td><td>仕組み・ツール管理 副担当</td><td>社内ツールの使い方の質問を受け、現場の要望をまとめる</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">S-6</td><td>アポ現場教育 副担当</td><td>アポ同行と振り返りで、新人の初アポ・初決済を早める</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">S-7</td><td>礼儀礼節・立ち回り教育 副担当</td><td>マナー研修の補助、チェックリストづくり</td><td class="t">役割</td><td class="u u3">🟢</td></tr>
+      <tr><td class="id">S-8</td><td>定着ケア（メンター）</td><td>月1回の雑談面談で、辞める前に気づく。評価には使わない</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">S-9</td><td>集客・Web/SNS 担当</td><td>広告・SNSで反響（見込み客）を毎月安定して作る</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">S-10</td><td>オンライン面談 運用担当</td><td>月・木のオンライン面談枠の予約・準備・記録</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr class="grp"><td colspan="5">仕入れ・案件</td></tr>
+      <tr><td class="id">P-1</td><td>仕入れ 副担当</td><td>業者ルートを分担して持ち、物件出し〜審査の流れを止めない</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">P-2</td><td>ローン付け・決済 副担当</td><td>銀行事前申込・審査状況・決済日の段取りを一緒に持つ</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">P-3</td><td>契約・決済進行 責任者</td><td>契約から決済まで、全案件の次の一手と期日に責任を持つ</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">P-4</td><td>工事監督（リフォーム）</td><td>工事の品質・費用・工期を守り、予定どおり引き渡す</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">P-5</td><td>保険見直し 窓口</td><td>住宅購入のお客様へ保険見直しの初回案内（資格取得は会社が支援）</td><td class="t">役割</td><td class="u u3">🟢</td></tr>
+      <tr class="grp"><td colspan="5">管理部</td></tr>
+      <tr><td class="id">K-1</td><td>管理部 副担当</td><td>支払い・書類保管・印紙/小口現金の確認を、もう1人できる状態に</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">K-2</td><td>経理・入出金資料 窓口</td><td>入出金の資料を社内から集め、月次の数字を毎月確定させる</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr><td class="id">K-3</td><td>人事・採用 担当</td><td>来期の増員3人を採る。立候補制度の事務局も担う</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+    </tbody>
+  </table>
+
+  <h2>ルール（抜粋）</h2>
+  <ul class="rules">
+    <li><b>自薦が原則</b>。他薦は本人の同意が必要</li>
+    <li>持てるのは <b>主2つ・合計3つまで</b></li>
+    <li>選ばれたら <b>3ヶ月のお試し期間</b>。外れても降格・減給なし</li>
+    <li>結果は<b>理由とセット</b>で伝える。選ばれなくても<b>減点しない</b></li>
+    <li><b>手を挙げたこと自体を評価に加点</b></li>
+    <li>役職には役職手当、主・副担当には役割手当〔金額は社労士確認後に確定〕</li>
+    <li>試用期間中の人は「役割」に立候補できる</li>
+    <li>任期は1年。満了時に再公募、再立候補もできる</li>
+  </ul>
+
+  <h2>スケジュール</h2>
+  <div class="sched">
+    <div><b>10/30（金）</b>発表</div>
+    <div><b>11/4〜11/13</b>シート提出</div>
+    <div><b>11/16〜11/20</b>面談（20〜30分）</div>
+    <div><b>11/25（水）</b>任命の発表</div>
+    <div><b>12/1（火）</b>お試し開始</div>
+  </div>
+
+  <p class="motto"><b>席は用意した。取りにこい。</b><br>炎であれ。昨日を超えろ。爪痕を残せ。</p>
+  <div class="foot"><span>くわしくは「社内公募ポジション一覧と立候補制度」を参照</span><span>2 / 2</span></div>
+</section>
+
+<script>
+  function clearAll(){
+    if(!confirm('入力した内容を消しますか？'))return;
+    document.querySelectorAll('input,textarea').forEach(function(el){el.value='';});
+  }
+</script>
+</body>
+</html>
