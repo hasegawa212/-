@@ -35,3 +35,20 @@ test("画面：選ぶ項目はすべて入力欄にあり、空なら「選ん�
   assert.match(html, /S\.missing\(/);
   assert.match(html, /あと\$\{/, "あと何項目か表示");
 });
+
+test("リンクに条件（s=）がないとき（#step=3 だけ・前の画面の続き）は、見本の数字を出さず空から", () => {
+  const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
+  assert.match(html, /new Set\(\/\(\^\|\[#&\]\)s=\/\.test\(location\.hash\)/, "s= があるときだけ入力済み");
+});
+
+test("共有リンクには、お客様ごとの項目を初期値と同じでも必ず入れる（開いた人が空にならない）", () => {
+  const Share = require("../lib/share");
+  const d = S.defaults();
+  const h = Share.encode(d, { step: 2, defaults: d, keep: S.askFields(d) });
+  assert.match(h, /s=/);
+  const back = Share.decode(h, d);
+  for (const k of S.askFields(d)) assert.equal(get(back.state, k), get(d, k), k);
+  assert.doesNotMatch(Share.encode(d, { step: 2, defaults: d }), /s=/, "keep なしは今までどおり");
+  assert.match(html2(), /keep: need\(\)\.length \? \[\] : S\.askFields\(state\)/);
+});
+function html2() { return fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8"); }

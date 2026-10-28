@@ -43,10 +43,18 @@
     }
   }
 
-  function encode(state, { step = 0, present = false, defaults } = {}) {
+  // keep：初期値と同じでも必ず入れる項目（お客様ごとに選んだ項目。開いた側で「未入力」と区別するため）
+  function encode(state, { step = 0, present = false, defaults, keep = [] } = {}) {
     const def = defaults || (typeof LHS !== "undefined" ? LHS.defaults() : require("./engine").defaults());
     const parts = [];
     const d = diff(state, def);
+    for (const p of keep) {
+      const ks = p.split("."); let a = d, v = state;
+      for (const k of ks) v = v == null ? v : v[k];
+      if (v === undefined) continue;
+      ks.slice(0, -1).forEach((k) => (a = a[k] = a[k] || {}));
+      a[ks.at(-1)] = v;
+    }
     if (Object.keys(d).length) parts.push("s=" + b64e(JSON.stringify(d)));
     if (step) parts.push("step=" + step, "v=2"); // v=2：先頭に「¥」が入った並び（それより前のリンクは1つずらして開く）
     if (present) parts.push("p=1");
