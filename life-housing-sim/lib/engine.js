@@ -145,6 +145,13 @@
   }
   const PRESETS = { single: "独身・賃貸（家賃は平均）", shataku: "独身・社宅（30歳ごろまで）", family: "結婚・子どもあり" };
   function defaults() { return preset("single"); }
+  // お客様ごとに必ず選ぶ項目（画面の初期値は空。見本の数字をお客様に見せない）。それ以外は仮定の初期値のまま
+  const ASK_FIELDS = ["age", "income", "savings", "nisa.balance", "nisa.monthly", "rent.single", "own.price", "lifeIns.monthly", "lifeIns.cover"];
+  function askFields(inp) {
+    return inp.shataku && inp.shataku.on ? ASK_FIELDS.flatMap((k) => (k === "rent.single" ? ["shataku.self", "shataku.until"] : [k])) : ASK_FIELDS.slice();
+  }
+  // blank＝まだ選んでいない項目の集合 → そのうち今選ぶべきもの
+  function missing(inp, blank) { return askFields(inp).filter((k) => blank.has(k)); }
 
   function stage(inp, age) {
     const f = inp.family || {};
@@ -813,5 +820,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
