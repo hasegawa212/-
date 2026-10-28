@@ -51,16 +51,16 @@
   .sign .row{display:grid;grid-template-columns:auto 1fr auto 1fr;gap:10px;align-items:end;font-size:12.5px}
   .foot{display:flex;justify-content:space-between;font-size:10px;color:var(--sub);margin-top:10px}
   /* page 2 */
-  h2{font-size:17px;margin:14px 0 8px;padding-left:10px;border-left:4px solid var(--gold)}
-  table{width:100%;border-collapse:collapse;font-size:11.5px}
-  th,td{border-bottom:1px solid #e3dfd4;padding:5.5px 6px;text-align:left;vertical-align:top}
+  h2{font-size:14px;margin:8px 0 5px;padding-left:10px;border-left:4px solid var(--gold)}
+  table{width:100%;border-collapse:collapse;font-size:10.5px;line-height:1.35}
+  th,td{border-bottom:1px solid #e3dfd4;padding:3px 6px;text-align:left;vertical-align:top}
   th{background:var(--gold-soft);font-size:11px}
   td.id{font-weight:700;white-space:nowrap;width:44px}
   td.u{white-space:nowrap;width:40px;text-align:center}
   td.t{white-space:nowrap;width:46px;color:var(--sub)}
   .u1{color:#b3261e;font-weight:700}.u2{color:#8a6d00;font-weight:700}.u3{color:#2e6b3a;font-weight:700}
   .grp td{background:#f7f6f2;font-weight:700;font-size:11px;color:var(--sub)}
-  .rules{display:grid;grid-template-columns:1fr 1fr;gap:6px 18px;font-size:11.5px;line-height:1.65;margin:0;padding:0;list-style:none}
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px;font-size:10.5px;line-height:1.5;margin:0;padding:0;list-style:none}
   .rules li{padding-left:14px;position:relative}
   .rules li::before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;background:var(--gold);border-radius:50%}
   .sched{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:4px}
@@ -97,8 +97,8 @@
     <div class="co">株式会社 Martial Arts<br>第1回 社内公募（2026年11月）</div>
   </div>
   <p class="lead">
-    会社の空いている席は、裏面（2枚目）にすべて載っています。<b>やりたい席に、自分で手を挙げてください。</b><br>
-    会社の第一案と同じ席でも、違う席でもかまいません。<b>全員が1枚出します。</b>
+    会社の席は、裏面（2枚目）にすべて載っています。<b>今の役職もいったん全部「空席」。全員が立候補し直します。</b><br>
+    今と同じ席でも、違う席でもかまいません。<b>やりたい席に、自分で手を挙げてください。</b>
     提出：<b>11/4（水）〜11/13（金）</b>／代表まで（手渡し・写真でも可）
   </p>
 
@@ -169,16 +169,25 @@
 <!-- ===== 2枚目：公募している席 ===== -->
 <section class="page">
   <div class="head">
-    <h1 style="font-size:24px">いま空いている席　全19</h1>
+    <h1 style="font-size:24px">会社の全部の席　全員が立候補</h1>
     <div class="co">🔴 11月中に決める　🟡 年内　🟢 来期の頭まで<br>役職＝肩書き・決裁あり／役割＝主担当・副担当</div>
   </div>
 
   <table aria-label="公募している席">
     <thead><tr><th>ID</th><th>席の名前</th><th>何をするか（ひとことで）</th><th>種別</th><th>急ぎ</th></tr></thead>
     <tbody>
-      <tr class="grp"><td colspan="5">経営</td></tr>
+      <tr class="grp"><td colspan="5">今ある役職（いったん全部空席。今の担当者も立候補し直す）</td></tr>
+      <tr><td class="id">E-1</td><td>営業部長</td><td>営業全体の数字・部の運営・面接・新人の受け入れ</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-2</td><td>営業課長</td><td>商談と管理、採用面接の窓口、部長の代行</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-3</td><td>係長代理（4席）</td><td>現場のリーダー。同行・声かけ・数字の底上げ</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-4</td><td>チームリーダー</td><td>チームの数字と空気に責任を持つ</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-5</td><td>業務責任者（仕入れ〜決済）</td><td>仕入れ会議・振込依頼の起票・銀行と決済の段取り</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-6</td><td>リフォーム管理 主担当</td><td>リフォーム案件の全件管理・ローン事務</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-7</td><td>管理部 課長</td><td>勤怠・社保・郵便・書類・税理士・支払いの段取り</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
+      <tr><td class="id">E-8</td><td>配車</td><td>毎日の社用車と営業の予定の割り振り</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
+      <tr class="grp"><td colspan="5">新しい席 ― 経営</td></tr>
       <tr><td class="id">M-1</td><td>経営企画・代表補佐</td><td>代表の判断以外の仕事を引き取る。会議の数字・段取り・判断依頼の整理</td><td class="t">役職</td><td class="u u1">🔴</td></tr>
-      <tr class="grp"><td colspan="5">営業部（部長 三浦・課長 上田）</td></tr>
+      <tr class="grp"><td colspan="5">新しい席 ― 営業部</td></tr>
       <tr><td class="id">S-1</td><td>営業 係長</td><td>現場で結果を出しながら同行・声かけでチームの数字を引き上げる</td><td class="t">役職</td><td class="u u2">🟡</td></tr>
       <tr><td class="id">S-2</td><td>新人教育 責任者</td><td>佐藤さん・12月入社予定の人が90日で一人立ちする研修表をつくる</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
       <tr><td class="id">S-3</td><td>数字・案件管理</td><td>5段階目標を毎週集計して共有、止まっている案件を出す</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
@@ -189,10 +198,10 @@
       <tr><td class="id">S-8</td><td>集客・Web/SNS 対応</td><td>監視botの異常に当日対応、広告・SNSで反響をつくる</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
       <tr><td class="id">S-9</td><td>保険 窓口</td><td>代理店の必須研修（期限12/2）と、保険見直しの初回案内</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
       <tr><td class="id">S-10</td><td>社内ツール・bot 管理</td><td>毎朝のbot投稿を確認し、誤送信・テストデータを止める</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
-      <tr class="grp"><td colspan="5">仕入れ・業務（業務責任者 嶺田）</td></tr>
+      <tr class="grp"><td colspan="5">新しい席 ― 仕入れ・業務</td></tr>
       <tr><td class="id">P-1</td><td>仕入れ〜決済 副担当</td><td>仕入れ会議の記録、振込依頼の起票、銀行・決済日の段取り</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
       <tr><td class="id">P-2</td><td>リフォーム管理 副担当</td><td>リフォーム案件の進捗更新、業者確認、ローン事務の補助</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
-      <tr class="grp"><td colspan="5">管理部（課長 小久保）</td></tr>
+      <tr class="grp"><td colspan="5">新しい席 ― 管理部</td></tr>
       <tr><td class="id">K-1</td><td>管理部 副担当</td><td>勤怠チェック・郵便・書類格納・支払予定づくりの補助</td><td class="t">役割</td><td class="u u1">🔴</td></tr>
       <tr><td class="id">K-2</td><td>振込・入金照合の準備</td><td>振込依頼の確認と一覧化（実行は代表）、入金の照合</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
       <tr><td class="id">K-3</td><td>採用（広告・母集団）</td><td>求人票・広告の更新、応募を集める、面接日程の調整</td><td class="t">役割</td><td class="u u2">🟡</td></tr>
@@ -209,8 +218,8 @@
     <li>結果は<b>理由とセット</b>で伝える。選ばれなくても<b>減点しない</b></li>
     <li><b>手を挙げたこと自体を評価に加点</b></li>
     <li>役職には役職手当、主・副担当には役割手当〔金額は社労士確認後に確定〕</li>
-    <li>試用期間中の人は「役割」に立候補できる</li>
-    <li>任期は1年。満了時に再公募、再立候補もできる</li>
+    <li>今の席に誰も出なければ<b>現職に続投を打診</b>。交代になっても役職手当は3ヶ月据え置き</li>
+    <li>代表・常務（役員）は対象外。任期は1年、満了時に再公募</li>
   </ul>
 
   <h2>スケジュール</h2>
