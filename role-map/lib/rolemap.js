@@ -101,7 +101,39 @@
     };
   }
 
+  // 割り当て案：代表の仕事と担当なしの仕事を「渡す move／代表に残す keep／全員のルールにして見る席を決める rule／やめる stop」に分ける
+  // 案は席だけを決め、人は決めない（席に誰が座るかは立候補で決める）
+  const KINDS = ["move", "keep", "rule", "stop"];
+  const SEAT_RE = /^(E-[0-8]|S-([1-9]|10)|M-1|P-[12]|K-[1-5])$/;
+  function handoff(d, plan, ceoId) {
+    const target = d.tasks.filter((t) => t.owner === ceoId || t.owner == null);
+    const tids = new Set(target.map((t) => t.id));
+    const all = new Set(d.tasks.map((t) => t.id));
+    const errors = [];
+    for (const [id, v] of Object.entries(plan)) {
+      if (!all.has(id)) { errors.push(`${id}: 存在しない仕事`); continue; }
+      if (!tids.has(id)) errors.push(`${id}: 代表でも担当なしでもないので対象外`);
+      if (!KINDS.includes(v.kind)) errors.push(`${id}: kind が不正（${v.kind}）`);
+      else if ((v.kind === "move" || v.kind === "rule") && !SEAT_RE.test(v.seat || "")) errors.push(`${id}: ${v.kind} には席が必要（${v.seat}）`);
+    }
+    const missing = target.filter((t) => !plan[t.id]).map((t) => t.id);
+    const count = { move: 0, keep: 0, rule: 0, stop: 0 };
+    const bySeat = {};
+    for (const t of byFreq(target)) {
+      const v = plan[t.id];
+      if (!v || !KINDS.includes(v.kind)) continue;
+      count[v.kind]++;
+      if ((v.kind === "move" || v.kind === "rule") && SEAT_RE.test(v.seat || "")) {
+        const s = (bySeat[v.seat] = bySeat[v.seat] || { move: [], rule: [], helpers: [] });
+        s[v.kind].push(t);
+        if (v.kind === "move") for (const h of helpersOf(t)) if (h !== ceoId && !s.helpers.includes(h)) s.helpers.push(h);
+      }
+    }
+    const ceo = ceoLoad(d, ceoId);
+    return { errors, missing, count, bySeat, ceoBefore: ceo.length, ceoAfter: ceo.filter((t) => plan[t.id] && plan[t.id].kind === "keep") };
+  }
+
   const nameOf = (d, id) => (d.people.find((p) => p.id === id) || { name: id || "（担当なし）" }).name;
 
-  return { AREAS, FREQS, WEIGHT, STATUS, INACTIVE, validate, byPerson, gaps, single, ceoLoad, byArea, bySeat, summary, nameOf };
+  return { AREAS, FREQS, WEIGHT, STATUS, INACTIVE, validate, byPerson, gaps, single, ceoLoad, byArea, bySeat, summary, nameOf, KINDS, handoff };
 });
