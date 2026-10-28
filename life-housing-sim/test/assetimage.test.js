@@ -33,7 +33,7 @@ test("資料の結論：購入をすすめるときは絵＋家の代金、準�
 test("画面：②に絵（Zoomでは省く）、資料の asset、1ファイル版に絵を入れる", () => {
   assert.match(html, /function assetView\(x\)/);
   assert.match(html, /asset: \(\) => assetView\(x\)/);
-  assert.match(html, /costView\(x\) \+ assetView\(x\)/);
+  assert.match(html, /costView\(x\) \+ futureView\(x\) \+ assetView\(x\)/);
   assert.match(html, /body\.present \.assetimg/);
   assert.match(fs.readFileSync(path.join(__dirname, "..", "tools/bundle.js"), "utf8"), /img\/rent-to-asset\.jpg/);
 });

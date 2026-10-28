@@ -18,7 +18,7 @@ const { chromium } = require("playwright");
   fs.writeFileSync(out, pdf);
   const n = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
   await b.close();
-  const want = 15; // 見本は独身のお客様＝「自分の空間」のスライドが入る
+  const want = 16; // 見本は独身のお客様＝「自分の空間」のスライドが入る
   if (n !== want) throw new Error(`ページ数が${want}ではありません：${n}`);
   console.log(out, `${n}ページ`);
 })();

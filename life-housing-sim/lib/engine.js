@@ -473,6 +473,32 @@
       ? { src: "img/space-single.jpg", alt: "買うのは、家だけじゃない。自分の好きに使える空間だ。一人暮らしに、戸建てという選択。趣味に没頭する部屋・仕事に集中する部屋・心からくつろぐ部屋。一人だからこそ、暮らしを自由に。" }
       : null;
   }
+  // 「毎月の家賃、そのまま払い続けますか？」：賃貸と購入で毎月払うお金が10年後・20年後にどう変わるか（お客様の数字・横ばいシナリオ）
+  // 売却費用は仲介手数料の上限（価格×3%＋6万円、税込）。手元の目安はマイナスでもそのまま出す
+  function future(x) {
+    const i = x.input, o = i.own, L = x.loan, b = L.buyAge;
+    const at = (age) => x.years.find((y) => y.age === age) || x.years[x.years.length - 1];
+    const y0 = at(b);
+    const valueAt = (t) => o.price * o.landShare * Math.pow(1 + i.landRates.flat, t) + o.price * (1 - o.landShare) * Math.max(0.1, 1 - (0.9 * t) / 30);
+    const points = [10, 20].filter((n) => b + n <= i.lifeEnd).map((n) => {
+      const ys = x.years.filter((y) => y.age >= b && y.age < b + n);
+      const sum = (k) => ys.reduce((s2, y) => s2 + (typeof k === "function" ? k(y) : y[k]), 0);
+      const balance = balanceAfter(L.amount, o.rate, o.years, Math.min(n * 12, L.months));
+      const value = valueAt(n), saleCost = (value * 0.03 + 60_000) * 1.1;
+      return { years: n, age: b + n, rentPaid: sum((y) => y.rentPart + y.renewPart), loanPaid: sum("ownLoan"), upkeep: sum("ownUpkeep"),
+        balance, principal: L.amount - balance, value, saleCost, net: value - balance - saleCost };
+    });
+    const paidOff = at(Math.min(L.endAge, i.lifeEnd));
+    return {
+      title: "毎月の家賃、そのまま払い続けますか？", sub: "同じ住居費でも、10年後・20年後の未来は変わる。",
+      monthly: { rent: y0.rentMonthly, loan: L.pmt, upkeep: y0.ownUpkeep / 12, own: L.pmt + y0.ownUpkeep / 12 },
+      points,
+      old: { rent: i.rent.old, own: paidOff.ownUpkeep / 12, from: L.endAge,
+        options: ["完済後は、税金・保険・修繕だけで住み続ける", "暮らしに合わせて住み替える（売って次の住まいへ）", "売却・賃貸に出すという選択肢も残る"] },
+      catch: "家賃は、住むための支払い。住宅ローンは、住みながら自分の家を持つための支払い。",
+      note: "金額はお客様の条件での概算（仮定）です。購入には頭金・諸費用・固定資産税・保険・修繕費などがかかり、建物や土地の価値は下がる場合もあります。家の価値は横ばいのシナリオ、売却費用は仲介手数料の上限で計算。",
+    };
+  }
   // 「今払ってる賃料が将来の資産になる」（ユーザーの絵）。家賃そのものではなく、家賃のかわりに返した元金（＋頭金）が家の代金として残る、と正直に添える
   function assetImage(x) {
     const cc = costCompare(x);
@@ -682,6 +708,13 @@
         ...(buy ? [k("家の代金（自分の家に残る）", man(costCompare(x).own.house), "返した元金＋頭金", "own")] : [])],
       points: buy ? [`消えるお金でくらべると　賃貸のまま ${man(costCompare(x).rent.spent)}／持ち家 ${man(costCompare(x).own.spent)}`, "家賃のかわりに返した元金が、家の代金として残ります", "家の価値は上がることも下がることもあります"] : [],
       notes: note("⑦") });
+    const fu = future(x);
+    step("future", { headline: buy ? fu.title : "毎月の家賃と返済、10年後・20年後をくらべると", visual: "future", lead: fu.sub,
+      kpis: [k("今の家賃（毎月）", man(fu.monthly.rent, 1), "住むための支払い", "rent"), k("買った場合（毎月）", man(fu.monthly.own, 1), `返済 ${man(fu.monthly.loan, 1)}＋維持費 ${man(fu.monthly.upkeep, 1)}`, "own"),
+      ],
+      points: [fu.catch, "金額は概算。頭金・諸費用・税金・保険・修繕がかかり、家の価値は下がる場合もあります"],
+      notes: { say: `${fu.sub}毎月の家賃と、買った場合の返済と維持費を並べ、10年後・20年後に何が残るかを見ます。家賃は住むための支払いで、住宅ローンは住みながら自分の家を持つための支払いです。ただし、頭金・諸費用・税金・保険・修繕がかかり、家の価値は下がることもあります。`,
+        ask: "10年後・20年後、どこで、どんな暮らしをしていたいですか。" } });
     const life = R.life;
     step("life", { ...reason("life", "一生の住居費は、持ち家のほうが少ない", "くらべ：一生の住居費"), visual: "life",
       lead: `${i.lifeEnd}歳までの住居費を、税金・保険・修繕まで入れて比べました。持ち家は${i.retireAge}歳に残る家の価値を差し引いた実質です。`,
@@ -932,5 +965,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
