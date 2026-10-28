@@ -16,6 +16,7 @@ const { chromium } = require("playwright");
   fs.writeFileSync(out, pdf);
   const n = (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
   await b.close();
-  if (n !== 12) throw new Error(`ページ数が12ではありません：${n}`);
+  const want = 14;
+  if (n !== want) throw new Error(`ページ数が${want}ではありません：${n}`);
   console.log(out, `${n}ページ`);
 })();
