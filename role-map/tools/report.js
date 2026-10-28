@@ -20,7 +20,7 @@ out.push("### 控えがいない（1人だけ）— 毎日・毎週", ...RM.sing
 
 out.push("## 2. 人ごと", "");
 for (const p of RM.byPerson(D)) {
-  out.push(`### ${p.person.name}（${p.person.title || "肩書きなし"}・${p.person.dept}）— 主 ${p.counts.main}・手伝い ${p.counts.help}・重さ ${p.weight}（${p.level}）`);
+  out.push(`### ${p.person.name}（${p.person.title || "肩書きなし"}・${p.person.dept}）— 主 ${p.counts.main}・手伝い ${p.counts.help}・主担当の重さ ${p.mainWeight}（${p.level}）`);
   if (p.main.length) out.push("**主にやっている**", ...p.main.map(line));
   if (p.help.length) out.push("**手伝っている・控え**", ...p.help.map(line));
   out.push("");

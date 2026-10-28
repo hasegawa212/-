@@ -118,7 +118,7 @@ tr:last-child td{border-bottom:none}
   document.getElementById("single").innerHTML = R.single(D).filter(t => (t.freq === "毎日" || t.freq === "毎週") && t.owner !== D.ceoId).map(item).join("") || "<p>なし</p>";
   document.getElementById("people").innerHTML = R.byPerson(D).map(p =>
     '<details class="person"><summary><span class="pn">' + esc(p.person.name) + '</span><span class="lv ' + p.level + '">' + p.level + '</span><span class="pt">' + esc(p.person.title || "肩書きなし") + "・" + esc(p.person.dept) + (p.person.status !== "在籍" ? "・" + esc(p.person.status) : "") +
-    '</span><span class="cnt">主 ' + p.counts.main + "・手伝い " + p.counts.help + "・重さ " + p.weight + '</span></summary><div class="pbody">' +
+    '</span><span class="cnt">主 ' + p.counts.main + "・手伝い " + p.counts.help + "・主担当の重さ " + p.mainWeight + '</span></summary><div class="pbody">' +
     (p.main.length ? "<h4>主にやっている</h4>" + p.main.map(item).join("") : "") + (p.help.length ? "<h4>手伝っている・控え</h4>" + p.help.map(item).join("") : "") + "</div></details>").join("");
   const fA = document.getElementById("fArea"), fF = document.getElementById("fFreq"), fP = document.getElementById("fPerson"), fT = document.getElementById("fText");
   R.AREAS.forEach(a => fA.insertAdjacentHTML("beforeend", "<option>" + a + "</option>"));

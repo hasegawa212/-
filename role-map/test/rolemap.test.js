@@ -63,6 +63,17 @@ test("byPerson：主が6件以上なら重い", () => {
   assert.equal(b.level, "重い");
 });
 
+test("level：手伝い（全員の共通業務など）は重さの判定に入れず、主担当の重さで決める", () => {
+  const d = fx();
+  for (let i = 0; i < 8; i++) d.tasks.push({ id: "h" + i, name: "h" + i, area: "全社", freq: "毎日", owner: null, helpers: ["b"], seat: null, evidence: [{ channel: "#10", date: "2026-10-01", note: "" }], confidence: "確認" });
+  const b = RM.byPerson(d).find((x) => x.person.id === "b");
+  assert.ok(b.weight >= 40);                                         // 合計の重さは大きい
+  assert.equal(b.mainWeight, 0);
+  assert.equal(b.level, "軽い");                                     // それでも主担当は0件なので軽い
+  const a = RM.byPerson(d).find((x) => x.person.id === "a");
+  assert.equal(a.mainWeight, 5 + 3);
+});
+
 test("gaps：担当なしの仕事", () => {
   assert.deepEqual(RM.gaps(fx()).map((t) => t.id), ["t4"]);
 });
@@ -98,4 +109,12 @@ test("退職者は byPerson に出さない", () => {
   const d = fx();
   d.people.push({ id: "old", name: "退職者", title: "", dept: "営業部", status: "退職" });
   assert.equal(RM.byPerson(d).some((x) => x.person.id === "old"), false);
+});
+
+test("外部（引き継ぎ元など）も byPerson に出さず、status として受け付ける", () => {
+  const d = fx();
+  d.people.push({ id: "ext", name: "外部の人", title: "", dept: "外部", status: "外部" });
+  assert.deepEqual(RM.validate(d), []);
+  assert.equal(RM.byPerson(d).some((x) => x.person.id === "ext"), false);
+  assert.equal(RM.summary(d, "ceo").people, 4);
 });

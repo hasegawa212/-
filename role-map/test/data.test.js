@@ -24,7 +24,8 @@ test("本物のデータ：代表の id があり、代表に集中している�
 });
 
 test("本物のデータ：顧客の個人情報らしいもの（電話・様・金額）を含まない", () => {
-  const text = JSON.stringify(D.tasks);
+  // 「お客様」「オーナー様」「皆様」は一般名詞なので除いてから調べる
+  const text = JSON.stringify(D.tasks).replace(/お客様|オーナー様|皆様/g, "");
   assert.doesNotMatch(text, /\d{2,4}-\d{2,4}-\d{3,4}/, "電話番号らしきもの");
   assert.doesNotMatch(text, /[一-龠ァ-ヶ]{1,6}様/, "◯◯様");
   assert.doesNotMatch(text, /\d[\d,]*万円|\d{1,3}(,\d{3})+円/, "金額");

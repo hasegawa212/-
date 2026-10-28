@@ -10,12 +10,13 @@
   const AREAS = ["営業", "仕入れ・業務", "管理", "経営", "全社"];
   const FREQS = ["毎日", "毎週", "都度", "毎月", "単発"];          // 並べる順＝重い順
   const WEIGHT = { 毎日: 5, 毎週: 3, 都度: 2, 毎月: 1, 単発: 1 };
-  const STATUS = ["在籍", "新人", "業務委託", "退職"];
+  const STATUS = ["在籍", "新人", "業務委託", "外部", "退職"];
+  const INACTIVE = ["退職", "外部"];
   const CONF = ["確認", "推測"];
 
   const rank = (t) => FREQS.indexOf(t.freq);
   const byFreq = (list) => list.map((t, i) => [t, i]).sort((x, y) => rank(x[0]) - rank(y[0]) || x[1] - y[1]).map((x) => x[0]);
-  const active = (d) => d.people.filter((p) => p.status !== "退職");
+  const active = (d) => d.people.filter((p) => !INACTIVE.includes(p.status));
   const helpersOf = (t) => t.helpers || [];
 
   function validate(d) {
@@ -43,8 +44,9 @@
     return errs;
   }
 
-  function level(mainCount, weight) {
-    if (mainCount >= 6 || weight >= 20) return "重い";
+  // 重さの判定は「主担当の仕事」だけで決める（全員でやる共通業務の手伝いで全員が重いにならないように）
+  function level(mainCount, mainWeight) {
+    if (mainCount >= 6 || mainWeight >= 20) return "重い";
     if (mainCount <= 1) return "軽い";
     return "ふつう";
   }
@@ -54,10 +56,12 @@
       .map((person) => {
         const main = byFreq(d.tasks.filter((t) => t.owner === person.id));
         const help = byFreq(d.tasks.filter((t) => helpersOf(t).includes(person.id)));
-        const weight = [...main, ...help].reduce((s, t) => s + (WEIGHT[t.freq] || 0), 0);
-        return { person, main, help, counts: { main: main.length, help: help.length, total: main.length + help.length }, weight, level: level(main.length, weight) };
+        const sum = (list) => list.reduce((s, t) => s + (WEIGHT[t.freq] || 0), 0);
+        const mainWeight = sum(main);
+        const weight = mainWeight + sum(help);
+        return { person, main, help, counts: { main: main.length, help: help.length, total: main.length + help.length }, weight, mainWeight, level: level(main.length, mainWeight) };
       })
-      .sort((x, y) => y.counts.total - x.counts.total || y.weight - x.weight);
+      .sort((x, y) => y.mainWeight - x.mainWeight || y.counts.main - x.counts.main || y.weight - x.weight);
   }
 
   const gaps = (d) => byFreq(d.tasks.filter((t) => t.owner == null));
@@ -99,5 +103,5 @@
 
   const nameOf = (d, id) => (d.people.find((p) => p.id === id) || { name: id || "（担当なし）" }).name;
 
-  return { AREAS, FREQS, WEIGHT, validate, byPerson, gaps, single, ceoLoad, byArea, bySeat, summary, nameOf };
+  return { AREAS, FREQS, WEIGHT, STATUS, INACTIVE, validate, byPerson, gaps, single, ceoLoad, byArea, bySeat, summary, nameOf };
 });
