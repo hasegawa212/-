@@ -375,8 +375,18 @@
   table.fut { width:100%; border-collapse:collapse; font-size:14px; } table.fut th, table.fut td { border-bottom:1px solid var(--line); padding:6px 8px; vertical-align:top; text-align:left; }
   table.fut th.rent, table.fut td.rent b { color:var(--rent); } table.fut th.own, table.fut td.own b { color:var(--own); } table.fut td b.rent { color:var(--rent); }
   table.fut b.big { font-size:22px; } table.fut small { display:block; color:var(--sub); font-size:12.5px; line-height:1.5; }
+  table.fut b.done { display:inline-block; background:var(--gold); color:#fff !important; border-radius:6px; padding:0 8px; margin-right:4px; }
+  .futurebox .merits { margin-top:10px; } .futurebox .merits > b { color:var(--navy); }
+  .futurebox .merits ol { list-style:none; counter-reset:m; display:grid; grid-template-columns:repeat(5, 1fr); gap:8px; padding:0; margin:6px 0 0; }
+  .futurebox .merits li { counter-increment:m; border:1px solid #e3d3ad; border-radius:10px; padding:8px; background:#fff; font-size:12.5px; line-height:1.5; }
+  .futurebox .merits li::before { content:"0" counter(m); display:block; color:var(--gold); font-weight:700; }
+  .futurebox .merits li b { display:block; color:var(--navy); font-size:13.5px; } .futurebox .merits li span { color:var(--sub); }
+  @media (max-width:760px) { .futurebox .merits ol { grid-template-columns:1fr 1fr; } }
   .futurebox .fcatch { margin:8px 0 2px; font-weight:700; color:var(--navy); border-left:4px solid var(--gold); padding-left:8px; }
-  .slide .sv .futurebox { margin:0; padding:8px 10px; } .slide .sv .futurebox h3, .slide .sv .futurebox .fsub, .slide .sv .futurebox .fcatch, .slide .sv .futurebox p.small { display:none; }
+  .slide .sv .futurebox { margin:0; padding:8px 10px; } .slide .sv .futurebox h3, .slide .sv .futurebox .fsub { display:none; }
+  /* 「毎月の家賃、そのまま払い続けますか？」は表を横いっぱいに（数字は表の中にあるので右の数字の箱は出さない） */
+  .slide.s-future .sb { grid-template-columns:1fr; top:150px; } .slide.s-future .sk { display:none; }
+  .slide.s-future table.fut { font-size:15px; } .slide.s-future table.fut small { font-size:12.5px; } .slide.s-future .futurebox .fcatch { font-size:16px; }
   @media (max-width:480px) { table.fut { font-size:13px; } table.fut th, table.fut td { padding:5px 4px; } table.fut th:first-child { width:3.6em; } table.fut td.rent { width:30%; } table.fut b.big { font-size:18px; } }
   .assetimg { max-width:720px; margin:10px auto; } .slide .sv .assetimg p.small { display:none; }
   .rentimg img { cursor:zoom-in; } .rentimg .hint { display:block; text-align:center; font-size:12px; color:var(--sub); margin-top:4px; }
@@ -932,13 +942,13 @@
     const at = (age) => x.years.find((y) => y.age === age) || x.years[x.years.length - 1];
     const y0 = at(b);
     const valueAt = (t) => o.price * o.landShare * Math.pow(1 + i.landRates.flat, t) + o.price * (1 - o.landShare) * Math.max(0.1, 1 - (0.9 * t) / 30);
-    const points = [10, 20].filter((n) => b + n <= i.lifeEnd).map((n) => {
+    const points = [...new Set([10, 20, o.years])].filter((n) => n <= o.years && b + n <= i.lifeEnd).map((n) => {
       const ys = x.years.filter((y) => y.age >= b && y.age < b + n);
       const sum = (k) => ys.reduce((s2, y) => s2 + (typeof k === "function" ? k(y) : y[k]), 0);
       const balance = balanceAfter(L.amount, o.rate, o.years, Math.min(n * 12, L.months));
       const value = valueAt(n), saleCost = (value * 0.03 + 60_000) * 1.1;
       return { years: n, age: b + n, rentPaid: sum((y) => y.rentPart + y.renewPart), loanPaid: sum("ownLoan"), upkeep: sum("ownUpkeep"),
-        balance, principal: L.amount - balance, value, saleCost, net: value - balance - saleCost };
+        balance, principal: L.amount - balance, value, saleCost, net: value - balance - saleCost, paidOff: balance < 1 };
     });
     const paidOff = at(Math.min(L.endAge, i.lifeEnd));
     return {
@@ -947,6 +957,13 @@
       points,
       old: { rent: i.rent.old, own: paidOff.ownUpkeep / 12, from: L.endAge,
         options: ["完済後は、税金・保険・修繕だけで住み続ける", "暮らしに合わせて住み替える（売って次の住まいへ）", "売却・賃貸に出すという選択肢も残る"] },
+      merits: [
+        { key: "equity", title: "返した元金が、家の代金として残る", text: "返済のうち元金の分だけ、自分の持分が増える（家の価値は上下する）" },
+        { key: "old", title: "完済後の住居費が抑えられる", text: `完済後は税金・保険・修繕だけ（毎月 ${man(paidOff.ownUpkeep / 12, 1)}の目安）` },
+        { key: "free", title: "暮らしを自分で決められる", text: "間取り・リフォーム・庭の使い方を自分好みに" },
+        { key: "options", title: "売却・賃貸という選択肢", text: "暮らしが変わったら、売る・貸すも選べる（立地・状態で変わる）" },
+        { key: "danshin", title: "団信で、もしものときも", text: i.family.marryAge == null ? "万一のとき残りのローンは保険で返され、親や兄弟に残らない" : "万一のとき残りのローンは保険で返され、家族に住まいが残る" },
+      ],
       catch: "家賃は、住むための支払い。住宅ローンは、住みながら自分の家を持つための支払い。",
       note: "金額はお客様の条件での概算（仮定）です。購入には頭金・諸費用・固定資産税・保険・修繕費などがかかり、建物や土地の価値は下がる場合もあります。家の価値は横ばいのシナリオ、売却費用は仲介手数料の上限で計算。",
     };
@@ -1831,12 +1848,13 @@
     const f = S.future(x), sg = (v) => (v < 0 ? "−" + man(-v) : man(v));
     const row = (p) => `<tr><th>${p.years}年後（${p.age}歳）</th>
       <td class="rent">払った家賃 <b>${man(p.rentPaid)}</b><small>家は自分のものにならない</small></td>
-      <td class="own">払った返済 <b>${man(p.loanPaid)}</b><small>うち返した元金 ${man(p.principal)}・残高 ${man(p.balance)}<br>家の価値の目安 ${man(p.value)} − 残高 − 売却費用 ${man(p.saleCost)} ＝ 売った場合の手元 <b class="${p.net < 0 ? "rent" : "own"}">${sg(p.net)}</b></small></td></tr>`;
+      <td class="own">${p.paidOff ? `<b class="done">完済</b> 払った返済 <b>${man(p.loanPaid)}</b>` : `払った返済 <b>${man(p.loanPaid)}</b>`}<small>${p.paidOff ? `返した元金 ${man(p.principal)}（残高 0円）` : `うち返した元金 ${man(p.principal)}・残高 ${man(p.balance)}`}<br>家の価値の目安 ${man(p.value)} − 残高 − 売却費用 ${man(p.saleCost)} ＝ 売った場合の手元 <b class="${p.net < 0 ? "rent" : "own"}">${sg(p.net)}</b></small></td></tr>`;
     return `<div class="futurebox"><h3>${esc(f.title)}</h3><p class="fsub">${esc(f.sub)}</p>
       <table class="fut"><tr><th></th><th class="rent">賃貸の場合</th><th class="own">戸建て購入の場合</th></tr>
         <tr><th>毎月</th><td class="rent"><b class="big">${man(f.monthly.rent, 1)}</b><small>住むための支払い</small></td><td class="own"><b class="big">${man(f.monthly.own, 1)}</b><small>返済 ${man(f.monthly.loan, 1)}＋税金・保険・修繕 ${man(f.monthly.upkeep, 1)}</small></td></tr>
         ${f.points.map(row).join("")}
         <tr><th>老後（${f.old.from}歳で完済のあと）</th><td class="rent">家賃 毎月 <b>${f.old.rent ? man(f.old.rent, 1) : "なし"}</b><small>年金から払い続ける</small></td><td class="own">毎月 <b>${man(f.old.own, 1)}</b>（税金・保険・修繕）<small>${f.old.options.map(esc).join("／")}</small></td></tr></table>
+      <div class="merits"><b>戸建てを持つと得られる5つのこと</b><ol>${f.merits.map((m) => `<li><b>${esc(m.title)}</b><span>${esc(m.text)}</span></li>`).join("")}</ol></div>
       <p class="fcatch">${esc(f.catch)}</p><p class="small">${esc(f.note)}</p></div>`;
   }
   // 「今払ってる賃料が将来の資産になる」の絵（②・資料の結論）。説明は assetImage の正直な一文

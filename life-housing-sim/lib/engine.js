@@ -480,13 +480,13 @@
     const at = (age) => x.years.find((y) => y.age === age) || x.years[x.years.length - 1];
     const y0 = at(b);
     const valueAt = (t) => o.price * o.landShare * Math.pow(1 + i.landRates.flat, t) + o.price * (1 - o.landShare) * Math.max(0.1, 1 - (0.9 * t) / 30);
-    const points = [10, 20].filter((n) => b + n <= i.lifeEnd).map((n) => {
+    const points = [...new Set([10, 20, o.years])].filter((n) => n <= o.years && b + n <= i.lifeEnd).map((n) => {
       const ys = x.years.filter((y) => y.age >= b && y.age < b + n);
       const sum = (k) => ys.reduce((s2, y) => s2 + (typeof k === "function" ? k(y) : y[k]), 0);
       const balance = balanceAfter(L.amount, o.rate, o.years, Math.min(n * 12, L.months));
       const value = valueAt(n), saleCost = (value * 0.03 + 60_000) * 1.1;
       return { years: n, age: b + n, rentPaid: sum((y) => y.rentPart + y.renewPart), loanPaid: sum("ownLoan"), upkeep: sum("ownUpkeep"),
-        balance, principal: L.amount - balance, value, saleCost, net: value - balance - saleCost };
+        balance, principal: L.amount - balance, value, saleCost, net: value - balance - saleCost, paidOff: balance < 1 };
     });
     const paidOff = at(Math.min(L.endAge, i.lifeEnd));
     return {
@@ -495,6 +495,13 @@
       points,
       old: { rent: i.rent.old, own: paidOff.ownUpkeep / 12, from: L.endAge,
         options: ["完済後は、税金・保険・修繕だけで住み続ける", "暮らしに合わせて住み替える（売って次の住まいへ）", "売却・賃貸に出すという選択肢も残る"] },
+      merits: [
+        { key: "equity", title: "返した元金が、家の代金として残る", text: "返済のうち元金の分だけ、自分の持分が増える（家の価値は上下する）" },
+        { key: "old", title: "完済後の住居費が抑えられる", text: `完済後は税金・保険・修繕だけ（毎月 ${man(paidOff.ownUpkeep / 12, 1)}の目安）` },
+        { key: "free", title: "暮らしを自分で決められる", text: "間取り・リフォーム・庭の使い方を自分好みに" },
+        { key: "options", title: "売却・賃貸という選択肢", text: "暮らしが変わったら、売る・貸すも選べる（立地・状態で変わる）" },
+        { key: "danshin", title: "団信で、もしものときも", text: i.family.marryAge == null ? "万一のとき残りのローンは保険で返され、親や兄弟に残らない" : "万一のとき残りのローンは保険で返され、家族に住まいが残る" },
+      ],
       catch: "家賃は、住むための支払い。住宅ローンは、住みながら自分の家を持つための支払い。",
       note: "金額はお客様の条件での概算（仮定）です。購入には頭金・諸費用・固定資産税・保険・修繕費などがかかり、建物や土地の価値は下がる場合もあります。家の価値は横ばいのシナリオ、売却費用は仲介手数料の上限で計算。",
     };

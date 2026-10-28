@@ -21,7 +21,8 @@ test("毎月：今の家賃 vs 返済＋維持費", () => {
 });
 
 test("10年後・20年後：払った合計・ローン残高・家の価値・売却費用・手元の目安（計算と一致）", () => {
-  assert.deepEqual(f.points.map((p) => p.years), [10, 20]);
+  assert.deepEqual(f.points.map((p) => p.years), [10, 20, x.input.own.years], "完済の年（35年後）まで");
+  assert.ok(f.points[2].paidOff && f.points[2].balance < 1);
   for (const p of f.points) {
     const ys = x.years.filter((y) => y.age >= x.loan.buyAge && y.age < x.loan.buyAge + p.years);
     assert.equal(p.age, x.loan.buyAge + p.years);
@@ -74,4 +75,13 @@ test("画面：②に futureView（Zoomでは省く）、資料の future", () =
   assert.match(html, /future: \(\) => futureView\(x\)/);
   assert.match(html, /costView\(x\) \+ futureView\(x\)/);
   assert.match(html, /body\.present \.futurebox/);
+});
+
+test("5つのメリット：正直な言い方（価値は上下・選択肢は立地で変わる）。賃貸を「何も残らない」とは書かない", () => {
+  assert.equal(f.merits.length, 5);
+  const t = JSON.stringify(f.merits);
+  assert.match(t, /上下/);
+  assert.match(t, /団信/);
+  assert.match(S.future(S.compute(S.preset("family"))).merits[4].text, /家族/);
+  assert.doesNotMatch(JSON.stringify(f), /何も残らない|資産0円|資産 0円/);
 });
