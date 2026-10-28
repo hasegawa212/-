@@ -23,3 +23,10 @@ test("看板は説明・資料・提案書・画面共有・印刷では出さ�
 test("dist に画像を埋め込む", () => {
   assert.match(fs.readFileSync(path.join(root, "tools/bundle.js"), "utf8"), /img\/top-hero\.jpg/);
 });
+
+test("主人公の横の相棒はオリジナル（おうちの形のキャラ）。元の絵（SVG）を img/buddy.svg に残す", () => {
+  const svg = fs.readFileSync(path.join(root, "img/buddy.svg"), "utf8");
+  assert.match(svg, /<svg/);
+  assert.match(svg, /roof/, "屋根のあるおうちの形");
+  assert.match(html, /おうちの相棒/);
+});

@@ -169,9 +169,9 @@
   /* ───── トップページ（LIFE ROUTE・お客様が主人公） ───── */
   #home { display:none; }
   #tophero { position:relative; background:#071229; text-align:center; line-height:0; }
-  #tophero img { width:100%; max-width:1280px; max-height:72vh; object-fit:cover; object-position:center top; display:block; margin:0 auto; }
+  #tophero img { width:min(100%, 1280px, 125vh); height:auto; display:block; margin:0 auto; } /* 縦は画面の約7割まで：下を切らず、主人公と相棒まで見せる */
   #tophero button { position:absolute; left:50%; bottom:5%; transform:translateX(-50%); line-height:1.2; padding:12px 34px; font-size:18px; font-weight:800; color:#1b2440; background:linear-gradient(#f3d58c,#c9a24f); border:none; border-radius:999px; box-shadow:0 4px 18px rgba(0,0,0,.45); cursor:pointer; }
-  @media (max-width:600px) { #tophero button { font-size:14px; padding:7px 18px; bottom:4%; } }
+  @media (max-width:600px) { #tophero button { font-size:14px; padding:7px 18px; bottom:4%; left:34%; } }
   body.present #tophero, body.deck-view #tophero, body.proposal-view #tophero, body.form-closed:not(.home-view) #tophero { display:none; }
   @media print { #tophero { display:none !important; } }
   body.home-view header, body.home-view main, body.home-view .pbar { display:none !important; }
@@ -338,7 +338,7 @@
 </style>
 </head>
 <body>
-<section id="tophero"><img src="img/top-hero.jpg" alt="人生のすべてのステージに、最高のパートナーを。NISA・不動産・保険・ライフプラン・海外投資・現預金のエリアをめぐり、GOALへ向かう道のり（イメージ）"><button id="heroGo">はじめる ›</button></section>
+<section id="tophero"><img src="img/top-hero.jpg" alt="人生のすべてのステージに、最高のパートナーを。NISA・不動産・保険・ライフプラン・海外投資・現預金のエリアをめぐり、GOALへ向かう道のり。主人公の横には、鍵を持ったおうちの相棒（イメージ）"><button id="heroGo">はじめる ›</button></section>
 <section id="home"></section>
 <header>
   <h1>LIFE ROUTE <small style="font-size:13px;font-weight:400;opacity:.85">ライフルート</small></h1>
