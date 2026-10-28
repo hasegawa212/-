@@ -153,6 +153,8 @@
       oldLiving: { single: 130_000, couple: 220_000 },
       landRates: { down: -0.01, flat: 0, up: 0.01 },
       invest: { on: false, rate: 0.03 },
+      transfer: { on: false, leaseRent: 70_000 }, // 転勤の可能性・転勤の間に貸した場合の家賃（目安）
+      debt: { monthly: 0 }, // 他の借入（車・カード・リボ・奨学金など）の毎月の返済
     };
     if (name === "family") { p.family = { marryAge: 30, kids: 1, firstKidAge: 32 }; p.rent.old = 70_000; }
     if (name === "shataku") { p.shataku.on = true; p.own.buyAge = p.shataku.until; }
@@ -182,7 +184,8 @@
     const inp = { ...d, ...input, family: { ...d.family, ...(input.family || {}) }, rent: { ...d.rent, ...(input.rent || {}) },
       own: { ...d.own, ...(input.own || {}) }, oldLiving: { ...d.oldLiving, ...(input.oldLiving || {}) },
       landRates: { ...d.landRates, ...(input.landRates || {}) }, invest: { ...d.invest, ...(input.invest || {}) },
-      lifeIns: { ...d.lifeIns, ...(input.lifeIns || {}) }, nisa: { ...d.nisa, ...(input.nisa || {}) }, shataku: { ...d.shataku, ...(input.shataku || {}) }, reemploy: { ...d.reemploy, ...(input.reemploy || {}) } };
+      lifeIns: { ...d.lifeIns, ...(input.lifeIns || {}) }, nisa: { ...d.nisa, ...(input.nisa || {}) }, shataku: { ...d.shataku, ...(input.shataku || {}) }, reemploy: { ...d.reemploy, ...(input.reemploy || {}) },
+      transfer: { ...d.transfer, ...(input.transfer || {}) }, debt: { ...d.debt, ...(input.debt || {}) } };
     const reAge = Math.min(inp.retireAge, inp.reemploy.age), reRate = inp.reemploy.rate;
     const sh = inp.shataku;
     const inShataku = (age) => sh.on && age < sh.until && age < inp.retireAge;
@@ -584,6 +587,10 @@
       { key: "payoff", label: "完済の年齢", value: `${L.endAge}歳（目安 80歳まで）`, ok: L.endAge <= 80 },
       { key: "reemploy", label: "定年後（再雇用）の返済", value: L.atReemploy.left > 0 ? (L.ratioReemploy == null ? "収入なし（定年までに完済するか、退職金で返す計画が必要）" : `年収の${pct(L.ratioReemploy)}（目安 35%以内）`) : "定年までに完済", ok: L.atReemploy.left === 0 || (L.ratioReemploy != null && L.ratioReemploy <= 0.35) },
     ];
+    if (i.debt.monthly > 0) {
+      const r = i.income > 0 ? ((L.pmt + i.debt.monthly) * 12) / i.income : Infinity;
+      checks.push({ key: "debt", label: "他の借入を含む返済比率（車・カード・リボ・奨学金も入る）", value: `${pct(r)}（目安 ${pct(lim)}以内・他の借入 毎月 ${man(i.debt.monthly, 1)}）`, ok: r <= lim });
+    }
     const allOk = checks.every((c) => c.ok);
     return {
       passRate: PASS_RATE, checks, allOk,
@@ -599,6 +606,121 @@
       ],
     };
   }
+
+  // ── 現場が必要としている知識（販売に必要な知識マトリクス・出現頻度順）──
+  // ① 転勤：貸した場合（家賃−管理費5%−空室1か月/年）と、返済＋維持費をくらべる。売った場合は future の10年後。控除の扱いは国税庁の取り扱い（家族の住み方で変わる）
+  function transfer(x) {
+    const t = x.input.transfer, f = future(x);
+    const netMonthly = t.leaseRent * 0.95 * 11 / 12, outMonthly = f.monthly.own;
+    return {
+      on: t.on,
+      ask: ["転勤の頻度と、今後の見通し", "転勤のときは単身赴任か、家族と一緒か", "社宅・住宅手当の内容と、いつまで出るか", "定年後に住みたい地域（実家の近く・今の地域など）"],
+      options: [
+        { name: "単身赴任（ご家族が住み続ける）", credit: "住宅ローン控除はそのまま続く" },
+        { name: "転勤の間だけ貸す", credit: "住んでいない間は控除が止まる。戻った翌年以降に再開" },
+        { name: "売る", credit: "控除は終わる。売った場合の手元は下の目安" },
+      ],
+      creditNote: "家族全員で引っ越すと、その間は控除が止まり、控除の期間は延びない。戻って再び受けるには、引っ越す前に税務署へ「転任の命令等により居住しないこととなる旨の届出書」を出しておく。税制は変わるので税務署・税理士で確認",
+      lease: { rent: t.leaseRent, netMonthly, outMonthly, gap: netMonthly - outMonthly,
+        note: "貸すには金融機関の承諾が必要（住宅ローンは本人が住む前提。無断で貸すと一括返済を求められるおそれ）。家賃は管理費5%・空室1か月/年を引いた目安で、空室が続けばその分は持ち出し" },
+      sale: f.points[0] ? { years: f.points[0].years, net: f.points[0].net, value: f.points[0].value, balance: f.points[0].balance } : null,
+      axes: ["① 貸しやすい（駅に近い・需要のある間取り）", "② 売りやすい（立地が良く、価値が下がりにくい）", "③ 戻る場所になる（実家の近く・定年後に住みたい地域）"],
+      ng: ["×「貸せば家賃でローンが払えます」→ 空室や管理費のリスクがある", "×「控除は必ず続きます」→ 家族全員で転居すれば、その間は止まる", "×「黙って貸しても大丈夫」→ 契約違反のおそれ。必ず金融機関の承諾"],
+    };
+  }
+  function transferLine(x) {
+    const t = transfer(x), L = t.lease, sg = (v) => (v < 0 ? `毎月 ${man(-v, 1)} の持ち出し` : `毎月 ${man(v, 1)} の手元`);
+    return `転勤したら：①単身赴任（控除はそのまま）②転勤の間だけ貸す（家賃 ${man(L.rent, 1)} → 管理費・空室を引いて ${man(L.netMonthly, 1)}、返済＋維持費 ${man(L.outMonthly, 1)} とくらべて ${sg(L.gap)}。金融機関の承諾が必要）③売る（${t.sale ? `${t.sale.years}年後に売った場合の手元の目安 ${t.sale.net < 0 ? "−" + man(-t.sale.net) : man(t.sale.net)}` : "立地と時期で変わる"}）`;
+  }
+  // ④ 借入：リボ・カードローンなど他の借入は、事前審査の前に整理する。段階を分けて不安を小さくする
+  function debtPlan(x) {
+    const m = x.input.debt.monthly;
+    return { monthly: m, yearly: m * 12,
+      steps: [
+        { name: "借入を整理", what: m > 0 ? `他の借入 毎月 ${man(m, 1)}（年 ${man(m * 12)}）。リボ・カードローンは金利が高いので、できるものは先に返す・残高を減らす（返済比率に入る）` : "リボ・カードローン・車のローン・奨学金がないか確かめる（あれば返済比率に入る）" },
+        { name: "CICで確認", what: `本人開示（ネット${CIC.methods[0].fee}円）で、遅れや申し込みの記録を自分で確かめる` },
+        { name: "事前審査", what: "無料・購入の義務なし。借りられる額の目安がわかる" },
+        { name: "本審査", what: "物件が決まってから。事前審査と同じ内容で、書類と物件の評価を見られる" },
+      ] };
+  }
+  // ⑤ 金利：上がった場合の毎月と総額。変動と固定のちがい（5年ルール・125%ルールの有無は金融機関で異なる）
+  function rateRisk(x) {
+    const L = x.loan, o = x.input.own;
+    const rows = [0.005, 0.01, 0.02].map((add) => { const pmt = payment(L.amount, o.rate + add, o.years); return { add, pmt, extraMonthly: pmt - L.pmt, extraTotal: (pmt - L.pmt) * L.months }; });
+    return { rate: o.rate, pmt: L.pmt, rows,
+      types: [
+        { name: "変動金利", good: "今は金利が低め", watch: "金利が上がると返済が増える（下がることもある）。返済額の見直しのルール（5年ルール・125%ルール）は金融機関で異なる" },
+        { name: "固定金利", good: "返済額が最後まで変わらない", watch: "変動より金利が高め。金利が下がっても返済は減らない" },
+      ],
+      tip: "金利が上がっても払える額で借りる・繰上げ返済の余力を残す・どちらにするかは家計と性格で決める" };
+  }
+  function rateLine(x) {
+    const r = rateRisk(x);
+    return `金利が上がったら（変動金利の場合）：${r.rows.map((v) => `+${(v.add * 100).toFixed(1)}% → 毎月 ${man(v.pmt, 1)}（+${man(v.extraMonthly, 1)}）`).join("・")}。固定金利は返済が変わらないかわりに金利が高め`;
+  }
+  // ③ NISAとの違い：どちらも元本保証なし。「どちらか」ではなく両方使える
+  function nisaCompare(x) {
+    const pf = x.portfolio, i = x.input;
+    return {
+      rows: [
+        { label: "目的", own: "住む場所＋資産", nisa: "お金を増やす" },
+        { label: "お金の出どころ", own: "家賃のかわりに返済する", nisa: "家賃とは別に積み立てる" },
+        { label: "価格の変動", own: "上下する（元本保証なし）", nisa: "上下する（元本保証なし）" },
+        { label: "税", own: "住宅ローン控除（払った税金の範囲で戻る）", nisa: "運用益が非課税" },
+        { label: "換金しやすさ", own: "売るのに時間と費用がかかる", nisa: "比較的すぐ" },
+        { label: "もしものとき", own: "団信で残りのローンがなくなる", nisa: "その時の残高" },
+      ],
+      now: { nisa: pf.now.nisa, monthly: i.nisa.monthly, at65: pf.at65.own.nisa },
+      both: `家で住居費を固め、NISAで老後を上乗せする——両方使えます（今の積立 毎月 ${man(i.nisa.monthly, 1)} を続けた場合、${i.retireAge}歳で ${man(pf.at65.own.nisa)}・年${(i.nisa.rate * 100).toFixed(0)}%の仮定）`,
+    };
+  }
+  // ② 家族（親）への説明：早めに同席してもらう。親の不安には数字で答え、決めるのはご本人とご家族
+  function familyTalk(x) {
+    const L = x.loan, bb = bubble(x);
+    return {
+      process: ["最初の面談で「ご家族（ご両親）にも相談しますか」と聞いておく", "2回目からはご家族も同席（オンラインでも）", "同じ資料・提案書をご家族にも渡す（共有リンクにお名前は入らない）", "ご両親の不安（バブルのころの記憶など）には、当時と今の金利の数字で答える", "最後に決めるのは、ご本人とご家族"],
+      show: [`毎月の返済 ${man(L.pmt, 1)} と完済の年齢（${L.endAge}歳）`, `家の価値が下がる場合（下落シナリオ）も一緒に見せる`, `団信で、万一のときローンが残らない`, `1990年前後の金利 8.5% なら毎月 ${man(bb.bank, 1)}、今の計画は ${man(bb.now, 1)}`],
+      decide: "決めるのは、ご本人とご家族です。私たちは数字をそろえてお手伝いします",
+    };
+  }
+  // 販売に必要な知識マトリクス（出現頻度順）。where＝LIFE ROUTE のどこで見せるか
+  const KNOWLEDGE = {
+    tiers: [
+      { name: "Tier 1 必須", note: "全担当者が即答できるレベル", items: [
+        { name: "賃貸と購入のくらべ", where: "② 一生の住居費（消えるお金）・比較の表", answer: "合計ではなく「消えるお金」でくらべる。持ち家の合計には家の代金が入っている" },
+        { name: "老後資金・資産形成", where: "③ 65歳から・④ 準備", answer: "老後の毎月の不足×年数＝その人の「老後2000万円問題」。持たないなら毎月いくら積み立てるか" },
+        { name: "住宅ローン全般", where: "⑥ できるか・資料「進め方」", answer: "返済比率（400万円未満30%・以上35%）・年収の7倍・80歳完済。決めるのは金融機関" },
+        { name: "保険（生命・医療）", where: "⑤ もしものとき（団信と生命保険）", answer: "団信はローンの残りを守る（返すほど減る）。生命保険は家族の生活費。返している間は見直せる場合あり" },
+      ] },
+      { name: "Tier 2 標準", note: "月1回以上使う知識", items: [
+        { name: "投資用不動産", where: "営業の知識（このパネル）", answer: "住宅ローンは本人が住む家のため。投資用は別のローン・別の審査で、空室・修繕のリスクがある" },
+        { name: "既存借入・リボ", where: "⑥ 他の借入を含む返済比率", answer: "車・カード・リボ・奨学金も返済比率に入る。リボ・カードローンは先に整理してから事前審査" },
+        { name: "NISA・iDeCo", where: "④ NISAとの違い", answer: "どちらも元本保証なし。家は住む場所＋資産、NISAは増やす。両方使える" },
+        { name: "出口戦略（売る・貸す）", where: "② 比較の表（売った場合の手元）・⑤ 転勤", answer: "売った場合の手元＝家の価値−ローン残高−売却費用。早い年はマイナスもある" },
+        { name: "事前審査の進め方", where: "⑥ そろえる書類・審査のあとの流れ", answer: "CIC → 事前審査（無料・義務なし）→ 内見 → 売買契約 → 本審査 → 金消契約 → 決済" },
+      ] },
+      { name: "Tier 3 応用", note: "差がつく知識", items: [
+        { name: "転勤リスク", where: "⑤ 転勤したら（転勤ありのお客様）", answer: "単身赴任・貸す・売るの3つ。貸すなら金融機関の承諾。控除は家族全員が転居すると止まる" },
+        { name: "返済シミュレーション", where: "② 比較の表・資料「毎月の家賃…」", answer: "毎月の返済＋税金・保険・修繕を今の家賃とならべる" },
+        { name: "団信", where: "⑤ 団信と生命保険", answer: "一般団信は金利に含まれ別払いなし。がん・3大疾病は金利上乗せ" },
+        { name: "リフォーム・修繕", where: "② 内訳（修繕）", answer: "修繕は年15万円（20年目から1.5倍）と仮定。中古は購入前に状態を確認" },
+        { name: "金融機関（地銀・労金）", where: "営業の知識（このパネル）", answer: "金利・審査の見方・団信は金融機関ごとに違う。地域の地銀・労金も含めて比べる" },
+        { name: "私募債・社債", where: "営業の知識（このパネル）", answer: "不動産で決まらないときの別の選択肢。元本保証なし・途中で売りにくい。断定・勧誘はしない" },
+      ] },
+      { name: "Tier 4 専門", note: "武器になる知識", items: [
+        { name: "CIC（信用情報）", where: "⑥ ⓪ CICを取り寄せる", answer: `本人開示 ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円。審査の前に自分で確かめる` },
+        { name: "金利（変動と固定）", where: "⑤ 金利が上がったら", answer: "変動は低いが上がることがある、固定は変わらないが高め。上がっても払える額で借りる" },
+        { name: "住宅ローン控除", where: "資料「住宅ローン控除」", answer: "残高×0.7%・払った税金の範囲で戻る。制度上の上限と実際の見込みを分けて話す" },
+      ] },
+    ],
+    gaps: [
+      { name: "転勤リスクを数字で", fix: "⑤「転勤したら」：貸したら毎月いくら（持ち出し/手元）・売ったらいくら・控除の扱い" },
+      { name: "ご家族（親）への説明", fix: "⑧「ご家族と一緒に」：早めに同席・同じ資料を渡す・親の不安には当時と今の金利で" },
+      { name: "NISAとの違い", fix: "④「NISAとの違い」：どちらも元本保証なし・役割が違う・両方使える" },
+      { name: "借入不安を段階的に", fix: "⑥「他の借入を含む返済比率」と、整理 → CIC → 事前審査 → 本審査" },
+      { name: "金利上昇の説明", fix: "⑤「金利が上がったら」：+0.5/+1/+2%の毎月と、変動・固定のちがい" },
+    ],
+  };
 
   // くらべ方：持ち家の合計には「家そのものの代金」（払ったあと自分の家として残る）が入っている。
   // 消えるお金＝賃貸は家賃の全部、持ち家は合計から家の代金を引いた分（利息・税金・保険・修繕・諸費用・買うまでの家賃−控除）
@@ -634,7 +756,7 @@
       ask: "毎月の固定費で、いちばん大きいものは何ですか。その家賃は、誰の将来の備えになっていると思いますか。" };
     const six = { title: "⑥ まず「できるか」を確かめる（区切り）",
       say: `ここで一度、区切りをつけます。住宅ローンは、借りたい人や私たちが決めるのではなく、融資する金融機関が決めます。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほどです（目安）。ですから、やるか・やらないかを決める前に、まず「できるか」をこちらで確認させてください。その土台に乗ったら、やるか・やらないかを決めていただければ大丈夫です。できるかわからないまま決めても意味がないので、お客様のお時間を無駄にしないための順番です。`,
-      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}／そろえる書類：${SCREEN_DOCS.map((v) => `${v.name}（${v.what}）`).join("・")}／このあとの流れ：${FLOW.map((f) => f.name).join(" → ")}`,
+      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}${i.debt.monthly > 0 ? `／他の借入の整理：${debtPlan(x).steps.map((v) => v.name).join(" → ")}` : ""}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}／そろえる書類：${SCREEN_DOCS.map((v) => `${v.name}（${v.what}）`).join("・")}／このあとの流れ：${FLOW.map((f) => f.name).join(" → ")}`,
       ask: "まずCICで信用情報を取り寄せ、できるかを確かめませんか（事前審査は無料・購入の義務はありません）。" };
     const seven = wt.length ? { title: "⑧「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
       show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}・住宅ローンの審査の返済比率 ${Math.round(r.screen.ratio * 100)}%（目安 ${Math.round(r.screen.limit * 100)}%以内${r.screen.ok ? "" : "を超える"}${r.screen.shorter ? "・返済期間が短くなる" : ""}）`).join("／") +
@@ -642,6 +764,7 @@
         (wu ? `／仮に3年の間に金利が0.5%上がった場合、毎月 ${man(wu.pmt, 1)}（下がる場合もあります）` : "") +
         `／親御さまの頃（1990年前後）とは条件が違います：同じ ${man(x.loan.amount)}・${i.own.years}年でも、当時の金利 8.5%なら毎月 ${man(bb.bank, 1)}、公庫 5.5%でも ${man(bb.public, 1)}。今の計画（${(i.own.rate * 100).toFixed(1)}%）は ${man(bb.now, 1)}。当時は値上がりを見込んだ買い方が多かったが、今回は値上がりをあてにせず、住むために払える範囲で考えます（値下がりもありうるので⑦の下落シナリオも一緒に）`,
       ask: "待つ理由は何ですか。その理由がなくなるのはいつ頃ですか。" } : null;
+    if (seven) seven.show += `／ご家族と一緒に：${familyTalk(x).process.slice(0, 3).join("→")}。${familyTalk(x).decide}`;
     return [intro, zero,
       { title: "① これからの暮らしの段階", say: sh
           ? `今は社宅で家賃が抑えられていますが、社宅はだいたい${sh.until}歳ごろまでです。出たあとは、ふつうの家賃を${i.lifeEnd}歳まで払うことになります。社宅の間は、貯金と住まいの準備ができる時期です。`
@@ -660,13 +783,13 @@
         show: `${workLoanLine(x)}／年金（概算）毎月 ${man(x.pension.monthly, 1)}／毎月の支出　賃貸 ${man(r.outMonthly, 1)}・持ち家 ${man(w.outMonthly, 1)}／毎月の不足　賃貸 ${man(r.gapMonthly, 1)}・持ち家 ${man(w.gapMonthly, 1)}／${ec.vs2000.line}`,
         ask: "老後の住まいは、どこで、どんな家に住んでいたいですか。" },
       { title: "④ 持たないなら、いくら準備が必要か", say: `賃貸のままでも、老後の家賃のぶんを今から準備できれば大丈夫です。そのために必要な金額を見てみましょう。`,
-        show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）／${ec.line}`,
+        show: `${i.retireAge}歳までに準備したいお金　賃貸のまま ${man(x.prepare.rentNeed)}（毎月 ${man(x.prepare.monthlyRent, 1)} の積立）／持ち家 ${man(x.prepare.ownNeed)}（毎月 ${man(x.prepare.monthlyOwn, 1)}）／${ec.line}／NISAとの違い：${nisaCompare(x).rows.map((r) => `${r.label}（家：${r.own}／NISA：${r.nisa}）`).slice(0, 4).join("・")}。${nisaCompare(x).both}`,
         ask: `毎月 ${man(x.prepare.monthlyRent, 1)} を${i.retireAge}歳まで積み立て続けられそうですか。` },
       single ? { title: "⑤ もしものとき", say: `ひとりで暮らす場合、いちばんの心配は「年を取ってからの住まい」です。高齢のひとり暮らしは、年齢や保証人を理由に賃貸の入居を断られることがあります。持ち家なら、返済が終わったあとは住む場所が確保できます。住宅ローンには団体信用生命保険（団信）が付くので、万一のときもローンが親や兄弟に残りません。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 ${i.rent.old ? `毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）` : "なし"}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}／${ECONOMY.savingsIns}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／老後ひとりで払う家賃 ${i.rent.old ? `毎月 ${man(i.rent.old, 1)}（${x.old.years}年で ${man(x.old.rent.rentTotal)}）` : "なし"}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}／${ECONOMY.savingsIns}／${rateLine(x)}${i.transfer.on ? "／" + transferLine(x) : ""}`,
         ask: "ひとりで年を重ねたとき、どこに住んでいたいですか。金利が上がったときの備えはありますか。" } :
       { title: "⑤ もしものとき", say: `住宅ローンには団体信用生命保険（団信）が付き、万一のときは残りのローンが保険で返済され、家族に住まいが残ります。そのぶん、今の生命保険を見直せる場合があります。賃貸の場合、家族は家賃を払い続けます。高齢になると、年齢を理由に賃貸の入居を断られることもあります。金利が上がると返済が増える点は持ち家の注意点です。`,
-        show: `${rentScreenLine(x)}／${danshinLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}／${ECONOMY.savingsIns}`,
+        show: `${rentScreenLine(x)}／${danshinLine(x)}／団信：万一のときの残りのローン ${man(x.whatIf.danshinLoanAfter)}（賃貸なら家族は毎月 ${man(x.whatIf.danshinRentContinues, 1)} を払い続ける）／金利が1%上がったら毎月の返済 ${man(x.whatIf.pmt, 1)} → ${man(x.whatIf.rateUpPmt, 1)}／${ECONOMY.savingsIns}／${rateLine(x)}${i.transfer.on ? "／" + transferLine(x) : ""}`,
         ask: "ご家族に、どんな形で住まいを残したいですか。金利が上がったときの備えはありますか。" },
       six,
       { title: "⑦ まとめ：賃貸と購入、どちらがいいか", say: rc.verdict === "prepare"
@@ -738,6 +861,15 @@
     step("danshin", { reason: buy, headline: buy ? `理由${++n}　もしものときも、ローンは残らない` : "もしものとき（団信と保険）", visual: "danshin",
       lead: "住宅ローンには団体信用生命保険（団信）。万一のとき残りのローンは保険で返済され、住まいが残ります。",
       kpis: [k("万一のとき残るローン", man(0), "団信", "own"), k("老後の賃貸の入居審査", Math.round(x.screening.rent.ratioOld * 100) + "%", "家賃÷年金（目安 33%以内）", "rent")], notes: note("⑤") });
+    if (i.transfer.on) {
+      const tf = transfer(x);
+      step("transfer", { headline: "転勤になっても、選べる道は3つ", visual: "transfer",
+        lead: "単身赴任・転勤の間だけ貸す・売る。どれを選んでも困らない物件を選んでおきます。",
+        kpis: [k(tf.lease.gap < 0 ? "貸した場合の持ち出し（毎月・目安）" : "貸した場合の手元（毎月・目安）", man(Math.abs(tf.lease.gap), 1), `家賃 ${man(tf.lease.rent, 1)}−管理費・空室 vs 返済＋維持費`, tf.lease.gap < 0 ? "rent" : "own"),
+          ...(tf.sale ? [k(`${tf.sale.years}年後に売った場合の手元`, tf.sale.net < 0 ? "−" + man(-tf.sale.net) : man(tf.sale.net), "家の価値−残高−売却費用", tf.sale.net < 0 ? "rent" : "own")] : [])],
+        points: ["貸すには金融機関の承諾が必要", "家族全員で転居すると、その間は住宅ローン控除が止まる", ...tf.axes.slice(0, 1)],
+        notes: { say: "転勤の可能性があっても、家の使い方は3つあります。単身赴任でご家族が住み続けるか、転勤の間だけ貸すか、売るかです。貸す場合は金融機関の承諾が必要で、空室や管理費のリスクもあります。", ask: tf.ask.join("／") } });
+    }
     step("credit", { reason: buy && x.credit.total > 0, headline: buy && x.credit.total > 0 ? `理由${++n}　住宅ローン控除で、税金が戻る` : "住宅ローン控除", visual: "credit",
       lead: x.credit.total > 0 ? `買った年から${x.credit.years}年間、払った所得税・住民税の一部が戻ります（${x.credit.label}）。` : "この物件の種類では、住宅ローン控除の対象外です。",
       kpis: [k("戻る税金（合計・概算）", man(x.credit.total), `${x.credit.years}年間`, "own"), k("1年目", man(x.credit.rows[0] ? x.credit.rows[0].actual : 0), "所得税→住民税の順", "own")], notes: { say: `住宅ローン控除は、ローンの残高の0.7%を上限に、払った所得税と住民税から戻る仕組みです。この計画だと${x.credit.years}年間で約${man(x.credit.total)}。払った税金より多くは戻らないので、年収に合わせて計算しています。`, ask: "源泉徴収票の所得税の額を、あとで一緒に確認させてください。" } });
@@ -972,5 +1104,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
