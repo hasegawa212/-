@@ -212,7 +212,9 @@
   #tophero .hot:hover, #tophero .hot:focus-visible { border-color:#f3d58c; box-shadow:0 0 0 3px rgba(243,213,140,.35), 0 0 18px rgba(243,213,140,.55); background:rgba(243,213,140,.08); outline:none; }
   @media (hover:none) { #tophero .hot.ha { border-color:rgba(243,213,140,.55); } } /* スマホ：押せるエリアに薄い枠 */
   #tophero .hot:active { background:rgba(243,213,140,.22); }
-  #heroGo { border-radius:999px; } /* 絵の中の「はじめる」の上に重ねた透明ボタン */
+  #heroGo { border-radius:999px; }
+  #heroLinks { display:none; }
+  @media (max-width:600px) { #heroLinks { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; padding:8px 10px 10px; line-height:1.2; } #heroLinks button { min-height:44px; font:inherit; font-size:13px; font-weight:700; color:#eef2fa; background:rgba(255,255,255,.08); border:1px solid rgba(243,213,140,.55); border-radius:10px; padding:4px; } #heroLinks button.primary { grid-column:1 / -1; font-size:16px; color:#1b2440; background:linear-gradient(#f3d58c,#c9a24f); border:none; } } /* 絵の中の「はじめる」の上に重ねた透明ボタン */
   @media (hover:none) { #tophero #heroGo { border-color:rgba(243,213,140,.55); } }
   body.present #tophero, body.deck-view #tophero, body.proposal-view #tophero, body.form-closed:not(.home-view) #tophero { display:none; }
   @media print { #tophero { display:none !important; } }
@@ -589,6 +591,8 @@
     const cashAtBuy = o.down + (o.financeCosts ? 0 : cost);
     const pmt = payment(loan, o.rate, o.years);
     const buyAge = Math.max(inp.age, o.buyAge);
+    // 今の年齢が買う年齢より上なら「今買う」。文章・提案書・資料も同じ年齢になるように入力側もそろえる（呼び出し側の値は書きかえない）
+    inp.own = { ...o, buyAge };
     const loanEnd = buyAge + o.years;
 
     const me = pension(inp.income, inp.workStart, inp.retireAge, inp.reemploy);
@@ -1545,8 +1549,12 @@
     g += `<line x1="${X(ret)}" x2="${X(ret)}" y1="${T}" y2="${H - B}" stroke="#b08d57" stroke-dasharray="4 4"/><text x="${X(ret) + 4}" y="${T + 12}" font-size="11" fill="#b08d57">${ret}歳（年金生活）</text>`;
     const end = pts.at(-1);
     g += `<path d="${path("r")}" fill="none" stroke="var(--rent)" stroke-width="3"/><path d="${path("o")}" fill="none" stroke="var(--own)" stroke-width="3"/>`;
-    g += `<text x="${X(end.age) - 4}" y="${Y(end.r) - 6}" font-size="12" text-anchor="end" fill="var(--rent)" font-weight="700">賃貸 ${man(end.r)}</text>`;
-    g += `<text x="${X(end.age) - 4}" y="${Y(end.o) + 16}" font-size="12" text-anchor="end" fill="var(--own)" font-weight="700">持ち家 ${man(end.o)}</text>`;
+    // 上の線のラベルは線の上、下の線のラベルは線の下（どちらが上でも重ならない）
+    // 下の線のラベルは、文字の幅のぶん左の線の位置より下に置く（右上がりの線と文字が重ならない）
+    const rentUp = end.r >= end.o, back = pts.find((p) => p.age >= end.age - Math.ceil(120 / ((W - L - 12) / (a1 - a0)))) || pts[0];
+    const below = (k) => Math.max(Y(end[k]), Y(back[k])) + 15;
+    g += `<text x="${X(end.age) - 4}" y="${rentUp ? Y(end.r) - 6 : below("r")}" font-size="12" text-anchor="end" fill="var(--rent)" font-weight="700">賃貸 ${man(end.r)}</text>`;
+    g += `<text x="${X(end.age) - 4}" y="${rentUp ? below("o") : Y(end.o) - 6}" font-size="12" text-anchor="end" fill="var(--own)" font-weight="700">持ち家 ${man(end.o)}</text>`;
     return `<div class="legend"><span><i style="background:var(--rent)"></i>賃貸のまま（累計）</span><span><i style="background:var(--own)"></i>持ち家（累計）</span></div><svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="住居費の累計">${g}</svg>`;
   }
   function oldBars(x) {
@@ -2095,12 +2103,12 @@
   // 座標は看板の絵（1774×887）の中の位置。絵を差し替えたら測り直す
   const HERO_W = 1774, HERO_H = 887;
   const HOTSPOTS = [
-    { label: "NISAエリア", box: [425, 222, 658, 312], area: "nisa" },
-    { label: "不動産エリア", box: [915, 188, 1145, 272], area: "home" },
-    { label: "保険エリア", box: [1345, 232, 1608, 325], area: "ins" },
-    { label: "ライフプランエリア", box: [1455, 352, 1740, 450], area: "plan" },
+    { quick: true, label: "NISAエリア", box: [425, 222, 658, 312], area: "nisa" },
+    { quick: true, label: "不動産エリア", box: [915, 188, 1145, 272], area: "home" },
+    { quick: true, label: "保険エリア", box: [1345, 232, 1608, 325], area: "ins" },
+    { quick: true, label: "ライフプランエリア", box: [1455, 352, 1740, 450], area: "plan" },
     { label: "海外投資エリア", box: [342, 398, 605, 495], area: "nisa" },
-    { label: "現預金エリア", box: [1495, 475, 1740, 570], area: "cash" },
+    { quick: true, label: "現預金エリア", box: [1495, 475, 1740, 570], area: "cash" },
     { label: "マイページ", box: [0, 110, 258, 160], go: "home" },
     { label: "資産マップ", box: [0, 164, 258, 210], go: "home" },
     { label: "ポートフォリオ", box: [0, 214, 258, 260], area: "nisa" },
@@ -2110,7 +2118,7 @@
     { label: "ライフプラン", box: [0, 418, 258, 466], area: "plan" },
     { label: "シミュレーション", box: [0, 470, 258, 518], step: 0 },
     { label: "設定", box: [0, 622, 258, 670], go: "form" },
-    { label: "年金2000万円問題", box: [60, 672, 425, 845], talk: "③" },
+    { quick: true, label: "年金2000万円問題", box: [60, 672, 425, 845], talk: "③" },
     { label: "自助努力", box: [495, 712, 705, 880], talk: "④" },
     { label: "金融リテラシー向上", box: [785, 712, 990, 880], talk: "⓪" },
     { label: "不動産×金融", box: [1065, 712, 1285, 880], talk: "⑦" },
@@ -2119,8 +2127,12 @@
   $("heroGo").setAttribute("style", pc([1448, 788, 1738, 858])); // 絵の中の「はじめる」ボタンの上に重ねる
   $("hwrap").insertAdjacentHTML("beforeend", HOTSPOTS.map((h, i) => { const [x1, y1, x2, y2] = h.box;
     return `<button class="hot${/エリア$/.test(h.label) ? " ha" : ""}" data-h="${i}" aria-label="${esc(h.label)}を開く" title="${esc(h.label)}" style="${pc([x1, y1, x2, y2])}"></button>`; }).join(""));
-  $("hwrap").querySelectorAll(".hot").forEach((b) => (b.onclick = () => {
-    const h = HOTSPOTS[+b.dataset.h];
+  // スマホでは絵が小さいので、看板の下に大きなボタンの列（行き先は絵のボタンと同じ）
+  $("tophero").insertAdjacentHTML("beforeend", `<div id="heroLinks"><button class="primary" data-go="start">はじめる ›</button>${HOTSPOTS.map((h, i) => [h, i]).filter(([h]) => h.quick)
+    .map(([h, i]) => `<button data-h="${i}">${esc(h.label.replace(/エリア$/, ""))}</button>`).join("")}</div>`);
+  $("heroLinks").querySelectorAll("button").forEach((b) => (b.onclick = () => (b.dataset.go ? $("heroGo").click() : hotGo(HOTSPOTS[+b.dataset.h]))));
+  $("hwrap").querySelectorAll(".hot[data-h]").forEach((b) => (b.onclick = () => hotGo(HOTSPOTS[+b.dataset.h])));
+  function hotGo(h) {
     if (h.go === "form") { document.body.classList.remove("home-view"); return openForm(); }
     if (guard()) return; // 入力がまだなら入力へ（見本の数字は出さない）
     if (h.go === "home") return openHome();
@@ -2128,7 +2140,7 @@
     if (h.area) return openStep(S.home(S.compute(state), missionDone, meta).areas.find((a) => a.key === h.area).step);
     if (h.talk) return openStep(S.talk(S.compute(state)).findIndex((t) => t.title.startsWith(h.talk)));
     openStep(h.step);
-  }));
+  }
   // トップの看板の「はじめる」：入力がまだなら入力へ、済んでいればトップページの中身へ
   $("heroGo").onclick = () => { const t = document.body.classList.contains("home-view") ? $("home") : need().length ? $("form").querySelector("label.need select") || $("form") : $("form"); t.scrollIntoView({ behavior: "smooth", block: need().length ? "center" : "start" }); };
   buildForm(); if (opened.present) document.body.classList.add("present");

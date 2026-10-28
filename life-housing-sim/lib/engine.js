@@ -181,6 +181,8 @@
     const cashAtBuy = o.down + (o.financeCosts ? 0 : cost);
     const pmt = payment(loan, o.rate, o.years);
     const buyAge = Math.max(inp.age, o.buyAge);
+    // 今の年齢が買う年齢より上なら「今買う」。文章・提案書・資料も同じ年齢になるように入力側もそろえる（呼び出し側の値は書きかえない）
+    inp.own = { ...o, buyAge };
     const loanEnd = buyAge + o.years;
 
     const me = pension(inp.income, inp.workStart, inp.retireAge, inp.reemploy);
