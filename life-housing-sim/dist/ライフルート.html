@@ -81,11 +81,11 @@
   body.present .kpi b { font-size:30px; }
   body.present .kpi span { font-size:15px; }
   body.present table { font-size:17px; }
-  body.present .bd { font-size:15px; }
-  body.present .bd th, body.present .bd td { padding:3px 8px; }
+  body.present .bd { font-size:14px; }
+  body.present .bd th, body.present .bd td { padding:2px 8px; }
   body.present .kpis.dup { display:none; } /* 表の合計・控除と同じ数字なので画面共有では省く */
   body.present .small { font-size:13px; }
-  body.present svg { max-height:28vh; }
+  body.present svg { max-height:27vh; }
   body.present .show { display:none; } /* 画面ではグラフ・カードが同じ数字を見せる（印刷・通常表示では出す） */
   body.present .kpis { margin:6px 0; }
   body.present .kpi { padding:6px 12px; }
@@ -158,6 +158,29 @@
   .sheet .check li::before { content:"☐ "; font-size:16px; }
   .sheet .notes2 { font-size:10px; color:var(--sub); padding-left:1.1em; }
   .sheet table { font-size:12px; }
+  .sheet table.age { width:100%; border-collapse:collapse; margin:8px 0 10px; font-size:13px; }
+  .sheet table.age th, .sheet table.age td { border-bottom:1px solid var(--line); padding:5px 8px; text-align:right; }
+  .sheet table.age th:first-child, .sheet table.age td:first-child { text-align:left; }
+  .sheet table.age thead th { background:#f3f5f8; color:var(--navy); }
+  .sheet table.age tr.hl td { font-weight:700; background:#fbf6ea; }
+  .sheet .cond { margin:0 0 4px; break-inside:avoid; } .sheet .cond h3 { font-size:13px; margin:6px 0 2px; color:var(--navy); }
+  .sheet .cond dl { display:grid; grid-template-columns:44mm 1fr; gap:1px 10px; margin:0; font-size:11.5px; line-height:1.45; } .sheet .cond dt { color:var(--sub); } .sheet .cond dd { margin:0; }
+  .sheet tr, .sheet li, .sheet .kpi, .sheet svg { break-inside:avoid; }
+  /* 計算の前提：長いので折りたたむ（画面共有では出さない） */
+  .notesbox { margin-top:10px; } .notesbox summary { cursor:pointer; font-size:13px; color:var(--sub); padding:6px 0; }
+  body.present #notesBox { display:none; }
+  /* iPhone：進み具合と前へ・次へを下に固定（片手で操作） */
+  #mnav { display:none; }
+  @media screen and (max-width:760px) {
+    body.form-closed:not(.home-view):not(.present):not(.deck-view):not(.proposal-view) #mnav { display:block; position:fixed; left:0; right:0; bottom:0; z-index:50; background:rgba(255,255,255,.97); border-top:1px solid var(--line); padding:6px 12px calc(8px + env(safe-area-inset-bottom)); box-shadow:0 -4px 14px rgba(0,0,0,.08); }
+    body.form-closed:not(.home-view):not(.present):not(.deck-view):not(.proposal-view) { padding-bottom:84px; }
+    body.form-closed:not(.home-view):not(.present) .nav { display:none; }
+    #mnav .mbar { height:5px; background:#e6e9ee; border-radius:3px; overflow:hidden; margin-bottom:6px; } #mnav .mbar i { display:block; height:100%; background:var(--gold); width:0; transition:width .2s; }
+    #mnav .mrow { display:flex; gap:10px; align-items:center; } #mnav .mrow button { flex:1; min-height:46px; font-size:16px; } #mnav #mCount { font-size:13px; color:var(--sub); white-space:nowrap; }
+  }
+  /* iPhone：入力は縦1列（項目名の下に選ぶ欄） */
+  @media screen and (max-width:760px) { #steps .small { font-size:13px; } }
+  @media screen and (max-width:480px) { label { grid-template-columns:1fr; gap:4px; margin:8px 0; } label select, label input { min-height:44px; font-size:16px; } }
   body.proposal-view main, body.proposal-view .pbar { display:none; }
   body.proposal-view #proposal { display:block; padding:14px 0; }
   .ptools { display:none; }
@@ -358,8 +381,9 @@
     <div id="steps"></div>
     <div class="nav"><button id="prev">← 前へ</button><button class="primary" id="next">次へ →</button></div>
     <div class="tools"><button id="toHome" style="background:#b08d57;color:#fff;border-color:#b08d57">★ トップ（LIFE ROUTE）</button><button id="present" class="primary" style="background:#1f2a44;color:#fff">画面共有モード（Zoom）</button><button id="link">共有リンクをコピー</button><button id="deckBtn" style="background:#1f2a44;color:#fff;border-color:#1f2a44">お客様に見せる資料（16:9）</button><button id="prop" style="background:#b08d57;color:#fff;border-color:#b08d57">提案書（A4・PDF）</button><button id="all">全部を1ページで見る（印刷用）</button><button id="print">印刷・PDF</button></div>
-    <ul class="notes" id="notes"></ul>
+    <details class="notesbox" id="notesBox"><summary>計算の前提と注意事項（タップで開く）</summary><ul class="notes" id="notes"></ul></details>
   </section>
+  <nav id="mnav" aria-label="説明の進み具合"><div class="mbar"><i id="mprog"></i></div><div class="mrow"><button id="mPrev">← 前へ</button><span id="mCount"></span><button class="primary" id="mNext">次へ →</button></div></nav>
 </main>
 <div class="ptools"><button id="pvBack">← シミュレーターに戻る</button><button class="primary" id="pvPrint">印刷・PDFで保存</button></div>
 <section id="proposal"></section>
@@ -1028,6 +1052,34 @@
   }
 
   // お客様にお渡しする提案書（A4・4ページ）。数字はすべて compute の結果から
+  // 年齢別の比較：今・買う年齢・10年ごと・定年・最後の年齢で、住まいのお金の累計（賃貸のまま／持ち家）
+  function ageTable(x) {
+    const i = x.input, set = new Set([i.age, i.own.buyAge, i.retireAge, i.lifeEnd]);
+    for (let a = Math.ceil((i.age + 1) / 10) * 10; a < i.lifeEnd; a += 10) set.add(a);
+    const ages = [...set].filter((a) => a >= i.age && a <= i.lifeEnd).sort((a, b) => a - b);
+    let cr = 0, co = 0;
+    const cum = new Map();
+    for (const y of x.years) { cr += y.rentYear; co += y.ownYear; cum.set(y.age, [cr, co]); }
+    return ages.map((age) => { const [rent, own] = cum.get(age) || [cr, co]; return { age, rent, own, diff: rent - own }; });
+  }
+  // 計算の条件：入力した数字と、計算の仮定（お名前は入れない）
+  function conditions(x) {
+    const i = x.input, o = i.own, f = i.family, pct = (v, d = 1) => (v * 100).toFixed(d) + "%";
+    const fam = f.marryAge == null ? "結婚しない・未定" : `${f.marryAge}歳で結婚` + (f.kids ? `・子ども${f.kids}人（第1子 ${f.firstKidAge}歳）` : "") + (i.partnerIncome ? `・パートナー年収 ${man(i.partnerIncome)}` : "");
+    const rentTxt = (v) => (v ? manY(v) : "なし");
+    return [
+      { group: "あなたのこと", items: [["年齢", i.age + "歳"], ["年収（税込）", man(i.income)], ["年収の上がり方", i.raise ? `年${pct(i.raise)}（仮定）` : "上がらない"], ["貯金", man(i.savings)],
+        ["定年と再雇用", i.reemploy && i.reemploy.age < i.retireAge ? `${i.reemploy.age}歳で定年・${i.retireAge}歳まで年収の${Math.round(i.reemploy.rate * 10)}割（仮定）` : `${i.retireAge}歳まで今の働き方`], ["暮らし", fam]] },
+      { group: "NISA・保険", items: [["NISA", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}・利回り年${pct(i.nisa.rate, 0)}（仮定・元本保証なし）`],
+        ["生命保険", i.lifeIns.monthly ? `毎月 ${man(i.lifeIns.monthly, 1)}・保障 ${man(i.lifeIns.cover)}` : "なし"]] },
+      { group: "賃貸のまま", items: [["家賃（毎月）", x.shataku ? `社宅 自己負担 ${manY(x.shataku.self)}（${x.shataku.until}歳まで）→ ひとり ${rentTxt(i.rent.single)}` : `ひとり ${rentTxt(i.rent.single)}・2人 ${rentTxt(i.rent.couple)}・子育て ${rentTxt(i.rent.family)}・老後 ${rentTxt(i.rent.old)}`],
+        ["更新料・家財保険", `${i.rent.renewMonths ? `家賃の${i.rent.renewMonths}か月分を${i.rent.renewEvery}年ごと` : "更新料なし"}・家財保険 年${man(i.rent.insYear, 1)}`]] },
+      { group: "持ち家（買う場合）", items: [["物件価格", man(o.price)], ["買う年齢", o.buyAge + "歳"], ["住宅ローン", `金利 年${pct(o.rate)}（全期間同じと仮定）・返済 ${o.years}年（${o.years * 12}回）・頭金 ${o.down ? man(o.down) : "なし"}`],
+        ["諸費用", `物件価格の${pct(o.costRate, 0)}（${o.financeCosts ? "ローンに含める" : "現金で払う"}）`], ["住宅ローン控除", (CREDIT_KINDS[o.kind] || {}).label || "—"],
+        ["税金・保険・修繕（年）", `固定資産税 ${man(o.propTax, 1)}・火災地震保険 ${man(o.ins, 1)}・修繕 ${man(o.repairYear, 1)}（${o.repairUpAfter}年目から${o.repairUpRate}倍）`]] },
+      { group: "老後", items: [["老後の生活費（住居費を除く・毎月）", `ひとり ${manY(i.oldLiving.single)}・夫婦 ${manY(i.oldLiving.couple)}`], ["年金（概算・毎月）", man(x.pension.monthly, 1)], ["計算する期間", `今から${i.lifeEnd}歳まで`]] },
+    ];
+  }
   function proposal(x, meta = {}) {
     const i = x.input, single = i.family.marryAge == null, inc = x.income, pf = x.portfolio, b = x.breakdown;
     const pct = (v) => Math.round(v * 100) + "%";
@@ -1092,7 +1144,11 @@
           "今回は見送り、状況が変わったら（転勤・結婚・貯金）もう一度試算する",
         ] },
     ];
-    return { cover, pages, notes: NOTES.slice() };
+    const appendix = [
+      { no: 5, title: "年齢別の比較（住まいのお金の累計）", lead: `今から${i.lifeEnd}歳まで、同じ物差しで住まいにかかるお金を足していくと、こうなります（持ち家は控除後・家の価値は含めない）。`, table: ageTable(x) },
+      { no: 6, title: "計算の条件と注意事項", lead: "この提案書の数字は、次の条件と仮定から計算した概算です。条件が変われば結果も変わります。", conditions: conditions(x), notes: NOTES.slice() },
+    ];
+    return { cover, pages, appendix, notes: NOTES.slice() };
   }
 
   // トップページ（LIFE ROUTE）：お客様が主人公。数字はすべて compute の結果から（見本の数字は使わない）
@@ -1203,7 +1259,7 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
 
 </script>
@@ -1563,7 +1619,7 @@
   function proposalHtml(x) {
     const today = new Date();
     const P = S.proposal(x, { ...meta, date: `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日` });
-    const c = P.cover, total = P.pages.length;
+    const c = P.cover, total = P.pages.length + P.appendix.length;
     const foot = (n) => `<div class="foot"><span>${esc(c.company)}　${esc(c.contact)}</span><span>${n} / ${total}</span></div>`;
     const visuals = {
       1: hbars([
@@ -1585,10 +1641,19 @@
       if (idx === 0) h += `<div class="meta"><span>${esc(c.date)}</span><span>${esc(c.company)}</span></div><h1>${esc(c.title)}</h1><p class="small" style="margin:0">${esc(c.sub)}</p><p class="to">${esc(c.to)}</p><p class="small" style="margin:0 0 12px">前提：${esc(c.profile)}</p>`;
       h += `<h2>${p.no}. ${esc(p.title)}</h2><p class="lead">${esc(p.lead)}</p><ul class="pts">${p.points.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>${visuals[p.no] || ""}`;
       if (p.nextSteps) h += `<h2 style="margin-top:12px">次の一歩（選んでチェック）</h2><ul class="check">${p.nextSteps.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
-        <h2 style="margin-top:12px">ご注意</h2><ul class="notes2">${P.notes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+        <p class="small" style="margin-top:8px">計算の条件と注意事項は ${total} ページ目にまとめています。</p>
         <p style="margin-top:10px;font-size:13px"><b>${esc(c.company)}</b>　${esc(c.contact)}</p>`;
       h += foot(p.no) + `</div>`;
     });
+    // 年齢別の比較・計算の条件と注意事項（3つの見せ方と同じ計算結果）
+    const [A5, A6] = P.appendix, hl = new Set([x.input.own.buyAge, x.input.retireAge, x.input.lifeEnd]);
+    h += `<div class="sheet"><h2>${A5.no}. ${esc(A5.title)}</h2><p class="lead">${esc(A5.lead)}</p>
+      <table class="age"><thead><tr><th>年齢</th><th>賃貸のまま（累計）</th><th>持ち家（累計）</th><th>差（賃貸−持ち家）</th></tr></thead><tbody>${A5.table.map((r) =>
+        `<tr class="${hl.has(r.age) ? "hl" : ""}"><td>${r.age}歳${r.age === x.input.age ? "（今）" : r.age === x.input.own.buyAge ? "（買う）" : r.age === x.input.retireAge ? "（年金生活）" : ""}</td><td>${esc(man(r.rent))}</td><td>${esc(man(r.own))}</td><td>${r.diff >= 0 ? "" : "−"}${esc(man(Math.abs(r.diff)))}</td></tr>`).join("")}</tbody></table>
+      ${lineChart(x)}<p class="small">持ち家の累計は、頭金・諸費用・返済・税金・保険・修繕から住宅ローン控除を引いた額です。${x.input.retireAge}歳に残る家の価値（横ばいの場合 ${esc(man(x.value65.flat))}）は含めていません。</p>${foot(A5.no)}</div>`;
+    h += `<div class="sheet"><h2>${A6.no}. ${esc(A6.title)}</h2><p class="lead">${esc(A6.lead)}</p>${A6.conditions.map((g) =>
+        `<div class="cond"><h3>${esc(g.group)}</h3><dl>${g.items.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl></div>`).join("")}
+      <h2 style="margin-top:10px">注意事項</h2><ul class="notes2">${A6.notes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>${foot(A6.no)}</div>`;
     return h;
   }
   // ───── お客様に見せる資料（16:9）：数字・文は S.deck、図はシミュレーターと同じ関数 ─────
@@ -1893,6 +1958,8 @@
     $("prev").disabled = cur === 0; $("next").disabled = cur === steps.length - 1;
     $("notes").innerHTML = S.NOTES.map((n) => `<li>${esc(n)}</li>`).join("");
     $("pCount").textContent = `${cur + 1} / ${steps.length}`;
+    $("mCount").textContent = `${steps[cur].title.slice(0, 1)}　${cur + 1} / ${steps.length}`; $("mprog").style.width = `${((cur + 1) / steps.length) * 100}%`;
+    $("mPrev").disabled = cur === 0; $("mNext").disabled = cur === steps.length - 1;
     syncUrl();
   }
   // ページを移ったら、いつもいちばん上から
@@ -1944,6 +2011,7 @@
     else if (e.key === "Escape" && document.body.classList.contains("present") && !document.fullscreenElement) present(false);
   });
   $("prev").onclick = () => go(-1);
+  $("mPrev").onclick = () => go(-1); $("mNext").onclick = () => go(1);
   $("next").onclick = () => go(1);
   $("all").onclick = () => { all = !all; render(); };
   $("print").onclick = () => { all = true; render(); window.print(); };
