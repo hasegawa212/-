@@ -660,6 +660,7 @@
   let deckCur = 0;
   function deckVisual(key, x) {
     const v = {
+      space: () => { const im = S.spaceImage(x); return im ? `<div class="rentimg space"><img src="${im.src}" alt="${esc(im.alt)}"></div>` : ""; },
       fixed: () => (fixedView(x).match(/<div class="rentimg">[\s\S]*?<\/div>/) || [""])[0], portfolio: () => portfolioView(x), stages: () => stageTable(x), life: () => lineChart(x), old: () => oldBars(x),
       prepare: () => hbars([{ label: "賃貸のまま", parts: [["準備", x.prepare.rentNeed, "var(--rent)"]] }, { label: "持ち家", parts: [["準備", x.prepare.ownNeed, "var(--own)"]] }]),
       danshin: () => danshinView(x), gate: () => gateView(x), recommend: () => recommendView(x), wait: () => waitView(x),
