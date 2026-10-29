@@ -40,6 +40,25 @@
     return k ? list.filter((v) => fold(v.name).includes(k) || fold(v.staff).includes(k)) : list.slice();
   }
 
+  // ほかの端末へ移す：ファイルに書き出す → 別の端末で読み込む（サーバーには送らない）
+  const APP = "LIFE ROUTE";
+  const exportText = (list, now) => JSON.stringify({ app: APP, kind: "customers", v: 1, exported: now || new Date().toISOString(), items: list }, null, 1);
+  // 今の一覧に足す。同じ id は更新日の新しいほうを残す。形の違うファイルは受け付けない
+  function importText(list, text) {
+    let d;
+    try { d = JSON.parse(text); } catch (e) { return { ok: false, list, error: "ファイルを読めませんでした（LIFE ROUTE で書き出したファイルを選んでください）" }; }
+    if (!d || d.app !== APP || d.kind !== "customers" || !Array.isArray(d.items)) return { ok: false, list, error: "LIFE ROUTE の「保存したお客様」のファイルではありません" };
+    const items = parse(JSON.stringify(d.items));
+    let added = 0, updated = 0;
+    const out = list.slice();
+    for (const v of items) {
+      const at = out.findIndex((r) => r.id === v.id);
+      if (at < 0) { out.push(v); added++; }
+      else if (String(v.updated) > String(out[at].updated)) { out[at] = v; updated++; }
+    }
+    return { ok: true, list: out, added, updated, skipped: items.length - added - updated };
+  }
+
   const serialize = (list) => JSON.stringify(list);
   // 壊れたデータや形の違うものは捨てる
   function parse(raw) {
@@ -49,5 +68,5 @@
     return a.filter((v) => v && typeof v === "object" && typeof v.id === "string" && typeof v.name === "string" && v.name.trim() && typeof v.hash === "string" && /^#/.test(v.hash))
       .map((v) => ({ id: v.id, name: str(v.name, 40), staff: str(v.staff, 20), hash: str(v.hash, 4000), updated: str(v.updated, 40) }));
   }
-  return { KEY, NO_STAFF, save, remove, clear, byStaff, recent, search, serialize, parse };
+  return { KEY, NO_STAFF, save, remove, clear, byStaff, recent, search, exportText, importText, serialize, parse };
 });

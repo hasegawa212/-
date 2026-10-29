@@ -43,10 +43,23 @@ test("現預金：100万円を物価・預金金利（ECONOMY）のまま10年 �
   assert.match(g.big.note, new RegExp(E.asOf));
 });
 
-test("保険：高額療養費（年収約370〜770万円の区分）で医療費100万円 → 自己負担 約8.7万円", () => {
-  const g = S.guide("ins");
-  assert.equal(g.big.value, `${(80_100 + (1_000_000 - 267_000) * 0.01).toLocaleString()}円`);
-  assert.match(JSON.stringify(g), /要確認/);
+test("保険：高額療養費（2026年8月の見直し後・年収約370〜510万円）で医療費100万円 → 自己負担 92,940円", () => {
+  const g = S.guide("ins"), t = JSON.stringify(g);
+  assert.equal(g.big.value, `${(85_800 + (1_000_000 - 286_000) * 0.01).toLocaleString()}円`);
+  assert.match(g.big.label, /370〜510万円/);
+  assert.match(t, /2026年8月/);
+  assert.match(t, /年間上限/);
+  assert.doesNotMatch(t, /80,100円|370〜770万円|要確認/, "見直し前の数字・要確認は残さない");
+});
+
+test("最新の制度（2026年10月に確認）：新築の固定資産税は令和13年3月31日まで、iDeCoは2026年12月から月6.2万円・70歳まで", () => {
+  const h = JSON.stringify(S.guide("home")), p = JSON.stringify(S.guide("pension"));
+  assert.match(h, /令和13年3月31日/);
+  assert.match(h, /戸建てで3年間/);
+  assert.match(p, /2026年12月/);
+  assert.match(p, /6\.2万円/);
+  assert.match(p, /70歳/);
+  for (const k of S.GUIDE_KEYS) assert.doesNotMatch(JSON.stringify(S.guide(k)), /要確認/, k);
 });
 
 test("年金：満額は PENSION と同じ、繰下げ最大84%、2000万円は ECONOMY の報告書", () => {
