@@ -31,6 +31,15 @@
       .map(([staff, items]) => ({ staff, items: items.slice().sort((a, b) => String(b.updated).localeCompare(String(a.updated))) }));
   }
 
+  // 新しい順に n 人（入力の最初の画面の「続きから」）
+  const recent = (list, n = 5) => list.slice().sort((a, b) => String(b.updated).localeCompare(String(a.updated))).slice(0, n);
+  // 検索：名前・担当の一部。ひらがな／カタカナ・空白・大文字小文字を気にしない
+  const fold = (v) => String(v || "").normalize("NFKC").replace(/\s+/g, "").toLowerCase().replace(/[\u3041-\u3096]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60));
+  function search(list, q) {
+    const k = fold(q);
+    return k ? list.filter((v) => fold(v.name).includes(k) || fold(v.staff).includes(k)) : list.slice();
+  }
+
   const serialize = (list) => JSON.stringify(list);
   // 壊れたデータや形の違うものは捨てる
   function parse(raw) {
@@ -40,5 +49,5 @@
     return a.filter((v) => v && typeof v === "object" && typeof v.id === "string" && typeof v.name === "string" && v.name.trim() && typeof v.hash === "string" && /^#/.test(v.hash))
       .map((v) => ({ id: v.id, name: str(v.name, 40), staff: str(v.staff, 20), hash: str(v.hash, 4000), updated: str(v.updated, 40) }));
   }
-  return { KEY, NO_STAFF, save, remove, clear, byStaff, serialize, parse };
+  return { KEY, NO_STAFF, save, remove, clear, byStaff, recent, search, serialize, parse };
 });
