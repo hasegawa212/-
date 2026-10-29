@@ -261,6 +261,7 @@
   .wcust button[data-c] { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; min-height:46px; margin:4px 0; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; font:inherit; font-size:16px; cursor:pointer; text-align:left; color:inherit; }
   .wcust button[data-c] small { color:var(--sub); font-size:13px; } .wcust button[data-c]::after { content:"開く ›"; color:var(--gold); font-weight:700; font-size:14px; margin-left:auto; }
   #custBox button.primary { background:var(--navy); color:#fff; border-color:var(--navy); font-weight:700; }
+  .cmove { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); } .cmove > b { color:var(--navy); }
   .csearch { width:100%; box-sizing:border-box; font-size:16px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin:6px 0; }
   #knowBox { display:none; position:fixed; inset:0; z-index:80; background:rgba(10,16,32,.55); overflow:auto; } #knowBox.on { display:block; }
   #knowBox .cb { background:#fff; max-width:760px; margin:4vh auto; border-radius:14px; padding:16px 18px; } #knowBox h2 { margin:0 0 6px; font-size:20px; } #knowBox .cnote { font-size:12.5px; color:var(--sub); }
@@ -1439,9 +1440,25 @@
       <p class="cnote">この端末のブラウザの中だけに保存します（どこにも送りません）。お客様のお名前が入るので、共用の端末では使い終わったら消してください。</p>
       <div class="crow"><button class="primary" id="custSave">${meta.customer ? `${esc(meta.customer)} 様の今の条件を保存` : "今の条件を保存"}</button><button id="custClose">閉じる</button></div>
       ${all.length ? `<input type="search" id="custSearch" class="csearch" placeholder="お名前・担当で探す" value="${esc(custQ)}" autocomplete="off">` : ""}
-      <div id="custList"></div>${all.length ? `<div class="crow"><button id="custClear">全部消す</button></div>` : ""}`;
+      <div id="custList"></div>${all.length ? `<div class="crow"><button id="custClear">全部消す</button></div>` : ""}
+      <div class="cmove"><b>ほかの端末へ移す</b><p class="cnote">この端末で「書き出す」→ できたファイルを、移したい端末で「読み込む」。今の一覧に足します（同じお客様は新しいほうを残す）。ファイルにはお客様のお名前が入ります。社内の決まった方法で渡し、使い終わったら消してください（どこにも送信しません）。</p>
+        <div class="crow">${all.length ? `<button id="custExport">書き出す（ファイル）</button>` : ""}<button id="custImport">読み込む</button><input type="file" id="custFile" accept=".json,application/json" hidden></div></div>`;
     $("custSave").onclick = custSaveNow;
     $("custClose").onclick = () => $("custBox").classList.remove("on");
+    if ($("custExport")) $("custExport").onclick = () => {
+      const d = new Date(), name = `liferoute_customers_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
+      const url = URL.createObjectURL(new Blob([CU.exportText(custLoad())], { type: "application/json" }));
+      const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast(`${name} を書き出しました。移したい端末で「読み込む」を押してください`);
+    };
+    $("custImport").onclick = () => $("custFile").click();
+    $("custFile").onchange = (e) => {
+      const f = e.target.files && e.target.files[0]; if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => { const r = CU.importText(custLoad(), String(rd.result || "")); if (!r.ok) return toast(r.error);
+        if (custStore(r.list)) { toast(`読み込みました：${r.added}人を追加、${r.updated}人を更新`); custRender(); } };
+      rd.readAsText(f);
+    };
     if ($("custSearch")) $("custSearch").oninput = (e) => { custQ = e.target.value; custListRender(); };
     if ($("custClear")) $("custClear").onclick = () => { if (confirm("保存したお客様を全部消します。よろしいですか？")) { custStore(CU.clear()); custCurrent = null; custRender(); } };
     custListRender();
