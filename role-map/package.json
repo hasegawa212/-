@@ -1,0 +1,11 @@
+{
+  "name": "role-map",
+  "version": "1.0.0",
+  "private": true,
+  "description": "役割マップ：Slack の実際の動きから、誰が何をやっているか・担当なし・1人だけ・代表に集中している仕事を見える化",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "report": "node tools/report.js",
+    "serve": "python3 -m http.server 5190"
+  }
+}
