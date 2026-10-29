@@ -10,11 +10,11 @@ const meta = { customer: "山田", company: "合同会社ジャパンマネジ�
 const d = S.deck(x, meta);
 const keys = (v) => v.slides.map((s) => s.key);
 
-const BODY = ["fixed", "conclusion", "future", "life", "old", "asset", "prepare", "danshin", "credit", "wait", "bubble", "cautions", "steps", "next"];
+const BODY = ["fixed", "conclusion", "future", "life", "old", "asset", "prepare", "danshin", "credit", "wait", "bubble", "cautions", "steps", "prep", "next"];
 test("構成：表紙 →（独身なら）自分の空間 → 固定費 → 結論 → 理由（住居費・老後・資産・準備・もしも・控除）→ 待つと → 親御さまの頃 → 注意点 → 進め方 → 次の一歩", () => {
   assert.deepEqual(keys(d), ["cover", "space", ...BODY]);
   assert.deepEqual(keys(S.deck(S.compute(S.preset("shataku")))), ["cover", "space", ...BODY], "社宅の独身も");
-  assert.deepEqual(keys(S.deck(S.compute(S.preset("family")))), ["cover", ...BODY], "結婚・子どもありは15枚");
+  assert.deepEqual(keys(S.deck(S.compute(S.preset("family")))), ["cover", ...BODY], "結婚・子どもありは16枚");
 });
 
 test("独身の2枚目「買うのは、家だけじゃない。」：絵＋今の家賃と毎月の返済（同じ物差し）、断定しない", () => {

@@ -612,6 +612,43 @@
     return `賃貸の入居審査：${s.ageFrom}歳からは収入が年金（毎月 ${man(x.pension.monthly, 1)}）だけになり、家賃 ${rentTxt(i.rent.old)} は年金の${Math.round(s.ratioOld * 100)}%。家賃は収入の3分の1以内が一般的な審査の目安なので、${s.hard ? "高齢・保証人とあわせて通りにくくなる場合があります" : "目安の範囲ですが、年齢や保証人で断られる場合があります"}`;
   }
 
+  // 事前審査の前に、自分の信用を知る（⑥・資料「審査の前に」）。銀行名は出さない。承認は本審査・融資を保証しない
+  function screenPrep(x) {
+    const R = PASS_RATE, g = gate(x);
+    return {
+      passRate: R,
+      head: `住宅ローンの審査が通るのは、当社の目安で${R.of}人中${R.low}〜${R.high}人。`,
+      rateNote: `※${R.note}。金融機関・年収・物件・借入の状況で大きく変わります。`,
+      white: "返済の遅れなどの記録がなくても、金融機関の審査の基準で通らないことがあります。だからこそ、まず自分の信用情報を確かめます。",
+      cases: [
+        { name: "クレジットカードの支払いの遅れ", kind: "record", what: "1回の遅れでも、信用情報に記録されることがあります" },
+        { name: "スマホ本体の分割払いの遅れ", kind: "record", what: "携帯料金と一緒に払う端末代の遅れも、信用情報に記録されることがあります" },
+        { name: "カード・ローンの数や利用枠", kind: "rule", what: "利用枠やリボ・分割の残りが多いと、借りられる額が減ることがあります" },
+        { name: "勤務先・勤続年数", kind: "rule", what: "転職したばかり・勤続が短いと、収入の安定を慎重に見られることがあります" },
+        { name: "転勤の予定", kind: "rule", what: "住宅ローンは自分が住む家が前提。近く転勤の予定があると、住み続けられるか確かめられることがあります" },
+        { name: "物件の評価", kind: "rule", what: "物件の担保の評価が借りたい額に届かないと、減額や否決になる場合があります" },
+      ],
+      records: ["クレジットカードの支払い状況", "スマホ本体の分割払い", "自動車ローン", "そのほかのローン（教育・カードローンなど）", "ローンやカードの申し込みの記録"],
+      check: g.checks,
+      steps: [
+        { name: "信用情報を確かめる（CIC）", what: `スマホから取り寄せられます（ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円）。必要に応じてJICC・全国銀行個人信用情報センターも` },
+        { name: "住宅ローンの適性チェック", what: "年収・勤続年数・雇用形態・転勤の予定・他の借入・返済の割合・買ったあと住むか、を一緒に確かめます" },
+        { name: "金融機関へ事前審査", what: "お客様に合う金融機関を選び、ご本人の同意のうえで申し込みます（無料）" },
+        { name: "結果を確かめる", what: "承認なら、借りられる見込みの額がわかります。本審査や融資を保証するものではありません。有効期限があり、家を買う義務もありません" },
+        { name: "買うかどうかは自分で決める", what: "結果というチケットを、今は使わずに持っておくか、使って購入へ進むか" },
+      ],
+      keep: { name: "今は使わない（保留）", items: ["ライフプランに合わせて時期を待つ", "貯金や頭金を準備する", "転勤など、条件が落ち着くまで待つ"] },
+      use: { name: "チケットを使う（購入へ進む）", items: ["条件に合う物件を探す", "くわしい資金計画をつくる", `本審査・契約（${FLOW.slice(2, 5).map((f) => f.name).join("→")}）`, "引き渡し・入居"] },
+      options: [
+        { name: "住みたい家に住む", what: "住む場所と間取りを、自分で選べる" },
+        { name: "資産として持つ", what: "返したぶんが家として残る（家の価値は上がることも下がることもあります）" },
+        { name: "暮らしに合わせて売る・住み替える", what: "転勤・結婚など、変わったときに選び直せる（売れる値段は時期と物件しだい）" },
+        { name: "老後の住居費を抑える", what: "完済後は家賃がかからない（税金・修繕はかかります）" },
+      ],
+      catch: "今の信用を知ることが、これからの選択肢を広げる。",
+      note: "※事前審査の承認は、住宅ローンの契約や本審査・融資を保証するものではありません。審査の基準・条件は金融機関によって異なります。",
+    };
+  }
   // 区切り：「やるか・やらないか」の前に、まず「できるか」を確かめる。決めるのは融資する金融機関
   function gate(x) {
     const i = x.input, L = x.loan, lim = i.income < 4_000_000 ? 0.3 : 0.35, mult = i.income > 0 ? L.amount / i.income : Infinity;
@@ -924,6 +961,13 @@
       lead: "住宅ローンを決めるのは金融機関。やるか・やらないかの前に、事前審査で「できるか」を確かめます。",
       kpis: [k("審査が通るのは（当社の目安）", `${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人`), k("事前審査", "無料", "購入の義務はありません")],
       points: [trust(x).title, trust(x).big, g.verdict], notes: { ...note("⑥"), more: trust(x).talk.join("") } });
+    const sp = screenPrep(x);
+    step("prep", { headline: "審査の前に、自分の信用を知る", visual: "prep",
+      lead: "返済の遅れなどの記録がなくても、審査の基準で通らないことがあります。まず信用情報を確かめます。",
+      kpis: [k("審査が通るのは（当社の目安）", `${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人`), k("信用情報（CIC）の取り寄せ", `${CIC.methods[0].fee}円`, "スマホから・ネット開示")],
+      points: [sp.catch, "承認は本審査・融資を保証しません。家を買う義務もありません"],
+      notes: { say: `${sp.white}カードやスマホ本体の分割払いの遅れは記録に残ることがありますし、記録がなくても、カードの利用枠や勤続年数、物件の評価で通らないことがあります。まずCICで、ご自分の信用情報を見てみましょう。スマホから${CIC.methods[0].fee}円で取り寄せられます。結果が出ても、使うか、今は持っておくかは、お客様が決めることです。`,
+        ask: "最近、カードやスマホの支払いが遅れたことはありますか。わからなければ、一緒にCICで確かめましょう。" } });
     slides.push({ kind: "next", key: "next", headline: "次の一歩", steps: P.pages[3].nextSteps,
       contact: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"), notes: NOTES.slice(0, 4) });
     return { slides, verdict: rc.verdict };
@@ -1139,5 +1183,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { screenPrep, trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });
