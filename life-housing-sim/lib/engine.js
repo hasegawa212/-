@@ -649,6 +649,62 @@
       note: "※事前審査の承認は、住宅ローンの契約や本審査・融資を保証するものではありません。審査の基準・条件は金融機関によって異なります。",
     };
   }
+  // 住宅ローンの適性チェック（⑥）：お客様と一緒に答えて、事前審査の前に「確かめること」を出す。合否は出さない。答えは保存しない
+  const FIT_ITEMS = [
+    { key: "late", q: "この2年ほどで、カード・スマホ代・ローンの支払いが遅れたことはありますか？", options: [
+      { v: "no", label: "ない", ok: true },
+      { v: "yes", label: "ある", ok: false, todo: "CICで記録を確かめる（支払いの遅れの記録は、審査で見られることがあります）" },
+      { v: "unknown", label: "わからない", ok: false, todo: "CICで信用情報を取り寄せて、記録がないか確かめる" }] },
+    { key: "phone", q: "スマホ本体を分割払いで買っていますか？", options: [
+      { v: "no", label: "いいえ（一括など）", ok: true },
+      { v: "yes", label: "はい", ok: false, todo: "端末の分割払いも借入として記録されます。残りの額と、遅れがないかをCICで確かめる" }] },
+    { key: "cards", q: "クレジットカードは何枚お持ちですか？", options: [
+      { v: "few", label: "0〜2枚", ok: true },
+      { v: "some", label: "3〜4枚", ok: false, todo: "使っていないカードの解約を検討する（利用枠が多いと、借りられる額が減ることがあります）" },
+      { v: "many", label: "5枚以上", ok: false, todo: "使っていないカードの解約を検討する（利用枠が多いと、借りられる額が減ることがあります）" }] },
+    { key: "revo", q: "リボ払い・キャッシング・カードローンの残りはありますか？", options: [
+      { v: "no", label: "ない", ok: true },
+      { v: "yes", label: "ある", ok: false, todo: "リボ・キャッシングの残りを先に減らせるか確かめる（返済の割合に入ります）" }] },
+    { key: "loans", q: "車のローン・奨学金など、ほかの借入はありますか？", options: [
+      { v: "no", label: "ない", ok: true },
+      { v: "yes", label: "ある", ok: false, todo: "毎月の返済額を入力して、ほかの借入を含めた返済の割合を確かめる" }] },
+    { key: "tenure", q: "今の会社で何年目ですか？", options: [
+      { v: "lt1", label: "1年未満", ok: false, todo: "勤続が短いと慎重に見られることがあります。申し込める金融機関を担当と相談する" },
+      { v: "y1", label: "1〜3年", ok: true },
+      { v: "y3", label: "3年以上", ok: true }] },
+    { key: "employ", q: "働き方はどれですか？", options: [
+      { v: "regular", label: "正社員", ok: true },
+      { v: "contract", label: "契約・派遣・パート", ok: false, todo: "契約の更新や勤続の実績を見られることがあります。扱いのある金融機関を選ぶ" },
+      { v: "self", label: "個人事業主", ok: false, todo: "確定申告書（直近2〜3期分）をそろえて、所得の推移を確かめる" }] },
+    { key: "apply", q: "この半年で、カードやローンを新しく申し込みましたか？", options: [
+      { v: "no", label: "いいえ", ok: true },
+      { v: "yes", label: "はい", ok: false, todo: "申し込みの記録は約6か月残ります。事前審査の前に、新しい申し込みは控える" }] },
+    { key: "transfer", q: "1〜2年のうちに、転勤の予定はありますか？", options: [
+      { v: "no", label: "ない", ok: true },
+      { v: "maybe", label: "ありそう・わからない", ok: false, todo: "住宅ローンは自分が住む家が前提。転勤になったときの選択肢（⑤）を先に確かめる" }] },
+    { key: "live", q: "買った家に、ご自分で住みますか？", options: [
+      { v: "yes", label: "はい", ok: true },
+      { v: "no", label: "いいえ（貸す・投資用）", ok: false, todo: "自分が住まない家（貸す・投資用）には、住宅ローンは使えません。別の方法を相談する" }] },
+    { key: "health", q: "持病や通院を含めて、団信（団体信用生命保険）に入れそうですか？", options: [
+      { v: "yes", label: "入れそう", ok: true },
+      { v: "unknown", label: "持病がある・わからない", ok: false, todo: "団信の告知の内容を確かめる（引き受けの条件がゆるい団信を扱う金融機関もあります）" }] },
+  ];
+  function fitCheck(x, ans = {}) {
+    const i = x.input;
+    const auto = { employ: i.job === "self" ? "self" : null, transfer: i.transfer && i.transfer.on ? "maybe" : null, loans: i.debt && i.debt.monthly > 0 ? "yes" : null };
+    const items = FIT_ITEMS.map((it) => {
+      const given = it.options.some((o) => o.v === ans[it.key]) ? ans[it.key] : null;
+      const answer = given || auto[it.key] || null, o = it.options.find((v) => v.v === answer);
+      return { key: it.key, q: it.q, options: it.options, answer, auto: !given && !!auto[it.key], ok: o ? o.ok : null, todo: o && !o.ok ? o.todo : null, label: o ? o.label : null };
+    });
+    const answered = items.filter((v) => v.answer).length;
+    const todos = items.filter((v) => v.todo).map((v) => ({ key: v.key, q: v.q, answer: v.label, todo: v.todo }));
+    const summary = !answered ? "下の質問に答えると、事前審査の前に確かめることがわかります。"
+      : todos.length ? `事前審査の前に確かめることが${todos.length}つあります。ひとつずつ整えてから申し込みましょう。決めるのは金融機関です。`
+      : "今の答えでは、事前審査の前に確かめることは見つかりませんでした。実際は金融機関の審査で決まります。";
+    return { items, answered, total: FIT_ITEMS.length, todos, numbers: gate(x).checks, summary,
+      note: "※このチェックは目安で、合否を判定するものではありません。最後は金融機関が決めます。答えは保存せず、共有リンクにも入りません。" };
+  }
   // 区切り：「やるか・やらないか」の前に、まず「できるか」を確かめる。決めるのは融資する金融機関
   function gate(x) {
     const i = x.input, L = x.loan, lim = i.income < 4_000_000 ? 0.3 : 0.35, mult = i.income > 0 ? L.amount / i.income : Infinity;
@@ -1183,5 +1239,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { screenPrep, trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { FIT_ITEMS, fitCheck, screenPrep, trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

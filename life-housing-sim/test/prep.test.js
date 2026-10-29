@@ -74,7 +74,7 @@ test("資料：「進め方」の次に「審査の前に、自分の信用を�
 test("画面：⑥に prepView（Zoomでは省く）、資料の図にも使う", () => {
   const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
   assert.match(html, /function prepView\(x, compact\)/);
-  assert.match(html, /trustView\(x\) \+ prepView\(x\)/);
+  assert.match(html, /fitView\(x\) \+ prepView\(x\)/);
   assert.match(html, /prep: \(\) => prepView\(x, true\)/);
   assert.match(html, /body\.present \.prepbox \{ display:none; \}/);
 });
