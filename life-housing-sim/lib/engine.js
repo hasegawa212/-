@@ -120,6 +120,38 @@
     { key: "id", name: "本人確認書類", what: "運転免許証・健康保険証・マイナンバーカードのどれか" },
     { key: "income", name: "源泉徴収票", what: "2期分（直近2年分）" },
   ];
+  // 働き方で収入の証明がかわる（個人事業主は確定申告書。必要な期数は金融機関で異なる）
+  const screenDocs = (x) => x.input.job === "self"
+    ? SCREEN_DOCS.map((v) => (v.key === "income" ? { key: "income", name: "確定申告書（控えと収支内訳書など）", what: "直近2〜3期分（金融機関で異なる）" } : v)) : SCREEN_DOCS;
+  // 会社員の「社会的信用」と、事前審査＝選べるチケット。信用は「評価されることがある」、通るかは審査してみないとわからない
+  function trust(x) {
+    const self = x.input.job === "self";
+    const table = [
+      { label: "収入の証明", employee: "源泉徴収票など", self: "確定申告書など" },
+      { label: "収入の評価", employee: "給与・勤務先・勤続年数", self: "所得・事業実績・収入の安定性" },
+      { label: "必要書類", employee: "比較的少ない傾向", self: "複数年分の申告書などが必要な場合" },
+      { label: "審査のポイント", employee: "勤務先・年収・借入状況", self: "所得の推移・事業の継続性・借入状況" },
+    ];
+    const ticket = ["だから、まずは信用情報を確認して、住宅ローンの事前審査を受けてみませんか。",
+      "事前審査が通れば、住宅購入に向けた第一段階をクリアしたことになります。",
+      "そこで手に入るのは、家を買う義務ではありません。家を買うかどうかを、自分で判断できる選択肢です。",
+      "そのチケットを使うか、使わないかは、お客様ご自身が決めればいいんです。"];
+    return {
+      self, table, selfNote: "個人事業主でも住宅ローンは利用できます。ただし金融機関によっては、複数年の所得実績を求められるなど、会社員より確認することが多くなる場合があります。",
+      title: self ? "積み上げてきた事業の実績を、将来の選択肢に。" : "会社員として積み上げた信用を、将来の選択肢に。",
+      sub: "住宅ローンの事前審査は、家を買う約束ではない。",
+      big: "買うか、買わないか。決めるのはあなた。",
+      note: "※事前審査の承認は本審査の承認や融資実行を保証せず、有効期限や物件条件などの制約があります。",
+      talk: self ? ["個人事業主の方は、確定申告書で所得を確認されます。売上より、申告した所得の推移と事業が続いていることが見られます。",
+        "複数年の所得実績を求められることもあるので、直近の確定申告書を2〜3期分そろえておくと話が早くなります。",
+        "その実績で住宅ローンを利用できるかどうかは、実際に審査してみないとわかりません。", ...ticket]
+        : ["実は、会社員として企業にお勤めされていること自体が、大きな信用なんです。",
+        "毎月安定して給与を受け取っているという実績は、住宅ローンの審査でも評価されることがあります。",
+        "例えば、個人事業主の方は、売上が大きくても複数年の所得実績を確認されることがあります。",
+        "つまり、今お客様が会社員として積み上げている信用には、住宅購入という場面で活用できる価値があります。",
+        "ただ、その信用で住宅ローンを利用できるかどうかは、実際に審査してみないとわかりません。", ...ticket],
+    };
+  }
   // 審査のあとの流れ（いつ・何をするか）
   const FLOW = [
     { name: "事前審査", what: "借りられる額を金融機関に確かめる（無料・購入の義務はありません）" },
@@ -154,6 +186,7 @@
       landRates: { down: -0.01, flat: 0, up: 0.01 },
       invest: { on: false, rate: 0.03 },
       transfer: { on: false, leaseRent: 70_000 }, // 転勤の可能性・転勤の間に貸した場合の家賃（目安）
+      job: "employee", // 働き方：employee（会社員）／self（個人事業主）
       debt: { monthly: 0 }, // 他の借入（車・カード・リボ・奨学金など）の毎月の返済
     };
     if (name === "family") { p.family = { marryAge: 30, kids: 1, firstKidAge: 32 }; p.rent.old = 70_000; }
@@ -596,11 +629,11 @@
       passRate: PASS_RATE, checks, allOk,
       verdict: allOk ? "数字の目安の上では、土台に乗る可能性があります。ただし、実際は融資する金融機関が決めます。"
         : "目安を超える項目があります。借りる額・頭金・返済期間を見直してから確かめましょう。実際は融資する金融機関が決めます。",
-      docs: SCREEN_DOCS, flow: FLOW,
+      docs: screenDocs(x), flow: FLOW,
       lookAt: ["勤続年数・雇用形態（正社員・派遣など）", "他の借入（車のローン・カード・リボ・奨学金）", "返済の遅れがないか（信用情報）", "健康状態（団信に入れるか）", "物件の担保評価"],
       steps: [
         `⓪ まず自分で：CICで信用情報を取り寄せる（本人開示：ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円）。${CIC.why}`,
-        `① できるか：本人確認書類（${SCREEN_DOCS[1].what}）と源泉徴収票（${SCREEN_DOCS[2].what}）をそろえて、住宅ローンの事前審査（無料・購入の義務はありません）で、金融機関に借りられる額を確かめる`,
+        `① できるか：本人確認書類（${SCREEN_DOCS[1].what}）と${screenDocs(x)[2].name}（${screenDocs(x)[2].what}）をそろえて、住宅ローンの事前審査（無料・購入の義務はありません）で、金融機関に借りられる額を確かめる`,
         `② その土台に乗ったら：通った金額の範囲で、やるか・やらないかを決める（このあと ${FLOW.slice(1).map((f) => f.name).join(" → ")}）`,
         "通らなかったら：理由になりそうな点（他の借入・勤続・頭金）を整えて時期を改める／賃貸のまま準備する",
       ],
@@ -756,8 +789,8 @@
       ask: "毎月の固定費で、いちばん大きいものは何ですか。その家賃は、誰の将来の備えになっていると思いますか。" };
     const six = { title: "⑥ まず「できるか」を確かめる（区切り）",
       say: `ここで一度、区切りをつけます。住宅ローンは、借りたい人や私たちが決めるのではなく、融資する金融機関が決めます。当社で審査を申し込んだ方のうち、通るのは${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人ほどです（目安）。ですから、やるか・やらないかを決める前に、まず「できるか」をこちらで確認させてください。その土台に乗ったら、やるか・やらないかを決めていただければ大丈夫です。できるかわからないまま決めても意味がないので、お客様のお時間を無駄にしないための順番です。`,
-      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}${i.debt.monthly > 0 ? `／他の借入の整理：${debtPlan(x).steps.map((v) => v.name).join(" → ")}` : ""}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}／そろえる書類：${SCREEN_DOCS.map((v) => `${v.name}（${v.what}）`).join("・")}／このあとの流れ：${FLOW.map((f) => f.name).join(" → ")}`,
-      ask: "まずCICで信用情報を取り寄せ、できるかを確かめませんか（事前審査は無料・購入の義務はありません）。" };
+      show: g.checks.map((c) => `${c.ok ? "○" : "△"} ${c.label} ${c.value}`).join("／") + `／${g.verdict}${i.debt.monthly > 0 ? `／他の借入の整理：${debtPlan(x).steps.map((v) => v.name).join(" → ")}` : ""}／金融機関が見ること：${g.lookAt.join("・")}／${g.steps[0]}／そろえる書類：${g.docs.map((v) => `${v.name}（${v.what}）`).join("・")}／${trust(x).title}${trust(x).sub}${trust(x).big}（${trust(x).note.replace("※", "")}）／このあとの流れ：${FLOW.map((f) => f.name).join(" → ")}`,
+      ask: "事前審査を受けてみませんか（無料・購入の義務はありません）。買うかどうかを決めるのはあなたです。" };
     const seven = wt.length ? { title: "⑧「今はいい」と思ったら", say: "待つこと自体は悪いことではありません。大事なのは、待つ理由と、待つ間に払うお金・遅れる完済年齢を知ったうえで決めることです。",
       show: wt.slice(1).map((r) => `${r.years}年待つと：待つ間の家賃 ${man(r.rentWhileWaiting)}・完済 ${r.payoffAge}歳${r.loanYearsAfterRetire ? `（${i.retireAge}歳を過ぎて${r.loanYearsAfterRetire}年返済）` : ""}・毎月 ${man(r.pmt, 1)}・住宅ローンの審査の返済比率 ${Math.round(r.screen.ratio * 100)}%（目安 ${Math.round(r.screen.limit * 100)}%以内${r.screen.ok ? "" : "を超える"}${r.screen.shorter ? "・返済期間が短くなる" : ""}）`).join("／") +
         "。年齢が上がるほど返済期間が短くなり、健康状態によっては団信に入れず、審査が通りにくくなる場合があります" +
@@ -888,7 +921,7 @@
     step("steps", { headline: "進め方：まず「できるか」を確かめる", visual: "gate",
       lead: "住宅ローンを決めるのは金融機関。やるか・やらないかの前に、事前審査で「できるか」を確かめます。",
       kpis: [k("審査が通るのは（当社の目安）", `${PASS_RATE.of}人中${PASS_RATE.low}〜${PASS_RATE.high}人`), k("事前審査", "無料", "購入の義務はありません")],
-      points: [g.verdict], notes: note("⑥") });
+      points: [trust(x).title, trust(x).big, g.verdict], notes: { ...note("⑥"), more: trust(x).talk.join("") } });
     slides.push({ kind: "next", key: "next", headline: "次の一歩", steps: P.pages[3].nextSteps,
       contact: [meta.company || DEFAULT_COMPANY, meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"), notes: NOTES.slice(0, 4) });
     return { slides, verdict: rc.verdict };
@@ -980,8 +1013,8 @@
         ],
         nextSteps: [
           `CICで自分の信用情報を取り寄せる（ネット${CIC.methods[0].fee}円・郵送${CIC.methods[1].fee.toLocaleString()}円、${CIC.url.replace("https://", "")}）`,
-          `本人確認書類（${SCREEN_DOCS[1].what}）と源泉徴収票（${SCREEN_DOCS[2].what}）をそろえ、住宅ローンの事前審査で借りられる額を確かめる（無料・購入の義務はありません）`,
-          `事前審査のあとの流れ：${FLOW.slice(1).map((f) => f.name).join(" → ")}`,
+          `本人確認書類（${SCREEN_DOCS[1].what}）と${screenDocs(x)[2].name}（${screenDocs(x)[2].what}）をそろえ、住宅ローンの事前審査で借りられる額を確かめる（無料・購入の義務はありません）`,
+          `事前審査のあとの流れ：${FLOW.slice(1).map((f) => f.name).join(" → ")}。事前審査は家を買う約束ではありません——${trust(x).big}`,
           "ねんきんネットで、ご自身の年金の見込額を確かめる",
           "条件（エリア・広さ・駐車場・毎月の上限）を書き出して、物件を見る",
           single ? "今は賃貸のまま、老後の家賃のための積立を始める" : "今は賃貸のまま、ご家族で話し合う時間をとる",
@@ -1104,5 +1137,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

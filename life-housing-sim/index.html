@@ -244,7 +244,11 @@
   .fieldbox { margin:10px 0; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; } .fieldbox > b { color:var(--navy); }
   table.fk { width:100%; border-collapse:collapse; font-size:13.5px; margin-top:4px; } table.fk th, table.fk td { border-bottom:1px solid var(--line); padding:4px 6px; text-align:left; vertical-align:top; } table.fk th { color:var(--sub); font-weight:600; }
   ol.dsteps { margin:6px 0 4px; padding-left:1.4em; font-size:13.5px; } ol.dsteps li b { color:var(--navy); margin-right:6px; } ol.dsteps li span { color:var(--ink, #222); }
-  body.present .fieldbox { display:none; } @media print { #knowBox { display:none !important; } }
+  body.present .fieldbox { display:none; }
+  .trustbox { margin:10px 0; padding:12px 14px; border:1px solid #e3d3ad; border-radius:12px; background:linear-gradient(#fffdf7,#fff); text-align:center; }
+  .trustbox .tt { margin:0; font-weight:700; color:var(--navy); font-size:16px; } .trustbox .ts { margin:2px 0; color:var(--sub); }
+  .trustbox .tb { margin:4px 0 8px; font-size:24px; font-weight:800; color:var(--gold); letter-spacing:.04em; } .trustbox table, .trustbox p.small { text-align:left; }
+  body.present .trustbox { display:none; } /* Zoom：⑥は1画面に収めるため、メッセージは下の問いかけ（決めるのはあなた）で伝える */ @media print { #knowBox { display:none !important; } }
   #custBox { display:none; position:fixed; inset:0; z-index:80; background:rgba(10,16,32,.55); overflow:auto; }
   #custBox.on { display:block; } #custBox .cb { background:#fff; max-width:560px; margin:6vh auto; border-radius:14px; padding:16px 18px; }
   #custBox h2 { margin:0 0 6px; font-size:20px; } #custBox .cnote { font-size:12.5px; color:var(--sub); margin:0 0 10px; }
@@ -520,6 +524,7 @@
     ["own.propTax", "固定資産税・都市計画税（年）", [0, ...range(30_000, 300_000, 10_000)], (v) => (v ? yen(v) : "なし")],
     ["own.ins", "火災・地震保険（年）", [0, ...range(10_000, 100_000, 5_000)], (v) => (v ? yen(v) : "なし")],
     ["転勤・他の借入"],
+    ["job", "働き方（審査で見られる収入の証明がかわる）", ["employee", "self"], (v) => (v === "self" ? "個人事業主" : "会社員")],
     ["transfer.on", "転勤の可能性", [false, true], (v) => (v ? "あり" : "なし")],
     ["transfer.leaseRent", "転勤の間に貸した場合の家賃（目安・毎月）", range(30_000, 150_000, 5_000), yen],
     ["debt.monthly", "他の借入の返済（車・カード・リボ・奨学金・毎月）", [0, ...range(5_000, 100_000, 5_000)], (v) => (v ? yen(v) : "なし")],
@@ -771,6 +776,13 @@
       ${t.sale ? `<p class="small">売った場合：${t.sale.years}年後の手元の目安 <b>${t.sale.net < 0 ? "−" + man(-t.sale.net) : man(t.sale.net)}</b>（家の価値 ${man(t.sale.value)} − 残高 ${man(t.sale.balance)} − 売却費用）</p>` : ""}
       <p class="small">${esc(t.creditNote)}</p><p class="small"><b>物件選びの3つの軸</b>：${t.axes.map(esc).join("／")}</p></div>`;
   }
+  // 会社員の信用 → 事前審査は「買うかどうかを決められるチケット」（⑥）。Zoomでは見出しだけ
+  function trustView(x) {
+    const t = S.trust(x);
+    return `<div class="trustbox"><p class="tt">${esc(t.title)}</p><p class="ts">${esc(t.sub)}</p><p class="tb">${esc(t.big)}</p>
+      <table class="fk"><tr><th></th><th class="${t.self ? "" : "own"}">会社員</th><th class="${t.self ? "own" : ""}">個人事業主</th></tr>${t.table.map((r) => `<tr><th>${esc(r.label)}</th><td>${esc(r.employee)}</td><td>${esc(r.self)}</td></tr>`).join("")}</table>
+      <p class="small">${esc(t.selfNote)}</p><p class="small">${esc(t.note)}</p></div>`;
+  }
   function debtView(x) {
     if (!(state.debt.monthly > 0)) return "";
     const p = S.debtPlan(x);
@@ -971,7 +983,7 @@
         <div class="sk">${s.kpis.map((v) => `<div class="k ${v.tone}"><span>${esc(v.label)}</span><b>${esc(v.value)}</b>${v.sub ? `<em>${esc(v.sub)}</em>` : ""}</div>`).join("")}
         ${big ? "" : list}</div></div>${foot(k)}</div>`;
       }
-      const note = s.notes && s.notes.say ? `<div class="snote"><b>営業マン用ノート（お客様には見せません）</b><br>話すこと：${esc(s.notes.say)}<br>質問：${esc(s.notes.ask)}</div>` : "";
+      const note = s.notes && s.notes.say ? `<div class="snote"><b>営業マン用ノート（お客様には見せません）</b><br>話すこと：${esc(s.notes.say)}${s.notes.more ? `<br>続けて：${esc(s.notes.more)}` : ""}<br>質問：${esc(s.notes.ask)}</div>` : "";
       return `<div class="swrap" data-k="${k}">${h}</div>${note}`;
     }).join("");
   }
@@ -1229,7 +1241,7 @@
       oldBars(x) + `<div class="kpis"><div class="kpi rent"><span>老後の毎月の不足（賃貸）</span><b>${man(x.old.rent.gapMonthly, 1)}</b></div><div class="kpi own"><span>老後の毎月の不足（持ち家）</span><b>${man(x.old.own.gapMonthly, 1)}</b></div><div class="kpi"><span>老後${x.old.years}年の家賃の合計</span><b>${man(x.old.rent.rentTotal)}</b></div></div>` + econView(x, "2000"),
       `<div class="kpis"><div class="kpi rent"><span>${state.retireAge}歳までに準備（賃貸のまま）</span><b>${man(x.prepare.rentNeed)}</b><span>毎月 ${man(x.prepare.monthlyRent, 1)} の積立</span></div><div class="kpi own"><span>${state.retireAge}歳までに準備（持ち家）</span><b>${man(x.prepare.ownNeed)}</b><span>毎月 ${man(x.prepare.monthlyOwn, 1)} の積立</span></div><div class="kpi"><span>差</span><b>${man(x.prepare.rentExtra)}</b><span>持たない場合に多く必要</span></div></div>` + econView(x) + nisaView(x),
       `<div class="kpis"><div class="kpi rent"><span>老後の賃貸の入居審査（家賃÷年金）</span><b>${Math.round(x.screening.rent.ratioOld * 100)}%</b><span>目安は3分の1（33%）以内${x.screening.rent.hard ? "・通りにくくなる場合あり" : ""}</span></div><div class="kpi own"><span>万一のとき残るローン（団信）</span><b>${man(0)}</b><span>${x.input.family.marryAge == null ? "親や兄弟に残らない" : "家族に住まいが残る"}</span></div>${x.input.family.marryAge == null ? "" : `<div class="kpi rent"><span>賃貸なら家族が払い続ける家賃</span><b>${man(x.whatIf.danshinRentContinues, 1)}</b><span>毎月</span></div>`}<div class="kpi"><span>金利が1%上がったら</span><b>${man(x.whatIf.rateUpPmt, 1)}</b><span>今の計画 ${man(x.whatIf.pmt, 1)}／毎月</span></div></div>${danshinView(x)}${econView(x, "ins")}${rateView(x)}${transferView(x)}`,
-      gateView(x) + debtView(x),
+      gateView(x) + trustView(x) + debtView(x),
       recommendView(x),
       waitView(x) + familyView(x),
     ];
