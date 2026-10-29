@@ -223,6 +223,27 @@
   #tophero .hot:active { background:rgba(243,213,140,.22); }
   #heroGo { border-radius:999px; }
   #heroLinks { display:none; }
+  /* エリアのノウハウ（看板のエリアを押すと開く） */
+  #guide { display:none; background:#0b1a38; color:#eef2fa; min-height:100vh; padding:0 0 60px; }
+  body.guide-view #guide { display:block; } body.guide-view main, body.guide-view #home, body.guide-view #tophero, body.guide-view > header, body.guide-view #formbar, body.guide-view #mnav { display:none !important; }
+  #guide .gw { max-width:900px; margin:0 auto; padding:14px 16px; }
+  #guide .gtop { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; } #guide .gtop button { font:inherit; font-size:14px; min-height:40px; padding:6px 12px; border-radius:99px; border:1px solid rgba(243,213,140,.45); background:rgba(255,255,255,.06); color:#eef2fa; cursor:pointer; }
+  #guide .gtop button.on { background:linear-gradient(#f3d58c,#c9a24f); color:#1b2440; border-color:transparent; font-weight:700; } #guide .gtop .gback { border-color:rgba(255,255,255,.3); }
+  #guide h1 { display:flex; align-items:center; gap:10px; margin:10px 0 2px; color:#f3d58c; font-size:26px; letter-spacing:.04em; }
+  #guide .gcatch { font-size:24px; font-weight:800; line-height:1.45; margin:6px 0 6px; } #guide .glead { color:#c8d2e6; font-size:16px; line-height:1.8; margin:0 0 14px; }
+  #guide .gbig { background:linear-gradient(135deg,#1e3f73,#0c1a33); border:1px solid rgba(243,213,140,.5); border-radius:16px; padding:16px 18px; margin-bottom:18px; }
+  #guide .gbig span { display:block; color:#c8d2e6; font-size:14px; } #guide .gbig b { display:block; font-size:44px; color:#f3d58c; line-height:1.25; margin:4px 0; } #guide .gbig em { font-style:normal; color:#9fb0cc; font-size:13px; }
+  #guide h2 { font-size:18px; color:#f3d58c; margin:20px 0 8px; border-left:4px solid #c9a24f; padding-left:10px; }
+  #guide ol.gtips { list-style:none; counter-reset:gt; padding:0; margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  #guide ol.gtips li { counter-increment:gt; background:#fff; color:#1b2440; border-radius:14px; padding:12px 14px; font-size:14.5px; line-height:1.75; }
+  #guide ol.gtips li b { display:block; font-size:16px; color:#0b1a38; margin-bottom:4px; } #guide ol.gtips li b::before { content:counter(gt, decimal-leading-zero); color:#b08d57; font-weight:800; margin-right:8px; }
+  #guide .gmyth { background:rgba(255,255,255,.06); border-radius:12px; padding:10px 14px; margin-bottom:8px; font-size:14.5px; line-height:1.7; } #guide .gmyth b { color:#f3d58c; } #guide .gmyth b::before { content:"Q. "; }
+  #guide ul.gtodo { list-style:none; padding:0; margin:0; } #guide ul.gtodo li { background:rgba(255,255,255,.06); border-radius:10px; padding:10px 12px 10px 40px; margin-bottom:6px; position:relative; font-size:15px; } #guide ul.gtodo li::before { content:"✓"; position:absolute; left:14px; color:#f3d58c; font-weight:800; }
+  #guide .gcta { display:flex; flex-wrap:wrap; gap:10px; margin:22px 0 10px; } #guide .gcta button { font:inherit; font-size:16px; font-weight:700; min-height:50px; padding:10px 18px; border-radius:12px; cursor:pointer; border:1px solid rgba(255,255,255,.3); background:transparent; color:#eef2fa; }
+  #guide .gcta button.primary { background:linear-gradient(#f3d58c,#c9a24f); color:#1b2440; border:none; flex:1 1 280px; }
+  #guide .gsrc { color:#9fb0cc; font-size:13px; line-height:1.7; }
+  @media (max-width:640px) { #guide ol.gtips { grid-template-columns:minmax(0,1fr); } #guide .gcatch { font-size:20px; } #guide .gbig b { font-size:36px; } }
+  @media print { body.guide-view #guide { background:#fff; color:#000; } }
   .econ { margin:8px 0 0; padding:8px 12px; border-left:4px solid var(--gold); background:#fbf7ef; border-radius:6px; font-size:14px; line-height:1.6; }
   .econ b.r { color:var(--rent); } .econ b.o { color:var(--own); }
   .gdocs { margin-top:8px; font-size:13px; display:flex; flex-wrap:wrap; gap:4px 10px; } .gdocs > b { width:100%; color:var(--navy); } .gdocs span b { margin-right:4px; }
@@ -478,6 +499,7 @@
 <body>
 <section id="tophero"><div class="hwrap" id="hwrap"><img src="img/top-hero.jpg" alt="LIFE ROUTE。人生のすべてのステージに、最高のパートナーを。NISA・不動産・保険・ライフプラン・海外投資・現預金のエリアをめぐり、GOALへ向かう道のり。年金2000万円問題、自助努力・金融リテラシー向上・不動産×金融。今から、未来は変えられる。（イメージ）"><button id="heroGo" class="hot" aria-label="はじめる"></button></div></section>
 <section id="home"></section>
+<section id="guide" aria-live="polite"></section>
 <header>
   <h1>LIFE ROUTE <small style="font-size:13px;font-weight:400;opacity:.85">ライフルート</small></h1>
   <p>独身の方にも、結婚・子育ての方にも。賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。どのお客様にも ⓪〜⑧ の同じ順番で説明します（概算・通信なし。保存はこの端末の中だけ）</p>
@@ -569,6 +591,7 @@
   // 提案書の宛名・会社情報（この画面の中だけ。共有リンクや保存には入れない）
   const meta = { customer: "", company: S.DEFAULT_COMPANY, staff: "", tel: "" };
   const state = opened.state;
+  const openedGuide = (location.hash.match(/(?:^#|&)g=([a-z]+)/) || [])[1]; // ノウハウのページを直接開く（#g=nisa）。読み込み中にURLが書き直される前に読む
   const fitAns = {}; // 適性チェックの答え（このページの中だけ。保存も共有もしない）
   // お客様ごとに選ぶ項目は空から始める（共有リンクで開いたときは、リンクの条件がそのお客様の数字）
   // 条件（s=）が入ったリンクだけを入力済みとみなす（#step=3 だけのときは、前の画面の続きなので空から）
@@ -1449,22 +1472,22 @@
   // 座標は看板の絵（1774×887）の中の位置。絵を差し替えたら測り直す
   const HERO_W = 1774, HERO_H = 887;
   const HOTSPOTS = [
-    { quick: true, label: "NISAエリア", box: [425, 222, 658, 312], area: "nisa" },
-    { quick: true, label: "不動産エリア", box: [915, 188, 1145, 272], area: "home" },
-    { quick: true, label: "保険エリア", box: [1345, 232, 1608, 325], area: "ins" },
-    { quick: true, label: "ライフプランエリア", box: [1455, 352, 1740, 450], area: "plan" },
-    { label: "海外投資エリア", box: [342, 398, 605, 495], area: "nisa" },
-    { quick: true, label: "現預金エリア", box: [1495, 475, 1740, 570], area: "cash" },
+    { quick: true, label: "NISAエリア", guide: "nisa", box: [425, 222, 658, 312], area: "nisa" },
+    { quick: true, label: "不動産エリア", guide: "home", box: [915, 188, 1145, 272], area: "home" },
+    { quick: true, label: "保険エリア", guide: "ins", box: [1345, 232, 1608, 325], area: "ins" },
+    { quick: true, label: "ライフプランエリア", guide: "plan", box: [1455, 352, 1740, 450], area: "plan" },
+    { quick: true, label: "海外投資エリア", guide: "world", box: [342, 398, 605, 495], area: "nisa" },
+    { quick: true, label: "現預金エリア", guide: "cash", box: [1495, 475, 1740, 570], area: "cash" },
     { label: "マイページ", box: [0, 110, 258, 160], go: "home" },
     { label: "資産マップ", box: [0, 164, 258, 210], go: "home" },
-    { label: "ポートフォリオ", box: [0, 214, 258, 260], area: "nisa" },
-    { label: "不動産", box: [0, 264, 258, 312], area: "home" },
-    { label: "NISA・投資信託", box: [0, 316, 258, 362], area: "nisa" },
-    { label: "生命保険", box: [0, 366, 258, 414], area: "ins" },
-    { label: "ライフプラン", box: [0, 418, 258, 466], area: "plan" },
+    { label: "ポートフォリオ", guide: "world", box: [0, 214, 258, 260], area: "nisa" },
+    { label: "不動産", guide: "home", box: [0, 264, 258, 312], area: "home" },
+    { label: "NISA・投資信託", guide: "nisa", box: [0, 316, 258, 362], area: "nisa" },
+    { label: "生命保険", guide: "ins", box: [0, 366, 258, 414], area: "ins" },
+    { label: "ライフプラン", guide: "plan", box: [0, 418, 258, 466], area: "plan" },
     { label: "シミュレーション", box: [0, 470, 258, 518], step: 0 },
     { label: "設定", box: [0, 622, 258, 670], go: "form" },
-    { quick: true, label: "年金2000万円問題", box: [60, 672, 425, 845], talk: "③" },
+    { quick: true, label: "年金2000万円問題", guide: "pension", box: [60, 672, 425, 845], talk: "③" },
     { label: "自助努力", box: [495, 712, 705, 880], talk: "④" },
     { label: "金融リテラシー向上", box: [785, 712, 990, 880], talk: "⓪" },
     { label: "不動産×金融", box: [1065, 712, 1285, 880], talk: "⑦" },
@@ -1481,12 +1504,46 @@
   $("hwrap").querySelectorAll(".hot[data-h]").forEach((b) => (b.onclick = () => hotGo(HOTSPOTS[+b.dataset.h])));
   function hotGo(h) {
     if (h.go === "form") { document.body.classList.remove("home-view"); return openForm(); }
+    if (h.guide) return openGuide(h.guide); // ノウハウはお客様の数字がなくても見られる
     if (guard()) return; // 入力がまだなら入力へ（見本の数字は出さない）
     if (h.go === "home") return openHome();
     closeForm();
     if (h.area) return openStep(S.home(S.compute(state), missionDone, meta).areas.find((a) => a.key === h.area).step);
     if (h.talk) return openStep(S.talk(S.compute(state)).findIndex((t) => t.title.startsWith(h.talk)));
     openStep(h.step);
+  }
+  // ───── エリアのノウハウ：看板のエリアを押すと開くページ（#g=nisa で直接開ける。お客様の数字は使わない） ─────
+  let guideFrom = null;
+  function openGuide(key) {
+    const g = S.guide(key); if (!g) return;
+    if (!document.body.classList.contains("guide-view")) guideFrom = { home: document.body.classList.contains("home-view"), y: window.scrollY };
+    document.body.classList.add("guide-view");
+    $("guide").innerHTML = `<div class="gw"><div class="gtop"><button class="gback" id="gBack">← 戻る</button>${S.GUIDE_KEYS.map((k) => `<button data-g="${k}" class="${k === key ? "on" : ""}">${esc(S.guide(k).title.replace(/エリア$/, ""))}</button>`).join("")}</div>
+      <h1>${ico(g.icon, 30)}${esc(g.title)}</h1><p class="gcatch">${esc(g.catch)}</p><p class="glead">${esc(g.lead)}</p>
+      <div class="gbig"><span>${esc(g.big.label)}</span><b>${esc(g.big.value)}</b><em>${esc(g.big.note)}</em></div>
+      <h2>知っておくと得する${g.tips.length}つのこと</h2><ol class="gtips">${g.tips.map((t) => `<li><b>${esc(t.head)}</b>${esc(t.body)}</li>`).join("")}</ol>
+      <h2>よくある勘違い</h2>${g.myths.map((m) => `<div class="gmyth"><b>${esc(m.q)}</b><br>${esc(m.a)}</div>`).join("")}
+      <h2>今日からできること</h2><ul class="gtodo">${g.todo.map((t) => `<li>${esc(t)}</li>`).join("")}</ul>
+      <div class="gcta"><button class="primary" id="gMine">この話を、自分の数字で見る ›</button><button id="gBack2">看板に戻る</button></div>
+      <p class="gsrc">出典：${g.sources.map(esc).join("／")}<br>${esc(g.note)}</p></div>`;
+    $("guide").querySelectorAll("button[data-g]").forEach((b) => (b.onclick = () => openGuide(b.dataset.g)));
+    $("gBack").onclick = $("gBack2").onclick = closeGuide;
+    $("gMine").onclick = () => {
+      closeGuide(true); if (guard()) return; // 入力がまだなら入力へ（見本の数字は出さない）
+      closeForm(); const x = S.compute(state);
+      openStep(g.talk ? S.talk(x).findIndex((t) => t.title.startsWith(g.talk)) : S.home(x, missionDone, meta).areas.find((a) => a.key === g.area).step);
+    };
+    setGuideHash(key); window.scrollTo(0, 0);
+  }
+  function closeGuide(quiet) {
+    document.body.classList.remove("guide-view"); setGuideHash(null);
+    if (quiet === true) return;
+    if (guideFrom && guideFrom.home && !need().length) openHome(); else window.scrollTo(0, guideFrom ? guideFrom.y : 0);
+  }
+  function setGuideHash(key) {
+    const h = location.hash.replace(/^#/, "").split("&").filter((v) => v && !/^g=/.test(v));
+    if (key) h.push("g=" + key);
+    try { history.replaceState(null, "", location.pathname + location.search + (h.length ? "#" + h.join("&") : "")); } catch (e) { /* なし */ }
   }
   // トップの看板の「はじめる」：入力がまだなら入力へ、済んでいればトップページの中身へ
   $("heroGo").onclick = () => { const t = document.body.classList.contains("home-view") ? $("home") : need().length ? $("form").querySelector("label.need select") || $("form") : $("form"); t.scrollIntoView({ behavior: "smooth", block: need().length ? "center" : "start" }); };
@@ -1498,6 +1555,7 @@
   render();
   // 最初に開いたときはトップページ（共有リンクで step・画面共有の指定があるときはそのステップから）。入力がまだなら入力から
   if (!need().length && !opened.present && !/step=/.test(location.hash)) openHome();
+  if (openedGuide && S.guide(openedGuide)) openGuide(openedGuide);
 })();
 </script>
 </body>
