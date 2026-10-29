@@ -221,7 +221,8 @@
       transfer: { ...d.transfer, ...(input.transfer || {}) }, debt: { ...d.debt, ...(input.debt || {}) } };
     const reAge = Math.min(inp.retireAge, inp.reemploy.age), reRate = inp.reemploy.rate;
     const sh = inp.shataku;
-    const inShataku = (age) => sh.on && age < sh.until && age < inp.retireAge;
+    const shEnd = sh.until > 0 ? Math.min(sh.until, inp.retireAge) : inp.retireAge; // 0＝出る年齢の決まりなし（社宅は在職中だけ＝定年まで）
+    const inShataku = (age) => sh.on && age < shEnd;
     const o = inp.own, R = inp.rent;
     // 暮らしの段階ごとの家賃。2人暮らしが「なし」（0）なら、結婚後もひとり暮らしの家賃のまま
     // 「なし」（0）：2人暮らし→ひとり暮らしと同じ、子育て期→2人暮らし（それもなしならひとり）と同じ。ひとり・老後の「なし」は家賃0（実家など）
@@ -410,7 +411,8 @@
       // 審査：老後の賃貸の入居審査は、収入が年金だけになる。家賃が収入の3分の1以下が一般的な目安
       screening: { rent: { ageFrom: inp.retireAge, ratioOld: pensionYearly > 0 ? (R.old * 12) / pensionYearly : Infinity, guide: 1 / 3,
         hard: pensionYearly > 0 ? (R.old * 12) / pensionYearly > 1 / 3 : true } },
-      shataku: sh.on ? { self: sh.self, until: sh.until, after: rentAt(stage(inp, Math.max(inp.age, sh.until))), jump: rentAt(stage(inp, Math.max(inp.age, sh.until))) - sh.self } : null,
+      shataku: sh.on ? { self: sh.self, until: sh.until, end: shEnd, endTxt: sh.until > 0 ? `${sh.until}歳まで` : `定年の${inp.retireAge}歳まで・出る年齢の決まりなし`,
+        after: rentAt(stage(inp, Math.max(inp.age, shEnd))), jump: rentAt(stage(inp, Math.max(inp.age, shEnd))) - sh.self } : null,
       credit: { kind: o.kind, label: kind.label, limit, years: kind.years, special, rows: creditRows, total: creditRows.reduce((s2, r) => s2 + r.actual, 0),
         totalMax: creditRows.reduce((s2, r) => s2 + r.max, 0), first: creditRows.length ? creditRows[0].actual : 0 },
       breakdown,
@@ -800,11 +802,11 @@
     if (seven) seven.show += `／ご家族と一緒に：${familyTalk(x).process.slice(0, 3).join("→")}。${familyTalk(x).decide}`;
     return [intro, zero,
       { title: "① これからの暮らしの段階", say: sh
-          ? `今は社宅で家賃が抑えられていますが、社宅はだいたい${sh.until}歳ごろまでです。出たあとは、ふつうの家賃を${i.lifeEnd}歳まで払うことになります。社宅の間は、貯金と住まいの準備ができる時期です。`
+          ? `今は社宅で家賃が抑えられていますが、${sh.until > 0 ? `社宅はだいたい${sh.until}歳ごろまでです` : `社宅を出る年齢の決まりはありません。ただ、社宅に住めるのは会社にお勤めの間だけで、定年（${i.retireAge}歳）までです`}。出たあとは、ふつうの家賃を${i.lifeEnd}歳まで払うことになります。社宅の間は、貯金と住まいの準備ができる時期です。`
           : single
           ? `ひとりで暮らしていく場合も、家賃は一生続きます。今の働き方のまま${i.retireAge}歳を迎え、そのあとも${i.lifeEnd}歳まで住まいは必要です。持ち家なら、結婚しても住み続ける・貸す・売るを選べます。`
           : `家賃は暮らしの段階で変わります。${stages.join(" → ")} と進むと、広い部屋が必要な時期に家賃も上がります。`,
-        show: (sh ? `社宅 ${manY(sh.self)}（${sh.until}歳まで）→ 社宅を出たあと ${manY(sh.after)}（毎月 ${manY(sh.jump)}・年 ${manY(sh.jump * 12)} 増える。家賃は当社のお客様の平均）／` : "") +
+        show: (sh ? `社宅 ${manY(sh.self)}（${sh.endTxt}）→ 社宅を出たあと ${manY(sh.after)}（毎月 ${manY(sh.jump)}・年 ${manY(sh.jump * 12)} 増える。家賃は当社のお客様の平均）／` : "") +
           (x.input.family.marryAge != null ? `ひとり ${rentTxt(i.rent.single)} → 2人 ${i.rent.couple ? man(i.rent.couple, 1) : "（ひとりと同じ）"} → 子育て ${i.rent.family ? man(i.rent.family, 1) : "（2人と同じ）"} → 老後 ${rentTxt(i.rent.old)}（毎月）` : `ひとり ${rentTxt(i.rent.single)}${i.rent.single === RENT_AVG.single ? "（当社のお客様の家賃の平均）" : ""} → 老後 ${rentTxt(i.rent.old)}（毎月）`),
         ask: sh ? `社宅を出るのは何歳ごろの予定ですか。出たあと、どこに住みたいですか。` : single ? "これからも、ひとりで自由に暮らしていきたいですか。結婚したら、住まいはどうしたいですか。" : "結婚・お子さま・働き方は、何歳ごろにどうなっていたいですか。" },
       { title: "② 一生でかかる住まいのお金", say: `今から${i.lifeEnd}歳まで、住まいには一生お金がかかります。賃貸は家賃を払い続け、持ち家は返済が終わったあとは税金・保険・修繕だけになります。合計だけだと持ち家が高く見えますが、持ち家には「家そのものの代金」が入っていて、払い終わった家は自分のものとして残ります。なので「消えるお金」どうしでくらべます。`,
@@ -948,7 +950,7 @@
         ["定年と再雇用", i.reemploy && i.reemploy.age < i.retireAge ? `${i.reemploy.age}歳で定年・${i.retireAge}歳まで年収の${Math.round(i.reemploy.rate * 10)}割（仮定）` : `${i.retireAge}歳まで今の働き方`], ["暮らし", fam]] },
       { group: "NISA・保険", items: [["NISA", `残高 ${man(i.nisa.balance)}・毎月 ${man(i.nisa.monthly, 1)}・利回り年${pct(i.nisa.rate, 0)}（仮定・元本保証なし）`],
         ["生命保険", i.lifeIns.monthly ? `毎月 ${man(i.lifeIns.monthly, 1)}・保障 ${man(i.lifeIns.cover)}` : "なし"]] },
-      { group: "賃貸のまま", items: [["家賃（毎月）", x.shataku ? `社宅 自己負担 ${manY(x.shataku.self)}（${x.shataku.until}歳まで）→ ひとり ${rentTxt(i.rent.single)}` : `ひとり ${rentTxt(i.rent.single)}・2人 ${rentTxt(i.rent.couple)}・子育て ${rentTxt(i.rent.family)}・老後 ${rentTxt(i.rent.old)}`],
+      { group: "賃貸のまま", items: [["家賃（毎月）", x.shataku ? `社宅 自己負担 ${manY(x.shataku.self)}（${x.shataku.endTxt}）→ ひとり ${rentTxt(i.rent.single)}` : `ひとり ${rentTxt(i.rent.single)}・2人 ${rentTxt(i.rent.couple)}・子育て ${rentTxt(i.rent.family)}・老後 ${rentTxt(i.rent.old)}`],
         ["更新料・家財保険", `${i.rent.renewMonths ? `家賃の${i.rent.renewMonths}か月分を${i.rent.renewEvery}年ごと` : "更新料なし"}・家財保険 年${man(i.rent.insYear, 1)}`]] },
       { group: "持ち家（買う場合）", items: [["物件価格", man(o.price)], ["買う年齢", o.buyAge + "歳"], ["住宅ローン", `金利 年${pct(o.rate)}（全期間同じと仮定）・返済 ${o.years}年（${o.years * 12}回）・頭金 ${o.down ? man(o.down) : "なし"}`],
         ["諸費用", `物件価格の${pct(o.costRate, 0)}（${o.financeCosts ? "ローンに含める" : "現金で払う"}）`], ["住宅ローン控除", (CREDIT_KINDS[o.kind] || {}).label || "—"],
@@ -968,7 +970,7 @@
       date: meta.date || "",
       company: meta.company || DEFAULT_COMPANY,
       contact: [meta.staff ? "担当：" + meta.staff : "", meta.tel ? "TEL " + meta.tel : ""].filter(Boolean).join("　"),
-      profile: `${i.age}歳・年収 ${man(i.income)}・貯金 ${man(i.savings)}・${x.shataku ? `社宅（自己負担 ${manY(x.shataku.self)}・${x.shataku.until}歳まで）・` : ""}${single ? "おひとりで暮らす前提" : (i.family.marryAge + "歳で結婚" + (i.family.kids ? `・お子さま${i.family.kids}人` : ""))}・${i.own.buyAge}歳で ${man(i.own.price)} の家を買った場合`,
+      profile: `${i.age}歳・年収 ${man(i.income)}・貯金 ${man(i.savings)}・${x.shataku ? `社宅（自己負担 ${manY(x.shataku.self)}・${x.shataku.until > 0 ? x.shataku.until + "歳まで" : "定年まで"}）・` : ""}${single ? "おひとりで暮らす前提" : (i.family.marryAge + "歳で結婚" + (i.family.kids ? `・お子さま${i.family.kids}人` : ""))}・${i.own.buyAge}歳で ${man(i.own.price)} の家を買った場合`,
     };
     const pages = [
       { no: 1, title: "あなたのお金の全体像", lead: `これから一生で入ってくるお金は約 ${man(inc.total)}。住まいは、その中でいちばん大きな支出です。`,
@@ -1083,7 +1085,7 @@
     // ライフイベント：出来事と、そのときの数字（stat）。地図の道の印・グラフの点・一覧で同じ文を使う
     const f = i.family, sh = x.shataku, re = x.income.reemploy;
     const ev = [{ age: i.age, label: "今（ここからスタート）", stat: `資産 ${man(now)}・家賃 ${rentNow ? `毎月 ${manY(rentNow)}` : "なし（実家など）"}` }];
-    if (sh && sh.until > i.age) ev.push({ age: sh.until, label: "社宅を出る", stat: `家賃 ${manY(sh.self)}→${manY(sh.after)}（毎月 +${manY(sh.jump)}）` });
+    if (sh && sh.end > i.age) ev.push({ age: sh.end, label: sh.until > 0 ? "社宅を出る" : "社宅を出る（定年）", stat: `家賃 ${manY(sh.self)}→${manY(sh.after)}（毎月 +${manY(sh.jump)}）` });
     if (f.marryAge != null && f.marryAge >= i.age) ev.push({ age: f.marryAge, label: "結婚", stat: i.rent.couple ? `2人暮らしの家賃 ${manY(i.rent.couple)}` : "家賃はひとり暮らしのまま" });
     if (f.kids > 0 && f.firstKidAge >= i.age) ev.push({ age: f.firstKidAge, label: "子どもが生まれる", stat: i.rent.family ? `子育て期の家賃 ${manY(i.rent.family)}` : "家賃は2人暮らしのまま" });
     ev.push({ age: L.buyAge, label: `家を買う（${man(o.price)}）`, stat: `毎月 ${man(L.pmt, 1)}×${L.months}回` });
