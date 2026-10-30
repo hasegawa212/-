@@ -441,6 +441,24 @@
       src: "金融審議会 市場ワーキング・グループ報告書「高齢社会における資産形成・管理」（2019年6月）" },
     savingsIns: "貯蓄型の保険は、早く解約すると払った額より戻りが少ない（元本割れ）場合があります。保障（もしものとき）と貯蓄（ふやす）は分けて考えると比べやすくなります",
   };
+  // ───── 使い方（営業マン向け・初めての端末で自動で開く）。go＝押したときに開く場所 ─────
+  const HOWTO = {
+    title: "LIFE ROUTE の使い方（営業マン向け）",
+    steps: [
+      { title: "① 担当者を登録（最初の1回だけ）", body: "右上の「担当者」から自分の名前を登録します。パスワードはなく、この端末の中だけに保存されます。登録したお客様は自動で自分の担当になります。", go: "acct" },
+      { title: "② お客様の数字を入れる", body: "「はじめる」から1問ずつ答えます（タイプ・年齢・年収・貯金・家賃など）。全部選ぶまで、見本の数字は出ません。", go: "start" },
+      { title: "③ ¥〜⑧ を順番に説明する", body: "どのお客様にも同じ順番で説明します。iPhoneは下の「次へ」、Zoomは「画面共有モード」。⑥の適性チェックはお客様と一緒にボタンで答えます。", go: "talk" },
+      { title: "④ お客様を登録する", body: "「保存したお客様」→ お名前を入れて「登録する」。次からは最初の画面の「続きから」ですぐ開けます。", go: "save" },
+      { title: "⑤ 資料・提案書を出す", body: "「お客様に見せる資料（16:9）」は画面共有に、「提案書（A4・PDF）」はお渡し用に。数字はすべてお客様の条件から計算されます。", go: "deck" },
+      { title: "⑥ 知識を深める・端末を替える", body: "看板のエリアを押すとノウハウのページ。「営業の知識（社内用）」で切り返しも確認。別の端末へは「保存したお客様」→「ほかの端末へ移す」。", go: "guide" },
+    ],
+    rules: [
+      "数字はすべて概算です。将来の金利・価格・年金を約束するものではありません",
+      "値上がりや審査の結果を言い切ったり、期限で急がせたりする言い方はしません",
+      "住宅ローンを決めるのは金融機関です。事前審査は無料で、買う義務はありません",
+      "お客様のお名前は、この端末の中だけに保存されます。共用の端末では使い終わったら消してください",
+    ],
+  };
   // ───── エリアのノウハウ（看板のエリアを押すと開くページ）：お客様の数字がなくても見られる一般的な知識 ─────
   // 驚きの数字は計算で出す。制度の数字は2026年10月に公式資料で確かめた値（高額療養費は2026年8月、iDeCoは2026年12月、新築の固定資産税は令和8年度改正）。変わったら更新する。断定しない
   const GUIDE_KEYS = ["nisa", "world", "home", "ins", "plan", "cash", "pension"];
@@ -1363,5 +1381,5 @@
     "諸費用（物件価格の7%と仮定）には、登記費用・不動産取得税・印紙税・ローン手数料・仲介手数料などが含まれる。固定資産税・都市計画税は物件・地域で変わる。",
   ];
 
-  return { GUIDE_KEYS, guide, FIT_ITEMS, fitCheck, screenPrep, trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
+  return { HOWTO, GUIDE_KEYS, guide, FIT_ITEMS, fitCheck, screenPrep, trust, transfer, debtPlan, rateRisk, nisaCompare, familyTalk, KNOWLEDGE, future, assetImage, ECONOMY, economy, costCompare, SCREEN_DOCS, FLOW, ageTable, conditions, spaceImage, ASK_FIELDS, askFields, missing, rentImage, deck, recommend, fixedCost, BUBBLE, bubble, danshin, DANSHIN_OPTIONS, CIC, PASS_RATE, gate, APP, DEFAULT_COMPANY, home, RENT_AVG, proposal, preset, PRESETS, AVG_SALARY, FORBIDDEN, PENSION, CREDIT_KINDS, payment, balanceAfter, pension, estimateTax, defaults, compute, talk, NOTES, man, STAGE_LABEL };
 });

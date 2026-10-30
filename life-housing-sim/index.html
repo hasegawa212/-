@@ -260,6 +260,17 @@
   .wcust { border:1px solid #e3d3ad; background:#fffaf0; border-radius:12px; padding:10px 12px; margin-bottom:6px; } .wcust > b { display:block; color:var(--navy); margin-bottom:6px; }
   .wcust button[data-c] { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; min-height:46px; margin:4px 0; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; font:inherit; font-size:16px; cursor:pointer; text-align:left; color:inherit; }
   .wcust button[data-c] small { color:var(--sub); font-size:13px; } .wcust button[data-c]::after { content:"開く ›"; color:var(--gold); font-weight:700; font-size:14px; margin-left:auto; }
+  #acctBar { display:flex; justify-content:flex-end; gap:8px; padding:6px 10px; background:#0b1a38; }
+  #acctBar button { font:inherit; font-size:14px; min-height:36px; padding:4px 12px; border-radius:99px; border:1px solid rgba(243,213,140,.55); background:rgba(255,255,255,.06); color:#eef2fa; cursor:pointer; } #acctBar #acctBtn.set { background:linear-gradient(#f3d58c,#c9a24f); color:#1b2440; border:none; font-weight:700; }
+  body.present #acctBar, body.deck-view #acctBar, body.proposal-view #acctBar, body.guide-view #acctBar { display:none; } @media print { #acctBar, .mbox { display:none !important; } }
+  .mbox { display:none; position:fixed; inset:0; z-index:85; background:rgba(10,16,32,.55); overflow:auto; } .mbox.on { display:block; }
+  .mbox .cb { background:#fff; max-width:560px; margin:6vh auto; border-radius:14px; padding:16px 18px; } .mbox h2 { margin:0 0 6px; font-size:20px; } .mbox .cnote { font-size:13px; color:var(--sub); margin:0 0 10px; }
+  .mbox .crow { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; } .mbox button { min-height:42px; padding:6px 14px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; font:inherit; }
+  .mbox button.primary { background:var(--navy); color:#fff; border-color:var(--navy); font-weight:700; } .mbox input[type=text] { flex:1; min-width:0; font-size:16px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; }
+  .acl { display:flex; flex-direction:column; gap:6px; margin:8px 0; } .acl div { display:flex; gap:6px; align-items:center; } .acl .use { flex:1; text-align:left; font-size:16px; } .acl .use.on { background:#fbf4e6; border-color:var(--gold); font-weight:700; } .acl .use.on::after { content:"  ← 今の担当"; color:var(--gold); font-size:13px; }
+  .hsteps { list-style:none; padding:0; margin:8px 0; } .hsteps li { border:1px solid var(--line); border-radius:10px; padding:8px 12px; margin-bottom:6px; } .hsteps b { display:block; color:var(--navy); } .hsteps p { margin:2px 0 6px; font-size:14px; line-height:1.7; } .hrules { font-size:13px; color:var(--sub); padding-left:18px; }
+  .creg { background:#f8fafd; border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-bottom:10px; } .creg > b { color:var(--navy); } .creg .crow { margin-top:6px; }
+  .ctabs { display:flex; gap:6px; margin:8px 0 2px; } .ctabs button.on { background:var(--navy); color:#fff; border-color:var(--navy); }
   #custBox button.primary { background:var(--navy); color:#fff; border-color:var(--navy); font-weight:700; }
   .cmove { margin-top:12px; padding-top:10px; border-top:1px solid var(--line); } .cmove > b { color:var(--navy); }
   .csearch { width:100%; box-sizing:border-box; font-size:16px; padding:8px 10px; border:1px solid var(--line); border-radius:8px; margin:6px 0; }
@@ -498,6 +509,7 @@
 </style>
 </head>
 <body>
+<div id="acctBar"><button id="helpBtn" type="button">？ 使い方</button><button id="acctBtn" type="button">担当者を登録</button></div>
 <section id="tophero"><div class="hwrap" id="hwrap"><img src="img/top-hero.jpg" alt="LIFE ROUTE。人生のすべてのステージに、最高のパートナーを。NISA・不動産・保険・ライフプラン・海外投資・現預金のエリアをめぐり、GOALへ向かう道のり。年金2000万円問題、自助努力・金融リテラシー向上・不動産×金融。今から、未来は変えられる。（イメージ）"><button id="heroGo" class="hot" aria-label="はじめる"></button></div></section>
 <section id="home"></section>
 <section id="guide" aria-live="polite"></section>
@@ -523,6 +535,8 @@
 <section id="deck"></section>
 <div id="imgzoom" role="dialog" aria-label="拡大表示"><img alt=""></div>
 <div id="custBox" role="dialog" aria-label="保存したお客様"><div class="cb" id="custInner"></div></div>
+<div id="acctBox" class="mbox" role="dialog" aria-label="担当者"><div class="cb" id="acctInner"></div></div>
+<div id="helpBox" class="mbox" role="dialog" aria-label="使い方"><div class="cb" id="helpInner"></div></div>
 <div id="knowBox" role="dialog" aria-label="営業の知識（社内用）"><div class="cb" id="knowInner"></div></div>
 <div class="pbar"><button id="pExit">条件を変える</button><span><button id="pPrev">← 前へ</button> <span class="count" id="pCount"></span> <button class="primary" id="pNext">次へ →</button></span><span><button id="pFull">全画面</button> <span class="hint">← → キーでも移動</span></span></div>
 <div class="toast" id="toast"></div>
@@ -644,7 +658,7 @@
       body = `<h2 class="wq">この条件で説明を始めます</h2><p class="wh">${esc(S.proposal(x).cover.profile)}</p>
         <ul class="wsum">${S.askFields(state).map((k) => { const f = FIELDS.find((v) => v[0] === k), lb = k === "nisa.monthly" ? "NISAの毎月の積立" : (WIZ_Q[k] || f[1]).replace(/は？$/, "");
           return `<li><button data-j="${steps.indexOf(k)}" title="変える"><span>${esc(lb)}</span><b>${esc(f[3](get(state, k)))} ›</b></button></li>`; }).join("")}</ul><p class="wh" style="margin-top:6px">変えたい項目を押すと、その質問に戻ります。</p>
-        <button class="startbtn" id="wizStart">この条件で説明を始める ›</button><button class="wlink" id="wizSave">このお客様を保存する（担当ごと）</button><button class="wlink" id="wizFull">金利・老後の生活費など、詳しい条件も見る</button>`;
+        <button class="startbtn" id="wizStart">この条件で説明を始める ›</button><button class="wlink" id="wizSave">このお客様を登録する（担当ごと・この端末だけ）</button><button class="wlink" id="wizFull">金利・老後の生活費など、詳しい条件も見る</button>`;
     } else {
       const f = FIELDS.find((v) => v[0] === key), [, label, opts, fmt] = f, cur = get(state, key), has = filled(key);
       canNext = has;
@@ -1423,27 +1437,35 @@
   let custCurrent = null; // 今開いているお客様の id（同じお客様は上書き保存）
   function custSaveNow() {
     if (need().length) { toast(`まずお客様の数字を入れてください（あと${need().length}項目）`); return; }
-    const nm = (meta.customer || "").trim() || prompt("お客様のお名前（保存用）", "") || "";
-    if (!nm.trim()) return;
-    meta.customer = nm.trim();
-    const st = (meta.staff || "").trim() || prompt("担当者のお名前（担当ごとに分けます）", "") || "";
-    meta.staff = st.trim();
+    const el = $("regName"), nm = ((el && el.value) || meta.customer || "").trim();
+    if (!nm) { toast("お客様のお名前を入れてください"); if (el) el.focus(); return; }
+    const acct = staffLoad().current;
+    if (!acct && !(meta.staff || "").trim()) { toast("先に担当者（あなたの名前）を登録してください"); return acctOpen(); }
+    meta.customer = nm; meta.staff = acct || meta.staff.trim();
     const hash = window.LHSShare.encode(state, { defaults: S.defaults(), keep: S.askFields(state) });
     const prev = custLoad(), same = prev.find((v) => v.id === custCurrent && v.name === meta.customer); // 名前が変わったら別のお客様として保存
     const list = CU.save(prev, { id: same ? same.id : null, name: meta.customer, staff: meta.staff, hash });
-    if (custStore(list)) { custCurrent = list.find((v) => v.hash === hash && v.name === meta.customer)?.id || custCurrent; toast(`${meta.customer} 様を保存しました（担当：${meta.staff || "担当なし"}）。次からは上の「保存したお客様」から開けます（この端末だけ）`); custRender(); }
+    if (custStore(list)) { custCurrent = list.find((v) => v.hash === hash && v.name === meta.customer)?.id || custCurrent; toast(`${meta.customer} 様を登録しました（担当：${meta.staff}）。次からは最初の画面の「続きから」ですぐ開けます`); custRender(); }
   }
-  let custQ = "";
+  let custQ = "", custScope = "mine";
   function custRender() {
     const all = custLoad();
+    const acct = staffLoad().current, n = need().length;
     $("custInner").innerHTML = `<h2>保存したお客様（${all.length}人）</h2>
       <p class="cnote">この端末のブラウザの中だけに保存します（どこにも送りません）。お客様のお名前が入るので、共用の端末では使い終わったら消してください。</p>
-      <div class="crow"><button class="primary" id="custSave">${meta.customer ? `${esc(meta.customer)} 様の今の条件を保存` : "今の条件を保存"}</button><button id="custClose">閉じる</button></div>
+      <div class="creg"><b>お客様を登録</b>${n ? `<p class="cnote">先にお客様の数字を入れてください（あと${n}項目）。入れ終わると、ここで登録できます。</p>`
+        : `<div class="crow"><input type="text" id="regName" placeholder="お客様のお名前（例：山田 太郎）" value="${esc(meta.customer || "")}" autocomplete="off"><button class="primary" id="custSave">登録する</button></div>
+        <p class="cnote">担当：${acct ? `<b>${esc(acct)}</b>（自動）` : `未登録 → <button id="regAcct" type="button">担当者を登録</button>`}　今の条件（${esc(S.proposal(S.compute(state)).cover.profile)}）で登録します。</p>`}</div>
+      ${acct && all.length ? `<div class="ctabs"><button data-scope="mine" class="${custScope === "mine" ? "on" : ""}">自分のお客様（${CU.mine(all, acct).length}）</button><button data-scope="all" class="${custScope === "all" ? "on" : ""}">全員（${all.length}）</button></div>` : ""}
+      <div class="crow"><button id="custClose">閉じる</button></div>
       ${all.length ? `<input type="search" id="custSearch" class="csearch" placeholder="お名前・担当で探す" value="${esc(custQ)}" autocomplete="off">` : ""}
       <div id="custList"></div>${all.length ? `<div class="crow"><button id="custClear">全部消す</button></div>` : ""}
       <div class="cmove"><b>ほかの端末へ移す</b><p class="cnote">この端末で「書き出す」→ できたファイルを、移したい端末で「読み込む」。今の一覧に足します（同じお客様は新しいほうを残す）。ファイルにはお客様のお名前が入ります。社内の決まった方法で渡し、使い終わったら消してください（どこにも送信しません）。</p>
         <div class="crow">${all.length ? `<button id="custExport">書き出す（ファイル）</button>` : ""}<button id="custImport">読み込む</button><input type="file" id="custFile" accept=".json,application/json" hidden></div></div>`;
-    $("custSave").onclick = custSaveNow;
+    if ($("custSave")) $("custSave").onclick = custSaveNow;
+    if ($("regName")) $("regName").onkeydown = (e) => { if (e.key === "Enter") custSaveNow(); };
+    if ($("regAcct")) $("regAcct").onclick = acctOpen;
+    $("custInner").querySelectorAll("[data-scope]").forEach((b) => (b.onclick = () => { custScope = b.dataset.scope; custRender(); }));
     $("custClose").onclick = () => $("custBox").classList.remove("on");
     if ($("custExport")) $("custExport").onclick = () => {
       const d = new Date(), name = `liferoute_customers_${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
@@ -1464,9 +1486,9 @@
     custListRender();
   }
   function custListRender() {
-    const all = custLoad(), list = CU.search(all, custQ), groups = CU.byStaff(list);
+    const all = custLoad(), acct = staffLoad().current, list = CU.search(custScope === "mine" && acct ? CU.mine(all, acct) : all, custQ), groups = CU.byStaff(list);
     $("custList").innerHTML = !all.length ? `<p class="cnote">まだ保存したお客様はいません。入力の最後の画面の「このお客様を保存する」か、上の「今の条件を保存」で保存できます。</p>`
-      : !list.length ? `<p class="cnote">「${esc(custQ)}」に当てはまるお客様はいません。</p>`
+      : !list.length ? `<p class="cnote">${custQ ? `「${esc(custQ)}」に当てはまるお客様はいません。` : "まだ自分の担当のお客様はいません。上で登録するか、「全員」を見てください。"}</p>`
       : groups.map((g) => `<div class="cg"><b>${esc(g.staff)}（${g.items.length}人）</b>${g.items.map((v) =>
         `<div class="cr"><span>${esc(v.name)} 様<small>${esc(custBrief(v))}${custBrief(v) ? "・" : ""}${esc((v.updated || "").slice(0, 10))}</small></span><button class="primary" data-open="${esc(v.id)}">開く</button><button data-del="${esc(v.id)}">消す</button></div>`).join("")}</div>`).join("");
     $("custList").querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => {
@@ -1475,13 +1497,55 @@
     }));
     $("custList").querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => { const v = all.find((r) => r.id === b.dataset.open); if (v) custOpenRec(v); }));
   }
-  function custOpen(saveFirst) { custRender(); $("custBox").classList.add("on"); if (saveFirst === true) custSaveNow(); }
+  function custOpen(saveFirst) { custRender(); $("custBox").classList.add("on"); if (saveFirst === true && $("regName")) $("regName").focus(); }
   $("custOpen").onclick = () => custOpen();
   $("fbCust").onclick = () => custOpen();
   custLabel();
   $("knowOpen").onclick = () => { knowRender(); $("knowBox").classList.add("on"); };
   $("knowBox").onclick = (e) => { if (e.target.id === "knowBox") $("knowBox").classList.remove("on"); };
   $("custBox").onclick = (e) => { if (e.target.id === "custBox") $("custBox").classList.remove("on"); };
+  // ───── 担当者アカウント（この端末の中だけ・パスワードなし） ─────
+  function staffLoad() { const C = window.LHSCustomers; try { return C.staffParse(localStorage.getItem(C.STAFF_KEY)); } catch (e) { return C.staffParse(null); } }
+  function staffStore(st) { try { localStorage.setItem(CU.STAFF_KEY, JSON.stringify(st)); } catch (e) { toast("この端末では保存できません（プライベートモードなど）"); } acctLabel(); }
+  function acctLabel() { const c = staffLoad().current; $("acctBtn").textContent = c ? `担当：${c}` : "担当者を登録"; $("acctBtn").classList.toggle("set", !!c); if (c && !(meta.staff || "").trim()) meta.staff = c; }
+  function acctRender() {
+    const st = staffLoad();
+    $("acctInner").innerHTML = `<h2>担当者（あなた）</h2><p class="cnote">この端末で使う担当者を選びます。パスワードはなく、名前はこの端末の中だけに保存されます。お客様を登録すると、自動でこの担当になります。</p>
+      ${st.list.length ? `<div class="acl">${st.list.map((n) => `<div><button class="use${n === st.current ? " on" : ""}" data-use="${esc(n)}">${esc(n)}</button><button data-rm="${esc(n)}" title="この端末から消す">消す</button></div>`).join("")}</div>` : ""}
+      <b>${st.list.length ? "ほかの担当者を追加" : "あなたの名前を登録"}</b><div class="crow"><input type="text" id="acctName" placeholder="例：佐藤" autocomplete="off"><button class="primary" id="acctAdd">登録して使う</button></div>
+      <div class="crow"><button id="acctClose">閉じる</button></div>`;
+    $("acctAdd").onclick = () => { try { staffStore(CU.staffAdd(staffLoad(), $("acctName").value)); meta.staff = staffLoad().current; toast(`担当者「${staffLoad().current}」で使います`); acctRender(); } catch (e) { toast(e.message); } };
+    $("acctName").onkeydown = (e) => { if (e.key === "Enter") $("acctAdd").click(); };
+    $("acctInner").querySelectorAll("[data-use]").forEach((b) => (b.onclick = () => { staffStore(CU.staffUse(staffLoad(), b.dataset.use)); meta.staff = staffLoad().current; acctRender(); }));
+    $("acctInner").querySelectorAll("[data-rm]").forEach((b) => (b.onclick = () => { if (confirm(`担当者「${b.dataset.rm}」をこの端末から消します（登録したお客様は消えません）。よろしいですか？`)) { staffStore(CU.staffRemove(staffLoad(), b.dataset.rm)); acctRender(); } }));
+    $("acctClose").onclick = () => { $("acctBox").classList.remove("on"); if ($("custBox").classList.contains("on")) custRender(); };
+  }
+  function acctOpen() { acctRender(); $("acctBox").classList.add("on"); setTimeout(() => $("acctName") && $("acctName").focus(), 50); }
+  $("acctBtn").onclick = acctOpen;
+  $("acctBox").onclick = (e) => { if (e.target.id === "acctBox") $("acctClose").click(); };
+  acctLabel();
+  // ───── 使い方（初めての端末で自動で開く。見たかどうかだけを覚える） ─────
+  function helpRender() {
+    const H = S.HOWTO;
+    $("helpInner").innerHTML = `<h2>${esc(H.title)}</h2><ol class="hsteps">${H.steps.map((v) => `<li><b>${esc(v.title)}</b><p>${esc(v.body)}</p><button data-hgo="${v.go}">ここを開く ›</button></li>`).join("")}</ol>
+      <b>守ること</b><ul class="hrules">${H.rules.map((r) => `<li>${esc(r)}</li>`).join("")}</ul><div class="crow"><button class="primary" id="helpClose">はじめる</button></div>`;
+    $("helpClose").onclick = helpClose;
+    $("helpInner").querySelectorAll("[data-hgo]").forEach((b) => (b.onclick = () => { helpClose(); helpGo(b.dataset.hgo); }));
+  }
+  function helpClose() { $("helpBox").classList.remove("on"); for (const st of ["localStorage", "sessionStorage"]) { try { window[st].setItem("lhs_help_seen", "1"); } catch (e) { /* なし */ } } }
+  function helpGo(go) {
+    if (go === "acct") return acctOpen();
+    if (go === "save") return custOpen(true);
+    if (go === "guide") return openGuide("nisa");
+    if (go === "start") { document.body.classList.remove("home-view", "form-closed"); render(); return $("heroGo").click(); }
+    if (guard()) return;
+    if (go === "deck") return showDeck();
+    closeForm(); openStep(0);
+  }
+  $("helpBtn").onclick = () => { helpRender(); $("helpBox").classList.add("on"); };
+  $("helpBox").onclick = (e) => { if (e.target.id === "helpBox") helpClose(); };
+  { let seen = false; for (const st of ["localStorage", "sessionStorage"]) { try { if (window[st].getItem("lhs_help_seen") === "1") seen = true; } catch (e) { /* なし */ } }
+    if (!seen && !location.hash) { helpRender(); $("helpBox").classList.add("on"); } }
   // 保存したお客様を開いたとき：お名前・担当を戻す（このタブの中だけ・一度読んだら消す）
   try { const o = JSON.parse(sessionStorage.getItem("lhs_open_customer") || "null"); sessionStorage.removeItem("lhs_open_customer");
     if (o) { meta.customer = o.name || ""; meta.staff = o.staff || ""; custCurrent = o.id || null; } } catch (e) { /* なし */ }
