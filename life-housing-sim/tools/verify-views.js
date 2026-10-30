@@ -10,6 +10,7 @@ const errs = [], ok = (c, msg) => { if (!c) errs.push(msg); };
 
 (async () => {
   const b = await chromium.launch();
+  { const np = b.newPage.bind(b); b.newPage = async (o) => { const pg = await np(o); await pg.addInitScript(() => { try { localStorage.setItem("lhs_help_seen", "1"); } catch (e) { /* なし */ } }); return pg; }; } // 初めての端末で開く「使い方」は、ここでは見た扱いにする
   for (const [name, inp] of Object.entries(CASES)) {
     const x = S.compute(inp), want = [S.man(x.life.rent), S.man(x.life.own), S.man(x.loan.pmt, 1)];
 

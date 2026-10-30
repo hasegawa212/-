@@ -59,6 +59,23 @@
     return { ok: true, list: out, added, updated, skipped: items.length - added - updated };
   }
 
+  // 担当者アカウント（この端末の中だけ・パスワードなし）。今の担当で保存し、一覧は「自分のお客様」から
+  const STAFF_KEY = "lhs_staff_v1";
+  function staffParse(raw) {
+    let d; try { d = JSON.parse(raw); } catch (e) { d = null; }
+    const list = d && Array.isArray(d.list) ? [...new Set(d.list.map((v) => str(v, 20)).filter(Boolean))] : [];
+    const cur = d ? str(d.current, 20) : "";
+    return { current: list.includes(cur) ? cur : "", list };
+  }
+  function staffAdd(s, name) {
+    const n = str(name, 20);
+    if (!n) throw new Error("担当者の名前を入れてください");
+    return { current: n, list: s.list.includes(n) ? s.list.slice() : [...s.list, n] };
+  }
+  const staffUse = (s, name) => (s.list.includes(name) ? { current: name, list: s.list.slice() } : s);
+  const staffRemove = (s, name) => ({ current: s.current === name ? "" : s.current, list: s.list.filter((v) => v !== name) });
+  const mine = (list, staff) => (staff ? list.filter((v) => v.staff === staff) : list.slice());
+
   const serialize = (list) => JSON.stringify(list);
   // 壊れたデータや形の違うものは捨てる
   function parse(raw) {
@@ -68,5 +85,5 @@
     return a.filter((v) => v && typeof v === "object" && typeof v.id === "string" && typeof v.name === "string" && v.name.trim() && typeof v.hash === "string" && /^#/.test(v.hash))
       .map((v) => ({ id: v.id, name: str(v.name, 40), staff: str(v.staff, 20), hash: str(v.hash, 4000), updated: str(v.updated, 40) }));
   }
-  return { KEY, NO_STAFF, save, remove, clear, byStaff, recent, search, exportText, importText, serialize, parse };
+  return { KEY, NO_STAFF, STAFF_KEY, staffParse, staffAdd, staffUse, staffRemove, mine, save, remove, clear, byStaff, recent, search, exportText, importText, serialize, parse };
 });
