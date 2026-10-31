@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LOAN DESK 住宅ローン審査</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#10233d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LOAN DESK">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 銀行の審査端末をiPhoneの1カラムに。上に案件番号のバー、下にタブ。結果は審査ライン（9工程）と稟議書（印影・決裁欄）の体裁 */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --sunk:#f5f7fa; --line:#d9dfe7;
+  --ink:#13213a; --muted:#5b687c; --navy:#10233d; --on-navy:#eef2f8;
+  --accent:#1f5aa6; --accent-soft:#e3ecf8;
+  --seal:#c23b2e; --ok:#1d7a4f; --ok-soft:#e1f2e9; --warn:#a86400; --warn-soft:#fbf0dc;
+  --ng:#b3261e; --ng-soft:#fbe5e3; --hold:#5a4fa0; --hold-soft:#ebe8f7;
+  --f-display:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b111b; --surface:#131c2a; --sunk:#0f1724; --line:#26344a;
+  --ink:#e5ebf3; --muted:#9aa8bc; --navy:#0a1626; --on-navy:#e5ebf3;
+  --accent:#7fb0f5; --accent-soft:#1a2b45;
+  --seal:#ff7b6b; --ok:#5fd19a; --ok-soft:#12301f; --warn:#f2b552; --warn-soft:#33270f;
+  --ng:#ff8a80; --ng-soft:#3a1715; --hold:#b4a9ff; --hold-soft:#24204a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b111b; --surface:#131c2a; --sunk:#0f1724; --line:#26344a;
+  --ink:#e5ebf3; --muted:#9aa8bc; --navy:#0a1626; --on-navy:#e5ebf3;
+  --accent:#7fb0f5; --accent-soft:#1a2b45;
+  --seal:#ff7b6b; --ok:#5fd19a; --ok-soft:#12301f; --warn:#f2b552; --warn-soft:#33270f;
+  --ng:#ff8a80; --ng-soft:#3a1715; --hold:#b4a9ff; --hold-soft:#24204a; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--navy)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{max-width:520px;margin:0 auto;min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--navy);color:var(--on-navy);
+  padding-block:10px 12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.logo{font-family:var(--f-num);font-weight:600;letter-spacing:.22em;font-size:13px}
+.logo small{display:block;font-family:var(--f-body);letter-spacing:.08em;font-size:11px;opacity:.75;font-weight:400}
+.caseno{font-family:var(--f-num);font-size:12px;opacity:.85;text-align:right}
+.live{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;font-size:12px}
+.live span{background:rgba(255,255,255,.09);border-radius:6px;padding:3px 8px}
+.live b{font-family:var(--f-num);font-weight:600}
+
+main{padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.view{display:grid;gap:14px;min-width:0}
+h1,h2,h3{margin:0;text-wrap:balance}
+.h-page{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:.04em}
+.sub{color:var(--muted);font-size:13px;margin:0}
+.sample{display:inline-block;font-size:11px;letter-spacing:.08em;border:1px solid var(--warn);color:var(--warn);border-radius:4px;padding:0 6px;margin-left:6px;vertical-align:2px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sec-n{font-family:var(--f-num);font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 5px}
+.sec-t{font-weight:700;font-size:15px}
+.sec-note{font-size:12px;color:var(--muted);margin:-4px 0 8px}
+.sub-h{font-size:12px;font-weight:700;color:var(--muted);letter-spacing:.06em;margin:12px 0 2px;padding-top:10px;border-top:1px dashed var(--line)}
+
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding-block:9px;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row label{font-size:14px}
+.row .hint{display:block;font-size:11.5px;color:var(--muted)}
+.field{display:flex;align-items:center;gap:6px}
+.field input[type=number],.field input[type=text]{width:112px;text-align:right;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);font-family:var(--f-num);font-size:16px}
+.field input[type=text]{font-family:var(--f-body);width:130px}
+.field .u{font-size:12px;color:var(--muted);min-width:28px}
+.row.sel{grid-template-columns:1fr}
+select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);font-size:16px}
+.sw{position:relative;width:50px;height:30px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i::after{transform:translateX(20px)}
+.sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+
+.seg{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.seg.four{grid-template-columns:repeat(2,1fr)}
+.seg button{border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:9px 6px;font-size:13.5px;cursor:pointer;text-align:center;line-height:1.3}
+.seg button[aria-pressed="true"]{background:var(--navy);color:var(--on-navy);border-color:var(--navy);font-weight:700}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{border-color:var(--accent)}
+.preset-note{font-size:12px;color:var(--muted);margin:8px 0 0}
+
+.btn{border:0;border-radius:10px;padding:13px 16px;font-weight:700;cursor:pointer;background:var(--accent-soft);color:var(--accent)}
+.btn.primary{background:var(--navy);color:var(--on-navy);font-size:16px;letter-spacing:.1em;width:100%;padding:16px}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:transparent;color:var(--ng);border:1px solid var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1 1 140px}
+
+.proc{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--navy) 94%,transparent);color:var(--on-navy);display:grid;place-items:center;padding:24px}
+.proc-box{width:min(340px,100%)}
+.proc h2{font-family:var(--f-display);font-size:20px;margin-bottom:14px;letter-spacing:.06em}
+.proc ol{list-style:none;margin:0;padding:0;display:grid;gap:7px;font-size:14px}
+.proc li{display:flex;gap:10px;align-items:center;opacity:.4}
+.proc li.on{opacity:1}
+.proc li .dot{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;flex:none}
+.proc li.done .dot{background:currentColor}
+
+.verdict{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.v-label{font-size:12px;color:var(--muted);letter-spacing:.08em}
+.v-main{font-family:var(--f-display);font-weight:800;font-size:24px;line-height:1.3}
+.v-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.v-reason{font-size:13px;margin-top:6px;color:var(--hold);font-weight:700}
+.stamp{width:92px;height:92px;border-radius:50%;border:3px solid var(--seal);color:var(--seal);display:grid;place-items:center;text-align:center;
+  font-family:var(--f-display);font-weight:800;transform:rotate(-12deg);line-height:1.1}
+.stamp b{font-size:22px;display:block;letter-spacing:.06em}
+.stamp small{font-size:9px;letter-spacing:.12em;font-family:var(--f-num)}
+.stamp.ok{border-color:var(--ok);color:var(--ok)} .stamp.warn{border-color:var(--warn);color:var(--warn)}
+.stamp.hold{border-color:var(--hold);color:var(--hold)} .stamp.ng{border-color:var(--ng);color:var(--ng)}
+@media (prefers-reduced-motion:no-preference){.stamp.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:rotate(-12deg) scale(1.6);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}}
+
+.grade{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.grade-l{font-family:var(--f-num);font-weight:600;font-size:44px;line-height:1;width:64px;height:64px;border-radius:10px;display:grid;place-items:center;background:var(--sunk);border:1px solid var(--line)}
+.meter{height:10px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);position:relative;overflow:hidden}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:99px}
+.ticks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-family:var(--f-num);margin-top:3px}
+
+.line{display:grid;gap:0}
+.line details{border-top:1px solid var(--line)}
+.line details:first-child{border-top:0}
+.line summary{display:grid;grid-template-columns:28px 22px 1fr auto;gap:8px;align-items:center;padding-block:10px;cursor:pointer;list-style:none;font-size:14px}
+.line summary::-webkit-details-marker{display:none}
+.line summary .no{font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.line summary .cnt{font-size:11.5px;color:var(--muted);font-family:var(--f-num)}
+.line summary::after{content:"";grid-column:4}
+.line .chk{padding:0 0 8px 30px}
+.flow-rail{display:flex;gap:3px;margin-bottom:10px}
+.flow-rail i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.flow-rail i.ok{background:var(--ok)} .flow-rail i.warn{background:var(--warn)} .flow-rail i.ng{background:var(--ng)} .flow-rail i.skip{background:var(--line)}
+
+.chk{display:grid}
+.chk-row{display:grid;grid-template-columns:24px 1fr auto;gap:10px;align-items:center;padding-block:7px;border-top:1px solid var(--line)}
+.chk-row:first-child{border-top:0}
+.chk-t{min-width:0;display:grid;font-size:13px}
+.chk-t span{font-size:11.5px;color:var(--muted)}
+.chk-v{font-size:12.5px;font-weight:600;text-align:right;max-width:9.5em}
+.mk{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-weight:700;font-size:12px}
+.mk.ok{background:var(--ok-soft);color:var(--ok)} .mk.warn{background:var(--warn-soft);color:var(--warn)} .mk.ng{background:var(--ng-soft);color:var(--ng)} .mk.skip{background:var(--sunk);color:var(--muted)}
+
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--sunk);border-radius:10px;padding:10px;min-width:0}
+.kpi .k{font-size:11.5px;color:var(--muted)}
+.kpi .v{font-family:var(--f-num);font-weight:600;font-size:19px}
+.kpi .s{font-size:11px;color:var(--muted)}
+
+.amount{display:grid;gap:8px}
+.am-row{display:grid;grid-template-columns:92px 1fr;gap:8px;align-items:center;font-size:12.5px}
+.am-bar{height:22px;background:var(--sunk);border-radius:5px;position:relative}
+.am-bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--accent)}
+.am-bar i.want{background:var(--muted)}
+.am-bar span{position:absolute;right:4px;top:50%;transform:translateY(-50%);font-family:var(--f-num);font-size:12px;font-weight:600;background:var(--surface);color:var(--ink);padding:0 5px;border-radius:4px}
+
+.ko{background:var(--ng-soft);color:var(--ng);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.ko b{display:block;margin-bottom:4px}
+.ko ul{margin:0;padding-left:18px}
+
+.parts{display:grid;gap:7px}
+.part{display:grid;grid-template-columns:110px 1fr 58px;gap:8px;align-items:center;font-size:12.5px}
+.part .pb{height:8px;background:var(--sunk);border-radius:99px;position:relative;border:1px solid var(--line)}
+.part .pb i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:99px}
+.part .pv{font-family:var(--f-num);text-align:right;color:var(--muted)}
+
+.caps{display:grid;gap:6px}
+.cap{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;background:var(--sunk);font-size:13px}
+.cap.bind{outline:2px solid var(--accent);background:var(--accent-soft)}
+.cap .num{font-weight:600}
+
+.wi{display:grid;gap:8px}
+.wi-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px}
+.pill{display:inline-block;border-radius:99px;padding:1px 9px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.hold{background:var(--hold-soft);color:var(--hold)} .pill.ng{background:var(--ng-soft);color:var(--ng)}
+
+.docs{display:grid;gap:6px;margin:0;padding:0;list-style:none;font-size:13px}
+.docs li{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:start}
+.audit{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;margin:0}
+.audit dt{color:var(--muted)}
+.audit dd{margin:0;font-family:var(--f-num);word-break:break-all}
+
+.memo{font-size:13.5px}
+.memo h3{font-size:12px;letter-spacing:.1em;color:var(--muted);margin:12px 0 4px;font-weight:700}
+.memo h3:first-child{margin-top:0}
+.memo ul{margin:0;padding-left:18px}
+.memo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.memo-title{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:.2em}
+.hanko{display:flex;border:1px solid var(--ink);flex:none}
+.hanko div{width:44px;border-left:1px solid var(--ink);text-align:center;font-size:10px}
+.hanko div:first-child{border-left:0}
+.hanko span{display:block;border-bottom:1px solid var(--ink);padding:1px 0}
+.hanko em{display:grid;place-items:center;height:40px;font-style:normal}
+.hanko em b{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--seal);color:var(--seal);display:grid;place-items:center;font-family:var(--f-display);font-size:11px}
+
+.note{font-size:11.5px;color:var(--muted);line-height:1.7;margin:0}
+
+.case{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;width:100%}
+.case .c1{font-weight:700}
+.case .c2{font-size:12px;color:var(--muted);font-family:var(--f-num)}
+.empty{text-align:center;color:var(--muted);padding:28px 12px;font-size:14px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabs nav{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs a{display:grid;justify-items:center;gap:2px;padding:9px 4px 8px;text-decoration:none;color:var(--muted);font-size:11px;min-height:56px}
+.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+.tabs a[aria-current="page"]{color:var(--accent);font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:var(--on-navy);padding:9px 16px;border-radius:99px;font-size:13px;z-index:60}
+@media (min-width:560px){.app{box-shadow:0 0 0 1px var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="bar-top">
+      <div class="logo">LOAN DESK<small>住宅ローン 審査システム</small></div>
+      <div class="caseno"><span id="caseNo">—</span><br><span id="caseDate">—</span></div>
+    </div>
+    <div class="live" id="live"></div>
+  </header>
+
+  <main>
+    <section class="view" id="v-apply" aria-labelledby="h-apply">
+      <div>
+        <h1 class="h-page" id="h-apply">申込内容の入力<span class="sample" id="sampleTag">サンプル案件</span></h1>
+        <p class="sub">審査の型と段階を選んで入力し、「審査を実行」を押します。本人確認・反社 → 信用情報 → 申込人 → 収入 → 返済能力 → 担保・物件 → 保証会社 → 書類 → 決裁 の9工程で判定します。</p>
+      </div>
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">審査の型</h2></div>
+        <div class="seg four" id="presetSeg" role="group" aria-label="審査の型"></div>
+        <p class="preset-note" id="presetNote"></p>
+        <div class="sec-h" style="margin-top:14px"><h2 class="sec-t">審査の段階</h2></div>
+        <div class="seg" id="stageSeg" role="group" aria-label="審査の段階">
+          <button type="button" data-stage="pre">事前審査<br><small>自己申告で判定</small></button>
+          <button type="button" data-stage="main">本審査<br><small>書類の確認も判定</small></button>
+        </div>
+      </div>
+      <form id="form" novalidate></form>
+      <button class="btn primary" id="run" type="button">審査を実行</button>
+      <div class="btns">
+        <button class="btn ghost" id="clear" type="button">新しい案件（空にする）</button>
+        <button class="btn ghost" id="loadSample" type="button">サンプルを入れる</button>
+      </div>
+      <p class="note" id="note1"></p>
+    </section>
+
+    <section class="view" id="v-result" hidden aria-labelledby="h-result">
+      <h1 class="h-page" id="h-result">審査結果</h1>
+      <div id="result" class="view"></div>
+    </section>
+
+    <section class="view" id="v-cases" hidden aria-labelledby="h-cases">
+      <div>
+        <h1 class="h-page" id="h-cases">案件一覧</h1>
+        <p class="sub">「案件に保存」した審査は、この端末にだけ残ります。お名前はイニシャルだけで保存します。</p>
+      </div>
+      <div id="cases" class="view"></div>
+    </section>
+
+    <section class="view" id="v-policy" hidden aria-labelledby="h-policy">
+      <div>
+        <h1 class="h-page" id="h-policy">審査基準</h1>
+        <p class="sub">型ごとの基準を、相手の金融機関に合わせて変えられます。変えた基準はこの端末に保存され、次の審査から使われます。審査記録には型と版が残ります。</p>
+      </div>
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">編集する型</h2></div>
+        <div class="seg four" id="policySeg" role="group" aria-label="編集する型"></div>
+      </div>
+      <form id="policyForm" novalidate></form>
+      <div class="btns">
+        <button class="btn ghost" id="policyReset" type="button">この型を標準に戻す</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="tabs"><nav aria-label="メニュー">
+  <a href="#apply" data-v="apply"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg>申込入力</a>
+  <a href="#result" data-v="result"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.3 2.3 4.7-5"/></svg>審査結果</a>
+  <a href="#cases" data-v="cases"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>案件一覧</a>
+  <a href="#policy" data-v="policy"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 17h14"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg>審査基準</a>
+</nav></div>
+
+<div class="proc" id="proc" hidden><div class="proc-box">
+  <h2>審査しています</h2>
+  <ol id="procList"></ol>
+</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="lib/policy.js"></script>
+<script src="lib/income.js"></script>
+<script src="lib/credit.js"></script>
+<script src="lib/collateral.js"></script>
+<script src="lib/screening.js"></script>
+<script>
+(function () {
+  "use strict";
+  const L = window.LSA;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+  const K_CASES = "lsa_cases_v2", K_POLICY = "lsa_policy_v2";
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const getPath = (o, p) => p.split(".").reduce((a, k) => (a == null ? a : a[k]), o);
+  const setPath = (o, p, v) => { const ks = p.split("."); let a = o; ks.slice(0, -1).forEach((k) => { a[k] = a[k] || {}; a = a[k]; }); a[ks[ks.length - 1]] = v; };
+
+  const opts = (o) => Object.keys(o).map((k) => [k, typeof o[k] === "string" ? o[k] : o[k].label]);
+  const LATE_OPTS = opts(L.LATE);
+  const FORM = [
+    { t: "申込人", items: [
+      { k: "initials", label: "お客様（イニシャル）", type: "text", ph: "例: K.S", hint: "お名前は保存しません" },
+      { k: "age", label: "年齢（申込時）", type: "num", unit: "歳", min: 18, max: 80 },
+      { k: "nationality", label: "国籍・在留資格", type: "sel", opts: opts(L.NATIONALITY) },
+      { k: "employ", label: "雇用形態", type: "sel", opts: opts(L.EMPLOY) },
+      { k: "tenure", label: "勤続年数・事業年数", type: "num", unit: "年", step: 0.5, hint: "自営業・経営者は確定申告の期数" },
+    ]},
+    { t: "収入", note: "税込みの年収（自営業は所得）。自営業・経営者は型の基準（3期平均・2期の低いほう・直近）で審査年収を出します。", items: [
+      { k: "income", label: "直近の年収", type: "num", unit: "万円" },
+      { k: "incomePrev", label: "前年の年収", type: "num", unit: "万円" },
+      { k: "incomePrev2", label: "前々年の年収", type: "num", unit: "万円", hint: "自営業・経営者の3期目" },
+      { k: "corpLoss", label: "法人の赤字（直近3期のうち）", type: "sel", opts: [[0, "なし"], [1, "1期"], [2, "2期"], [3, "3期"]], num: true, show: (d) => d.employ === "owner" },
+      { k: "jointType", label: "収入合算", type: "sel", opts: opts(L.JOINT) },
+      { k: "jointIncome", label: "合算する人の年収", type: "num", unit: "万円", show: (d) => d.jointType !== "none" },
+    ]},
+    { t: "借入の希望", items: [
+      { k: "price", label: "物件価格", type: "num", unit: "万円" },
+      { k: "down", label: "頭金（自己資金）", type: "num", unit: "万円" },
+      { k: "costs", label: "諸費用", type: "num", unit: "万円" },
+      { k: "financeCosts", label: "諸費用もローンに含める", type: "sw" },
+      { k: "term", label: "返済期間", type: "num", unit: "年", min: 1, max: 50 },
+      { k: "rate", label: "適用金利（実際の金利）", type: "num", unit: "%", step: 0.01 },
+      { k: "purpose", label: "用途", type: "sel", opts: opts(L.PURPOSE) },
+    ]},
+    { t: "物件・担保", note: "中古戸建は、土地（路線価×面積）と建物（再調達単価×延床×残りの耐用年数）で積算評価します。路線価は国税庁の路線価図で確認できます。", items: [
+      { k: "property", label: "物件の種類", type: "sel", opts: opts(L.PROPERTY) },
+      { k: "builtYears", label: "築年数", type: "num", unit: "年" },
+      { k: "structure", label: "構造", type: "sel", opts: opts(L.STRUCTURE) },
+      { k: "floor", label: "延床面積（専有面積）", type: "num", unit: "㎡" },
+      { k: "landArea", label: "土地の面積", type: "num", unit: "㎡", show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
+      { k: "rosenka", label: "路線価", type: "num", unit: "円/㎡", step: 1000, show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
+      { k: "road", label: "接道の長さ", type: "num", unit: "m", step: 0.1, show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
+      { k: "zone", label: "区域", type: "sel", opts: opts(L.ZONE) },
+      { k: "leasehold", label: "借地権（土地が所有権ではない）", type: "sw" },
+      { k: "overBuild", label: "建ぺい率・容積率の超過がある", type: "sw" },
+      { k: "oldQuake", label: "旧耐震（1981年5月以前の建築確認）", type: "sw" },
+      { k: "saikenchiku", label: "再建築不可", type: "sw" },
+      { k: "collateral", label: "担保評価額（わかれば）", type: "num", unit: "万円", hint: "0なら自動で評価" },
+    ]},
+    { t: "他の借入（毎月の返済額）", note: "住宅ローン以外の毎月の返済。返済負担率に含めます。", items: [
+      { k: "car", label: "自動車ローン", type: "num", unit: "万円", step: 0.1 },
+      { k: "card", label: "カードローン", type: "num", unit: "万円", step: 0.1 },
+      { k: "revo", label: "リボ払い", type: "num", unit: "万円", step: 0.1 },
+      { k: "scholarship", label: "奨学金", type: "num", unit: "万円", step: 0.1 },
+      { k: "other", label: "その他（スマホ本体の分割など）", type: "num", unit: "万円", step: 0.1 },
+      { k: "cashing", label: "カードローン・キャッシング枠の合計", type: "num", unit: "万円", hint: "型によって、枠の一定割合を返済に算入" },
+    ]},
+    { t: "信用情報（3機関・自己申告）", note: "照会はしていません。本人開示（CIC・JICC・KSC）の結果を入れてください。申込件数は各機関の記録期間内の件数です。", items: [
+      { sub: "CIC（クレジット・割賦／申込は6か月）" },
+      { k: "credit.cic.late", label: "延滞・異動", type: "sel", opts: LATE_OPTS },
+      { k: "credit.cic.apply", label: "申込件数", type: "num", unit: "件" },
+      { sub: "JICC（消費者金融・カードローン／申込は6か月）" },
+      { k: "credit.jicc.late", label: "延滞・異動", type: "sel", opts: LATE_OPTS },
+      { k: "credit.jicc.apply", label: "申込件数", type: "num", unit: "件" },
+      { sub: "KSC 全銀協（銀行ローン・官報／申込は1年）" },
+      { k: "credit.ksc.late", label: "延滞・異動", type: "sel", opts: LATE_OPTS },
+      { k: "credit.ksc.apply", label: "申込件数", type: "num", unit: "件" },
+      { k: "credit.ksc.kanpo", label: "官報情報（破産・個人再生）の登録がある", type: "sw" },
+      { sub: "そのほか" },
+      { k: "phoneLate", label: "スマホ本体代金の支払い遅れがある", type: "sw" },
+      { k: "taxLate", label: "税金の滞納がある（自営業・経営者）", type: "sw", show: (d) => d.employ === "self" || d.employ === "owner" },
+    ]},
+    { t: "本人確認・反社・団信", items: [
+      { k: "antisocial", label: "反社会的勢力の照会で該当があった", type: "sw" },
+      { k: "danshin", label: "団体信用生命保険", type: "sel", opts: opts(L.DANSHIN) },
+    ]},
+    { t: "本審査の書類確認", id: "docsSec", note: "原本・写しを確認したものにチェックします。職業と審査の型で必要な書類が変わります。", dynamic: true, show: (d) => d.stage === "main" },
+  ];
+
+  const BLANK = Object.assign(clone(L.SAMPLE), { initials: "", age: 30, tenure: 0, income: 0, incomePrev: 0, incomePrev2: 0, jointIncome: 0,
+    price: 0, down: 0, costs: 0, car: 0, card: 0, scholarship: 0, revo: 0, other: 0, cashing: 0, builtYears: 0, collateral: 0,
+    landArea: 0, rosenka: 0, floor: 0,
+    credit: { cic: { late: "none", apply: 0 }, jicc: { late: "none", apply: 0 }, ksc: { late: "none", apply: 0, kanpo: false } } });
+
+  let data = Object.assign({ initials: "" }, clone(L.SAMPLE));
+  let isSample = true;
+  let pstore = store.get(K_POLICY, { presetId: "megabank", overrides: {} });
+  if (!L.PRESETS[pstore.presetId]) pstore = { presetId: "megabank", overrides: {} };
+  let editId = pstore.presetId;
+  let last = null;
+  let caseNo = newCaseNo();
+  const policyFor = (id) => L.resolvePolicy(id, revive(pstore.overrides[id] || {}));
+  function revive(o) {
+    const c = clone(o);
+    if (c.dti) c.dti = c.dti.map((t) => ({ under: t.under == null ? Infinity : t.under, max: t.max }));
+    if (c.multipleMax === "Inf") { c.multipleMax = Infinity; c.multipleHard = Infinity; }
+    else if (typeof c.multipleMax === "number" && !("multipleHard" in c)) c.multipleHard = c.multipleMax + 2;
+    return c;
+  }
+  const curPolicy = () => policyFor(pstore.presetId);
+
+  function newCaseNo() {
+    const d = new Date();
+    return "HL-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(Math.floor(Math.random() * 9000) + 1000);
+  }
+  const today = () => { const d = new Date(); return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate(); };
+
+  // ---------- 型と段階 ----------
+  function renderSeg(el, cur, onPick) {
+    el.innerHTML = Object.values(L.PRESETS).map((p) => `<button type="button" data-id="${p.id}" aria-pressed="${p.id === cur}">${p.label}</button>`).join("");
+    el.querySelectorAll("button").forEach((b) => (b.onclick = () => onPick(b.dataset.id)));
+  }
+  function renderTop() {
+    renderSeg($("#presetSeg"), pstore.presetId, (id) => { pstore.presetId = id; store.set(K_POLICY, pstore); renderTop(); renderDocs(); renderLive(); });
+    $("#presetNote").textContent = L.PRESETS[pstore.presetId].note;
+    $("#stageSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.stage === data.stage)));
+  }
+  $("#stageSeg").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button"); if (!b) return;
+    data.stage = b.dataset.stage; renderTop(); applyShow(); renderDocs(); renderLive();
+  });
+
+  // ---------- 入力フォーム ----------
+  function renderForm() {
+    $("#form").innerHTML = FORM.map((s, i) => `
+      <div class="card" ${s.id ? `id="${s.id}"` : ""} data-sec="${i}"><div class="sec-h"><span class="sec-n">${String(i + 1).padStart(2, "0")}</span><h2 class="sec-t">${s.t}</h2></div>
+      ${s.note ? `<p class="sec-note">${s.note}</p>` : ""}
+      ${s.dynamic ? `<div id="docsBox"></div>` : s.items.map(fieldHtml).join("")}</div>`).join("");
+    $("#form").addEventListener("input", onInput);
+    $("#form").addEventListener("change", onInput);
+    applyShow(); renderDocs();
+  }
+  function fieldHtml(f) {
+    if (f.sub) return `<div class="sub-h">${f.sub}</div>`;
+    const id = "f_" + f.k.replace(/\./g, "_"), v = getPath(data, f.k);
+    const lab = `<label for="${id}">${f.label}${f.hint ? `<span class="hint">${f.hint}</span>` : ""}</label>`;
+    const wrap = (inner, cls) => `<div class="row${cls ? " " + cls : ""}" data-row="${f.k}">${inner}</div>`;
+    if (f.type === "sel") return wrap(`${lab}<select id="${id}" data-k="${f.k}"${f.num ? ' data-num="1"' : ""}>${f.opts.map(([k, t]) => `<option value="${k}"${String(k) === String(v) ? " selected" : ""}>${t}</option>`).join("")}</select>`, "sel");
+    if (f.type === "sw") return wrap(`${lab}<span class="sw"><input type="checkbox" id="${id}" data-k="${f.k}"${v ? " checked" : ""}><i></i></span>`);
+    if (f.type === "text") return wrap(`${lab}<span class="field"><input type="text" id="${id}" data-k="${f.k}" value="${esc(v || "")}" placeholder="${f.ph || ""}" maxlength="8" autocomplete="off"></span>`);
+    return wrap(`${lab}<span class="field"><input type="number" inputmode="decimal" id="${id}" data-k="${f.k}" value="${v == null ? "" : v}" step="${f.step || 1}" min="${f.min != null ? f.min : 0}"${f.max != null ? ` max="${f.max}"` : ""}><span class="u">${f.unit}</span></span>`);
+  }
+  function applyShow() {
+    FORM.forEach((s, i) => {
+      const sec = document.querySelector(`[data-sec="${i}"]`);
+      if (s.show) sec.hidden = !s.show(data);
+      (s.items || []).forEach((f) => { if (f.show) { const r = document.querySelector(`[data-row="${f.k}"]`); if (r) r.hidden = !f.show(data); } });
+    });
+  }
+  function renderDocs() {
+    const box = $("#docsBox"); if (!box) return;
+    const docs = L.docsRequired(data, curPolicy());
+    box.innerHTML = docs.map((d) => `<div class="row"><label for="d_${d.key}">${d.label}</label><span class="sw"><input type="checkbox" id="d_${d.key}" data-k="docs.${d.key}"${data.docs[d.key] ? " checked" : ""}><i></i></span></div>`).join("");
+  }
+  function fill() {
+    document.querySelectorAll("#form [data-k]").forEach((el) => {
+      const v = getPath(data, el.dataset.k);
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v == null ? "" : v;
+    });
+    applyShow(); renderDocs(); renderTop();
+  }
+  function onInput(ev) {
+    const el = ev.target; if (!el.dataset.k) return;
+    const k = el.dataset.k;
+    const v = el.type === "checkbox" ? el.checked : el.type === "number" || el.dataset.num ? (el.value === "" ? 0 : +el.value) : el.value;
+    setPath(data, k, v);
+    if (isSample) { isSample = false; $("#sampleTag").hidden = true; }
+    if (["employ", "jointType", "property", "danshin"].includes(k)) { applyShow(); renderDocs(); }
+    renderLive();
+  }
+
+  function renderLive() {
+    if (!(data.price > 0) || !(data.income > 0)) { $("#live").innerHTML = `<span>物件価格と年収を入れると、返済負担率がここに出ます</span>`; return; }
+    const r = L.screen(data, curPolicy(), { nested: true });
+    $("#live").innerHTML = `<span>${r.policy.label}・${r.stageLabel}</span><span>借入 <b>${L.man(r.loan)}</b></span><span>負担率 <b>${L.r1(r.dti)}%</b> / ${r.limit}%${r.dti > r.limit ? " ⚠" : ""}</span><span>掛目 <b>${L.r1(r.ltv)}%</b></span>`;
+  }
+
+  // ---------- 審査の実行 ----------
+  function run() {
+    const errs = [];
+    if (!(data.price > 0)) errs.push("物件価格"); if (!(data.income > 0)) errs.push("年収");
+    if (!(data.term > 0)) errs.push("返済期間"); if (!(data.age > 0)) errs.push("年齢");
+    if (errs.length) { toast(errs.join("・") + " を入れてください"); return; }
+    last = L.screen(data, curPolicy(), { now: new Date().toISOString() });
+    last.caseNo = caseNo; last.date = today(); last.initials = data.initials || "";
+    const steps = last.stages.map((s) => s.label);
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { renderResult(true); go("result"); return; }
+    $("#procList").innerHTML = steps.map((s) => `<li><span class="dot"></span>${s}</li>`).join("");
+    $("#proc").hidden = false;
+    const lis = [...document.querySelectorAll("#procList li")];
+    const t = 190;
+    lis.forEach((li, i) => setTimeout(() => { li.classList.add("on"); if (i) lis[i - 1].classList.add("done"); }, i * t));
+    setTimeout(() => { $("#proc").hidden = true; renderResult(true); go("result"); }, steps.length * t + 200);
+  }
+
+  const MK = { ok: "○", warn: "△", ng: "×", skip: "−" };
+  const toneOf = (dec) => ({ approve: "ok", conditional: "warn", hold: "hold", reject: "ng" }[dec]);
+  const list = (a, empty) => (a && a.length ? `<ul>${a.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : `<p style="margin:0;color:var(--muted)">${empty || "—"}</p>`);
+  const chkHtml = (cs) => `<div class="chk">${cs.map((c) => `<div class="chk-row"><span class="mk ${c.status}" aria-label="${{ ok: "基準内", warn: "注意", ng: "基準外" }[c.status]}">${MK[c.status]}</span><div class="chk-t"><b>${esc(c.label)}</b><span>基準 ${esc(c.rule)}</span></div><span class="chk-v num">${esc(c.value)}</span></div>`).join("")}</div>`;
+
+  function renderResult(pop) {
+    const box = $("#result");
+    if (!last) { box.innerHTML = `<div class="card empty">まだ審査していません。<br>「申込入力」で内容を入れて「審査を実行」を押してください。</div>`; return; }
+    const r = last, d = r.decisionInfo, ap = r.appraisal, gu = r.guarantee;
+    const maxBar = Math.max(r.loan, r.maxLoan, 1);
+    const issues = (s) => s.checks.filter((c) => c.status === "ng" || c.status === "warn").length;
+    box.innerHTML = `
+      <div class="card">
+        <div class="verdict">
+          <div>
+            <div class="v-label">審査判定（目安）・${esc(r.policy.label)}・${r.stageLabel}</div>
+            <div class="v-main">${d.label}</div>
+            ${r.holdReason ? `<div class="v-reason">${esc(r.holdReason)}</div>` : ""}
+            <div class="v-meta num">${esc(r.caseNo)} ・ ${r.date}${r.initials ? " ・ " + esc(r.initials) + " 様" : ""}</div>
+          </div>
+          <div class="stamp ${d.tone}${pop ? " pop" : ""}" aria-hidden="true"><div><b>${d.short}</b><small>LOAN DESK</small></div></div>
+        </div>
+        <div class="grade">
+          <div class="grade-l" aria-label="格付">${r.knockouts.length ? "—" : r.grade}</div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>信用スコア（定量）</span><span class="num"><b>${r.score}</b> / 1000</span></div>
+            <div class="meter"><i style="width:${r.score / 10}%"></i></div>
+            <div class="ticks"><span>E</span><span>D 350</span><span>C 500</span><span>B 650</span><span>A 800</span></div>
+          </div>
+        </div>
+      </div>
+
+      ${r.knockouts.length ? `<div class="ko"><b>足切り基準に該当（この時点で否決見込み）</b><ul>${r.knockouts.map((k) => `<li>${esc(k)}</li>`).join("")}</ul></div>` : ""}
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">審査ライン</h2></div>
+        <div class="flow-rail" aria-hidden="true">${r.stages.map((s) => `<i class="${s.status}"></i>`).join("")}</div>
+        <div class="line">${r.stages.map((s, i) => `
+          <details${s.status === "ng" || s.status === "warn" ? " open" : ""}>
+            <summary><span class="no">${String(i + 1).padStart(2, "0")}</span><span class="mk ${s.status}">${MK[s.status]}</span><span>${esc(s.label)}</span><span class="cnt">${s.status === "skip" ? "本審査で確認" : issues(s) ? `要確認 ${issues(s)}` : "問題なし"}</span></summary>
+            ${chkHtml(s.checks)}
+          </details>`).join("")}</div>
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">融資可能額</h2></div>
+        <div class="amount">
+          <div class="am-row"><span>希望額</span><div class="am-bar"><i class="want" style="width:${r.loan / maxBar * 100}%"></i><span>${L.man(r.loan)}</span></div></div>
+          <div class="am-row"><span>融資可能額</span><div class="am-bar"><i style="width:${r.maxLoan / maxBar * 100}%"></i><span>${L.man(r.maxLoan)}</span></div></div>
+        </div>
+        <p class="sub" style="margin-top:8px">${r.knockouts.length ? "足切り基準に該当するため算出していません。" : `いちばん厳しい制約は「${r.bind.label}」です（返済期間 ${r.term}年で計算）。`}</p>
+        ${r.knockouts.length ? "" : `<div class="caps" style="margin-top:8px">${r.caps.map((c) => `<div class="cap${c.key === r.bind.key ? " bind" : ""}"><span>${c.label}で決まる上限</span><span class="num">${isFinite(c.value) ? L.man(Math.floor(c.value / 10) * 10) : "上限なし"}</span></div>`).join("")}</div>`}
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">返済と保証会社</h2></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">毎月の返済（${r.input.rate}%）</div><div class="v">${L.yen(r.monthly.actual * 10000)}</div><div class="s">${r.input.term}年・元利均等</div></div>
+          <div class="kpi"><div class="k">審査上の返済（${r.stressRate}%）</div><div class="v">${L.yen(r.monthly.stress * 10000)}</div><div class="s">${r.policy.stressRate == null ? "実際の金利で審査" : "金利が上がっても返せるか"}</div></div>
+          <div class="kpi"><div class="k">返済負担率</div><div class="v">${L.r1(r.dti)}%</div><div class="s">上限 ${r.limit}%・審査年収 ${L.man(r.income)}（${esc(r.incomeBasis)}）</div></div>
+          <div class="kpi"><div class="k">年収倍率</div><div class="v">${L.r1(r.multiple)}倍</div><div class="s">他の借入 毎月 ${L.yen(r.debt * 10000)}</div></div>
+          <div class="kpi"><div class="k">保証会社の格付</div><div class="v">${r.knockouts.length ? "—" : gu.grade}</div><div class="s">${esc(gu.label)}${gu.fee != null ? `・保証料 +${gu.fee}%・上乗せ +${gu.add}%` : ""}</div></div>
+          <div class="kpi"><div class="k">適用金利の目安</div><div class="v">${gu.rate != null && !r.knockouts.length ? gu.rate.toFixed(2) + "%" : "—"}</div><div class="s">${gu.rate != null && !r.knockouts.length ? `${r.maxLoan && r.maxLoan < r.loan ? "可能額 " + L.man(r.maxLoan) : L.man(r.loan)} で毎月 ${L.yen(L.pmt(Math.min(r.loan, r.maxLoan || r.loan), gu.rate, r.input.term) * 10000)}` : "取扱い不可"}</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">担保評価</h2></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">評価額（${ap.method}）</div><div class="v">${L.man(ap.value)}</div><div class="s">${ap.method === "積算" ? "土地＋建物" : ap.method === "手入力" ? "入力した評価額" : `物件価格の${ap.rate}%`}</div></div>
+          <div class="kpi"><div class="k">担保掛目</div><div class="v">${L.r1(r.ltv)}%</div><div class="s">上限 ${r.ltvLimit}%</div></div>
+          ${ap.method === "積算" ? `<div class="kpi"><div class="k">土地</div><div class="v">${L.man(ap.land)}</div><div class="s">路線価 ${(+r.input.rosenka).toLocaleString("ja-JP")}円 × ${r.input.landArea}㎡</div></div>
+          <div class="kpi"><div class="k">建物</div><div class="v">${L.man(ap.building)}</div><div class="s">${ap.unit}万円/㎡ × ${r.input.floor}㎡ × 残り${Math.max(0, ap.life - r.input.builtYears)}/${ap.life}年</div></div>` : ""}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">スコアの内訳</h2></div>
+        <div class="parts">${r.parts.map((p) => `<div class="part"><span>${p.label}</span><span class="pb"><i style="width:${p.got / p.max * 100}%"></i></span><span class="pv">${p.got}/${p.max}</span></div>`).join("")}</div>
+        <p class="note" style="margin-top:8px">配点の合計を1000点に換算。A 800以上 / B 650〜 / C 500〜 / D 350〜 / E 350未満。</p>
+      </div>
+
+      ${r.whatIf.length ? `<div class="card">
+        <div class="sec-h"><h2 class="sec-t">条件を変えると</h2></div>
+        <div class="wi">${r.whatIf.map((w) => `<div class="wi-row"><span>${esc(w.label)}<br><span class="num" style="font-size:12px;color:var(--muted)">融資可能額 ${L.man(w.maxLoan)} ・ スコア ${w.score}</span></span><span class="pill ${toneOf(w.decision)}">${w.decisionLabel.replace("見込み", "")}</span></div>`).join("")}</div>
+      </div>` : ""}
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">必要書類（${r.stage === "main" ? "本審査" : "本審査で提出"}）</h2></div>
+        <ul class="docs">${r.docsRequired.map((x) => `<li><span class="mk ${r.stage === "main" ? (x.verified ? "ok" : "ng") : "skip"}">${r.stage === "main" ? (x.verified ? "○" : "×") : "−"}</span><span>${esc(x.label)}</span></li>`).join("")}</ul>
+      </div>
+
+      <div class="card memo">
+        <div class="memo-head">
+          <div><div class="memo-title">稟議所見</div><div class="num" style="font-size:11.5px;color:var(--muted)">${esc(r.caseNo)} ・ 住宅ローン ・ 決裁 ${esc(r.authority.label)}</div></div>
+          <div class="hanko" aria-label="決裁欄"><div><span>決裁</span><em></em></div><div><span>審査</span><em></em></div><div><span>担当</span><em>${r.initials ? `<b>${esc(r.initials.slice(0, 3))}</b>` : ""}</em></div></div>
+        </div>
+        <h3>評価できる点</h3>${list(r.strengths, "特になし")}
+        <h3>懸念点</h3>${list(r.concerns, "特になし")}
+        <h3>承認の条件・対応</h3>${list(r.conditions, r.decision === "approve" ? "特になし" : "—")}
+        <h3>決裁</h3><p style="margin:0">${esc(r.authority.label)}（${esc(r.authority.reason)}）</p>
+        <h3>次にやること</h3>${list(nextSteps(r))}
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">審査記録</h2></div>
+        <dl class="audit">
+          <dt>実行日時</dt><dd>${esc(r.audit.at)}</dd>
+          <dt>審査の型</dt><dd>${esc(r.audit.policyLabel)}（基準 ${esc(r.audit.policyVersion)}）</dd>
+          <dt>段階</dt><dd>${r.stageLabel}</dd>
+          <dt>エンジン</dt><dd>v${esc(r.audit.engine)}</dd>
+          <dt>入力のハッシュ</dt><dd>${esc(r.audit.inputHash)}</dd>
+          <dt>判定</dt><dd>${esc(d.label)}・格付 ${r.knockouts.length ? "—" : r.grade}（${r.score}点）</dd>
+        </dl>
+        <p class="note" style="margin-top:8px">同じ入力と同じ基準なら、同じハッシュと判定になります。</p>
+      </div>
+
+      <div class="btns">
+        <button class="btn" id="save" type="button">案件に保存</button>
+        <button class="btn" id="copy" type="button">所見をコピー</button>
+        <button class="btn ghost" id="back" type="button">入力を直す</button>
+      </div>
+      <p class="note">${L.NOTE}</p>`;
+    $("#save").onclick = saveCase;
+    $("#copy").onclick = copyMemo;
+    $("#back").onclick = () => go("apply");
+  }
+  function nextSteps(r) {
+    const s = ["本人開示（CIC・JICC・KSC）で信用情報を確かめる"];
+    if (r.decision === "reject" && r.knockouts.length) s.push("足切りの理由が解消するまで申込みは見送る（他行への同時申込みもしない）");
+    else if (r.stage === "pre") {
+      s.push("必要書類をそろえて事前審査を申し込む");
+      if (r.decision !== "approve") s.push("上の条件を整えてから申し込むか、借入額を見直す");
+      s.push("事前審査の結果は本審査・融資実行を約束しない。買うかどうかはお客様が決める");
+    } else {
+      const pend = r.docsRequired.filter((d) => !d.verified).length;
+      if (pend) s.push(`未確認の書類 ${pend}点を確認する`);
+      s.push(`${r.authority.label}の決裁へ回す`);
+      s.push("承認後: 金銭消費貸借契約 → 抵当権設定 → 融資実行（決済）");
+    }
+    return s;
+  }
+  function memoText(r) {
+    const b = (t, a) => `■${t}\n` + (a.length ? a.map((x) => "・" + x).join("\n") : "・特になし");
+    return [`【稟議所見】${r.caseNo}（${r.date}）${r.initials ? " " + r.initials + " 様" : ""}`,
+      `型：${r.policy.label}（基準 ${r.audit.policyVersion}）／${r.stageLabel}`,
+      `判定：${r.decisionInfo.label}${r.holdReason ? "（" + r.holdReason + "）" : ""} ／ 格付 ${r.knockouts.length ? "—" : r.grade}（${r.score}/1000）`,
+      `希望額 ${L.man(r.loan)} ／ 融資可能額 ${L.man(r.maxLoan)} ／ 返済負担率 ${L.r1(r.dti)}%（上限${r.limit}%・${r.stressRate}%）／ 掛目 ${L.r1(r.ltv)}%（${r.appraisal.method}）`,
+      `毎月の返済 ${L.yen(r.monthly.actual * 10000)}（${r.input.rate}%・${r.input.term}年）／ 決裁 ${r.authority.label}`,
+      ...r.stages.map((s) => `${{ ok: "○", warn: "△", ng: "×", skip: "−" }[s.status]} ${s.label}`),
+      b("評価できる点", r.strengths), b("懸念点", r.concerns), b("条件・対応", r.conditions), b("次にやること", nextSteps(r)),
+      `審査記録 ${r.audit.at} / v${r.audit.engine} / ${r.audit.inputHash}`, "", L.NOTE].join("\n");
+  }
+  function copyMemo() {
+    const t = memoText(last);
+    try { navigator.clipboard.writeText(t).then(() => toast("所見をコピーしました"), () => fallbackCopy(t)); } catch (e) { fallbackCopy(t); }
+  }
+  function fallbackCopy(t) {
+    const ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); toast(ok ? "所見をコピーしました" : "コピーできませんでした");
+  }
+
+  // ---------- 案件 ----------
+  function saveCase() {
+    const rows = store.get(K_CASES, []);
+    const row = { id: last.caseNo, date: last.date, initials: last.initials, decision: last.decision, label: last.decisionInfo.label,
+      grade: last.knockouts.length ? "—" : last.grade, score: last.score, loan: last.loan, maxLoan: last.maxLoan,
+      presetId: last.policy.id, presetLabel: last.policy.label, stage: last.stage, hash: last.audit.inputHash, at: last.audit.at, input: clone(data) };
+    const i = rows.findIndex((c) => c.id === row.id);
+    if (i >= 0) rows[i] = row; else rows.unshift(row);
+    toast(store.set(K_CASES, rows.slice(0, 200)) ? "案件に保存しました" : "この端末では保存できませんでした");
+  }
+  function renderCases() {
+    const rows = store.get(K_CASES, []);
+    const box = $("#cases");
+    if (!rows.length) { box.innerHTML = `<div class="card empty">保存した案件はまだありません。<br>審査結果の「案件に保存」で、ここに並びます。</div>`; return; }
+    box.innerHTML = rows.map((c, i) => `
+      <button class="case" type="button" data-i="${i}">
+        <span class="c1">${c.initials ? esc(c.initials) + " 様" : "（イニシャルなし）"}</span>
+        <span class="pill ${toneOf(c.decision)}">${esc(c.label.replace("見込み", ""))}</span>
+        <span class="c2">${esc(c.id)} ・ ${esc(c.date)} ・ ${esc(c.presetLabel || "")}・${c.stage === "main" ? "本審査" : "事前審査"}</span>
+        <span class="c2">格付 ${esc(c.grade)} ・ ${L.man(c.maxLoan)} / ${L.man(c.loan)}</span>
+      </button>`).join("") + `<button class="btn danger" id="clearCases" type="button">保存した案件をすべて消す</button>`;
+    box.querySelectorAll(".case").forEach((b) => (b.onclick = () => openCase(rows[+b.dataset.i])));
+    let armed = false;
+    $("#clearCases").onclick = () => {
+      if (!armed) { armed = true; $("#clearCases").textContent = "もう一度押すと消します"; return; }
+      store.set(K_CASES, []); renderCases(); toast("案件を消しました");
+    };
+  }
+  function openCase(c) {
+    data = Object.assign(clone(L.SAMPLE), c.input); caseNo = c.id; isSample = false; $("#sampleTag").hidden = true;
+    if (c.presetId && L.PRESETS[c.presetId]) { pstore.presetId = c.presetId; store.set(K_POLICY, pstore); }
+    fill(); renderLive(); setCase();
+    last = L.screen(data, curPolicy(), { now: c.at || new Date().toISOString() });
+    last.caseNo = c.id; last.date = c.date; last.initials = c.initials || "";
+    renderResult(false); go("result");
+  }
+
+  // ---------- 審査基準 ----------
+  const PFIELDS = [
+    { k: "stressRate", label: "審査金利", unit: "%", step: 0.1, hint: "空欄にすると実際の金利で審査（フラット35型）", nullable: true },
+    { k: "dti0", label: "返済負担率の上限（いちばん低い年収帯）", unit: "%", step: 1, dti: 0 },
+    { k: "dti1", label: "返済負担率の上限（次の年収帯）", unit: "%", step: 1, dti: 1 },
+    { k: "dti2", label: "返済負担率の上限（いちばん高い年収帯）", unit: "%", step: 1, dti: 2 },
+    { k: "multipleMax", label: "年収倍率の上限", unit: "倍", step: 0.5, hint: "空欄で基準なし", nullable: true, inf: true },
+    { k: "minIncome", label: "最低年収", unit: "万円", step: 10 },
+    { k: "ageMax", label: "申込年齢の上限", unit: "歳", step: 1 },
+    { k: "payoffAgeMax", label: "完済年齢の上限", unit: "歳", step: 1 },
+    { k: "termMax", label: "最長の返済期間", unit: "年", step: 1 },
+    { k: "tenureEmployee", label: "会社員の勤続年数", unit: "年", step: 0.5 },
+    { k: "tenureSelf", label: "自営業・経営者の事業年数", unit: "年", step: 1 },
+    { k: "ltvMax", label: "担保掛目の上限", unit: "%", step: 5 },
+    { k: "ltvWithCosts", label: "担保掛目の上限（諸費用込み）", unit: "%", step: 5 },
+    { k: "cardLimitRate", label: "カード枠を返済に算入（枠に対して毎月）", unit: "%", step: 0.5, hint: "0なら算入しない" },
+    { k: "jointGuarantor", label: "収入合算（連帯保証）の算入割合", unit: "%", step: 5 },
+    { k: "jointCodebtor", label: "収入合算（連帯債務）の算入割合", unit: "%", step: 5 },
+    { k: "minFloorHouse", label: "戸建の床面積の下限", unit: "㎡", step: 5 },
+    { k: "minFloorMansion", label: "マンションの床面積の下限", unit: "㎡", step: 5 },
+    { k: "incomeBasis", label: "自営業・経営者の所得の見方", sel: [["avg3", "直近3期の平均"], ["min2", "直近2期の低いほう"], ["latest", "直近"]] },
+    { k: "nonPR", label: "永住権がない外国籍", sel: [["ng", "取り扱わない（否決）"], ["warn", "個別に確認（△）"]] },
+    { k: "contractOk", label: "契約・派遣・パートを受け付ける", sw: true },
+    { k: "danshinRequired", label: "団信の加入を必須にする", sw: true },
+    { k: "allowChosei", label: "市街化調整区域を受け付ける（△）", sw: true },
+    { k: "allowLeasehold", label: "借地権を受け付ける（△）", sw: true },
+  ];
+  function renderPolicy() {
+    renderSeg($("#policySeg"), editId, (id) => { editId = id; renderPolicy(); });
+    const P = policyFor(editId);
+    const val = (f) => (f.dti != null ? (P.dti[f.dti] ? P.dti[f.dti].max : "") : P[f.k] == null || P[f.k] === Infinity ? "" : P[f.k]);
+    const dtiLabel = (i) => { const t = P.dti[i]; if (!t) return null; const lo = i ? P.dti[i - 1].under : 0; return isFinite(t.under) ? `年収${lo || 0}〜${t.under}万円未満` : `年収${lo}万円以上`; };
+    $("#policyForm").innerHTML = `<div class="card"><p class="sec-note">${esc(P.note)}</p>${PFIELDS.filter((f) => f.dti == null || P.dti[f.dti]).map((f) => {
+      const id = "p_" + f.k;
+      const label = f.dti != null ? `返済負担率の上限（${dtiLabel(f.dti)}）` : f.label;
+      const lab = `<label for="${id}">${label}${f.hint ? `<span class="hint">${f.hint}</span>` : ""}</label>`;
+      if (f.sel) return `<div class="row sel">${lab}<select id="${id}" data-p="${f.k}">${f.sel.map(([k, t]) => `<option value="${k}"${P[f.k] === k ? " selected" : ""}>${t}</option>`).join("")}</select></div>`;
+      if (f.sw) return `<div class="row">${lab}<span class="sw"><input type="checkbox" id="${id}" data-p="${f.k}"${P[f.k] ? " checked" : ""}><i></i></span></div>`;
+      return `<div class="row">${lab}<span class="field"><input type="number" inputmode="decimal" id="${id}" data-p="${f.k}" value="${val(f)}" step="${f.step}" min="0"><span class="u">${f.unit}</span></span></div>`;
+    }).join("")}</div>`;
+  }
+  $("#policyForm").addEventListener("change", onPolicy);
+  $("#policyForm").addEventListener("input", onPolicy);
+  function onPolicy(ev) {
+    const el = ev.target, k = el.dataset.p; if (!k) return;
+    const f = PFIELDS.find((x) => x.k === k);
+    const ov = pstore.overrides[editId] = pstore.overrides[editId] || {};
+    if (f.dti != null) {
+      if (el.value === "") return;
+      const P = policyFor(editId);
+      const dti = P.dti.map((t) => ({ under: isFinite(t.under) ? t.under : null, max: t.max }));
+      dti[f.dti].max = +el.value; ov.dti = dti;
+    } else if (f.sw) ov[k] = el.checked;
+    else if (f.sel) ov[k] = el.value;
+    else if (el.value === "") { if (!f.nullable) return; ov[k] = f.inf ? "Inf" : null; }
+    else ov[k] = +el.value;
+    store.set(K_POLICY, pstore); renderLive(); renderDocs();
+  }
+  $("#policyReset").onclick = () => { delete pstore.overrides[editId]; store.set(K_POLICY, pstore); renderPolicy(); renderLive(); toast(`${L.PRESETS[editId].label}を標準に戻しました`); };
+
+  // ---------- 画面切り替え ----------
+  const VIEWS = ["apply", "result", "cases", "policy"];
+  function go(v) { if (location.hash !== "#" + v) location.hash = v; else show(v); }
+  function show(v) {
+    if (!VIEWS.includes(v)) v = "apply";
+    VIEWS.forEach((x) => { $("#v-" + x).hidden = x !== v; });
+    document.querySelectorAll(".tabs a").forEach((a) => { if (a.dataset.v === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    if (v === "result") renderResult(false);
+    if (v === "cases") renderCases();
+    if (v === "policy") renderPolicy();
+    if (v === "apply") renderTop();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+  let tt;
+  function toast(t) { const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => (el.hidden = true), 2200); }
+  function setCase() { $("#caseNo").textContent = caseNo; $("#caseDate").textContent = "受付 " + today(); }
+
+  $("#run").onclick = run;
+  $("#clear").onclick = () => { data = clone(BLANK); data.stage = "pre"; isSample = false; $("#sampleTag").hidden = true; caseNo = newCaseNo(); last = null; fill(); renderLive(); setCase(); window.scrollTo(0, 0); };
+  $("#loadSample").onclick = () => { data = Object.assign({ initials: "" }, clone(L.SAMPLE)); isSample = true; $("#sampleTag").hidden = false; fill(); renderLive(); };
+  $("#note1").textContent = L.NOTE;
+
+  renderForm(); renderTop(); renderLive(); setCase();
+  last = L.screen(data, curPolicy(), { now: new Date().toISOString() }); last.caseNo = caseNo; last.date = today(); last.initials = "";
+  show(location.hash.slice(1) || "apply");
+})();
+</script>
+</body>
+</html>

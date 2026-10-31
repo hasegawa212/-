@@ -7,6 +7,7 @@ name: Deploy static tools to GitHub Pages
 #   施工事例集:           https://hasegawa212.github.io/-/construction-portfolio/
 #   資金繰りダッシュボード: https://hasegawa212.github.io/-/cashflow-dashboard/
 #   LIFE ROUTE（ライフルート）: https://hasegawa212.github.io/-/life-housing-sim/
+#   LOAN DESK 住宅ローン審査: https://hasegawa212.github.io/-/loan-screening-app/
 # ※ 事前に Settings → Pages → Source を「GitHub Actions」にしておくこと。
 # ※ ツールを増やすときは paths / cp / 下のランディングのカードの3箇所を足す。
 
@@ -18,6 +19,7 @@ on:
       - "construction-portfolio/**"
       - "cashflow-dashboard/**"
       - "life-housing-sim/**"
+      - "loan-screening-app/**"
       - ".github/workflows/pages-construction-book.yml"
   workflow_dispatch:
 
@@ -47,6 +49,7 @@ jobs:
           cp -r construction-portfolio _site/construction-portfolio
           cp -r cashflow-dashboard _site/cashflow-dashboard
           cp -r life-housing-sim _site/life-housing-sim
+          cp -r loan-screening-app _site/loan-screening-app
           cat > _site/index.html <<'HTML'
           <!DOCTYPE html>
           <html lang="ja">
@@ -102,6 +105,12 @@ jobs:
                 <div class="k">Simulator</div>
                 <div class="t">LIFE ROUTE（ライフルート）</div>
                 <div class="d">賃貸のまま／持ち家 を、今から95歳まで同じ物差しで。Zoomの画面共有モードと共有リンクつき。入力はブラウザ内だけで計算され、外部に送信されません。</div>
+                <div class="go">ひらく →</div>
+              </a>
+              <a class="card" href="loan-screening-app/">
+                <div class="k">Screening</div>
+                <div class="t">LOAN DESK 住宅ローン審査</div>
+                <div class="d">銀行の審査の流れ（足切り・返済比率・担保評価・スコア格付）で、承認見込み／融資可能額／稟議所見を出します。iPhone向け。入力は外部に送信されません。</div>
                 <div class="go">ひらく →</div>
               </a>
             </div>
