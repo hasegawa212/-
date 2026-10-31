@@ -82,7 +82,7 @@ test("経営者は法人の赤字2期以上で保留、1期で △", () => {
 });
 
 test("契約社員: 型によって × か △", () => {
-  const st = (pol) => run({ employ: "contract" }, pol).stages.find((s) => s.key === "person").checks.find((c) => c.key === "employ").status;
+  const st = (pol) => run({ employ: "contract", tenure: 1 }, pol).stages.find((s) => s.key === "person").checks.find((c) => c.key === "employ").status;
   assert.equal(st({ id: "net", contractOk: false }), "ng");
   assert.equal(st({ id: "regional", contractOk: true }), "warn");
 });

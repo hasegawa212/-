@@ -7,7 +7,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const POLICY_VERSION = "2026-10b";
+  const POLICY_VERSION = "2026-10c";
 
   // 共通の値（型ごとに必要なものだけ上書き）
   const BASE = {
@@ -77,6 +77,13 @@
       stressRate: 3.0, dti: [{ under: 300, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
       tenureEmployee: 0.5, nonPR: "warn", allowChosei: true, cardLimitRate: 3, incomeBasis: "min2",
       guarantor: { type: "bank", label: "地方銀行の保証会社（系列・独立系）", lumpPer100: { A: 20000, B: 30000, C: 45000, D: 70000 } },
+    }),
+    rokin: Object.assign({}, BASE, {
+      id: "rokin", label: "労働金庫型",
+      note: "働く人のための協同組織の金融機関の型。会員（労働組合・生協など）の勤労者が対象。契約・派遣社員も勤続を見て受け付ける。当社の申込みでは承認が多い（答え合わせの実績）。",
+      stressRate: 3.0, dti: [{ under: 300, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
+      minIncome: 150, tenureEmployee: 1, contractOk: true, nonPR: "warn", incomeBasis: "min2", allowChosei: true,
+      guarantor: { type: "shinkin", label: "労働金庫の系統保証機関", lumpPer100: { A: 18000, B: 26000, C: 40000, D: 58000 } },
     }),
     shinkin: Object.assign({}, BASE, {
       id: "shinkin", label: "信用金庫型",
