@@ -16,6 +16,8 @@ header{background:var(--navy);color:var(--on-navy);padding:12px max(16px,env(saf
 header b{letter-spacing:.2em;font-family:var(--n)} header span{font-size:12px;opacity:.8;margin-left:8px}
 .secret{display:inline-block;border:1px solid currentColor;border-radius:4px;padding:0 6px;font-size:11px;margin-left:8px}
 main{max-width:760px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px}
+main>*{min-width:0}
+td .pill{white-space:normal}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
 h2{font-size:16px;margin:0 0 10px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
@@ -55,6 +57,8 @@ ol,ul{margin:0;padding-left:20px}
       <label class="chk"><input id="single" type="checkbox" checked>単身</label>
       <label class="chk"><input id="motive" type="checkbox">購入動機書あり</label>
     </div>
+    <div style="margin-top:12px"><div style="font-size:12.5px;color:var(--muted)">このお客様が否決された金融機関（保証会社を覚えて、同じ保証会社だけの先を外します）</div>
+      <div class="grid" id="rejList" style="margin-top:6px"></div></div>
     <div style="margin-top:12px"><button id="go" type="button">出す順番を出す</button></div>
   </div>
   <div id="out"></div>
@@ -68,6 +72,7 @@ ol,ul{margin:0;padding-left:20px}
 <script src="../loan-screening-app/lib/fees.js"></script>
 <script src="../loan-screening-app/lib/screening.js"></script>
 <script src="data/lenders.js"></script>
+<script src="data/guarantors.js"></script>
 <script src="lib/recommend.js"></script>
 <script>
 (function () {
@@ -75,30 +80,35 @@ ol,ul{margin:0;padding-left:20px}
   const L = window.LSA, R = window.LDI, $ = (s) => document.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   $("#employ").innerHTML = Object.entries(L.EMPLOY).map(([k, v]) => `<option value="${k}"${k === "contract" ? " selected" : ""}>${v.label}</option>`).join("");
+  $("#rejList").innerHTML = R.LENDERS.map((l, i) => `<label class="chk"><input type="checkbox" data-rej="${esc(l.name)}" id="rej_${i}">${esc(l.name)}</label>`).join("");
   const DEC = { approve: ["ok", "承認見込み"], conditional: ["warn", "条件付き"], hold: ["ng", "保留"], reject: ["ng", "否決見込み"] };
   function go() {
     const loan = +$("#loan").value || 0, inc = +$("#income").value || 0;
     const x = Object.assign({}, L.SAMPLE, { pref: $("#pref").value, age: +$("#age").value, income: inc, incomePrev: inc, incomePrev2: inc, tenure: +$("#tenure").value,
       employ: $("#employ").value, price: loan, down: 0, costs: 0, collateral: loan, car: +$("#debt").value || 0, scholarship: 0,
-      priorRejects: +$("#rej").value || 0, single: $("#single").checked, motiveDoc: $("#motive").checked });
+      rejectedLenders: [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej),
+      priorRejects: Math.max(+$("#rej").value || 0, document.querySelectorAll("[data-rej]:checked").length), single: $("#single").checked, motiveDoc: $("#motive").checked });
     const r = R.recommend(x);
     const row = (c, i) => `<tr><td class="rank">${i + 1}</td><td><b>${esc(c.lender.name)}</b><br><span class="note">${esc(c.lender.note)}</span></td>
       <td class="num">通過 ${c.lender.pass}／${c.n}</td><td><span class="pill ${DEC[c.screen.decision][0]}">${DEC[c.screen.decision][1]}</span><br><span class="note num">負担率 ${L.r1(c.screen.dti)}%</span></td>
+      <td>${c.guarantors.length ? c.guarantors.map((g) => esc(g.name) + (g.src === "要確認" ? "<span class=\"note\">（要確認）</span>" : "")).join("<br>") : `<span class="note">要確認</span>`}${c.guarantorNote ? `<br><span class="pill warn">${esc(c.guarantorNote)}</span>` : ""}</td>
       <td>${esc(c.broker)}${c.brokerAlt ? `<br><span class="note">または ${esc(c.brokerAlt)}</span>` : ""}</td></tr>`;
     $("#out").innerHTML = `
       <div class="card"><h2>出す順番（${esc(r.pref)}）</h2>
-        <div class="wrap"><table><thead><tr><th></th><th>金融機関</th><th>当社の実績</th><th>審査エンジン</th><th>仲介会社</th></tr></thead>
-        <tbody>${r.candidates.map(row).join("") || `<tr><td colspan="5">この条件で出せる候補がありません。</td></tr>`}</tbody></table></div>
+        <div class="wrap"><table><thead><tr><th></th><th>金融機関</th><th>当社の実績</th><th>審査エンジン</th><th>保証会社</th><th>仲介会社</th></tr></thead>
+        <tbody>${r.candidates.map(row).join("") || `<tr><td colspan="6">この条件で出せる候補がありません。</td></tr>`}</tbody></table></div>
         <p class="note" style="margin-top:8px">${esc(r.rule)}</p></div>
       <div class="card"><h2>進め方</h2><ol>${r.plan.map((p) => `<li>${esc(p)}</li>`).join("")}</ol></div>
       <div class="card"><h2>申し込む前に用意すること</h2><ul>${r.prepare.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>
       ${r.avoid.length || r.excluded.length ? `<div class="card"><h2>最初には出さない</h2><ul>
         ${r.avoid.map((c) => `<li><b>${esc(c.lender.name)}</b>：${esc(c.reason)}</li>`).join("")}
         ${r.excluded.map((c) => `<li><b>${esc(c.lender.name)}</b>：${esc(c.reason)}</li>`).join("")}</ul></div>` : ""}
+      <div class="card"><h2>保証会社について</h2><p style="margin:0">${esc(r.guarantorNote)}</p>${r.rejectedGuarantors.length ? `<p style="margin:8px 0 0"><b>否決済みの保証会社:</b> ${r.rejectedGuarantors.map((id) => esc((R.GUARANTORS[id] || { name: id }).name)).join("・")}</p>` : ""}</div>
       <div class="card"><h2>金融機関に伝えること</h2><p style="margin:0">${esc(r.disclosure)}</p></div>
       <p class="note">${esc(r.note)}</p>`;
   }
   $("#go").onclick = go;
+  document.querySelectorAll("[data-rej]").forEach((e) => (e.onchange = go));
   const c = L.CALIBRATION;
   $("#calib").textContent = `審査エンジンの答え合わせ（${c.period}）: ${c.n}件中${c.match}件一致（実際に通った ${c.approvedCaught}、否決 ${c.rejectsCaught}）。${c.note}`;
   go();
