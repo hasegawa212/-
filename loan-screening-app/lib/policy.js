@@ -7,7 +7,7 @@
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const POLICY_VERSION = "2026-10";
+  const POLICY_VERSION = "2026-10b";
 
   // 共通の値（型ごとに必要なものだけ上書き）
   const BASE = {
@@ -42,7 +42,20 @@
       { upTo: Infinity, label: "役員（審査委員会）" },
     ],
     docsExtra: [],
+    // v3: 保証機関・費用・借入額の範囲・フラット35／信用金庫の条件
+    guarantor: { type: "bank", label: "銀行系の保証会社", lumpPer100: { A: 20000, B: 30000, C: 45000, D: 70000 } }, // 一括前払いの保証料（円／借入100万円・35年）
+    adminFee: { type: "fixed", value: 33000 }, // 事務手数料: fixed=円 / rate=借入額の%
+    loanMin: 50, loanMax: 20000,               // 借入額の範囲（万円）
+    termMin: 1,
+    ltvBase: "collateral",                     // 掛目の分母: collateral=担保評価 / price=物件価格（融資率）
+    requireNewQuake: false,                    // 旧耐震を × にするか
+    highLtv: { over: Infinity, add: 0 },       // 融資率がこれを超えると金利を上乗せ（%）
+    requireArea: false,                        // 営業地域内の居住・勤務が必要か
+    memberThreshold: 0,                        // 借入がこれを超えると会員（出資金）が必要（万円、0=なし）
   };
+
+  // 住宅ローンの保証と、信用保証協会の違い（画面に常に出す）
+  const GUARANTOR_NOTE = "住宅ローンの保証は、民間の保証会社（銀行系・信用金庫の系統保証機関・独立系）が行います。信用保証協会は中小企業・個人事業主の事業資金を保証する公的機関で、住宅ローンの保証は扱いません。フラット35は保証会社を使わず、保証料・保証人は不要です。";
 
   const PRESETS = {
     megabank: Object.assign({}, BASE, {
@@ -55,12 +68,25 @@
       stressRate: 3.0, dti: [{ under: 400, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
       minIncome: 200, contractOk: false, ltvWithCosts: 100, allowLeasehold: false, incomeBasis: "avg3",
       guarantee: { A: { fee: 0, add: 0, label: "最優遇" }, B: { fee: 0, add: 0.1, label: "優遇" }, C: { fee: 0, add: 0.3, label: "優遇縮小" }, D: { fee: 0, add: 0.6, label: "個別判断" } },
+      guarantor: { type: "waived", label: "保証料なし（事務手数料型）", lumpPer100: { A: 0, B: 0, C: 0, D: 0 } },
+      adminFee: { type: "rate", value: 2.2 },
     }),
     regional: Object.assign({}, BASE, {
       id: "regional", label: "地方銀行型",
       note: "地域の物件と勤務先をよく知る型。調整区域や勤続の短さにも個別に対応するが、カード枠は返済に算入して見る。",
       stressRate: 3.0, dti: [{ under: 300, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
       tenureEmployee: 0.5, nonPR: "warn", allowChosei: true, cardLimitRate: 3, incomeBasis: "min2",
+      guarantor: { type: "bank", label: "地方銀行の保証会社（系列・独立系）", lumpPer100: { A: 20000, B: 30000, C: 45000, D: 70000 } },
+    }),
+    shinkin: Object.assign({}, BASE, {
+      id: "shinkin", label: "信用金庫型",
+      note: "営業地域内に住む・勤める人が対象の会員制。一定額を超える借入は会員（出資金）になる。金庫の審査とは別に、系統の保証機関が保証審査をする。自営業や地元企業の勤務先にも個別に対応する。",
+      stressRate: 3.0, dti: [{ under: 300, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
+      minIncome: 100, ageMin: 18, ageMax: 69, payoffAgeMax: 80, termMax: 35,
+      contractOk: true, nonPR: "warn", allowChosei: true, allowLeasehold: true, incomeBasis: "min2",
+      requireArea: true, memberThreshold: 700,
+      guarantor: { type: "shinkin", label: "信用金庫の系統保証機関", lumpPer100: { A: 17000, B: 25000, C: 38000, D: 55000 } },
+      guarantee: { A: { fee: 0.15, add: 0, label: "最優遇" }, B: { fee: 0.2, add: 0.1, label: "優遇" }, C: { fee: 0.25, add: 0.3, label: "優遇縮小" }, D: { fee: 0.35, add: 0.5, label: "個別判断" } },
     }),
     flat35: Object.assign({}, BASE, {
       id: "flat35", label: "フラット35型",
@@ -70,6 +96,10 @@
       minFloorHouse: 70, minFloorMansion: 30, allowChosei: true,
       guarantee: { A: { fee: 0, add: 0, label: "標準" }, B: { fee: 0, add: 0, label: "標準" }, C: { fee: 0, add: 0, label: "標準" }, D: { fee: 0, add: 0, label: "標準" } },
       docsExtra: ["適合証明書（検査機関が発行）"],
+      isFlat: true, ageMax: 69, payoffAgeMax: 79, termMin: 15, loanMin: 100, loanMax: 8000, ltvBase: "price", ltvWithCosts: 100,
+      requireNewQuake: true, highLtv: { over: 90, add: 0.11 },
+      guarantor: { type: "none", label: "保証会社なし・保証人不要", lumpPer100: { A: 0, B: 0, C: 0, D: 0 } },
+      adminFee: { type: "rate", value: 2.2 },
     }),
   };
 
@@ -86,5 +116,5 @@
     return p;
   }
 
-  return { POLICY_VERSION, PRESETS, resolvePolicy };
+  return { POLICY_VERSION, PRESETS, GUARANTOR_NOTE, resolvePolicy };
 });
