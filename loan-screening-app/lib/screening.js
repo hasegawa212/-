@@ -1,4 +1,4 @@
-// 住宅ローン審査エンジン v3（銀行・信用金庫・フラット35と保証会社の審査ラインを再現した目安）
+// 住宅ローン審査エンジン v4（銀行・信用金庫・フラット35と保証会社の審査ラインを再現した目安）
 // 本人確認・反社 → 信用情報（3機関）→ 申込人 → 収入 → 返済能力 → 担保・物件 → 保証会社判定 → 書類 → 決裁
 // 実際の審査基準は金融機関ごとに異なり公開されていない。結果は承認を約束せず、最終判断は金融機関が行う。
 (function (root, factory) {
@@ -13,7 +13,7 @@
   "use strict";
   const { resolvePolicy, incomeUsed, creditSummary, LATE, appraise, eligibility, PROPERTY, flatRate, guaranteeCost, adminFee, GUARANTOR_NOTE, FEE_TYPE } = D;
 
-  const ENGINE_VERSION = "3.0.0";
+  const ENGINE_VERSION = "4.0.0";
 
   const EMPLOY = {
     public: { label: "公務員", score: 200, self: false, kind: "employee" },
@@ -27,7 +27,8 @@
   const APPLY_PENALTY = (n) => (n <= 2 ? 0 : n <= 4 ? 40 : 90);
   const NATIONALITY = { jp: "日本国籍", pr: "外国籍（永住権あり）", other: "外国籍（永住権なし）" };
   const DANSHIN = { ok: "加入できる（告知事項なし）", wide: "告知事項あり（ワイド団信を検討）", no: "加入できない" };
-  const JOINT = { none: "なし", guarantor: "連帯保証", codebtor: "連帯債務" };
+  const JOINT = { none: "なし", guarantor: "連帯保証", codebtor: "連帯債務", pair: "ペアローン（2人がそれぞれ借りる）" };
+  const RATE_TYPE = { variable: "変動金利", fixed10: "固定期間選択（10年など）", fixedAll: "全期間固定" };
   const STAGE = { pre: "事前審査", main: "本審査" };
 
   const SAMPLE = {
@@ -36,6 +37,8 @@
     income: 480, incomePrev: 460, incomePrev2: 440, corpLoss: 0, jointType: "none", jointIncome: 0,
     price: 3480, down: 300, costs: 250, financeCosts: false, term: 35, rate: 0.9, flatRate: 3.46, feeType: "rate", purpose: "own",
     kids: 0, youngCouple: false, flatS: "none", inArea: true,
+    pairShare: 0, partnerIncome: 0, partnerAge: 30, refiBalance: 0, refiLate: false, bonusShare: 0, bonusIncome: 0, rateType: "variable",
+    privateRoad: "none", retainingWall: false, unregistered: false, noInspection: false,
     property: "newHouse", builtYears: 0, structure: "wood", landArea: 120, rosenka: 90000, floor: 100,
     road: 4, zone: "urban", leasehold: false, overBuild: false, oldQuake: false, saikenchiku: false, collateral: 0,
     car: 2.5, card: 0, scholarship: 1.2, revo: 0, other: 0, cashing: 0,
@@ -84,6 +87,27 @@
     return h.toString(16).padStart(8, "0");
   }
 
+  // 借入額: 借り換えは今の残高、それ以外は物件価格−頭金。諸費用を借りる場合は足す
+  function loanAmount(x) {
+    const base = x.purpose === "refi" ? +x.refiBalance || 0 : (+x.price || 0) - (+x.down || 0);
+    return Math.max(0, base + (x.financeCosts ? +x.costs || 0 : 0));
+  }
+
+  // 変動金利の5年ルール・125%ルール: 5年間は返済額が変わらず、変わるときも前の125%まで
+  function rateRisk(loan, rate, term, type) {
+    const base = pmt(loan, rate, term);
+    if (type !== "variable" || !(loan > 0)) return { applies: false, base, scenarios: [] };
+    const scenarios = [0.5, 1, 2].map((up) => {
+      const r = (rate + up) / 100 / 12;
+      let bal = loan;
+      for (let m = 0; m < 60; m++) bal = bal * (1 + r) - base; // 5年間は同じ返済額のまま
+      const uncapped = pmt(Math.max(bal, 0), rate + up, term - 5);
+      const capped = uncapped > base * 1.25;
+      return { up, uncapped, paymentAfter5: Math.min(uncapped, base * 1.25), capped, balanceAfter5: bal };
+    });
+    return { applies: true, base, scenarios, note: "金利が上がっても5年間は返済額が同じで、6年目からも前の125%までしか上がりません。そのぶん元金の減りが遅くなり、上がり方が大きいと最後に未払いの利息が残ることがあります。扱いは金融機関によって違います。" };
+  }
+
   // 必要書類（職業・型ごと）。key は入力の docs のキー
   function docsRequired(x, P) {
     const e = EMPLOY[x.employ] || EMPLOY.regular;
@@ -103,7 +127,8 @@
     list.push({ key: "contract", label: "売買契約書（工事請負契約書）" });
     if (P.danshinRequired || x.danshin !== "no") list.push({ key: "danshin", label: "団体信用生命保険の申込書・告知書" });
     if ((P.docsExtra || []).length) list.push({ key: "fit", label: P.docsExtra.join("・") });
-    const loan = Math.max(0, (+x.price || 0) - (+x.down || 0) + (x.financeCosts ? +x.costs || 0 : 0));
+    const loan = loanAmount(x);
+    if (x.jointType === "pair" && +x.pairShare > 0) list.push({ key: "pairPartner", label: "相手（ペアローンの共同借入者）の源泉徴収票・本人確認書類・団信の告知書" });
     if (P.memberThreshold > 0 && loan > P.memberThreshold) list.push({ key: "member", label: "出資金の払込み（会員加入）" });
     return list.map((d) => Object.assign(d, { verified: !!v[d.key] }));
   }
@@ -117,7 +142,7 @@
     // フラット35: 融資率（借入÷物件価格）で金利が決まり、適用金利は flatRate から作る
     let flat = null;
     if (P.isFlat) {
-      const loan0 = Math.max(0, x.price - x.down + (x.financeCosts ? x.costs : 0));
+      const loan0 = loanAmount(x);
       flat = flatRate(x, P, x.price > 0 ? loan0 / x.price * 100 : Infinity);
       x.rate = flat.rate;
     }
@@ -193,15 +218,18 @@
     }
 
     // ---------- ⑤ 返済能力 ----------
-    const loan = Math.max(0, x.price - x.down + (x.financeCosts ? x.costs : 0));
+    const loan = loanAmount(x);
+    const isPair = x.jointType === "pair" && +x.pairShare > 0;
+    const share = isPair ? Math.min(90, +x.pairShare) / 100 : 0;
+    const mainLoan = isPair ? loan * (1 - share) : loan;
     const sRate = P.stressRate == null ? x.rate : P.stressRate;
     const debt = ["car", "card", "scholarship", "revo", "other"].reduce((s, k) => s + (+x[k] || 0), 0) + (+x.cashing || 0) * P.cardLimitRate / 100;
     const limit = dtiLimit(income, P);
-    const mStress = pmt(loan, sRate, x.term);
-    const mActual = pmt(loan, x.rate, x.term);
+    const mStress = pmt(mainLoan, sRate, x.term);
+    const mActual = pmt(mainLoan, x.rate, x.term);
     const dti = income > 0 ? ((mStress + debt) * 12) / income * 100 : Infinity;
     const dtiActual = income > 0 ? ((mActual + debt) * 12) / income * 100 : Infinity;
-    const multiple = income > 0 ? loan / income : Infinity;
+    const multiple = income > 0 ? mainLoan / income : Infinity;
     if (termCap <= 0) knockouts.push(`完済年齢の上限 ${P.payoffAgeMax}歳 までに返済期間がとれない`);
     const capacity = [
       { key: "dti", label: "返済負担率", rule: `${limit}%以下（${P.stressRate == null ? "実際の金利" : "審査金利"} ${sRate}%）`, value: r1(dti) + "%", status: st(dti <= limit, dti <= limit + 5) },
@@ -210,6 +238,23 @@
       { key: "payoff", label: "完済時の年齢", rule: `${P.payoffAgeMax}歳以下`, value: payoffAge + "歳", status: st(payoffAge <= P.payoffAgeMax - 5, payoffAge <= P.payoffAgeMax) },
       { key: "loanRange", label: "借入額", rule: `${man(P.loanMin)}以上 ${man(P.loanMax)}以下`, value: man(loan), status: loan >= P.loanMin && loan <= P.loanMax ? "ok" : "ng" },
     ];
+    let pair = null;
+    if (isPair) {
+      const pInc = +x.partnerIncome || 0, pLimit = dtiLimit(pInc, P);
+      const partnerLoan = loan * share;
+      const partnerDti = pInc > 0 ? pmt(partnerLoan, sRate, x.term) * 12 / pInc * 100 : Infinity;
+      const pPayoff = (+x.partnerAge || 0) + x.term;
+      pair = { mainLoan, partnerLoan, partnerIncome: pInc, partnerDti, partnerLimit: pLimit, partnerPayoff: pPayoff };
+      capacity.push({ key: "pairPartner", label: "相手の返済負担率（ペアローン）", rule: `${pLimit}%以下`, value: isFinite(partnerDti) ? r1(partnerDti) + "%" : "年収なし", status: st(partnerDti <= pLimit, partnerDti <= pLimit + 5) });
+      capacity.push({ key: "pairPayoff", label: "相手の完済時の年齢", rule: `${P.payoffAgeMax}歳以下`, value: pPayoff + "歳", status: st(pPayoff <= P.payoffAgeMax - 5, pPayoff <= P.payoffAgeMax) });
+    }
+    const bShare = Math.max(0, +x.bonusShare || 0) / 100;
+    let bonusPlan = null;
+    if (bShare > 0) {
+      capacity.push({ key: "bonus", label: "ボーナス払いの割合", rule: "借入の50%以下・ボーナスがあること", value: Math.round(bShare * 100) + "%",
+        status: bShare > 0.5 ? "ng" : !(+x.bonusIncome > 0) ? "warn" : "ok" });
+      bonusPlan = { share: bShare, monthly: pmt(mainLoan * (1 - bShare), x.rate, x.term), bonus: pmt(mainLoan * bShare, x.rate, x.term) * 6 };
+    }
     if (P.termMin > 1) capacity.push({ key: "termRange", label: "返済期間", rule: `${P.termMin}年以上 ${P.termMax}年以下`, value: x.term + "年", status: x.term >= P.termMin && x.term <= P.termMax ? "ok" : "ng" });
 
     // ---------- ⑥ 担保・物件 ----------
@@ -225,8 +270,13 @@
     if (x.financeCosts && P.ltvWithCosts <= P.ltvMax) property.push({ key: "costs", label: "諸費用の借入", rule: "この型では諸費用は借入に含めない", value: "含める", status: "warn" });
 
     // ---------- 融資可能額 ----------
-    const byDti = pv(income * limit / 100 / 12 - debt, sRate, term);
-    const byMultiple = isFinite(P.multipleMax) ? income * P.multipleMax : Infinity;
+    let byDti = pv(income * limit / 100 / 12 - debt, sRate, term);
+    let byMultiple = isFinite(P.multipleMax) ? income * P.multipleMax : Infinity;
+    if (isPair) {
+      const pInc = +x.partnerIncome || 0;
+      byDti = Math.min(byDti / (1 - share), pv(pInc * dtiLimit(pInc, P) / 100 / 12, sRate, term) / share);
+      byMultiple = Math.min(byMultiple / (1 - share), isFinite(P.multipleMax) ? pInc * P.multipleMax / share : Infinity);
+    }
     const byCollateral = ltvBaseValue * ltvLimit / 100;
     const caps = [
       { key: "dti", label: "返済負担率", value: byDti },
@@ -257,8 +307,9 @@
     const guarantee = g
       ? { grade, fee: gc.rateAdd, add: g.add, label: g.label, rate: x.rate + g.add + gc.rateAdd, feeType: gc.feeType, lump: gc.lump, guarantor: P.guarantor.label }
       : { grade, fee: null, add: null, label: "取扱い不可", rate: null, feeType: gc.feeType, lump: 0, guarantor: P.guarantor.label };
-    const admin = adminFee(P, loan);
-    const fees = { guarantee: gc, admin, total: gc.lump + admin, adminLabel: P.adminFee.type === "rate" ? `借入額の${P.adminFee.value}%` : "定額" };
+    const contracts = isPair ? 2 : 1;
+    const admin = P.adminFee.type === "rate" ? adminFee(P, loan) : adminFee(P, loan) * contracts;
+    const fees = { guarantee: gc, admin, total: gc.lump + admin, contracts, adminLabel: (P.adminFee.type === "rate" ? `借入額の${P.adminFee.value}%` : "定額") + (contracts > 1 ? "（ペアローンで2本）" : "") };
     const gt = P.guarantor.type;
     const gChecks = [
       { key: "guarantor", label: "保証機関", rule: gt === "none" ? "保証会社を使わない" : gt === "waived" ? "保証料は取らない（事務手数料型）" : "金融機関とは別に保証審査", value: P.guarantor.label, status: "ok" },
@@ -277,7 +328,7 @@
 
     // ---------- 判定 ----------
     const judged = [kyc, credit, person, incomeChecks, capacity, property].flat();
-    const amountKeys = ["dti", "multiple", "ltv", "loanRange"];
+    const amountKeys = ["dti", "multiple", "ltv", "loanRange", "pairPartner"];
     const ng = judged.filter((c) => c.status === "ng");
     const warn = judged.filter((c) => c.status === "warn");
     const amountNg = ng.filter((c) => amountKeys.includes(c.key));
@@ -326,6 +377,8 @@
     if (person.find((c) => c.key === "tenure").status === "warn") conditions.push("勤続年数・事業年数を満たしてからの申込みを検討");
     if (stage === "main" && pending.length) conditions.push(`書類の確認（未確認 ${pending.length}点）`);
     if (P.memberThreshold > 0 && loan > P.memberThreshold && !knockouts.length) conditions.push(`借入が${man(P.memberThreshold)}を超えるため、会員（出資金の払込み）への加入`);
+    if (isPair) conditions.push("ペアローンは2人それぞれが契約者。団信・諸費用・書類も2人分になる。どちらかが働けなくなっても、相手の分の返済は残る");
+    if (x.privateRoad === "noShare") conditions.push("私道の持分を取得するか、所有者から通行・掘削の承諾書をもらう");
     if (flat && flat.highLtv) conditions.push(`融資率が${P.highLtv.over}%を超えるため金利が+${P.highLtv.add}%（頭金を増やすと下がる）`);
 
     const strengths = [];
@@ -369,6 +422,7 @@
       collateral: ap.value, appraisal: ap, collateralRate: ap.rate, ltv, ltvLimit,
       caps, bind, maxLoan, parts, score, grade, guarantee, authority, docsRequired: docs,
       conditions, strengths, concerns, whatIf, audit, note: NOTE, flat, fees, guarantorNote: GUARANTOR_NOTE,
+      pair, bonusPlan, rateRisk: rateRisk(mainLoan, x.rate, x.term, P.isFlat ? "fixedAll" : x.rateType),
       total: mActual * x.term * 12, interest: mActual * x.term * 12 - loan,
     };
   }
@@ -381,7 +435,7 @@
   }
 
   return {
-    ENGINE_VERSION, EMPLOY, NATIONALITY, DANSHIN, JOINT, STAGE, SAMPLE, NOTE, DEC,
+    ENGINE_VERSION, EMPLOY, NATIONALITY, DANSHIN, JOINT, RATE_TYPE, STAGE, SAMPLE, NOTE, DEC,
     pmt, pv, dtiLimit, docsRequired, screen: screenWithPolicySwitch, man, yen, r1,
   };
 });

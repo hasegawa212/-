@@ -15,7 +15,8 @@
   };
   const STRUCTURE = { wood: "木造", steel: "鉄骨造", rc: "鉄筋コンクリート造" };
   const ZONE = { urban: "市街化区域", chosei: "市街化調整区域", none: "非線引き区域" };
-  const PURPOSE = { own: "本人が住む", second: "セカンドハウス", invest: "投資用（人に貸す）" };
+  const PURPOSE = { own: "本人が住む", refi: "借り換え（いま住んでいる家）", second: "セカンドハウス", invest: "投資用（人に貸す）" };
+  const PRIVATE_ROAD = { none: "公道に面している", share: "私道（持分あり）", consent: "私道（持分なし・通行掘削の承諾書あり）", noShare: "私道（持分なし・承諾なし）" };
 
   const pick = (table, age) => { for (const [lim, r] of table) if (age < lim) return r; return table[table.length - 1][1]; };
 
@@ -62,9 +63,16 @@
     const minF = p.house ? P.minFloorHouse : P.minFloorMansion;
     const floor = +x.floor || 0;
     if (floor > 0) add("floor", "床面積", `${minF}㎡以上`, floor + "㎡", floor >= minF ? "ok" : "ng");
+    if (purpose === "refi") add("refiHistory", "いまのローンの返済実績", "延滞なし（直近1年以上）", x.refiLate ? "延滞あり" : "延滞なし", x.refiLate ? "ng" : "ok");
+    if (p.house && x.privateRoad && x.privateRoad !== "none") {
+      add("privateRoad", "私道", "持分あり、または通行・掘削の承諾書", PRIVATE_ROAD[x.privateRoad] || x.privateRoad, x.privateRoad === "share" ? "ok" : x.privateRoad === "consent" ? "warn" : "ng");
+    }
+    if (p.house && x.retainingWall) add("retainingWall", "ひな壇・擁壁", "擁壁の検査済証、または安全性の確認", "検査済証のない擁壁あり", "warn");
+    if (x.noInspection) add("noInspection", "建物の検査済証", P.isFlat ? "検査済証、または適合証明で代替" : "検査済証があること（ない場合は個別に確認）", "なし", P.isFlat ? "ng" : "warn");
+    if (x.unregistered) add("unregistered", "未登記の増築", "登記と現況が一致すること", "未登記部分あり", "warn");
     if (x.oldQuake) add("quake", "耐震基準", P.requireNewQuake ? "新耐震、または耐震評価で基準に適合" : "新耐震（1981年6月以降の建築確認）", "旧耐震", P.requireNewQuake ? "ng" : "warn");
     return { knockouts, checks };
   }
 
-  return { PROPERTY, STRUCTURE, ZONE, PURPOSE, appraise, eligibility };
+  return { PROPERTY, STRUCTURE, ZONE, PURPOSE, PRIVATE_ROAD, appraise, eligibility };
 });

@@ -339,7 +339,11 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { k: "incomePrev2", label: "前々年の年収", type: "num", unit: "万円", hint: "自営業・経営者の3期目" },
       { k: "corpLoss", label: "法人の赤字（直近3期のうち）", type: "sel", opts: [[0, "なし"], [1, "1期"], [2, "2期"], [3, "3期"]], num: true, show: (d) => d.employ === "owner" },
       { k: "jointType", label: "収入合算", type: "sel", opts: opts(L.JOINT) },
-      { k: "jointIncome", label: "合算する人の年収", type: "num", unit: "万円", show: (d) => d.jointType !== "none" },
+      { k: "jointIncome", label: "合算する人の年収", type: "num", unit: "万円", show: (d) => d.jointType === "guarantor" || d.jointType === "codebtor" },
+      { k: "pairShare", label: "相手が借りる割合（ペアローン）", type: "num", unit: "%", step: 5, show: (d) => d.jointType === "pair" },
+      { k: "partnerIncome", label: "相手の年収", type: "num", unit: "万円", show: (d) => d.jointType === "pair" },
+      { k: "partnerAge", label: "相手の年齢", type: "num", unit: "歳", show: (d) => d.jointType === "pair" },
+      { k: "bonusIncome", label: "年間のボーナス（税込み）", type: "num", unit: "万円", hint: "ボーナス払いを使う場合" },
     ]},
     { t: "借入の希望", items: [
       { k: "price", label: "物件価格", type: "num", unit: "万円" },
@@ -348,9 +352,13 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { k: "financeCosts", label: "諸費用もローンに含める", type: "sw" },
       { k: "term", label: "返済期間", type: "num", unit: "年", min: 1, max: 50 },
       { k: "rate", label: "適用金利（実際の金利）", type: "num", unit: "%", step: 0.01, show: (d, P) => !P.isFlat },
+      { k: "rateType", label: "金利のタイプ", type: "sel", opts: Object.entries(L.RATE_TYPE), show: (d, P) => !P.isFlat },
+      { k: "bonusShare", label: "ボーナス払いの割合", type: "num", unit: "%", step: 5, hint: "借入の50%まで。0なら使わない" },
       { k: "flatRate", label: "フラット35の金利（融資率9割以下）", type: "num", unit: "%", step: 0.01, hint: "取扱金融機関の当月の金利。9割超の上乗せは自動", show: (d, P) => P.isFlat },
       { k: "feeType", label: "保証料の支払い方法", type: "sel", opts: Object.entries(L.FEE_TYPE), show: (d, P) => P.guarantor.type === "bank" || P.guarantor.type === "shinkin" },
       { k: "purpose", label: "用途", type: "sel", opts: opts(L.PURPOSE) },
+      { k: "refiBalance", label: "いまのローンの残高", type: "num", unit: "万円", show: (d) => d.purpose === "refi" },
+      { k: "refiLate", label: "いまのローンに延滞がある", type: "sw", show: (d) => d.purpose === "refi" },
     ]},
     { t: "フラット35の金利引下げ", note: "子育てプラスとフラット35Sのポイントで、当初の金利が下がります（1ポイントにつき当初5年0.25%、最大1.0%。5ポイント以上は6〜10年目も）。予算や条件は住宅金融支援機構で確認してください。", show: (d, P) => P.isFlat, items: [
       { k: "kids", label: "18歳未満の子どもの人数", type: "num", unit: "人" },
@@ -366,6 +374,10 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { k: "rosenka", label: "路線価", type: "num", unit: "円/㎡", step: 1000, show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
       { k: "road", label: "接道の長さ", type: "num", unit: "m", step: 0.1, show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
       { k: "zone", label: "区域", type: "sel", opts: opts(L.ZONE) },
+      { k: "privateRoad", label: "前の道路", type: "sel", opts: Object.entries(L.PRIVATE_ROAD), show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
+      { k: "retainingWall", label: "ひな壇・擁壁がある（擁壁の検査済証なし）", type: "sw", show: (d) => L.PROPERTY[d.property] && L.PROPERTY[d.property].house },
+      { k: "noInspection", label: "建物の検査済証がない", type: "sw" },
+      { k: "unregistered", label: "未登記の増築がある", type: "sw" },
       { k: "leasehold", label: "借地権（土地が所有権ではない）", type: "sw" },
       { k: "overBuild", label: "建ぺい率・容積率の超過がある", type: "sw" },
       { k: "oldQuake", label: "旧耐震（1981年5月以前の建築確認）", type: "sw" },
@@ -491,7 +503,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     const v = el.type === "checkbox" ? el.checked : el.type === "number" || el.dataset.num ? (el.value === "" ? 0 : +el.value) : el.value;
     setPath(data, k, v);
     if (isSample) { isSample = false; $("#sampleTag").hidden = true; }
-    if (["employ", "jointType", "property", "danshin", "price", "down", "costs", "financeCosts"].includes(k)) { applyShow(); renderDocs(); }
+    if (["employ", "jointType", "property", "danshin", "price", "down", "costs", "financeCosts", "purpose", "pairShare"].includes(k)) { applyShow(); renderDocs(); }
     renderLive();
   }
 
@@ -606,6 +618,20 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
         </div>
         <p class="note" style="margin-top:8px">${esc(r.guarantorNote)}</p>
       </div>
+
+      ${r.pair || r.bonusPlan || r.rateRisk.applies ? `<div class="card">
+        <div class="sec-h"><h2 class="sec-t">返済の見通し</h2></div>
+        ${r.pair ? `<div class="kpis" style="margin-bottom:10px">
+          <div class="kpi"><div class="k">本人が借りる額</div><div class="v">${L.man(r.pair.mainLoan)}</div><div class="s">返済負担率 ${L.r1(r.dti)}%</div></div>
+          <div class="kpi"><div class="k">相手が借りる額</div><div class="v">${L.man(r.pair.partnerLoan)}</div><div class="s">返済負担率 ${isFinite(r.pair.partnerDti) ? L.r1(r.pair.partnerDti) + "%" : "—"}（上限 ${r.pair.partnerLimit}%）</div></div>
+        </div>` : ""}
+        ${r.bonusPlan ? `<div class="kpis" style="margin-bottom:10px">
+          <div class="kpi"><div class="k">毎月の返済</div><div class="v">${L.yen(r.bonusPlan.monthly * 10000)}</div><div class="s">ボーナス払い ${Math.round(r.bonusPlan.share * 100)}%</div></div>
+          <div class="kpi"><div class="k">ボーナス時の加算</div><div class="v">${L.yen(r.bonusPlan.bonus * 10000)}</div><div class="s">年2回</div></div>
+        </div>` : ""}
+        ${r.rateRisk.applies ? `<div class="chk">${r.rateRisk.scenarios.map((sc) => `<div class="chk-row"><span class="mk ${sc.capped ? "warn" : "ok"}">${sc.capped ? "△" : "○"}</span><div class="chk-t"><b>金利が +${sc.up}% 上がったら（変動金利）</b><span>6年目からの返済。${sc.capped ? "125%で頭打ち（未払いの利息が残るおそれ）" : "125%以内"}</span></div><span class="chk-v num">${L.yen(sc.paymentAfter5 * 10000)}</span></div>`).join("")}</div>
+        <p class="note" style="margin-top:8px">今の毎月の返済 ${L.yen(r.rateRisk.base * 10000)}。${esc(r.rateRisk.note)}</p>` : ""}
+      </div>` : ""}
 
       <div class="card">
         <div class="sec-h"><h2 class="sec-t">担保評価</h2></div>
