@@ -43,7 +43,7 @@
     road: 4, zone: "urban", leasehold: false, overBuild: false, oldQuake: false, saikenchiku: false, collateral: 0,
     car: 2.5, card: 0, scholarship: 1.2, revo: 0, other: 0, cashing: 0,
     credit: { cic: { late: "none", apply: 1 }, jicc: { late: "none", apply: 0 }, ksc: { late: "none", apply: 1, kanpo: false } },
-    phoneLate: false, taxLate: false, danshin: "ok", antisocial: false,
+    phoneLate: false, taxLate: false, danshin: "ok", antisocial: false, priorRejects: 0, single: false, motiveDoc: false,
     docs: { income: false, id: false, property: false, contract: false, danshin: false, tax: false, corp: false, fit: false },
   };
 
@@ -52,6 +52,14 @@
     conditional: { label: "条件付き承認見込み", short: "条件付", tone: "warn" },
     hold: { label: "要再検討（保留）", short: "保留", tone: "hold" },
     reject: { label: "否決見込み", short: "否決", tone: "ng" },
+  };
+
+  // 答え合わせ（当社の実績。scratch で計算し、数字だけここに置く。お客様の情報は持たない）
+  const CALIBRATION = {
+    period: "2024年7月〜2026年10月",
+    n: 25, match: 22, approvedCaught: "17/17", rejectsCaught: "5/8", customers: 11,
+    before: { match: 16, rejectsCaught: "1/8" },
+    note: "年齢・年収・勤続がそろっている申込みは25件（お客様11人）だけで、件数が少ない。否決8件のうち5件は1人のお客様の連続否決。外れた3件は物件の問題（価格調整・物件の振り替え）と、否決が続いた最初の1件で、今の入力では見えない理由。数字は目安で、件数が増えたら測り直す。",
   };
 
   const NOTE = "この結果は、一般的な住宅ローン審査の考え方に基づく目安です。実際の審査基準は金融機関ごとに異なり公開されていません。承認・融資を約束するものではなく、最終的な判断は金融機関が行います。信用情報は自己申告で、照会はしていません。";
@@ -170,6 +178,8 @@
     credit.push({ key: "kanpo", label: "官報情報（破産・個人再生）", rule: "登録なし", value: cs.kanpo ? "登録あり" : "なし", status: cs.kanpo ? "ng" : "ok" });
     if (cs.kanpo) knockouts.push("官報情報（破産・個人再生）の登録あり");
     credit.push({ key: "apply", label: "申込情報（ローン・カードの申込件数）", rule: "2件以下（機関ごとの最大値）", value: cs.applyMax + "件", status: st(cs.applyMax <= 2, cs.applyMax <= 4) });
+    const pr = Math.max(0, +x.priorRejects || 0);
+    if (pr > 0) credit.push({ key: "priorRejects", label: "直近6か月の否決", rule: "なし（否決が続くと他の金融機関も慎重になる）", value: pr + "件", status: pr >= 2 ? "ng" : "warn" });
     credit.push({ key: "phone", label: "スマホ本体代金の支払い", rule: "遅れなし", value: x.phoneLate ? "遅れあり" : "遅れなし", status: x.phoneLate ? "warn" : "ok" });
     if (e.self) credit.push({ key: "tax", label: "税金の納付", rule: "滞納なし", value: x.taxLate ? "滞納あり" : "滞納なし", status: x.taxLate ? "ng" : "ok" });
 
@@ -187,8 +197,9 @@
     person.push({ key: "nationality", label: "国籍・在留資格", rule: P.nonPR === "ng" ? "日本国籍または永住権" : "永住権がない場合は個別に確認", value: NATIONALITY[nat], status: natSt });
     if (natSt === "ng") knockouts.push("外国籍で永住権がない（この型では取り扱わない）");
     const irregular = e.kind === "irregular";
-    person.push({ key: "employ", label: "雇用形態", rule: P.contractOk ? "正社員・公務員・自営業など（契約・派遣は個別）" : "正社員・公務員・自営業など", value: e.label,
-      status: irregular ? (P.contractOk || P.id === "flat35" ? "warn" : "ng") : "ok" });
+    // 実績: 契約・派遣でも勤続2年以上なら、契約社員を受け付ける金融機関で承認が多い
+    person.push({ key: "employ", label: "雇用形態", rule: P.contractOk ? "正社員・公務員・自営業など（契約・派遣は勤続2年以上）" : "正社員・公務員・自営業など", value: e.label,
+      status: irregular ? (P.contractOk ? (x.tenure >= 2 ? "ok" : "warn") : P.isFlat ? "ok" : "ng") : "ok" });
     if (P.id === "flat35" && irregular) person[person.length - 1].status = "ok";
     person.push({ key: "tenure", label: e.self ? "事業年数（確定申告）" : "勤続年数", rule: tenureMin > 0 ? `${tenureMin}年以上` : "問わない", value: x.tenure + "年",
       status: st(x.tenure >= tenureMin, x.tenure >= tenureMin / 2) });
@@ -196,6 +207,7 @@
       person.push({ key: "area", label: "営業地域", rule: "営業地域内に住む・勤める（物件も地域内）", value: x.inArea === false ? "地域外" : "地域内", status: x.inArea === false ? "ng" : "ok" });
       if (x.inArea === false) knockouts.push("信用金庫の営業地域外（会員資格の対象外）");
     }
+    if (x.single) person.push({ key: "single", label: "単身での購入", rule: "購入動機書（なぜこの家・この場所か）を用意", value: x.motiveDoc ? "動機書あり" : "動機書なし", status: x.motiveDoc ? "ok" : "warn" });
     const dan = DANSHIN[x.danshin] ? x.danshin : "ok";
     const danSt = dan === "ok" ? "ok" : dan === "wide" ? "warn" : P.danshinRequired ? "ng" : "warn";
     person.push({ key: "danshin", label: "団体信用生命保険", rule: P.danshinRequired ? "加入できること" : P.isFlat ? "任意（新機構団信は金利に含む。入らなければ金利−0.2%）" : "任意（加入しない場合は保障を別に）", value: DANSHIN[dan], status: danSt });
@@ -377,6 +389,8 @@
     if (person.find((c) => c.key === "tenure").status === "warn") conditions.push("勤続年数・事業年数を満たしてからの申込みを検討");
     if (stage === "main" && pending.length) conditions.push(`書類の確認（未確認 ${pending.length}点）`);
     if (P.memberThreshold > 0 && loan > P.memberThreshold && !knockouts.length) conditions.push(`借入が${man(P.memberThreshold)}を超えるため、会員（出資金の払込み）への加入`);
+    if (x.single && !x.motiveDoc) conditions.push("購入動機書（勤務先・地元とのつながり・この家を選んだ理由・将来の計画）を用意してから申し込む");
+    if (pr >= 1) conditions.push("否決の理由を確かめ、条件（物件・借入額・申込先）を見直してから次に出す。続けて申し込まない");
     if (isPair) conditions.push("ペアローンは2人それぞれが契約者。団信・諸費用・書類も2人分になる。どちらかが働けなくなっても、相手の分の返済は残る");
     if (x.privateRoad === "noShare") conditions.push("私道の持分を取得するか、所有者から通行・掘削の承諾書をもらう");
     if (flat && flat.highLtv) conditions.push(`融資率が${P.highLtv.over}%を超えるため金利が+${P.highLtv.add}%（頭金を増やすと下がる）`);
@@ -435,7 +449,7 @@
   }
 
   return {
-    ENGINE_VERSION, EMPLOY, NATIONALITY, DANSHIN, JOINT, RATE_TYPE, STAGE, SAMPLE, NOTE, DEC,
+    ENGINE_VERSION, CALIBRATION, EMPLOY, NATIONALITY, DANSHIN, JOINT, RATE_TYPE, STAGE, SAMPLE, NOTE, DEC,
     pmt, pv, dtiLimit, docsRequired, screen: screenWithPolicySwitch, man, yen, r1,
   };
 });
