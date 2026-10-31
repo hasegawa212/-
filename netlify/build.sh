@@ -23,5 +23,9 @@ cp -R cashflow-dashboard/. _site/cashflow-dashboard/
 mkdir -p _site/life-housing-sim
 cp -R life-housing-sim/. _site/life-housing-sim/
 
+# サブディレクトリ: LOAN DESK 住宅ローン審査
+mkdir -p _site/loan-screening-app
+cp -R loan-screening-app/. _site/loan-screening-app/
+
 echo "built _site:"
 find _site -maxdepth 2 -type f | sort

@@ -1,0 +1,11 @@
+{
+  "name": "loan-screening-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "住宅ローン審査アプリ（iPhone向け・銀行の審査の流れを再現した目安）",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node tools/bundle.js",
+    "serve": "python3 -m http.server 5190"
+  }
+}

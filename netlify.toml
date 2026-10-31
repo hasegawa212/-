@@ -30,3 +30,8 @@
   for = "/life-housing-sim/*"
   [headers.values]
     Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/loan-screening-app/*"
+  [headers.values]
+    Cache-Control = "no-cache"

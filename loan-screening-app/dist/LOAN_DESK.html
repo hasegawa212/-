@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LOAN DESK 住宅ローン審査</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#10233d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LOAN DESK">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: 銀行の審査端末をiPhoneの1カラムに。上に案件番号のバー、下にタブ、結果は稟議書の体裁（印影・決裁欄） */
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --sunk:#f5f7fa; --line:#d9dfe7;
+  --ink:#13213a; --muted:#5b687c; --navy:#10233d; --on-navy:#eef2f8;
+  --accent:#1f5aa6; --accent-soft:#e3ecf8;
+  --seal:#c23b2e; --ok:#1d7a4f; --ok-soft:#e1f2e9; --warn:#a86400; --warn-soft:#fbf0dc;
+  --ng:#b3261e; --ng-soft:#fbe5e3; --hold:#5a4fa0; --hold-soft:#ebe8f7;
+  --f-display:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b111b; --surface:#131c2a; --sunk:#0f1724; --line:#26344a;
+  --ink:#e5ebf3; --muted:#9aa8bc; --navy:#0a1626; --on-navy:#e5ebf3;
+  --accent:#7fb0f5; --accent-soft:#1a2b45;
+  --seal:#ff7b6b; --ok:#5fd19a; --ok-soft:#12301f; --warn:#f2b552; --warn-soft:#33270f;
+  --ng:#ff8a80; --ng-soft:#3a1715; --hold:#b4a9ff; --hold-soft:#24204a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b111b; --surface:#131c2a; --sunk:#0f1724; --line:#26344a;
+  --ink:#e5ebf3; --muted:#9aa8bc; --navy:#0a1626; --on-navy:#e5ebf3;
+  --accent:#7fb0f5; --accent-soft:#1a2b45;
+  --seal:#ff7b6b; --ok:#5fd19a; --ok-soft:#12301f; --warn:#f2b552; --warn-soft:#33270f;
+  --ng:#ff8a80; --ng-soft:#3a1715; --hold:#b4a9ff; --hold-soft:#24204a; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--navy)}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.app{max-width:520px;margin:0 auto;min-height:100vh;padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--navy);color:var(--on-navy);
+  padding-block:10px 12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.bar-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.logo{font-family:var(--f-num);font-weight:600;letter-spacing:.22em;font-size:13px}
+.logo small{display:block;font-family:var(--f-body);letter-spacing:.08em;font-size:11px;opacity:.75;font-weight:400}
+.caseno{font-family:var(--f-num);font-size:12px;opacity:.85;text-align:right}
+.live{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
+.live span{background:rgba(255,255,255,.09);border-radius:6px;padding:3px 8px}
+.live b{font-family:var(--f-num);font-weight:600}
+
+main{padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:14px}
+.view[hidden]{display:none}
+.view{display:grid;gap:14px}
+h1,h2,h3{margin:0;text-wrap:balance}
+.h-page{font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:.04em}
+.sub{color:var(--muted);font-size:13px;margin:0}
+.sample{display:inline-block;font-size:11px;letter-spacing:.08em;border:1px solid var(--warn);color:var(--warn);border-radius:4px;padding:0 6px;margin-left:6px;vertical-align:2px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.sec-n{font-family:var(--f-num);font-size:11px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 5px}
+.sec-t{font-weight:700;font-size:15px}
+.sec-note{font-size:12px;color:var(--muted);margin:-4px 0 8px}
+
+.row{display:grid;grid-template-columns:1fr auto;align-items:center;gap:10px;padding-block:9px;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row label{font-size:14px}
+.row .hint{display:block;font-size:11.5px;color:var(--muted)}
+.field{display:flex;align-items:center;gap:6px}
+.field input[type=number],.field input[type=text]{width:112px;text-align:right;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);font-family:var(--f-num);font-size:16px}
+.field input[type=text]{font-family:var(--f-body);width:130px}
+.field .u{font-size:12px;color:var(--muted);min-width:28px}
+.row.sel{grid-template-columns:1fr}
+select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);font-size:16px}
+.sw{position:relative;width:50px;height:30px;flex:none}
+.sw input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer}
+.sw i{position:absolute;inset:0;border-radius:99px;background:var(--line);transition:background .15s}
+.sw i::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.sw input:checked+i{background:var(--accent)}
+.sw input:checked+i::after{transform:translateX(20px)}
+.sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
+
+.btn{border:0;border-radius:10px;padding:13px 16px;font-weight:700;cursor:pointer;background:var(--accent-soft);color:var(--accent)}
+.btn.primary{background:var(--navy);color:var(--on-navy);font-size:16px;letter-spacing:.1em;width:100%;padding:16px}
+:root[data-theme="dark"] .btn.primary{border:1px solid var(--line)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:transparent;color:var(--ng);border:1px solid var(--line)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btns .btn{flex:1 1 140px}
+
+/* 審査中 */
+.proc{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--navy) 94%,transparent);color:var(--on-navy);display:grid;place-items:center;padding:24px}
+.proc-box{width:min(340px,100%)}
+.proc h2{font-family:var(--f-display);font-size:20px;margin-bottom:14px;letter-spacing:.06em}
+.proc ol{list-style:none;margin:0;padding:0;display:grid;gap:8px;font-size:14px}
+.proc li{display:flex;gap:10px;align-items:center;opacity:.4}
+.proc li.on{opacity:1}
+.proc li .dot{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;flex:none}
+.proc li.done .dot{background:currentColor}
+
+/* 結果 */
+.verdict{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.v-label{font-size:12px;color:var(--muted);letter-spacing:.08em}
+.v-main{font-family:var(--f-display);font-weight:800;font-size:24px;line-height:1.3}
+.v-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.stamp{width:92px;height:92px;border-radius:50%;border:3px solid var(--seal);color:var(--seal);display:grid;place-items:center;text-align:center;
+  font-family:var(--f-display);font-weight:800;transform:rotate(-12deg);line-height:1.1}
+.stamp b{font-size:22px;display:block;letter-spacing:.06em}
+.stamp small{font-size:9px;letter-spacing:.12em;font-family:var(--f-num)}
+.stamp.ok{border-color:var(--ok);color:var(--ok)} .stamp.warn{border-color:var(--warn);color:var(--warn)}
+.stamp.hold{border-color:var(--hold);color:var(--hold)} .stamp.ng{border-color:var(--ng);color:var(--ng)}
+@media (prefers-reduced-motion:no-preference){.stamp.pop{animation:pop .35s ease-out}@keyframes pop{from{transform:rotate(-12deg) scale(1.6);opacity:0}to{transform:rotate(-12deg) scale(1);opacity:1}}}
+
+.grade{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.grade-l{font-family:var(--f-num);font-weight:600;font-size:44px;line-height:1;width:64px;height:64px;border-radius:10px;display:grid;place-items:center;background:var(--sunk);border:1px solid var(--line)}
+.meter{height:10px;border-radius:99px;background:var(--sunk);border:1px solid var(--line);position:relative;overflow:hidden}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:99px}
+.ticks{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);font-family:var(--f-num);margin-top:3px}
+
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi{background:var(--sunk);border-radius:10px;padding:10px}
+.kpi .k{font-size:11.5px;color:var(--muted)}
+.kpi .v{font-family:var(--f-num);font-weight:600;font-size:19px}
+.kpi .s{font-size:11px;color:var(--muted)}
+
+.amount{display:grid;gap:8px}
+.am-row{display:grid;grid-template-columns:92px 1fr;gap:8px;align-items:center;font-size:12.5px}
+.am-bar{height:22px;background:var(--sunk);border-radius:5px;position:relative}
+.am-bar i{position:absolute;inset:0 auto 0 0;border-radius:5px;background:var(--accent)}
+.am-bar i.want{background:var(--muted)}
+.am-bar span{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-family:var(--f-num);font-size:12px;font-weight:600}
+
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:8px 6px;border-top:1px solid var(--line);vertical-align:top}
+th{font-size:11px;color:var(--muted);font-weight:500;border-top:0}
+td.v{font-family:var(--f-num);white-space:nowrap}
+.mk{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;font-weight:700;font-size:13px}
+.mk.ok{background:var(--ok-soft);color:var(--ok)} .mk.warn{background:var(--warn-soft);color:var(--warn)} .mk.ng{background:var(--ng-soft);color:var(--ng)}
+
+.chk{display:grid}
+.chk-row{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:center;padding-block:9px;border-top:1px solid var(--line)}
+.chk-row:first-child{border-top:0}
+.chk-t{min-width:0;display:grid;font-size:13.5px}
+.chk-t span{font-size:11.5px;color:var(--muted)}
+.chk-v{font-size:13px;font-weight:600;text-align:right;max-width:9.5em}
+.ko{background:var(--ng-soft);color:var(--ng);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.ko b{display:block;margin-bottom:4px}
+.ko ul{margin:0;padding-left:18px}
+
+.parts{display:grid;gap:7px}
+.part{display:grid;grid-template-columns:110px 1fr 58px;gap:8px;align-items:center;font-size:12.5px}
+.part .pb{height:8px;background:var(--sunk);border-radius:99px;position:relative;border:1px solid var(--line)}
+.part .pb i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:99px}
+.part .pv{font-family:var(--f-num);text-align:right;color:var(--muted)}
+
+.caps{display:grid;gap:6px}
+.cap{display:flex;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:8px;background:var(--sunk);font-size:13px}
+.cap.bind{outline:2px solid var(--accent);background:var(--accent-soft)}
+.cap .num{font-weight:600}
+
+.wi{display:grid;gap:8px}
+.wi-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px 10px;border-radius:8px;border:1px solid var(--line);font-size:13px}
+.pill{display:inline-block;border-radius:99px;padding:1px 9px;font-size:11.5px;font-weight:700;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.hold{background:var(--hold-soft);color:var(--hold)} .pill.ng{background:var(--ng-soft);color:var(--ng)}
+
+.memo{font-size:13.5px}
+.memo h3{font-size:12px;letter-spacing:.1em;color:var(--muted);margin:12px 0 4px;font-weight:700}
+.memo h3:first-child{margin-top:0}
+.memo ul{margin:0;padding-left:18px}
+.memo-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}
+.memo-title{font-family:var(--f-display);font-weight:800;font-size:19px;letter-spacing:.2em}
+.hanko{display:flex;border:1px solid var(--ink);flex:none}
+.hanko div{width:44px;border-left:1px solid var(--ink);text-align:center;font-size:10px}
+.hanko div:first-child{border-left:0}
+.hanko span{display:block;border-bottom:1px solid var(--ink);padding:1px 0}
+.hanko em{display:grid;place-items:center;height:40px;font-style:normal}
+.hanko em b{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--seal);color:var(--seal);display:grid;place-items:center;font-family:var(--f-display);font-size:11px}
+
+.note{font-size:11.5px;color:var(--muted);line-height:1.7}
+
+.case{display:grid;grid-template-columns:1fr auto;gap:4px 10px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer;text-align:left;width:100%}
+.case .c1{font-weight:700}
+.case .c2{font-size:12px;color:var(--muted);font-family:var(--f-num)}
+.empty{text-align:center;color:var(--muted);padding:28px 12px;font-size:14px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px);padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
+.tabs nav{max-width:520px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs a{display:grid;justify-items:center;gap:2px;padding:9px 4px 8px;text-decoration:none;color:var(--muted);font-size:11px;min-height:56px}
+.tabs a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7}
+.tabs a[aria-current="page"]{color:var(--accent);font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:var(--on-navy);padding:9px 16px;border-radius:99px;font-size:13px;z-index:60}
+@media (min-width:560px){.app{box-shadow:0 0 0 1px var(--line)}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <div class="bar-top">
+      <div class="logo">LOAN DESK<small>住宅ローン 審査システム</small></div>
+      <div class="caseno"><span id="caseNo">—</span><br><span id="caseDate">—</span></div>
+    </div>
+    <div class="live" id="live"></div>
+  </header>
+
+  <main>
+    <!-- 申込入力 -->
+    <section class="view" id="v-apply" aria-labelledby="h-apply">
+      <div>
+        <h1 class="h-page" id="h-apply">申込内容の入力<span class="sample" id="sampleTag">サンプル案件</span></h1>
+        <p class="sub">6つの区分を入力して「審査を実行」。足切り基準 → 返済能力 → 担保評価 → スコア格付の順に判定します。</p>
+      </div>
+      <form id="form" novalidate></form>
+      <button class="btn primary" id="run" type="button">審査を実行</button>
+      <div class="btns">
+        <button class="btn ghost" id="clear" type="button">新しい案件（空にする）</button>
+        <button class="btn ghost" id="loadSample" type="button">サンプルを入れる</button>
+      </div>
+      <p class="note" id="note1"></p>
+    </section>
+
+    <!-- 審査結果 -->
+    <section class="view" id="v-result" hidden aria-labelledby="h-result">
+      <h1 class="h-page" id="h-result">審査結果</h1>
+      <div id="result"></div>
+    </section>
+
+    <!-- 案件一覧 -->
+    <section class="view" id="v-cases" hidden aria-labelledby="h-cases">
+      <div>
+        <h1 class="h-page" id="h-cases">案件一覧</h1>
+        <p class="sub">「案件に保存」した審査がこの端末にだけ残ります。お名前はイニシャルだけで保存します。</p>
+      </div>
+      <div id="cases" class="view"></div>
+    </section>
+
+    <!-- 審査基準 -->
+    <section class="view" id="v-policy" hidden aria-labelledby="h-policy">
+      <div>
+        <h1 class="h-page" id="h-policy">審査基準</h1>
+        <p class="sub">金融機関ごとに違う基準を、ここで合わせられます。変えた基準はこの端末に保存され、次の審査から使われます。</p>
+      </div>
+      <form id="policyForm" novalidate></form>
+      <div class="btns">
+        <button class="btn ghost" id="policyReset" type="button">標準の基準に戻す</button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="tabs"><nav aria-label="メニュー">
+  <a href="#apply" data-v="apply"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/></svg>申込入力</a>
+  <a href="#result" data-v="result"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8.5 12.5l2.3 2.3 4.7-5"/></svg>審査結果</a>
+  <a href="#cases" data-v="cases"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>案件一覧</a>
+  <a href="#policy" data-v="policy"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 17h14"/><circle cx="9" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg>審査基準</a>
+</nav></div>
+
+<div class="proc" id="proc" hidden><div class="proc-box">
+  <h2>審査しています</h2>
+  <ol id="procList"></ol>
+</div></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+// 住宅ローン審査エンジン（銀行の審査の流れを再現した目安）
+// 足切り（ノックアウト）→ 定量チェック → 担保評価 → スコアリング（格付）→ 判定 → 融資可能額 → 稟議所見
+// 実際の審査基準は金融機関ごとに異なり非公開。ここは一般的な考え方に基づく「目安」で、承認を約束しない。
+(function (root, factory) {
+  const m = factory();
+  if (typeof module === "object" && module.exports) module.exports = m;
+  else root.LSA = m;
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  // 審査基準（「基準」タブで変えられる）。単位: 年収は万円、金利は%
+  const POLICY = {
+    ageMin: 20,            // 申込時の年齢
+    ageMax: 70,
+    payoffAgeMax: 80,      // 完済時の年齢
+    termMax: 35,           // 最長の返済期間（年）
+    stressRate: 3.5,       // 審査金利（返済比率を出すときの金利）
+    dti: [                 // 年収帯ごとの返済比率の上限（審査金利で計算）
+      { under: 300, max: 25 },
+      { under: 400, max: 30 },
+      { under: Infinity, max: 35 },
+    ],
+    multipleMax: 7,        // 年収倍率の上限（借入額÷年収）
+    multipleHard: 9,       // これを超えると減額でも難しい
+    minIncome: 150,        // 最低年収
+    tenureEmployee: 1,     // 会社員の勤続年数（年）
+    tenureSelf: 3,         // 自営業・経営者の事業年数（確定申告の期数）
+    ltvMax: 100,           // 担保評価に対する借入の上限（%）
+    ltvWithCosts: 110,     // 諸費用を含めた上限（%）
+    cashingRate: 0,        // キャッシング枠を毎月の返済に算入する率（%/月、0=算入しない）
+    jointShare: 50,        // 収入合算で算入する割合（%）
+  };
+
+  const EMPLOY = {
+    public:    { label: "公務員",               score: 200, self: false },
+    large:     { label: "正社員（上場・大企業）", score: 180, self: false },
+    regular:   { label: "正社員（中小企業）",     score: 150, self: false },
+    contract:  { label: "契約社員・派遣社員",     score: 70,  self: false },
+    owner:     { label: "会社経営者・役員",       score: 110, self: true },
+    self:      { label: "自営業・個人事業主",     score: 90,  self: true },
+    part:      { label: "パート・アルバイト",     score: 40,  self: false },
+  };
+
+  const PROPERTY = {
+    newHouse:  { label: "新築戸建" },
+    usedHouse: { label: "中古戸建" },
+    newMansion:{ label: "新築マンション" },
+    usedMansion:{ label: "中古マンション" },
+    landBuild: { label: "土地＋注文住宅" },
+  };
+
+  const LATE = {
+    none:   { label: "なし", score: 150 },
+    past:   { label: "1年以上前にあり（解消済み）", score: 110 },
+    recent: { label: "直近1年以内にあり（60日以内）", score: 40 },
+    jiko:   { label: "61日以上の延滞・代位弁済・債務整理・破産（異動）", score: 0, knockout: true },
+  };
+  const APPLY = {
+    low:  { label: "0〜2件", penalty: 0 },
+    mid:  { label: "3〜4件", penalty: 40 },
+    high: { label: "5件以上", penalty: 90 },
+  };
+  const DANSHIN = {
+    ok:    { label: "加入できる（告知事項なし）" },
+    wide:  { label: "告知事項あり（ワイド団信を検討）" },
+    no:    { label: "加入できない" },
+  };
+
+  const SAMPLE = {
+    age: 32, employ: "regular", tenure: 6, income: 480, incomePrev: 460,
+    jointIncome: 0, family: 3,
+    price: 3480, down: 300, costs: 250, financeCosts: false, term: 35, rate: 0.9,
+    property: "newHouse", builtYears: 0, oldQuake: false, saikenchiku: false, collateral: 0,
+    car: 2.5, card: 0, scholarship: 1.2, revo: 0, other: 0, cashing: 0,
+    late: "none", apply: "low", phoneLate: false, taxLate: false, danshin: "ok",
+  };
+
+  const r1 = (v) => Math.round(v * 10) / 10;
+  const man = (v) => (v == null || !isFinite(v) ? "—" : Math.round(v).toLocaleString("ja-JP") + "万円");
+  const yen = (v) => Math.round(v).toLocaleString("ja-JP") + "円";
+
+  // 元利均等: 借入 p(万円)・年利 rate(%)・n 年 → 毎月の返済（万円）
+  function pmt(p, rate, n) {
+    const i = rate / 100 / 12, k = n * 12;
+    if (k <= 0) return Infinity;
+    return i === 0 ? p / k : (p * i) / (1 - Math.pow(1 + i, -k));
+  }
+  // 毎月 m(万円) 返せるときの借入額
+  function pv(m, rate, n) {
+    const i = rate / 100 / 12, k = n * 12;
+    if (m <= 0 || k <= 0) return 0;
+    return i === 0 ? m * k : (m * (1 - Math.pow(1 + i, -k))) / i;
+  }
+
+  function dtiLimit(income, P) {
+    for (const t of P.dti) if (income < t.under) return t.max;
+    return P.dti[P.dti.length - 1].max;
+  }
+
+  // 担保評価率（物件価格に対する%）。木造の耐用年数22年・旧耐震などを反映した目安
+  function collateralRate(x) {
+    const y = Math.max(0, +x.builtYears || 0);
+    let r;
+    switch (x.property) {
+      case "newHouse": case "landBuild": r = 90; break;
+      case "newMansion": r = 90; break;
+      case "usedHouse": r = y < 10 ? 85 : y < 20 ? 75 : y < 30 ? 65 : 55; break;
+      case "usedMansion": r = y < 20 ? 85 : y < 30 ? 75 : 65; break;
+      default: r = 80;
+    }
+    if (x.oldQuake) r -= 10;
+    return r;
+  }
+
+  // 審査に使う年収: 会社員は直近、自営業・経営者は直近2期の低いほう。収入合算は割合をかけて足す
+  function incomeUsed(x, P) {
+    const e = EMPLOY[x.employ] || EMPLOY.regular;
+    const latest = +x.income || 0, prev = +x.incomePrev || latest;
+    const own = e.self ? Math.min(latest, prev) : latest;
+    return own + (+x.jointIncome || 0) * P.jointShare / 100;
+  }
+
+  function otherDebtMonthly(x, P) {
+    const fixed = ["car", "card", "scholarship", "revo", "other"].reduce((s, k) => s + (+x[k] || 0), 0);
+    return fixed + (+x.cashing || 0) * P.cashingRate / 100;
+  }
+
+  function screen(input, policy) {
+    const P = Object.assign({}, POLICY, policy || {});
+    const x = Object.assign({}, SAMPLE, input || {});
+    const e = EMPLOY[x.employ] || EMPLOY.regular;
+    const late = LATE[x.late] || LATE.none;
+    const apply = APPLY[x.apply] || APPLY.low;
+
+    const income = incomeUsed(x, P);
+    const loan = Math.max(0, x.price - x.down + (x.financeCosts ? x.costs : 0));
+    const termCap = Math.max(0, Math.min(P.termMax, P.payoffAgeMax - x.age));
+    const term = Math.min(x.term, termCap) || 0;
+    const payoffAge = x.age + x.term;
+    const debt = otherDebtMonthly(x, P);
+    const limit = dtiLimit(income, P);
+
+    const mStress = pmt(loan, P.stressRate, x.term);
+    const mActual = pmt(loan, x.rate, x.term);
+    const dti = income > 0 ? ((mStress + debt) * 12) / income * 100 : Infinity;
+    const dtiActual = income > 0 ? ((mActual + debt) * 12) / income * 100 : Infinity;
+    const multiple = income > 0 ? loan / income : Infinity;
+    const cRate = collateralRate(x);
+    const collateral = +x.collateral > 0 ? +x.collateral : x.price * cRate / 100;
+    const ltvLimit = x.financeCosts ? P.ltvWithCosts : P.ltvMax;
+    const ltv = collateral > 0 ? loan / collateral * 100 : Infinity;
+    const tenureMin = e.self ? P.tenureSelf : P.tenureEmployee;
+    const drop = x.incomePrev > 0 ? (x.incomePrev - x.income) / x.incomePrev * 100 : 0;
+
+    // ① 足切り（ひとつでも当たれば否決）
+    const knockouts = [];
+    if (x.age < P.ageMin || x.age > P.ageMax) knockouts.push(`申込年齢 ${x.age}歳（${P.ageMin}〜${P.ageMax}歳）`);
+    if (late.knockout) knockouts.push("信用情報に異動（61日以上の延滞・代位弁済・債務整理・破産）");
+    if (x.danshin === "no") knockouts.push("団体信用生命保険に加入できない");
+    if (x.saikenchiku) knockouts.push("再建築不可の物件（担保として不適格）");
+    if (income < P.minIncome) knockouts.push(`年収 ${man(income)}（最低 ${man(P.minIncome)}）`);
+    if (termCap <= 0) knockouts.push(`完済年齢の上限 ${P.payoffAgeMax}歳 までに返済期間がとれない`);
+
+    // ② 定量チェック（項目・基準・実績・判定 ok/warn/ng）
+    const st = (ok, warn) => (ok ? "ok" : warn ? "warn" : "ng");
+    const checks = [
+      { key: "dti", label: "返済比率（審査金利）", rule: `${limit}%以下（審査金利${P.stressRate}%）`,
+        value: r1(dti) + "%", status: st(dti <= limit, dti <= limit + 5) },
+      { key: "multiple", label: "年収倍率", rule: `${P.multipleMax}倍以下`,
+        value: r1(multiple) + "倍", status: st(multiple <= P.multipleMax, multiple <= P.multipleHard) },
+      { key: "payoff", label: "完済時年齢", rule: `${P.payoffAgeMax}歳以下`,
+        value: payoffAge + "歳", status: st(payoffAge <= P.payoffAgeMax - 5, payoffAge <= P.payoffAgeMax) },
+      { key: "tenure", label: e.self ? "事業年数（確定申告）" : "勤続年数", rule: `${tenureMin}年以上`,
+        value: x.tenure + "年", status: st(x.tenure >= tenureMin, x.tenure >= tenureMin / 2) },
+      { key: "ltv", label: "担保掛目（借入÷担保評価）", rule: `${ltvLimit}%以下`,
+        value: r1(ltv) + "%", status: st(ltv <= ltvLimit, ltv <= ltvLimit + 15) },
+      { key: "income", label: "所得の安定性（前年比）", rule: "減少20%未満",
+        value: (drop > 0 ? "−" : "+") + r1(Math.abs(drop)) + "%", status: st(drop < 10, drop < 20) },
+      { key: "credit", label: "信用情報（自己申告）", rule: "延滞・異動なし",
+        value: late.label, status: late.knockout ? "ng" : x.late === "recent" ? "warn" : x.phoneLate ? "warn" : "ok" },
+      { key: "apply", label: "直近6か月の申込件数", rule: "2件以下",
+        value: apply.label, status: st(x.apply === "low", x.apply === "mid") },
+      { key: "danshin", label: "団体信用生命保険", rule: "加入できること",
+        value: (DANSHIN[x.danshin] || DANSHIN.ok).label, status: x.danshin === "ok" ? "ok" : x.danshin === "wide" ? "warn" : "ng" },
+    ];
+    if (e.self) checks.push({ key: "tax", label: "税金の納付", rule: "滞納なし", value: x.taxLate ? "滞納あり" : "滞納なし", status: x.taxLate ? "ng" : "ok" });
+    if (x.oldQuake) checks.push({ key: "quake", label: "耐震基準", rule: "新耐震（1981年6月以降）", value: "旧耐震", status: "warn" });
+
+    // ③ 融資可能額（いちばん厳しい制約で決まる）
+    const byDti = pv(income * limit / 100 / 12 - debt, P.stressRate, term);
+    const byMultiple = income * P.multipleMax;
+    const byCollateral = collateral * ltvLimit / 100;
+    const caps = [
+      { key: "dti", label: "返済比率", value: byDti },
+      { key: "multiple", label: "年収倍率", value: byMultiple },
+      { key: "collateral", label: "担保評価", value: byCollateral },
+    ];
+    const bind = caps.reduce((a, b) => (b.value < a.value ? b : a));
+    const maxLoan = knockouts.length ? 0 : Math.max(0, Math.floor(bind.value / 10) * 10);
+
+    // ④ スコアリング（定量1000点 → 格付）
+    const ratioUse = dti / limit;
+    const parts = [
+      { label: "雇用形態", got: e.score, max: 200 },
+      { label: e.self ? "事業年数" : "勤続年数", got: x.tenure >= 10 ? 120 : x.tenure >= 5 ? 100 : x.tenure >= 3 ? 80 : x.tenure >= 1 ? 55 : 20, max: 120 },
+      { label: "年収", got: income >= 1000 ? 150 : income >= 700 ? 130 : income >= 500 ? 110 : income >= 400 ? 90 : income >= 300 ? 65 : 40, max: 150 },
+      { label: "返済比率の余裕", got: ratioUse <= 0.6 ? 200 : ratioUse <= 0.8 ? 160 : ratioUse <= 1 ? 110 : ratioUse <= 1.15 ? 40 : 0, max: 200 },
+      { label: "年収倍率", got: multiple <= 5 ? 100 : multiple <= 6 ? 80 : multiple <= 7 ? 60 : multiple <= 8 ? 30 : 0, max: 100 },
+      { label: "自己資金", got: x.down / x.price >= 0.2 ? 80 : x.down / x.price >= 0.1 ? 60 : x.down > 0 ? 40 : 20, max: 80 },
+      { label: "信用情報", got: Math.max(0, late.score - apply.penalty - (x.phoneLate ? 50 : 0)), max: 150 },
+      { label: "完済時年齢", got: payoffAge <= 70 ? 50 : payoffAge <= 75 ? 40 : payoffAge <= 80 ? 20 : 0, max: 50 },
+    ];
+    const raw = parts.reduce((s, p) => s + p.got, 0);
+    const rawMax = parts.reduce((s, p) => s + p.max, 0);
+    const score = Math.round(raw / rawMax * 1000);
+    const grade = score >= 800 ? "A" : score >= 650 ? "B" : score >= 500 ? "C" : score >= 350 ? "D" : "E";
+
+    // ⑤ 判定
+    const ng = checks.filter((c) => c.status === "ng");
+    const warn = checks.filter((c) => c.status === "warn");
+    const amountNg = ng.filter((c) => ["dti", "multiple", "ltv"].includes(c.key));
+    const otherNg = ng.filter((c) => !["dti", "multiple", "ltv"].includes(c.key));
+    let decision;
+    if (knockouts.length || grade === "E") decision = "reject";
+    else if (otherNg.length) decision = "hold";
+    else if (amountNg.length || loan > maxLoan) decision = maxLoan >= loan * 0.5 ? "conditional" : "reject";
+    else if (grade === "D") decision = "hold";
+    else if (grade === "C" || warn.length >= 3) decision = "conditional";
+    else decision = "approve";
+
+    const DEC = {
+      approve: { label: "承認見込み", short: "承認", tone: "ok" },
+      conditional: { label: "条件付き承認見込み", short: "条件付", tone: "warn" },
+      hold: { label: "要再検討（保留）", short: "保留", tone: "hold" },
+      reject: { label: "否決見込み", short: "否決", tone: "ng" },
+    };
+
+    // ⑥ 条件・所見
+    const conditions = [];
+    if (loan > maxLoan && maxLoan > 0) conditions.push(`借入額を ${man(maxLoan)} 以内に減額（希望 ${man(loan)}、${bind.label}で上限）`);
+    if (debt > 0 && checks.find((c) => c.key === "dti").status !== "ok") conditions.push(`他の借入（毎月 ${r1(debt)}万円）の完済・減額`);
+    if (x.danshin === "wide") conditions.push("ワイド団信など引受基準の緩い団信での申込み");
+    if (grade === "C") conditions.push("金利の優遇幅が小さくなる・保証料が上乗せになる場合あり");
+    if (x.apply !== "low") conditions.push("申込みを1〜2行に絞り、新たなカード・ローンの申込みを控える");
+    if (x.late === "recent" || x.phoneLate) conditions.push("延滞の経緯の説明と、本人開示（CIC）での確認");
+    if (x.oldQuake) conditions.push("耐震基準適合証明など物件の書類確認");
+    if (warn.find((c) => c.key === "tenure")) conditions.push("勤続年数・事業年数を満たしてからの申込みを検討");
+
+    const strengths = [];
+    if (e.score >= 150) strengths.push(`雇用が安定（${e.label}）`);
+    if (x.tenure >= 5) strengths.push(`${e.self ? "事業" : "勤続"} ${x.tenure}年`);
+    if (dti <= limit * 0.8) strengths.push(`返済比率に余裕（${r1(dti)}% / 上限${limit}%）`);
+    if (x.down / x.price >= 0.1) strengths.push(`自己資金 ${man(x.down)}（物件価格の${Math.round(x.down / x.price * 100)}%）`);
+    if (x.late === "none" && x.apply === "low" && !x.phoneLate) strengths.push("信用情報に問題の申告なし");
+    if (payoffAge <= 70) strengths.push(`完済 ${payoffAge}歳（定年前後に完済）`);
+
+    const concerns = knockouts.slice();
+    checks.filter((c) => c.status !== "ok").forEach((c) => concerns.push(`${c.label}：${c.value}（基準 ${c.rule}）`));
+
+    // ⑦ 改善シミュレーション（条件を変えたら判定がどう変わるか）
+    const whatIf = [];
+    if (!input || !input.__nested) {
+      const run = (label, patch) => {
+        const r = screen(Object.assign({}, x, patch, { __nested: true }), P);
+        if (r.decision !== decision || r.maxLoan !== maxLoan) whatIf.push({ label, decision: r.decision, decisionLabel: DEC[r.decision].label, maxLoan: r.maxLoan, score: r.score });
+      };
+      if (debt > 0) run("他の借入をすべて完済した場合", { car: 0, card: 0, scholarship: 0, revo: 0, other: 0, cashing: 0 });
+      if (x.term < termCap) run(`返済期間を${termCap}年にした場合`, { term: termCap });
+      if (loan > maxLoan && maxLoan > 0) run(`借入額を${man(maxLoan)}にした場合（頭金を増やす）`, { down: x.down + (loan - maxLoan) });
+      if (!x.jointIncome) run("配偶者の年収200万円を収入合算した場合", { jointIncome: 200 });
+      if (x.apply !== "low") run("申込件数を2件以下に絞った場合", { apply: "low" });
+    }
+
+    return {
+      input: x, policy: P, decision, decisionInfo: DEC[decision], knockouts, checks,
+      income, loan, term, payoffAge, debt, limit,
+      monthly: { actual: mActual, stress: mStress, debt },
+      dti, dtiActual, multiple, collateral, collateralRate: +x.collateral > 0 ? null : cRate, ltv, ltvLimit,
+      caps, bind, maxLoan, parts, score, grade, conditions, strengths, concerns, whatIf,
+      total: mActual * x.term * 12, interest: mActual * x.term * 12 - loan,
+    };
+  }
+
+  const NOTE = "この結果は、一般的な住宅ローン審査の考え方に基づく目安です。実際の審査基準は金融機関ごとに異なり公開されていません。承認・融資を約束するものではなく、最終的な判断は金融機関が行います。信用情報は自己申告で、照会はしていません。";
+
+  return { POLICY, EMPLOY, PROPERTY, LATE, APPLY, DANSHIN, SAMPLE, NOTE, pmt, pv, dtiLimit, collateralRate, incomeUsed, screen, man, yen, r1 };
+});
+
+</script>
+<script>
+(function () {
+  "use strict";
+  const L = window.LSA;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
+  };
+  const K_CASES = "lsa_cases_v1", K_POLICY = "lsa_policy_v1";
+
+  const opts = (o) => Object.keys(o).map((k) => [k, o[k].label]);
+  const FORM = [
+    { t: "申込人", items: [
+      { k: "initials", label: "お客様（イニシャル）", type: "text", ph: "例: K.S", hint: "お名前は保存しません" },
+      { k: "age", label: "年齢（申込時）", type: "num", unit: "歳", min: 18, max: 80 },
+      { k: "employ", label: "雇用形態", type: "sel", opts: opts(L.EMPLOY) },
+      { k: "tenure", label: "勤続年数・事業年数", type: "num", unit: "年", step: 0.5, hint: "自営業・経営者は確定申告の期数" },
+    ]},
+    { t: "収入", note: "税込みの年収（自営業は所得）。自営業・経営者は2期のうち低いほうで審査します。", items: [
+      { k: "income", label: "直近の年収", type: "num", unit: "万円" },
+      { k: "incomePrev", label: "前年の年収", type: "num", unit: "万円" },
+      { k: "jointIncome", label: "収入合算する人の年収", type: "num", unit: "万円", hint: "配偶者など。基準の割合だけ算入" },
+    ]},
+    { t: "借入の希望", items: [
+      { k: "price", label: "物件価格", type: "num", unit: "万円" },
+      { k: "down", label: "頭金（自己資金）", type: "num", unit: "万円" },
+      { k: "costs", label: "諸費用", type: "num", unit: "万円" },
+      { k: "financeCosts", label: "諸費用もローンに含める", type: "sw" },
+      { k: "term", label: "返済期間", type: "num", unit: "年", min: 1, max: 50 },
+      { k: "rate", label: "適用金利（実際の金利）", type: "num", unit: "%", step: 0.01 },
+    ]},
+    { t: "物件・担保", items: [
+      { k: "property", label: "物件の種類", type: "sel", opts: opts(L.PROPERTY) },
+      { k: "builtYears", label: "築年数", type: "num", unit: "年" },
+      { k: "oldQuake", label: "旧耐震（1981年5月以前の建築確認）", type: "sw" },
+      { k: "saikenchiku", label: "再建築不可", type: "sw" },
+      { k: "collateral", label: "担保評価額（わかれば）", type: "num", unit: "万円", hint: "0なら物件の種類と築年数から自動で見積もり" },
+    ]},
+    { t: "他の借入（毎月の返済額）", note: "住宅ローン以外の毎月の返済。返済比率に含めます。", items: [
+      { k: "car", label: "自動車ローン", type: "num", unit: "万円", step: 0.1 },
+      { k: "card", label: "カードローン・キャッシング", type: "num", unit: "万円", step: 0.1 },
+      { k: "revo", label: "リボ払い", type: "num", unit: "万円", step: 0.1 },
+      { k: "scholarship", label: "奨学金", type: "num", unit: "万円", step: 0.1 },
+      { k: "other", label: "その他（スマホ本体の分割など）", type: "num", unit: "万円", step: 0.1 },
+      { k: "cashing", label: "キャッシング枠の合計", type: "num", unit: "万円", hint: "基準で「枠を算入」にしたときだけ使います" },
+    ]},
+    { t: "信用情報・団信（自己申告）", note: "信用情報機関への照会はしていません。本人の申告と、本人開示（CIC など）の結果で入れてください。", items: [
+      { k: "late", label: "ローン・カードの延滞", type: "sel", opts: opts(L.LATE) },
+      { k: "apply", label: "直近6か月のローン・カードの申込件数", type: "sel", opts: opts(L.APPLY) },
+      { k: "phoneLate", label: "スマホ本体代金の支払い遅れがある", type: "sw" },
+      { k: "taxLate", label: "税金の滞納がある（自営業・経営者）", type: "sw" },
+      { k: "danshin", label: "団体信用生命保険", type: "sel", opts: opts(L.DANSHIN) },
+    ]},
+  ];
+
+  const BLANK = Object.assign({}, L.SAMPLE, { initials: "", age: 30, tenure: 0, income: 0, incomePrev: 0, jointIncome: 0,
+    price: 0, down: 0, costs: 0, car: 0, card: 0, scholarship: 0, revo: 0, other: 0, cashing: 0, builtYears: 0, collateral: 0 });
+
+  let data = Object.assign({ initials: "" }, L.SAMPLE);
+  let isSample = true;
+  let policy = Object.assign({}, L.POLICY, store.get(K_POLICY, {}));
+  policy.dti = (policy.dti || L.POLICY.dti).map((t) => ({ under: t.under == null ? Infinity : t.under, max: t.max }));
+  let last = null;
+  let caseNo = newCaseNo();
+
+  function newCaseNo() {
+    const d = new Date();
+    return "HL-" + d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(Math.floor(Math.random() * 9000) + 1000);
+  }
+  const today = () => { const d = new Date(); return d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate(); };
+
+  // ---------- 入力フォーム ----------
+  function renderForm() {
+    $("#form").innerHTML = FORM.map((s, i) => `
+      <div class="card"><div class="sec-h"><span class="sec-n">${String(i + 1).padStart(2, "0")}</span><h2 class="sec-t">${s.t}</h2></div>
+      ${s.note ? `<p class="sec-note">${s.note}</p>` : ""}
+      ${s.items.map(fieldHtml).join("")}</div>`).join("");
+    $("#form").addEventListener("input", onInput);
+    $("#form").addEventListener("change", onInput);
+  }
+  function fieldHtml(f) {
+    const id = "f_" + f.k, v = data[f.k];
+    const lab = `<label for="${id}">${f.label}${f.hint ? `<span class="hint">${f.hint}</span>` : ""}</label>`;
+    if (f.type === "sel") return `<div class="row sel">${lab}<select id="${id}" data-k="${f.k}">${f.opts.map(([k, t]) => `<option value="${k}"${k === v ? " selected" : ""}>${t}</option>`).join("")}</select></div>`;
+    if (f.type === "sw") return `<div class="row">${lab}<span class="sw"><input type="checkbox" id="${id}" data-k="${f.k}"${v ? " checked" : ""}><i></i></span></div>`;
+    if (f.type === "text") return `<div class="row">${lab}<span class="field"><input type="text" id="${id}" data-k="${f.k}" value="${esc(v || "")}" placeholder="${f.ph || ""}" maxlength="8" autocomplete="off"></span></div>`;
+    return `<div class="row">${lab}<span class="field"><input type="number" inputmode="decimal" id="${id}" data-k="${f.k}" value="${v}" step="${f.step || 1}" min="${f.min != null ? f.min : 0}"${f.max != null ? ` max="${f.max}"` : ""}><span class="u">${f.unit}</span></span></div>`;
+  }
+  function fill() {
+    document.querySelectorAll("#form [data-k]").forEach((el) => {
+      const v = data[el.dataset.k];
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v == null ? "" : v;
+    });
+  }
+  function onInput(ev) {
+    const el = ev.target; if (!el.dataset.k) return;
+    const k = el.dataset.k;
+    data[k] = el.type === "checkbox" ? el.checked : el.type === "number" ? (el.value === "" ? 0 : +el.value) : el.value;
+    if (isSample) { isSample = false; $("#sampleTag").hidden = true; }
+    renderLive();
+  }
+
+  // 上のバーに、入力中の借入額と返済比率を出す
+  function renderLive() {
+    if (!(data.price > 0) || !(data.income > 0)) { $("#live").innerHTML = `<span>物件価格と年収を入れると、返済比率がここに出ます</span>`; return; }
+    const r = L.screen(Object.assign({}, data, { __nested: true }), policy);
+    const over = r.dti > r.limit;
+    $("#live").innerHTML = `<span>借入 <b>${L.man(r.loan)}</b></span><span>返済比率 <b>${L.r1(r.dti)}%</b> / 上限${r.limit}%${over ? " ⚠" : ""}</span><span>年収倍率 <b>${L.r1(r.multiple)}</b>倍</span>`;
+  }
+
+  // ---------- 審査の実行 ----------
+  const STEPS = ["申込内容の確認", "足切り基準の確認（年齢・信用情報・団信）", "返済能力の確認（審査金利で返済比率）", "担保評価（物件の種類・築年数）", "スコアリング・格付", "融資可能額の算出・所見の作成"];
+  function run() {
+    const errs = [];
+    if (!(data.price > 0)) errs.push("物件価格"); if (!(data.income > 0)) errs.push("年収");
+    if (!(data.term > 0)) errs.push("返済期間"); if (!(data.age > 0)) errs.push("年齢");
+    if (errs.length) { toast(errs.join("・") + " を入れてください"); return; }
+    last = L.screen(data, policy);
+    last.caseNo = caseNo; last.date = today(); last.initials = data.initials || "";
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) { renderResult(true); go("result"); return; }
+    $("#procList").innerHTML = STEPS.map((s) => `<li><span class="dot"></span>${s}</li>`).join("");
+    $("#proc").hidden = false;
+    const lis = [...document.querySelectorAll("#procList li")];
+    lis.forEach((li, i) => setTimeout(() => { li.classList.add("on"); if (i) lis[i - 1].classList.add("done"); }, i * 260));
+    setTimeout(() => { $("#proc").hidden = true; renderResult(true); go("result"); }, STEPS.length * 260 + 200);
+  }
+
+  const MK = { ok: "○", warn: "△", ng: "×" };
+  function renderResult(pop) {
+    const box = $("#result");
+    if (!last) { box.innerHTML = `<div class="card empty">まだ審査していません。<br>「申込入力」で内容を入れて「審査を実行」を押してください。</div>`; return; }
+    const r = last, d = r.decisionInfo;
+    const maxBar = Math.max(r.loan, r.maxLoan, 1);
+    const sorted = r.checks;
+    box.innerHTML = `
+      <div class="card">
+        <div class="verdict">
+          <div>
+            <div class="v-label">審査判定（目安）</div>
+            <div class="v-main">${d.label}</div>
+            <div class="v-meta num">${esc(r.caseNo)} ・ ${r.date}${r.initials ? " ・ " + esc(r.initials) + " 様" : ""}</div>
+          </div>
+          <div class="stamp ${d.tone}${pop ? " pop" : ""}" aria-hidden="true"><div><b>${d.short}</b><small>LOAN DESK</small></div></div>
+        </div>
+        <div class="grade">
+          <div class="grade-l" aria-label="格付">${r.knockouts.length ? "—" : r.grade}</div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:12.5px"><span>信用スコア（定量）</span><span class="num"><b>${r.score}</b> / 1000</span></div>
+            <div class="meter"><i style="width:${r.score / 10}%"></i></div>
+            <div class="ticks"><span>E</span><span>D 350</span><span>C 500</span><span>B 650</span><span>A 800</span></div>
+          </div>
+        </div>
+      </div>
+
+      ${r.knockouts.length ? `<div class="ko"><b>足切り基準に該当（この時点で否決見込み）</b><ul>${r.knockouts.map((k) => `<li>${esc(k)}</li>`).join("")}</ul></div>` : ""}
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">融資可能額</h2></div>
+        <div class="amount">
+          <div class="am-row"><span>希望額</span><div class="am-bar"><i class="want" style="width:${r.loan / maxBar * 100}%"></i><span>${L.man(r.loan)}</span></div></div>
+          <div class="am-row"><span>融資可能額</span><div class="am-bar"><i style="width:${r.maxLoan / maxBar * 100}%"></i><span>${L.man(r.maxLoan)}</span></div></div>
+        </div>
+        <p class="sub" style="margin-top:8px">${r.knockouts.length ? "足切り基準に該当するため算出していません。" : `いちばん厳しい制約は「${r.bind.label}」です（返済期間 ${r.term}年で計算）。`}</p>
+        ${r.knockouts.length ? "" : `<div class="caps" style="margin-top:8px">${r.caps.map((c) => `<div class="cap${c.key === r.bind.key ? " bind" : ""}"><span>${c.label}で決まる上限</span><span class="num">${L.man(Math.floor(c.value / 10) * 10)}</span></div>`).join("")}</div>`}
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">毎月の返済と返済比率</h2></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">毎月の返済（適用金利 ${r.input.rate}%）</div><div class="v">${L.yen(r.monthly.actual * 10000)}</div><div class="s">${r.input.term}年・元利均等・ボーナス払いなし</div></div>
+          <div class="kpi"><div class="k">審査上の返済（審査金利 ${r.policy.stressRate}%）</div><div class="v">${L.yen(r.monthly.stress * 10000)}</div><div class="s">金利が上がっても返せるかを見る金利</div></div>
+          <div class="kpi"><div class="k">返済比率（審査金利）</div><div class="v">${L.r1(r.dti)}%</div><div class="s">上限 ${r.limit}%（審査年収 ${L.man(r.income)}）</div></div>
+          <div class="kpi"><div class="k">返済比率（適用金利）</div><div class="v">${L.r1(r.dtiActual)}%</div><div class="s">他の借入 毎月 ${L.yen(r.debt * 10000)} を含む</div></div>
+          <div class="kpi"><div class="k">総返済額</div><div class="v">${L.man(r.total)}</div><div class="s">うち利息 ${L.man(r.interest)}</div></div>
+          <div class="kpi"><div class="k">担保評価</div><div class="v">${L.man(r.collateral)}</div><div class="s">${r.collateralRate != null ? `物件価格の${r.collateralRate}%で見積もり` : "入力した評価額"}・掛目 ${L.r1(r.ltv)}%</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">審査項目</h2></div>
+        <div class="chk">${sorted.map((c) => `<div class="chk-row"><span class="mk ${c.status}" aria-label="${{ ok: "基準内", warn: "注意", ng: "基準外" }[c.status]}">${MK[c.status]}</span><div class="chk-t"><b>${c.label}</b><span>基準 ${c.rule}</span></div><span class="chk-v num">${esc(c.value)}</span></div>`).join("")}</div>
+      </div>
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">スコアの内訳</h2></div>
+        <div class="parts">${r.parts.map((p) => `<div class="part"><span>${p.label}</span><span class="pb"><i style="width:${p.got / p.max * 100}%"></i></span><span class="pv">${p.got}/${p.max}</span></div>`).join("")}</div>
+        <p class="note" style="margin-top:8px">配点の合計を1000点に換算。A 800以上 / B 650〜 / C 500〜 / D 350〜 / E 350未満。</p>
+      </div>
+
+      ${r.whatIf.length ? `<div class="card">
+        <div class="sec-h"><h2 class="sec-t">条件を変えると</h2></div>
+        <div class="wi">${r.whatIf.map((w) => `<div class="wi-row"><span>${esc(w.label)}<br><span class="num" style="font-size:12px;color:var(--muted)">融資可能額 ${L.man(w.maxLoan)} ・ スコア ${w.score}</span></span><span class="pill ${toneOf(w.decision)}">${w.decisionLabel.replace("見込み", "")}</span></div>`).join("")}</div>
+      </div>` : ""}
+
+      <div class="card memo">
+        <div class="memo-head">
+          <div><div class="memo-title">稟議所見</div><div class="num" style="font-size:11.5px;color:var(--muted)">${esc(r.caseNo)} ・ 住宅ローン</div></div>
+          <div class="hanko" aria-label="決裁欄"><div><span>決裁</span><em></em></div><div><span>審査</span><em></em></div><div><span>担当</span><em>${r.initials ? `<b>${esc(r.initials.slice(0, 3))}</b>` : ""}</em></div></div>
+        </div>
+        <h3>評価できる点</h3>${list(r.strengths, "特になし")}
+        <h3>懸念点</h3>${list(r.concerns, "特になし")}
+        <h3>承認の条件・対応</h3>${list(r.conditions, r.decision === "approve" ? "特になし（本審査で書類を確認）" : "—")}
+        <h3>次にやること</h3>${list(nextSteps(r))}
+      </div>
+
+      <div class="btns">
+        <button class="btn" id="save" type="button">案件に保存</button>
+        <button class="btn" id="copy" type="button">所見をコピー</button>
+        <button class="btn ghost" id="back" type="button">入力を直す</button>
+      </div>
+      <p class="note">${L.NOTE}</p>`;
+    $("#save").onclick = saveCase;
+    $("#copy").onclick = copyMemo;
+    $("#back").onclick = () => go("apply");
+  }
+  const toneOf = (dec) => ({ approve: "ok", conditional: "warn", hold: "hold", reject: "ng" }[dec]);
+  const list = (a, empty) => (a && a.length ? `<ul>${a.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>` : `<p style="margin:0;color:var(--muted)">${empty || "—"}</p>`);
+  function nextSteps(r) {
+    const s = ["本人開示（CIC・JICC など）で信用情報を確かめる"];
+    if (r.decision === "reject" && r.knockouts.length) s.push("足切りの理由が解消するまで申込みは見送る（他行への同時申込みもしない）");
+    else {
+      s.push("源泉徴収票（自営業は確定申告書3期分）・本人確認書類をそろえて事前審査を申し込む");
+      if (r.decision !== "approve") s.push("上の条件を整えてから申し込むか、借入額を見直す");
+      s.push("事前審査の結果は本審査・融資実行を約束しない。買うかどうかはお客様が決める");
+    }
+    return s;
+  }
+  function memoText(r) {
+    const b = (t, a) => `■${t}\n` + (a.length ? a.map((x) => "・" + x).join("\n") : "・特になし");
+    return [`【稟議所見】${r.caseNo}（${r.date}）${r.initials ? " " + r.initials + " 様" : ""}`,
+      `判定：${r.decisionInfo.label} ／ 格付 ${r.knockouts.length ? "—" : r.grade}（${r.score}/1000）`,
+      `希望額 ${L.man(r.loan)} ／ 融資可能額 ${L.man(r.maxLoan)} ／ 返済比率 ${L.r1(r.dti)}%（上限${r.limit}%・審査金利${r.policy.stressRate}%）`,
+      `毎月の返済 ${L.yen(r.monthly.actual * 10000)}（${r.input.rate}%・${r.input.term}年）`,
+      b("評価できる点", r.strengths), b("懸念点", r.concerns), b("条件・対応", r.conditions), b("次にやること", nextSteps(r)), "", L.NOTE].join("\n");
+  }
+  function copyMemo() {
+    const t = memoText(last);
+    const done = () => toast("所見をコピーしました");
+    try {
+      navigator.clipboard.writeText(t).then(done, () => fallbackCopy(t));
+    } catch (e) { fallbackCopy(t); }
+  }
+  function fallbackCopy(t) {
+    const ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+    document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+    ta.remove(); toast(ok ? "所見をコピーしました" : "コピーできませんでした");
+  }
+
+  // ---------- 案件 ----------
+  function saveCase() {
+    const list = store.get(K_CASES, []);
+    const row = { id: last.caseNo, date: last.date, initials: last.initials, decision: last.decision, label: last.decisionInfo.label,
+      grade: last.knockouts.length ? "—" : last.grade, score: last.score, loan: last.loan, maxLoan: last.maxLoan, input: Object.assign({}, data) };
+    const i = list.findIndex((c) => c.id === row.id);
+    if (i >= 0) list[i] = row; else list.unshift(row);
+    toast(store.set(K_CASES, list.slice(0, 200)) ? "案件に保存しました" : "この端末では保存できませんでした");
+  }
+  function renderCases() {
+    const list = store.get(K_CASES, []);
+    const box = $("#cases");
+    if (!list.length) { box.innerHTML = `<div class="card empty">保存した案件はまだありません。<br>審査結果の「案件に保存」で、ここに並びます。</div>`; return; }
+    box.innerHTML = list.map((c, i) => `
+      <button class="case" type="button" data-i="${i}">
+        <span class="c1">${c.initials ? esc(c.initials) + " 様" : "（イニシャルなし）"}</span>
+        <span class="pill ${toneOf(c.decision)}">${esc(c.label.replace("見込み", ""))}</span>
+        <span class="c2">${esc(c.id)} ・ ${esc(c.date)}</span>
+        <span class="c2">格付 ${esc(c.grade)} ・ ${L.man(c.maxLoan)} / ${L.man(c.loan)}</span>
+      </button>`).join("") + `<button class="btn danger" id="clearCases" type="button">保存した案件をすべて消す</button><p class="note" id="clearConfirm" hidden></p>`;
+    box.querySelectorAll(".case").forEach((b) => b.onclick = () => openCase(list[+b.dataset.i]));
+    let armed = false;
+    $("#clearCases").onclick = () => {
+      if (!armed) { armed = true; $("#clearCases").textContent = "もう一度押すと消します"; return; }
+      store.set(K_CASES, []); renderCases(); toast("案件を消しました");
+    };
+  }
+  function openCase(c) {
+    data = Object.assign({}, L.SAMPLE, c.input); caseNo = c.id; isSample = false; $("#sampleTag").hidden = true;
+    fill(); renderLive(); setCase();
+    last = L.screen(data, policy); last.caseNo = c.id; last.date = c.date; last.initials = c.initials || "";
+    renderResult(false); go("result");
+  }
+
+  // ---------- 審査基準 ----------
+  const PFIELDS = [
+    ["stressRate", "審査金利", "%", 0.1, "返済比率をこの金利で計算します"],
+    ["dti0", "返済比率の上限（年収300万円未満）", "%", 1],
+    ["dti1", "返済比率の上限（300〜400万円未満）", "%", 1],
+    ["dti2", "返済比率の上限（400万円以上）", "%", 1],
+    ["multipleMax", "年収倍率の上限", "倍", 0.5],
+    ["minIncome", "最低年収", "万円", 10],
+    ["ageMin", "申込年齢（下限）", "歳", 1], ["ageMax", "申込年齢（上限）", "歳", 1],
+    ["payoffAgeMax", "完済時年齢の上限", "歳", 1], ["termMax", "最長の返済期間", "年", 1],
+    ["tenureEmployee", "会社員の勤続年数", "年", 0.5], ["tenureSelf", "自営業・経営者の事業年数", "年", 1],
+    ["ltvMax", "担保掛目の上限", "%", 5], ["ltvWithCosts", "担保掛目の上限（諸費用込み）", "%", 5],
+    ["jointShare", "収入合算で算入する割合", "%", 5],
+    ["cashingRate", "キャッシング枠を返済に算入（枠に対して毎月）", "%", 0.5, "0なら算入しません"],
+  ];
+  const pget = (k) => (k.startsWith("dti") ? policy.dti[+k[3]].max : policy[k]);
+  function renderPolicy() {
+    $("#policyForm").innerHTML = `<div class="card">${PFIELDS.map(([k, label, unit, step, hint]) => `
+      <div class="row"><label for="p_${k}">${label}${hint ? `<span class="hint">${hint}</span>` : ""}</label>
+      <span class="field"><input type="number" inputmode="decimal" id="p_${k}" data-p="${k}" value="${pget(k)}" step="${step}" min="0"><span class="u">${unit}</span></span></div>`).join("")}</div>`;
+  }
+  $("#policyForm").addEventListener("input", (ev) => {
+    const k = ev.target.dataset.p; if (!k || ev.target.value === "") return;
+    const v = +ev.target.value;
+    if (k.startsWith("dti")) policy.dti[+k[3]].max = v; else policy[k] = v;
+    const save = Object.assign({}, policy, { dti: policy.dti.map((t) => ({ under: isFinite(t.under) ? t.under : null, max: t.max })) });
+    store.set(K_POLICY, save); renderLive();
+  });
+  $("#policyReset").onclick = () => {
+    policy = Object.assign({}, L.POLICY, { dti: L.POLICY.dti.map((t) => Object.assign({}, t)) });
+    store.set(K_POLICY, {}); renderPolicy(); renderLive(); toast("標準の基準に戻しました");
+  };
+
+  // ---------- 画面切り替え ----------
+  const VIEWS = ["apply", "result", "cases", "policy"];
+  function go(v) { if (location.hash !== "#" + v) location.hash = v; else show(v); }
+  function show(v) {
+    if (!VIEWS.includes(v)) v = "apply";
+    VIEWS.forEach((x) => { $("#v-" + x).hidden = x !== v; });
+    document.querySelectorAll(".tabs a").forEach((a) => { if (a.dataset.v === v) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    if (v === "result") renderResult(false);
+    if (v === "cases") renderCases();
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+  let tt;
+  function toast(t) { const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => (el.hidden = true), 2200); }
+  function setCase() { $("#caseNo").textContent = caseNo; $("#caseDate").textContent = "受付 " + today(); }
+
+  $("#run").onclick = run;
+  $("#clear").onclick = () => { data = Object.assign({}, BLANK); isSample = false; $("#sampleTag").hidden = true; caseNo = newCaseNo(); last = null; fill(); renderLive(); setCase(); window.scrollTo(0, 0); };
+  $("#loadSample").onclick = () => { data = Object.assign({ initials: "" }, L.SAMPLE); isSample = true; $("#sampleTag").hidden = false; fill(); renderLive(); };
+  $("#note1").textContent = L.NOTE;
+
+  renderForm(); renderPolicy(); renderLive(); setCase();
+  // 最初は見本の結果も用意しておく（サンプル案件と明記）
+  last = L.screen(data, policy); last.caseNo = caseNo; last.date = today(); last.initials = "";
+  show(location.hash.slice(1) || "apply");
+})();
+</script>
+</body>
+</html>
