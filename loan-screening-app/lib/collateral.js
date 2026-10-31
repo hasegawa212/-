@@ -62,7 +62,7 @@
     const minF = p.house ? P.minFloorHouse : P.minFloorMansion;
     const floor = +x.floor || 0;
     if (floor > 0) add("floor", "床面積", `${minF}㎡以上`, floor + "㎡", floor >= minF ? "ok" : "ng");
-    if (x.oldQuake) add("quake", "耐震基準", "新耐震（1981年6月以降の建築確認）", "旧耐震", "warn");
+    if (x.oldQuake) add("quake", "耐震基準", P.requireNewQuake ? "新耐震、または耐震評価で基準に適合" : "新耐震（1981年6月以降の建築確認）", "旧耐震", P.requireNewQuake ? "ng" : "warn");
     return { knockouts, checks };
   }
 

@@ -89,7 +89,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
 .sw input:focus-visible+i{outline:2px solid var(--accent);outline-offset:2px}
 
 .seg{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
-.seg.four{grid-template-columns:repeat(2,1fr)}
+.seg.four{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
 .seg button{border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:9px 6px;font-size:13.5px;cursor:pointer;text-align:center;line-height:1.3}
 .seg button[aria-pressed="true"]{background:var(--navy);color:var(--on-navy);border-color:var(--navy);font-weight:700}
 :root[data-theme="dark"] .seg button[aria-pressed="true"]{border-color:var(--accent)}
@@ -236,7 +236,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     <section class="view" id="v-apply" aria-labelledby="h-apply">
       <div>
         <h1 class="h-page" id="h-apply">申込内容の入力<span class="sample" id="sampleTag">サンプル案件</span></h1>
-        <p class="sub">審査の型と段階を選んで入力し、「審査を実行」を押します。本人確認・反社 → 信用情報 → 申込人 → 収入 → 返済能力 → 担保・物件 → 保証会社 → 書類 → 決裁 の9工程で判定します。</p>
+        <p class="sub">審査の型（都市銀行・ネット銀行・地方銀行・信用金庫・フラット35）と段階を選んで入力し、「審査を実行」を押します。本人確認・反社 → 信用情報 → 申込人 → 収入 → 返済能力 → 担保・物件 → 保証会社 → 書類 → 決裁 の9工程で判定します。</p>
       </div>
       <div class="card">
         <div class="sec-h"><h2 class="sec-t">審査の型</h2></div>
@@ -310,7 +310,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
 })(typeof self !== "undefined" ? self : this, function () {
   "use strict";
 
-  const POLICY_VERSION = "2026-10";
+  const POLICY_VERSION = "2026-10b";
 
   // 共通の値（型ごとに必要なものだけ上書き）
   const BASE = {
@@ -345,7 +345,20 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { upTo: Infinity, label: "役員（審査委員会）" },
     ],
     docsExtra: [],
+    // v3: 保証機関・費用・借入額の範囲・フラット35／信用金庫の条件
+    guarantor: { type: "bank", label: "銀行系の保証会社", lumpPer100: { A: 20000, B: 30000, C: 45000, D: 70000 } }, // 一括前払いの保証料（円／借入100万円・35年）
+    adminFee: { type: "fixed", value: 33000 }, // 事務手数料: fixed=円 / rate=借入額の%
+    loanMin: 50, loanMax: 20000,               // 借入額の範囲（万円）
+    termMin: 1,
+    ltvBase: "collateral",                     // 掛目の分母: collateral=担保評価 / price=物件価格（融資率）
+    requireNewQuake: false,                    // 旧耐震を × にするか
+    highLtv: { over: Infinity, add: 0 },       // 融資率がこれを超えると金利を上乗せ（%）
+    requireArea: false,                        // 営業地域内の居住・勤務が必要か
+    memberThreshold: 0,                        // 借入がこれを超えると会員（出資金）が必要（万円、0=なし）
   };
+
+  // 住宅ローンの保証と、信用保証協会の違い（画面に常に出す）
+  const GUARANTOR_NOTE = "住宅ローンの保証は、民間の保証会社（銀行系・信用金庫の系統保証機関・独立系）が行います。信用保証協会は中小企業・個人事業主の事業資金を保証する公的機関で、住宅ローンの保証は扱いません。フラット35は保証会社を使わず、保証料・保証人は不要です。";
 
   const PRESETS = {
     megabank: Object.assign({}, BASE, {
@@ -358,12 +371,25 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       stressRate: 3.0, dti: [{ under: 400, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
       minIncome: 200, contractOk: false, ltvWithCosts: 100, allowLeasehold: false, incomeBasis: "avg3",
       guarantee: { A: { fee: 0, add: 0, label: "最優遇" }, B: { fee: 0, add: 0.1, label: "優遇" }, C: { fee: 0, add: 0.3, label: "優遇縮小" }, D: { fee: 0, add: 0.6, label: "個別判断" } },
+      guarantor: { type: "waived", label: "保証料なし（事務手数料型）", lumpPer100: { A: 0, B: 0, C: 0, D: 0 } },
+      adminFee: { type: "rate", value: 2.2 },
     }),
     regional: Object.assign({}, BASE, {
       id: "regional", label: "地方銀行型",
       note: "地域の物件と勤務先をよく知る型。調整区域や勤続の短さにも個別に対応するが、カード枠は返済に算入して見る。",
       stressRate: 3.0, dti: [{ under: 300, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
       tenureEmployee: 0.5, nonPR: "warn", allowChosei: true, cardLimitRate: 3, incomeBasis: "min2",
+      guarantor: { type: "bank", label: "地方銀行の保証会社（系列・独立系）", lumpPer100: { A: 20000, B: 30000, C: 45000, D: 70000 } },
+    }),
+    shinkin: Object.assign({}, BASE, {
+      id: "shinkin", label: "信用金庫型",
+      note: "営業地域内に住む・勤める人が対象の会員制。一定額を超える借入は会員（出資金）になる。金庫の審査とは別に、系統の保証機関が保証審査をする。自営業や地元企業の勤務先にも個別に対応する。",
+      stressRate: 3.0, dti: [{ under: 300, max: 30 }, { under: Infinity, max: 35 }], multipleMax: 8, multipleHard: 10,
+      minIncome: 100, ageMin: 18, ageMax: 69, payoffAgeMax: 80, termMax: 35,
+      contractOk: true, nonPR: "warn", allowChosei: true, allowLeasehold: true, incomeBasis: "min2",
+      requireArea: true, memberThreshold: 700,
+      guarantor: { type: "shinkin", label: "信用金庫の系統保証機関", lumpPer100: { A: 17000, B: 25000, C: 38000, D: 55000 } },
+      guarantee: { A: { fee: 0.15, add: 0, label: "最優遇" }, B: { fee: 0.2, add: 0.1, label: "優遇" }, C: { fee: 0.25, add: 0.3, label: "優遇縮小" }, D: { fee: 0.35, add: 0.5, label: "個別判断" } },
     }),
     flat35: Object.assign({}, BASE, {
       id: "flat35", label: "フラット35型",
@@ -373,6 +399,10 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       minFloorHouse: 70, minFloorMansion: 30, allowChosei: true,
       guarantee: { A: { fee: 0, add: 0, label: "標準" }, B: { fee: 0, add: 0, label: "標準" }, C: { fee: 0, add: 0, label: "標準" }, D: { fee: 0, add: 0, label: "標準" } },
       docsExtra: ["適合証明書（検査機関が発行）"],
+      isFlat: true, ageMax: 69, payoffAgeMax: 79, termMin: 15, loanMin: 100, loanMax: 8000, ltvBase: "price", ltvWithCosts: 100,
+      requireNewQuake: true, highLtv: { over: 90, add: 0.11 },
+      guarantor: { type: "none", label: "保証会社なし・保証人不要", lumpPer100: { A: 0, B: 0, C: 0, D: 0 } },
+      adminFee: { type: "rate", value: 2.2 },
     }),
   };
 
@@ -389,7 +419,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     return p;
   }
 
-  return { POLICY_VERSION, PRESETS, resolvePolicy };
+  return { POLICY_VERSION, PRESETS, GUARANTOR_NOTE, resolvePolicy };
 });
 
 </script>
@@ -533,7 +563,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     const minF = p.house ? P.minFloorHouse : P.minFloorMansion;
     const floor = +x.floor || 0;
     if (floor > 0) add("floor", "床面積", `${minF}㎡以上`, floor + "㎡", floor >= minF ? "ok" : "ng");
-    if (x.oldQuake) add("quake", "耐震基準", "新耐震（1981年6月以降の建築確認）", "旧耐震", "warn");
+    if (x.oldQuake) add("quake", "耐震基準", P.requireNewQuake ? "新耐震、または耐震評価で基準に適合" : "新耐震（1981年6月以降の建築確認）", "旧耐震", P.requireNewQuake ? "ng" : "warn");
     return { knockouts, checks };
   }
 
@@ -542,22 +572,97 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
 
 </script>
 <script>
-// 住宅ローン審査エンジン v2（銀行・保証会社の審査ラインを再現した目安）
+// フラット35の金利（2026年10月時点の公開情報にもとづく目安。最新は住宅金融支援機構と取扱金融機関で確認）
+// 融資率（借入÷物件価格）9割超は上乗せ、団信に入らなければ −0.2%、子育てプラス・S のポイントで当初の金利を引下げ
+(function (root, factory) {
+  const m = factory();
+  if (typeof module === "object" && module.exports) module.exports = m;
+  else Object.assign((root.LSA = root.LSA || {}), m);
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+
+  const FLAT_S = { none: { label: "使わない", pt: 0 }, b: { label: "フラット35S 金利Bプラン", pt: 1 }, a: { label: "フラット35S 金利Aプラン", pt: 2 }, zeh: { label: "フラット35S（ZEH）", pt: 3 } };
+  const DANSHIN_CUT = 0.2;   // 新機構団信に入らない場合に下がる金利
+  const PT_CUT = 0.25;       // 1ポイントあたりの引下げ
+  const r2 = (v) => Math.round(v * 1000) / 1000;
+
+  // 子育てプラス: 18歳未満の子1人につき1pt。子がいなくても夫婦のどちらかが40歳未満なら1pt
+  function flatPoints(x) {
+    const kids = Math.max(0, +x.kids || 0);
+    const care = kids > 0 ? kids : x.youngCouple ? 1 : 0;
+    return care + (FLAT_S[x.flatS] || FLAT_S.none).pt;
+  }
+
+  // 1ptにつき当初5年0.25%（最大1.0%）。5pt以上は 6〜10年目に (pt−4)×0.25%
+  function flatReduction(pt) {
+    if (!(pt > 0)) return [];
+    const out = [{ from: 1, to: 5, cut: r2(Math.min(pt, 4) * PT_CUT) }];
+    if (pt > 4) out.push({ from: 6, to: 10, cut: r2((pt - 4) * PT_CUT) });
+    return out;
+  }
+
+  function flatRate(x, P, ltv) {
+    const highLtv = ltv > P.highLtv.over;
+    const baseRate = r2((+x.flatRate || 0) + (highLtv ? P.highLtv.add : 0));
+    const noDanshin = x.danshin === "no";
+    const rate = r2(baseRate - (noDanshin ? DANSHIN_CUT : 0));
+    const points = flatPoints(x);
+    const reduction = flatReduction(points);
+    const firstRate = r2(rate - (reduction[0] ? reduction[0].cut : 0));
+    return { ltv, highLtv, baseRate, rate, noDanshin, points, reduction, firstRate, s: (FLAT_S[x.flatS] || FLAT_S.none).label };
+  }
+
+  return { FLAT_S, flatPoints, flatReduction, flatRate };
+});
+
+</script>
+<script>
+// 保証料と事務手数料。保証料は「金利上乗せ型」か「一括前払い型」。フラット35（保証会社なし）とネット銀行型（保証料なし）は0
+(function (root, factory) {
+  const m = factory();
+  if (typeof module === "object" && module.exports) module.exports = m;
+  else Object.assign((root.LSA = root.LSA || {}), m);
+})(typeof self !== "undefined" ? self : this, function () {
+  "use strict";
+  const FEE_TYPE = { rate: "金利上乗せ型（毎月の金利に含める）", lump: "一括前払い型（借入時に払う）" };
+
+  // loan: 万円、term: 年。一括前払いは 表の額（円／100万円・35年）× 借入額 × 期間/35 の目安
+  function guaranteeCost(x, P, grade, loan, term) {
+    const g = P.guarantor;
+    if (g.type === "none" || g.type === "waived") return { type: g.type, feeType: null, lump: 0, rateAdd: 0, label: g.label };
+    const feeType = x.feeType === "lump" ? "lump" : "rate";
+    const per = g.lumpPer100[grade];
+    const row = P.guarantee[grade];
+    if (per == null || !row) return { type: g.type, feeType, lump: 0, rateAdd: 0, label: g.label, unavailable: true };
+    if (feeType === "lump") return { type: g.type, feeType, lump: Math.round(per * (loan / 100) * (term / 35)), rateAdd: 0, label: g.label };
+    return { type: g.type, feeType, lump: 0, rateAdd: row.fee, label: g.label };
+  }
+
+  function adminFee(P, loan) {
+    return P.adminFee.type === "rate" ? Math.round(loan * 10000 * P.adminFee.value / 100) : P.adminFee.value;
+  }
+
+  return { FEE_TYPE, guaranteeCost, adminFee };
+});
+
+</script>
+<script>
+// 住宅ローン審査エンジン v3（銀行・信用金庫・フラット35と保証会社の審査ラインを再現した目安）
 // 本人確認・反社 → 信用情報（3機関）→ 申込人 → 収入 → 返済能力 → 担保・物件 → 保証会社判定 → 書類 → 決裁
 // 実際の審査基準は金融機関ごとに異なり公開されていない。結果は承認を約束せず、最終判断は金融機関が行う。
 (function (root, factory) {
   const isNode = typeof module === "object" && module.exports;
   const deps = isNode
-    ? Object.assign({}, require("./policy.js"), require("./income.js"), require("./credit.js"), require("./collateral.js"))
+    ? Object.assign({}, require("./policy.js"), require("./income.js"), require("./credit.js"), require("./collateral.js"), require("./flat35.js"), require("./fees.js"))
     : root.LSA;
   const m = factory(deps);
   if (isNode) module.exports = Object.assign({}, deps, m);
   else Object.assign((root.LSA = root.LSA || {}), m);
 })(typeof self !== "undefined" ? self : this, function (D) {
   "use strict";
-  const { resolvePolicy, incomeUsed, creditSummary, LATE, appraise, eligibility, PROPERTY } = D;
+  const { resolvePolicy, incomeUsed, creditSummary, LATE, appraise, eligibility, PROPERTY, flatRate, guaranteeCost, adminFee, GUARANTOR_NOTE, FEE_TYPE } = D;
 
-  const ENGINE_VERSION = "2.0.0";
+  const ENGINE_VERSION = "3.0.0";
 
   const EMPLOY = {
     public: { label: "公務員", score: 200, self: false, kind: "employee" },
@@ -578,7 +683,8 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     stage: "pre",
     age: 32, nationality: "jp", employ: "regular", tenure: 6,
     income: 480, incomePrev: 460, incomePrev2: 440, corpLoss: 0, jointType: "none", jointIncome: 0,
-    price: 3480, down: 300, costs: 250, financeCosts: false, term: 35, rate: 0.9, purpose: "own",
+    price: 3480, down: 300, costs: 250, financeCosts: false, term: 35, rate: 0.9, flatRate: 3.46, feeType: "rate", purpose: "own",
+    kids: 0, youngCouple: false, flatS: "none", inArea: true,
     property: "newHouse", builtYears: 0, structure: "wood", landArea: 120, rosenka: 90000, floor: 100,
     road: 4, zone: "urban", leasehold: false, overBuild: false, oldQuake: false, saikenchiku: false, collateral: 0,
     car: 2.5, card: 0, scholarship: 1.2, revo: 0, other: 0, cashing: 0,
@@ -646,6 +752,8 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     list.push({ key: "contract", label: "売買契約書（工事請負契約書）" });
     if (P.danshinRequired || x.danshin !== "no") list.push({ key: "danshin", label: "団体信用生命保険の申込書・告知書" });
     if ((P.docsExtra || []).length) list.push({ key: "fit", label: P.docsExtra.join("・") });
+    const loan = Math.max(0, (+x.price || 0) - (+x.down || 0) + (x.financeCosts ? +x.costs || 0 : 0));
+    if (P.memberThreshold > 0 && loan > P.memberThreshold) list.push({ key: "member", label: "出資金の払込み（会員加入）" });
     return list.map((d) => Object.assign(d, { verified: !!v[d.key] }));
   }
 
@@ -655,6 +763,13 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     x.credit = Object.assign({}, SAMPLE.credit, x.credit || {});
     x.docs = Object.assign({}, SAMPLE.docs, x.docs || {});
     const o = opts || {};
+    // フラット35: 融資率（借入÷物件価格）で金利が決まり、適用金利は flatRate から作る
+    let flat = null;
+    if (P.isFlat) {
+      const loan0 = Math.max(0, x.price - x.down + (x.financeCosts ? x.costs : 0));
+      flat = flatRate(x, P, x.price > 0 ? loan0 / x.price * 100 : Infinity);
+      x.rate = flat.rate;
+    }
     const nested = !!o.nested;
     const e = EMPLOY[x.employ] || EMPLOY.regular;
     const stage = STAGE[x.stage] ? x.stage : "pre";
@@ -701,9 +816,13 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     if (P.id === "flat35" && irregular) person[person.length - 1].status = "ok";
     person.push({ key: "tenure", label: e.self ? "事業年数（確定申告）" : "勤続年数", rule: tenureMin > 0 ? `${tenureMin}年以上` : "問わない", value: x.tenure + "年",
       status: st(x.tenure >= tenureMin, x.tenure >= tenureMin / 2) });
+    if (P.requireArea) {
+      person.push({ key: "area", label: "営業地域", rule: "営業地域内に住む・勤める（物件も地域内）", value: x.inArea === false ? "地域外" : "地域内", status: x.inArea === false ? "ng" : "ok" });
+      if (x.inArea === false) knockouts.push("信用金庫の営業地域外（会員資格の対象外）");
+    }
     const dan = DANSHIN[x.danshin] ? x.danshin : "ok";
     const danSt = dan === "ok" ? "ok" : dan === "wide" ? "warn" : P.danshinRequired ? "ng" : "warn";
-    person.push({ key: "danshin", label: "団体信用生命保険", rule: P.danshinRequired ? "加入できること" : "任意（加入しない場合は保障を別に）", value: DANSHIN[dan], status: danSt });
+    person.push({ key: "danshin", label: "団体信用生命保険", rule: P.danshinRequired ? "加入できること" : P.isFlat ? "任意（新機構団信は金利に含む。入らなければ金利−0.2%）" : "任意（加入しない場合は保障を別に）", value: DANSHIN[dan], status: danSt });
     if (dan === "no" && P.danshinRequired) knockouts.push("団体信用生命保険に加入できない");
 
     // ---------- ④ 収入 ----------
@@ -738,25 +857,31 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { key: "multiple", label: "年収倍率（借入÷年収）", rule: isFinite(P.multipleMax) ? `${P.multipleMax}倍以下` : "基準なし", value: r1(multiple) + "倍",
         status: isFinite(P.multipleMax) ? st(multiple <= P.multipleMax, multiple <= P.multipleHard) : "ok" },
       { key: "payoff", label: "完済時の年齢", rule: `${P.payoffAgeMax}歳以下`, value: payoffAge + "歳", status: st(payoffAge <= P.payoffAgeMax - 5, payoffAge <= P.payoffAgeMax) },
+      { key: "loanRange", label: "借入額", rule: `${man(P.loanMin)}以上 ${man(P.loanMax)}以下`, value: man(loan), status: loan >= P.loanMin && loan <= P.loanMax ? "ok" : "ng" },
     ];
+    if (P.termMin > 1) capacity.push({ key: "termRange", label: "返済期間", rule: `${P.termMin}年以上 ${P.termMax}年以下`, value: x.term + "年", status: x.term >= P.termMin && x.term <= P.termMax ? "ok" : "ng" });
 
     // ---------- ⑥ 担保・物件 ----------
     const ap = appraise(x, P);
     const el = eligibility(x, P);
     knockouts.push(...el.knockouts);
     const ltvLimit = x.financeCosts ? P.ltvWithCosts : P.ltvMax;
-    const ltv = ap.value > 0 ? loan / ap.value * 100 : Infinity;
-    const property = [{ key: "ltv", label: `担保掛目（借入÷担保評価・${ap.method}）`, rule: `${ltvLimit}%以下`, value: r1(ltv) + "%", status: st(ltv <= ltvLimit, ltv <= ltvLimit + 15) }].concat(el.checks);
+    const byPrice = P.ltvBase === "price";
+    const ltvBaseValue = byPrice ? x.price : ap.value;
+    const ltv = ltvBaseValue > 0 ? loan / ltvBaseValue * 100 : Infinity;
+    const property = [{ key: "ltv", label: byPrice ? "融資率（借入÷物件価格）" : `担保掛目（借入÷担保評価・${ap.method}）`, rule: `${ltvLimit}%以下${byPrice && isFinite(P.highLtv.over) ? `（${P.highLtv.over}%超は金利+${P.highLtv.add}%）` : ""}`, value: r1(ltv) + "%",
+      status: byPrice ? (ltv <= ltvLimit ? (ltv > P.highLtv.over ? "warn" : "ok") : "ng") : st(ltv <= ltvLimit, ltv <= ltvLimit + 15) }].concat(el.checks);
     if (x.financeCosts && P.ltvWithCosts <= P.ltvMax) property.push({ key: "costs", label: "諸費用の借入", rule: "この型では諸費用は借入に含めない", value: "含める", status: "warn" });
 
     // ---------- 融資可能額 ----------
     const byDti = pv(income * limit / 100 / 12 - debt, sRate, term);
     const byMultiple = isFinite(P.multipleMax) ? income * P.multipleMax : Infinity;
-    const byCollateral = ap.value * ltvLimit / 100;
+    const byCollateral = ltvBaseValue * ltvLimit / 100;
     const caps = [
       { key: "dti", label: "返済負担率", value: byDti },
       { key: "multiple", label: "年収倍率", value: byMultiple },
-      { key: "collateral", label: "担保評価", value: byCollateral },
+      { key: "collateral", label: byPrice ? "融資率（物件価格）" : "担保評価", value: byCollateral },
+      { key: "limit", label: "借入額の上限", value: P.loanMax },
     ];
     const bind = caps.reduce((a, b) => (b.value < a.value ? b : a));
     const maxLoan = knockouts.length ? 0 : Math.max(0, Math.floor(bind.value / 10) * 10);
@@ -777,11 +902,20 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     const score = Math.round(parts.reduce((s, p) => s + p.got, 0) / parts.reduce((s, p) => s + p.max, 0) * 1000);
     const grade = score >= 800 ? "A" : score >= 650 ? "B" : score >= 500 ? "C" : score >= 350 ? "D" : "E";
     const g = P.guarantee[grade];
+    const gc = guaranteeCost(x, P, grade, loan, x.term); // 費用は希望額で計算
     const guarantee = g
-      ? { grade, fee: g.fee, add: g.add, label: g.label, rate: x.rate + g.add + g.fee }
-      : { grade, fee: null, add: null, label: "取扱い不可", rate: null };
-    const gChecks = [{ key: "grade", label: "保証会社の格付", rule: "B以上が標準（C以下は優遇縮小）", value: knockouts.length ? "—" : `${grade}（${score}点）`,
-      status: knockouts.length ? "ng" : grade === "A" || grade === "B" ? "ok" : grade === "C" ? "warn" : "ng" }];
+      ? { grade, fee: gc.rateAdd, add: g.add, label: g.label, rate: x.rate + g.add + gc.rateAdd, feeType: gc.feeType, lump: gc.lump, guarantor: P.guarantor.label }
+      : { grade, fee: null, add: null, label: "取扱い不可", rate: null, feeType: gc.feeType, lump: 0, guarantor: P.guarantor.label };
+    const admin = adminFee(P, loan);
+    const fees = { guarantee: gc, admin, total: gc.lump + admin, adminLabel: P.adminFee.type === "rate" ? `借入額の${P.adminFee.value}%` : "定額" };
+    const gt = P.guarantor.type;
+    const gChecks = [
+      { key: "guarantor", label: "保証機関", rule: gt === "none" ? "保証会社を使わない" : gt === "waived" ? "保証料は取らない（事務手数料型）" : "金融機関とは別に保証審査", value: P.guarantor.label, status: "ok" },
+      { key: "grade", label: P.isFlat ? "審査の格付（金利差なし）" : "保証の格付", rule: P.isFlat ? "機構の基準で判定" : "B以上が標準（C以下は優遇縮小）", value: knockouts.length ? "—" : `${grade}（${score}点）`,
+        status: knockouts.length ? "ng" : grade === "A" || grade === "B" ? "ok" : grade === "C" ? "warn" : "ng" },
+      { key: "feeType", label: "保証料の支払い方法", rule: gt === "none" || gt === "waived" ? "保証料なし" : "金利上乗せ型か一括前払い型を選ぶ",
+        value: gt === "none" ? "不要" : gt === "waived" ? "なし（事務手数料 " + yen(admin) + "）" : gc.feeType === "lump" ? `一括前払い ${yen(gc.lump)}` : `金利上乗せ +${gc.rateAdd}%`, status: "ok" },
+    ];
 
     // ---------- ⑧ 書類 ----------
     const docs = docsRequired(x, P);
@@ -792,7 +926,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
 
     // ---------- 判定 ----------
     const judged = [kyc, credit, person, incomeChecks, capacity, property].flat();
-    const amountKeys = ["dti", "multiple", "ltv"];
+    const amountKeys = ["dti", "multiple", "ltv", "loanRange"];
     const ng = judged.filter((c) => c.status === "ng");
     const warn = judged.filter((c) => c.status === "warn");
     const amountNg = ng.filter((c) => amountKeys.includes(c.key));
@@ -840,6 +974,8 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     if (x.oldQuake) conditions.push("耐震基準適合証明書など物件の書類確認");
     if (person.find((c) => c.key === "tenure").status === "warn") conditions.push("勤続年数・事業年数を満たしてからの申込みを検討");
     if (stage === "main" && pending.length) conditions.push(`書類の確認（未確認 ${pending.length}点）`);
+    if (P.memberThreshold > 0 && loan > P.memberThreshold && !knockouts.length) conditions.push(`借入が${man(P.memberThreshold)}を超えるため、会員（出資金の払込み）への加入`);
+    if (flat && flat.highLtv) conditions.push(`融資率が${P.highLtv.over}%を超えるため金利が+${P.highLtv.add}%（頭金を増やすと下がる）`);
 
     const strengths = [];
     if (e.score >= 150) strengths.push(`雇用が安定（${e.label}）`);
@@ -881,7 +1017,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       monthly: { actual: mActual, stress: mStress, debt }, dti, dtiActual, multiple,
       collateral: ap.value, appraisal: ap, collateralRate: ap.rate, ltv, ltvLimit,
       caps, bind, maxLoan, parts, score, grade, guarantee, authority, docsRequired: docs,
-      conditions, strengths, concerns, whatIf, audit, note: NOTE,
+      conditions, strengths, concerns, whatIf, audit, note: NOTE, flat, fees, guarantorNote: GUARANTOR_NOTE,
       total: mActual * x.term * 12, interest: mActual * x.term * 12 - loan,
     };
   }
@@ -924,6 +1060,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { k: "nationality", label: "国籍・在留資格", type: "sel", opts: opts(L.NATIONALITY) },
       { k: "employ", label: "雇用形態", type: "sel", opts: opts(L.EMPLOY) },
       { k: "tenure", label: "勤続年数・事業年数", type: "num", unit: "年", step: 0.5, hint: "自営業・経営者は確定申告の期数" },
+      { k: "inArea", label: "信用金庫の営業地域内に住む・勤める", type: "sw", hint: "地域外は取扱いの対象外", show: (d, P) => P.requireArea },
     ]},
     { t: "収入", note: "税込みの年収（自営業は所得）。自営業・経営者は型の基準（3期平均・2期の低いほう・直近）で審査年収を出します。", items: [
       { k: "income", label: "直近の年収", type: "num", unit: "万円" },
@@ -939,8 +1076,15 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       { k: "costs", label: "諸費用", type: "num", unit: "万円" },
       { k: "financeCosts", label: "諸費用もローンに含める", type: "sw" },
       { k: "term", label: "返済期間", type: "num", unit: "年", min: 1, max: 50 },
-      { k: "rate", label: "適用金利（実際の金利）", type: "num", unit: "%", step: 0.01 },
+      { k: "rate", label: "適用金利（実際の金利）", type: "num", unit: "%", step: 0.01, show: (d, P) => !P.isFlat },
+      { k: "flatRate", label: "フラット35の金利（融資率9割以下）", type: "num", unit: "%", step: 0.01, hint: "取扱金融機関の当月の金利。9割超の上乗せは自動", show: (d, P) => P.isFlat },
+      { k: "feeType", label: "保証料の支払い方法", type: "sel", opts: Object.entries(L.FEE_TYPE), show: (d, P) => P.guarantor.type === "bank" || P.guarantor.type === "shinkin" },
       { k: "purpose", label: "用途", type: "sel", opts: opts(L.PURPOSE) },
+    ]},
+    { t: "フラット35の金利引下げ", note: "子育てプラスとフラット35Sのポイントで、当初の金利が下がります（1ポイントにつき当初5年0.25%、最大1.0%。5ポイント以上は6〜10年目も）。予算や条件は住宅金融支援機構で確認してください。", show: (d, P) => P.isFlat, items: [
+      { k: "kids", label: "18歳未満の子どもの人数", type: "num", unit: "人" },
+      { k: "youngCouple", label: "夫婦のどちらかが40歳未満（子どもがいない場合）", type: "sw" },
+      { k: "flatS", label: "フラット35S（住宅の性能）", type: "sel", opts: opts(L.FLAT_S) },
     ]},
     { t: "物件・担保", note: "中古戸建は、土地（路線価×面積）と建物（再調達単価×延床×残りの耐用年数）で積算評価します。路線価は国税庁の路線価図で確認できます。", items: [
       { k: "property", label: "物件の種類", type: "sel", opts: opts(L.PROPERTY) },
@@ -1021,7 +1165,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     el.querySelectorAll("button").forEach((b) => (b.onclick = () => onPick(b.dataset.id)));
   }
   function renderTop() {
-    renderSeg($("#presetSeg"), pstore.presetId, (id) => { pstore.presetId = id; store.set(K_POLICY, pstore); renderTop(); renderDocs(); renderLive(); });
+    renderSeg($("#presetSeg"), pstore.presetId, (id) => { pstore.presetId = id; store.set(K_POLICY, pstore); renderTop(); applyShow(); renderDocs(); renderLive(); });
     $("#presetNote").textContent = L.PRESETS[pstore.presetId].note;
     $("#stageSeg").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.stage === data.stage)));
   }
@@ -1051,10 +1195,11 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     return wrap(`${lab}<span class="field"><input type="number" inputmode="decimal" id="${id}" data-k="${f.k}" value="${v == null ? "" : v}" step="${f.step || 1}" min="${f.min != null ? f.min : 0}"${f.max != null ? ` max="${f.max}"` : ""}><span class="u">${f.unit}</span></span>`);
   }
   function applyShow() {
+    const P = curPolicy();
     FORM.forEach((s, i) => {
       const sec = document.querySelector(`[data-sec="${i}"]`);
-      if (s.show) sec.hidden = !s.show(data);
-      (s.items || []).forEach((f) => { if (f.show) { const r = document.querySelector(`[data-row="${f.k}"]`); if (r) r.hidden = !f.show(data); } });
+      if (s.show) sec.hidden = !s.show(data, P);
+      (s.items || []).forEach((f) => { if (f.show) { const r = document.querySelector(`[data-row="${f.k}"]`); if (r) r.hidden = !f.show(data, P); } });
     });
   }
   function renderDocs() {
@@ -1075,14 +1220,14 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     const v = el.type === "checkbox" ? el.checked : el.type === "number" || el.dataset.num ? (el.value === "" ? 0 : +el.value) : el.value;
     setPath(data, k, v);
     if (isSample) { isSample = false; $("#sampleTag").hidden = true; }
-    if (["employ", "jointType", "property", "danshin"].includes(k)) { applyShow(); renderDocs(); }
+    if (["employ", "jointType", "property", "danshin", "price", "down", "costs", "financeCosts"].includes(k)) { applyShow(); renderDocs(); }
     renderLive();
   }
 
   function renderLive() {
     if (!(data.price > 0) || !(data.income > 0)) { $("#live").innerHTML = `<span>物件価格と年収を入れると、返済負担率がここに出ます</span>`; return; }
     const r = L.screen(data, curPolicy(), { nested: true });
-    $("#live").innerHTML = `<span>${r.policy.label}・${r.stageLabel}</span><span>借入 <b>${L.man(r.loan)}</b></span><span>負担率 <b>${L.r1(r.dti)}%</b> / ${r.limit}%${r.dti > r.limit ? " ⚠" : ""}</span><span>掛目 <b>${L.r1(r.ltv)}%</b></span>`;
+    $("#live").innerHTML = `<span>${r.policy.label}・${r.stageLabel}</span><span>借入 <b>${L.man(r.loan)}</b></span><span>負担率 <b>${L.r1(r.dti)}%</b> / ${r.limit}%${r.dti > r.limit ? " ⚠" : ""}</span><span>${r.policy.ltvBase === "price" ? "融資率" : "掛目"} <b>${L.r1(r.ltv)}%</b></span>${r.flat ? `<span>金利 <b>${r.input.rate}%</b></span>` : ""}`;
   }
 
   // ---------- 審査の実行 ----------
@@ -1158,22 +1303,44 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       </div>
 
       <div class="card">
-        <div class="sec-h"><h2 class="sec-t">返済と保証会社</h2></div>
+        <div class="sec-h"><h2 class="sec-t">返済と金利</h2></div>
         <div class="kpis">
           <div class="kpi"><div class="k">毎月の返済（${r.input.rate}%）</div><div class="v">${L.yen(r.monthly.actual * 10000)}</div><div class="s">${r.input.term}年・元利均等</div></div>
           <div class="kpi"><div class="k">審査上の返済（${r.stressRate}%）</div><div class="v">${L.yen(r.monthly.stress * 10000)}</div><div class="s">${r.policy.stressRate == null ? "実際の金利で審査" : "金利が上がっても返せるか"}</div></div>
           <div class="kpi"><div class="k">返済負担率</div><div class="v">${L.r1(r.dti)}%</div><div class="s">上限 ${r.limit}%・審査年収 ${L.man(r.income)}（${esc(r.incomeBasis)}）</div></div>
           <div class="kpi"><div class="k">年収倍率</div><div class="v">${L.r1(r.multiple)}倍</div><div class="s">他の借入 毎月 ${L.yen(r.debt * 10000)}</div></div>
-          <div class="kpi"><div class="k">保証会社の格付</div><div class="v">${r.knockouts.length ? "—" : gu.grade}</div><div class="s">${esc(gu.label)}${gu.fee != null ? `・保証料 +${gu.fee}%・上乗せ +${gu.add}%` : ""}</div></div>
+          <div class="kpi"><div class="k">${r.policy.isFlat ? "審査の格付（金利差なし）" : "保証の格付"}</div><div class="v">${r.knockouts.length ? "—" : gu.grade}</div><div class="s">${r.policy.isFlat ? "保証会社なし・保証料なし" : `${esc(gu.label)}${gu.fee != null ? `・保証料 +${gu.fee}%・上乗せ +${gu.add}%` : ""}`}</div></div>
           <div class="kpi"><div class="k">適用金利の目安</div><div class="v">${gu.rate != null && !r.knockouts.length ? gu.rate.toFixed(2) + "%" : "—"}</div><div class="s">${gu.rate != null && !r.knockouts.length ? `${r.maxLoan && r.maxLoan < r.loan ? "可能額 " + L.man(r.maxLoan) : L.man(r.loan)} で毎月 ${L.yen(L.pmt(Math.min(r.loan, r.maxLoan || r.loan), gu.rate, r.input.term) * 10000)}` : "取扱い不可"}</div></div>
         </div>
+      </div>
+
+      ${r.flat ? `<div class="card">
+        <div class="sec-h"><h2 class="sec-t">フラット35の金利</h2></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">融資率（借入÷物件価格）</div><div class="v">${L.r1(r.flat.ltv)}%</div><div class="s">${r.flat.highLtv ? `9割超のため +${r.policy.highLtv.add}%` : "9割以下"}</div></div>
+          <div class="kpi"><div class="k">審査に使う金利</div><div class="v">${r.flat.rate}%</div><div class="s">${r.flat.noDanshin ? "団信なしで −0.2%" : "新機構団信を含む"}</div></div>
+          <div class="kpi"><div class="k">金利引下げ</div><div class="v">${r.flat.points}pt</div><div class="s">${r.flat.reduction.length ? r.flat.reduction.map((d) => `${d.from}〜${d.to}年目 −${d.cut}%`).join("・") : "なし"}</div></div>
+          <div class="kpi"><div class="k">当初の金利</div><div class="v">${r.flat.firstRate}%</div><div class="s">毎月 ${L.yen(L.pmt(r.loan, r.flat.firstRate, r.input.term) * 10000)}（当初）</div></div>
+        </div>
+        <p class="note" style="margin-top:8px">審査（返済負担率）は引下げ前の金利で計算しています。金利・引下げの条件と予算は毎月変わるため、住宅金融支援機構と取扱金融機関で確認してください。</p>
+      </div>` : ""}
+
+      <div class="card">
+        <div class="sec-h"><h2 class="sec-t">保証機関と借入時の費用</h2></div>
+        <div class="kpis">
+          <div class="kpi"><div class="k">保証機関</div><div class="v" style="font-size:15px;font-family:var(--f-body)">${esc(r.policy.guarantor.label)}</div><div class="s">${r.fees.guarantee.feeType ? esc(L.FEE_TYPE[r.fees.guarantee.feeType]) : "保証料なし"}</div></div>
+          <div class="kpi"><div class="k">保証料</div><div class="v">${r.fees.guarantee.feeType === "rate" ? "+" + r.fees.guarantee.rateAdd + "%" : L.yen(r.fees.guarantee.lump)}</div><div class="s">${r.fees.guarantee.feeType === "rate" ? "金利に上乗せ" : r.fees.guarantee.feeType === "lump" ? "一括前払い（目安）" : "不要"}</div></div>
+          <div class="kpi"><div class="k">事務手数料</div><div class="v">${L.yen(r.fees.admin)}</div><div class="s">${esc(r.fees.adminLabel)}</div></div>
+          <div class="kpi"><div class="k">借入時の費用（合計）</div><div class="v">${L.yen(r.fees.total)}</div><div class="s">希望額 ${L.man(r.loan)}で計算</div></div>
+        </div>
+        <p class="note" style="margin-top:8px">${esc(r.guarantorNote)}</p>
       </div>
 
       <div class="card">
         <div class="sec-h"><h2 class="sec-t">担保評価</h2></div>
         <div class="kpis">
           <div class="kpi"><div class="k">評価額（${ap.method}）</div><div class="v">${L.man(ap.value)}</div><div class="s">${ap.method === "積算" ? "土地＋建物" : ap.method === "手入力" ? "入力した評価額" : `物件価格の${ap.rate}%`}</div></div>
-          <div class="kpi"><div class="k">担保掛目</div><div class="v">${L.r1(r.ltv)}%</div><div class="s">上限 ${r.ltvLimit}%</div></div>
+          <div class="kpi"><div class="k">${r.policy.ltvBase === "price" ? "融資率" : "担保掛目"}</div><div class="v">${L.r1(r.ltv)}%</div><div class="s">上限 ${r.ltvLimit}%${r.policy.ltvBase === "price" ? "（物件価格に対して）" : ""}</div></div>
           ${ap.method === "積算" ? `<div class="kpi"><div class="k">土地</div><div class="v">${L.man(ap.land)}</div><div class="s">路線価 ${(+r.input.rosenka).toLocaleString("ja-JP")}円 × ${r.input.landArea}㎡</div></div>
           <div class="kpi"><div class="k">建物</div><div class="v">${L.man(ap.building)}</div><div class="s">${ap.unit}万円/㎡ × ${r.input.floor}㎡ × 残り${Math.max(0, ap.life - r.input.builtYears)}/${ap.life}年</div></div>` : ""}
         </div>
@@ -1252,6 +1419,7 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
       `判定：${r.decisionInfo.label}${r.holdReason ? "（" + r.holdReason + "）" : ""} ／ 格付 ${r.knockouts.length ? "—" : r.grade}（${r.score}/1000）`,
       `希望額 ${L.man(r.loan)} ／ 融資可能額 ${L.man(r.maxLoan)} ／ 返済負担率 ${L.r1(r.dti)}%（上限${r.limit}%・${r.stressRate}%）／ 掛目 ${L.r1(r.ltv)}%（${r.appraisal.method}）`,
       `毎月の返済 ${L.yen(r.monthly.actual * 10000)}（${r.input.rate}%・${r.input.term}年）／ 決裁 ${r.authority.label}`,
+      `保証機関 ${r.policy.guarantor.label} ／ 保証料 ${r.fees.guarantee.feeType === "rate" ? "金利+" + r.fees.guarantee.rateAdd + "%" : L.yen(r.fees.guarantee.lump)} ／ 事務手数料 ${L.yen(r.fees.admin)}${r.flat ? ` ／ フラット35 当初金利 ${r.flat.firstRate}%（${r.flat.points}pt）` : ""}`,
       ...r.stages.map((s) => `${{ ok: "○", warn: "△", ng: "×", skip: "−" }[s.status]} ${s.label}`),
       b("評価できる点", r.strengths), b("懸念点", r.concerns), b("条件・対応", r.conditions), b("次にやること", nextSteps(r)),
       `審査記録 ${r.audit.at} / v${r.audit.engine} / ${r.audit.inputHash}`, "", L.NOTE].join("\n");
@@ -1324,12 +1492,16 @@ select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;ba
     { k: "jointCodebtor", label: "収入合算（連帯債務）の算入割合", unit: "%", step: 5 },
     { k: "minFloorHouse", label: "戸建の床面積の下限", unit: "㎡", step: 5 },
     { k: "minFloorMansion", label: "マンションの床面積の下限", unit: "㎡", step: 5 },
+    { k: "loanMax", label: "借入額の上限", unit: "万円", step: 100 },
+    { k: "memberThreshold", label: "会員（出資金）が必要になる借入額", unit: "万円", step: 100, hint: "0なら会員の条件なし（信用金庫型）" },
     { k: "incomeBasis", label: "自営業・経営者の所得の見方", sel: [["avg3", "直近3期の平均"], ["min2", "直近2期の低いほう"], ["latest", "直近"]] },
     { k: "nonPR", label: "永住権がない外国籍", sel: [["ng", "取り扱わない（否決）"], ["warn", "個別に確認（△）"]] },
     { k: "contractOk", label: "契約・派遣・パートを受け付ける", sw: true },
     { k: "danshinRequired", label: "団信の加入を必須にする", sw: true },
     { k: "allowChosei", label: "市街化調整区域を受け付ける（△）", sw: true },
     { k: "allowLeasehold", label: "借地権を受け付ける（△）", sw: true },
+    { k: "requireArea", label: "営業地域内の居住・勤務を条件にする", sw: true },
+    { k: "requireNewQuake", label: "旧耐震を取り扱わない（×）", sw: true },
   ];
   function renderPolicy() {
     renderSeg($("#policySeg"), editId, (id) => { editId = id; renderPolicy(); });

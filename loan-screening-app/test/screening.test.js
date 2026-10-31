@@ -22,8 +22,9 @@ test("返済比率は審査金利で計算し、他の借入を含む。フラ�
   const r = run({ price: 3000, down: 0, term: 35, income: 500, car: 3, scholarship: 0, rate: 1.8 });
   const exp = ((L.pmt(3000, 3.5, 35) + 3) * 12) / 500 * 100;
   assert.ok(Math.abs(r.dti - exp) < 1e-9);
-  const f = run({ price: 3000, down: 0, term: 35, income: 500, car: 3, scholarship: 0, rate: 1.8, floor: 100 }, "flat35");
-  assert.ok(Math.abs(f.dti - ((L.pmt(3000, 1.8, 35) + 3) * 12) / 500 * 100) < 1e-9);
+  // フラット35は flatRate（＋融資率9割超の上乗せ）が実際の金利
+  const f = run({ price: 3000, down: 0, term: 35, income: 500, car: 3, scholarship: 0, flatRate: 1.8, floor: 100 }, "flat35");
+  assert.ok(Math.abs(f.dti - ((L.pmt(3000, 1.8 + L.PRESETS.flat35.highLtv.add, 35) + 3) * 12) / 500 * 100) < 1e-9);
 });
 
 test("カードローンの利用枠は型の率で返済に算入する", () => {
@@ -124,7 +125,7 @@ test("審査記録: 同じ入力と日時なら同じハッシュ、入力が変
 });
 
 test("型を変えると結果が変わることがある（審査金利の違い）", () => {
-  const p = { income: 420, incomePrev: 420, price: 3600, down: 100, car: 0, scholarship: 0, floor: 100 };
+  const p = { income: 420, incomePrev: 420, price: 3600, down: 100, car: 0, scholarship: 0, floor: 100, flatRate: 2.0 };
   assert.ok(run(p, "flat35").dti < run(p, "megabank").dti);
 });
 
