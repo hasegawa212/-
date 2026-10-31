@@ -7,8 +7,8 @@ const KEYS = ["id", "label", "note", "stressRate", "dti", "multipleMax", "multip
   "cardLimitRate", "jointGuarantor", "jointCodebtor", "ltvMax", "ltvWithCosts", "allowChosei", "allowLeasehold",
   "minFloorHouse", "minFloorMansion", "unitCost", "life", "simpleRate", "guarantee", "authority", "docsExtra"];
 
-test("5つの型が同じ項目を持つ", () => {
-  assert.deepEqual(Object.keys(P.PRESETS).sort(), ["flat35", "megabank", "net", "regional", "shinkin"].sort());
+test("6つの型が同じ項目を持つ", () => {
+  assert.deepEqual(Object.keys(P.PRESETS).sort(), ["flat35", "megabank", "net", "regional", "rokin", "shinkin"].sort());
   for (const k of ["guarantor", "adminFee", "loanMin", "loanMax", "termMin", "ltvBase", "requireNewQuake", "highLtv", "requireArea", "memberThreshold"]) for (const p of Object.values(P.PRESETS)) assert.ok(k in p, `${p.id} に ${k} がない`);
   for (const [id, p] of Object.entries(P.PRESETS)) {
     for (const k of KEYS) assert.ok(k in p, `${id} に ${k} がない`);

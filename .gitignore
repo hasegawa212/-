@@ -24,3 +24,7 @@ cashflow-dashboard/*.csv
 
 # Netlify のビルド成果物（netlify/build.sh が生成）
 _site/
+
+# LOAN DESK の答え合わせ用の案件表（お客様単位のデータ。名前を伏せていても入れない）
+loan_screening_cases*.csv
+*_private_map.json
