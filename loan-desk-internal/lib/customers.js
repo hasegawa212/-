@@ -8,7 +8,7 @@
   const KEY = "ldi_customers_v1";
   // 保存してよい入力（自由文は持たない）
   // posted = 相談シートの掲載日、flag = 未記入・個別判断、notes = 試算の前提（どれも作る側が書く短い文）
-  const FIELDS = { pref: "s", age: "n", income: "n", tenure: "n", employ: "s", loan: "n", debt: "n", rej: "n", single: "b", motive: "b", settle: "s", rejected: "a", posted: "s", flag: "s", notes: "s" };
+  const FIELDS = { pref: "s", age: "n", income: "n", tenure: "n", employ: "s", loan: "n", debt: "n", rej: "n", single: "b", motive: "b", settle: "s", rejected: "a", posted: "s", flag: "s", notes: "s", history: "h" };
   const MAXLEN = { notes: 120, flag: 60 };
 
   // 呼び名: ローマ字のイニシャル2〜3文字（例 S.T）か、姓（漢字・かな1〜4文字）。
@@ -21,6 +21,15 @@
     return null;
   }
 
+  // 審査の履歴1件: 金融機関・段階・結果・月・理由のキーだけ（自由文は持たない）
+  function cleanHist(h) {
+    if (!h || typeof h.lender !== "string" || !h.lender || h.lender.length > 30) return null;
+    const o = { lender: h.lender, stage: h.stage === "main" ? "main" : "pre", result: h.result === "pass" ? "pass" : "reject" };
+    if (typeof h.month === "string" && /^\d{4}-\d{2}$/.test(h.month)) o.month = h.month;
+    if (o.result === "reject") o.reason = typeof h.reason === "string" && /^[a-z_]{1,30}$/.test(h.reason) ? h.reason : "unknown";
+    return o;
+  }
+
   function clean(input) {
     const out = {};
     for (const [k, t] of Object.entries(FIELDS)) {
@@ -30,6 +39,7 @@
       else if (t === "b") out[k] = !!v;
       else if (t === "s" && typeof v === "string" && v.length <= (MAXLEN[k] || 20)) out[k] = v;
       else if (t === "a" && Array.isArray(v)) out[k] = v.filter((x) => typeof x === "string" && x.length <= 30).slice(0, 20);
+      else if (t === "h" && Array.isArray(v)) out[k] = v.map(cleanHist).filter(Boolean).slice(0, 30);
     }
     return out;
   }
@@ -68,8 +78,13 @@
       const r = save([], { initials: it && it.initials, staff: it && it.staff, input: it && it.input }, (it && it.updated) || "");
       if (!r.ok) { skipped++; continue; }
       const old = map.get(r.item.id);
-      if (!old) { map.set(r.item.id, r.item); added++; }
-      else if ((r.item.updated || "") > (old.updated || "")) { map.set(r.item.id, r.item); updated++; }
+      if (!old) { map.set(r.item.id, r.item); added++; continue; }
+      // 新しいほうを残す。審査の履歴は両方を合わせる（古いほうにしかない否決を落とさない）
+      const keep = (r.item.updated || "") > (old.updated || "") ? r.item : old;
+      const seen = new Set(), hist = [];
+      for (const h of (old.input.history || []).concat(r.item.input.history || [])) { const k = JSON.stringify(h); if (!seen.has(k)) { seen.add(k); hist.push(h); } }
+      const merged = Object.assign({}, keep, { input: Object.assign({}, keep.input, hist.length ? { history: hist } : {}) });
+      if (JSON.stringify(merged) !== JSON.stringify(old)) { map.set(r.item.id, merged); updated++; }
     }
     const merged = [...map.values()].sort((a, b) => (b.updated || "").localeCompare(a.updated || "")).slice(0, 500);
     return { ok: true, list: merged, added, updated, skipped };
@@ -79,5 +94,5 @@
   const search = (list, q) => { const k = fold(q); return k ? (list || []).filter((x) => fold(`${x.initials} ${x.staff} ${x.input.pref || ""}`).includes(k)) : list || []; };
   const staffs = (list) => [...new Set((list || []).map((x) => x.staff).filter(Boolean))].sort();
 
-  return { KEY, KIND, FIELDS, normInitials, clean, save, remove, load, store, exportText, importText, search, staffs };
+  return { cleanHist, KEY, KIND, FIELDS, normInitials, clean, save, remove, load, store, exportText, importText, search, staffs };
 });
