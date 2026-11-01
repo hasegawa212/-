@@ -33,3 +33,4 @@ loan_screening_cases*.csv
 loandesk_records_*.json
 loandesk_customers_*.json
 loandesk_customers_retry_*.json
+loan-desk-internal/dist/

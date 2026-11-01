@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "社外秘: LOAN DESK 社内版（当社の実績から、出す金融機関の順番と仲介会社を出す）。公開しない",
-  "scripts": { "test": "node --test test/*.test.js" }
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node tools/bundle.js file page"
+  }
 }

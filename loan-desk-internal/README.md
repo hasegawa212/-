@@ -3,7 +3,7 @@
 当社の住宅ローン審査の実績と、公開版 LOAN DESK の審査エンジン（`../loan-screening-app/lib/`）を組み合わせて、**どの金融機関にどの順番で出すか**と**仲介に入ってもらう会社**を出す社内ツールです。
 
 - 開き方: リポジトリを取得したうえで `loan-desk-internal/index.html` を直接開く。公開版のエンジンを相対パスで読むので、フォルダの位置関係を変えない
-- テスト: `cd loan-desk-internal && npm test`（48）
+- テスト: `cd loan-desk-internal && npm test`（67）
 - **公開しない。** GitHub Pages・Netlify の公開設定には入れていない。追加もしない
 
 ## 仕組み
@@ -42,6 +42,18 @@
 - **相談シートの全員を入れる**: `node tools/export-customers.js <sheets.json> <リポジトリの外のフォルダ>` → `loandesk_customers_YYYYMMDD.json` を画面の「読み込む」で入れる。借入額などの前提は `tools/sheet-map.js`（`run-sheets.js` と共通）
 - 「書き出す」で同じ形のファイルになり、ほかの端末に「読み込む」で移せる（同じお客様は新しいほうを残す）
 - このファイルには姓と条件が入る。**リポジトリに入れない**（`.gitignore` 済み）、外部のサービスに上げない
+
+## 共有版（claude.ai のページ）
+
+同じ `index.html` が、置き場所で2通りに動く（設計と計画: `docs/設計_共有版.md`）。
+
+- **ファイル版**（直接開く／`dist/loan-desk-file.html`）: お客様はその端末にだけ保存
+- **共有版**（claude.ai の非公開ページ）: お客様の一覧をページの共有データに保存し、共有した全員に反映する
+  - 「編集」で共有した人は保存・履歴の追加・削除ができる。「閲覧」の人には、そのボタンを出さない
+  - 書き出しはページの保存機能（確認が出る）と、画面に出す内容のコピー。削除は2回押し
+- `lib/sync.js`: 共有データの行の名前（`docId`）、差分だけ書く（`diff`）、読んだ行を `customers.js` と同じきまりで整える（`fromSnapshot`）、見出しと見るだけの判定（`viewState`）
+- 作り方: `npm run build` → `dist/loan-desk-file.html` と `dist/loan-desk-page.html`（`dist/` はリポジトリに入れない）。共有版は `loan-desk-page.html` を同じページに出し直す。ページの機能は db・user・downloads
+- 共有データには姓・担当・条件・審査の履歴が入る。共有する相手は社内の担当者だけにする
 
 ## 否決と再挑戦
 

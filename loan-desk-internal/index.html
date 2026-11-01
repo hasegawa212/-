@@ -10,6 +10,7 @@
 :root{--bg:#eef1f5;--surface:#fff;--sunk:#f5f7fa;--line:#d9dfe7;--ink:#13213a;--muted:#5b687c;--navy:#10233d;--on-navy:#eef2f8;--accent:#1f5aa6;--ok:#1d7a4f;--ok-soft:#e1f2e9;--warn:#a86400;--warn-soft:#fbf0dc;--ng:#b3261e;--ng-soft:#fbe5e3;
   --f:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;--n:ui-monospace,"SFMono-Regular",Menlo,monospace}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b111b;--surface:#131c2a;--sunk:#0f1724;--line:#26344a;--ink:#e5ebf3;--muted:#9aa8bc;--navy:#0a1626;--on-navy:#e5ebf3;--accent:#7fb0f5;--ok:#5fd19a;--ok-soft:#12301f;--warn:#f2b552;--warn-soft:#33270f;--ng:#ff8a80;--ng-soft:#3a1715;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b111b;--surface:#131c2a;--sunk:#0f1724;--line:#26344a;--ink:#e5ebf3;--muted:#9aa8bc;--navy:#0a1626;--on-navy:#e5ebf3;--accent:#7fb0f5;--ok:#5fd19a;--ok-soft:#12301f;--warn:#f2b552;--warn-soft:#33270f;--ng:#ff8a80;--ng-soft:#3a1715;color-scheme:dark}
 *{box-sizing:border-box}[hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.6}
 header{background:var(--navy);color:var(--on-navy);padding:12px max(16px,env(safe-area-inset-left,0px))}
@@ -36,6 +37,9 @@ th{font-size:11.5px;color:var(--muted);font-weight:500;border-top:0}
 .rank{font-family:var(--n);font-weight:700;color:var(--accent)}
 ol,ul{margin:0;padding-left:20px}
 .note{font-size:12px;color:var(--muted);margin:0}
+#expBox textarea{width:100%;min-height:140px;font:12px var(--n);padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--ink)}
+body.ro #cSave,body.ro #cImport,body.ro #hAdd,body.ro [data-cdel],body.ro [data-hdel]{display:none!important}
+.ro-note{display:block;background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13px}
 button.sub{padding:10px;letter-spacing:.02em}
 button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line)}
 .mini{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
@@ -83,7 +87,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     <div style="margin-top:12px"><button id="go" type="button">出す順番を出す</button></div>
   </div>
   <div class="card">
-    <h2>お客様（この端末だけ）</h2>
+    <h2 id="cHead">お客様（この端末だけ）</h2>
     <div class="grid">
       <label>イニシャルか姓（例: S.T／斎藤）<input id="cIni" autocomplete="off" maxlength="8" placeholder="斎藤"></label>
       <label>担当<input id="cStaff" autocomplete="off" maxlength="10"></label>
@@ -118,6 +122,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     <div id="hList" style="margin-top:8px"></div>
     <div id="hPlan" style="margin-top:8px"></div>
   </div>
+  <div class="card" id="expBox" hidden></div>
   <div id="out"></div>
   <div class="card">
     <h2>審査の結果を足す（否決の記録）</h2>
@@ -148,12 +153,27 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
 <script src="lib/outcomes.js"></script>
 <script src="lib/schedule.js"></script>
 <script src="lib/customers.js"></script>
+<script src="lib/sync.js"></script>
 <script src="lib/recommend.js"></script>
 <script src="lib/retry.js"></script>
 <script>
 (function () {
   "use strict";
   const L = window.LSA, R = window.LDI, $ = (s) => document.querySelector(s);
+  // 書き出し: ダウンロードを試し、画面にも内容を出す（共有版ではダウンロードが動かないため）
+  function showExport(text, label, filename) {
+    // 共有版はページの保存機能（確認が出る）、ファイル版はふつうのダウンロード
+    (window.claude && window.claude.use ? window.claude.use("downloads").catch(() => null) : Promise.resolve(null)).then((dl) => {
+      if (dl) return dl.save({ filename, data: text }).catch(() => {});
+      try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([text], { type: "application/json" })); a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); } catch (e) {}
+    });
+    const b = $("#expBox"); b.hidden = false;
+    b.innerHTML = `<h2>${label}</h2><p class="note" style="margin:0 0 6px">ファイルが保存されないときは、この内容をコピーして「${filename}」の名前で保存してください。ほかの端末では「読み込む」でそのファイルを選びます。</p><textarea id="expText" readonly></textarea><div class="grid" style="margin-top:8px"><button type="button" class="sub" id="expCopy">コピーする</button><button type="button" class="sub ghost" id="expClose">閉じる</button></div>`;
+    const t = $("#expText"); t.value = text;
+    $("#expClose").onclick = () => { b.hidden = true; };
+    $("#expCopy").onclick = (ev) => { const btn = ev.currentTarget; (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => { btn.textContent = "コピーしました"; }, () => { t.focus(); t.select(); btn.textContent = "選択しました。Ctrl+C（長押し）でコピー"; }); };
+    b.scrollIntoView({ behavior: "smooth" });
+  }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   $("#employ").innerHTML = Object.entries(L.EMPLOY).map(([k, v]) => `<option value="${k}"${k === "contract" ? " selected" : ""}>${v.label}</option>`).join("");
   $("#rejList").innerHTML = R.LENDERS.map((l, i) => `<label class="chk"><input type="checkbox" data-rej="${esc(l.name)}" id="rej_${i}">${esc(l.name)}</label>`).join("");
@@ -177,8 +197,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     records.push(r); saveRec(records); renderRec(); go();
   };
   $("#rExport").onclick = () => {
-    const blob = new Blob([JSON.stringify({ kind: "loan-desk-records", v: 1, exported: new Date().toISOString().slice(0, 10), records }, null, 1)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `loandesk_records_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    showExport(JSON.stringify({ kind: "loan-desk-records", v: 1, exported: new Date().toISOString().slice(0, 10), records }, null, 1), "審査の記録（書き出し）", `loandesk_records_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`);
   };
   renderRec();
   const DEC = { approve: ["ok", "承認見込み"], conditional: ["warn", "条件付き"], hold: ["ng", "保留"], reject: ["ng", "否決見込み"] };
@@ -240,6 +259,28 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     firstCache.set(key, v); return v;
   }
   let customers = R.load();
+  // 保存先: 共有版（claude.ai のページの共有データ）なら全員の一覧、ファイル版ならこの端末（lib/sync.js）
+  let shared = null, synced = new Map(), writing = Promise.resolve();
+  function persist() {
+    if (!shared) return R.store(null, customers);
+    const d = R.diff(synced, customers);
+    synced = d.next;
+    const jobs = d.sets.map((x) => () => shared.collection(R.COLLECTION).doc(x.docId).set(x.data))
+      .concat(d.deletes.map((k) => () => shared.collection(R.COLLECTION).doc(k).delete()));
+    if (!jobs.length) return true;
+    $("#cCount").textContent = `全員の一覧に保存しています（${jobs.length}件）…`;
+    writing = writing.then(async () => {
+      for (const job of jobs) {
+        try { await job(); }
+        catch (e) {
+          if (e && e.code === "unavailable") { await new Promise((r) => setTimeout(r, 500 + Math.random() * 1000)); try { await job(); continue; } catch (e2) { e = e2; } }
+          $("#cMsg").textContent = R.errorText(e && e.code); $("#cMsg").style.color = "var(--ng)";
+        }
+      }
+      renderCust();
+    });
+    return true;
+  }
   function renderCust() {
     const sf = $("#cStaffF").value;
     $("#cStaffF").innerHTML = `<option value="">全員</option>` + R.staffs(customers).map((n) => `<option${n === sf ? " selected" : ""}>${esc(n)}</option>`).join("");
@@ -254,13 +295,13 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => { const c = byId(b.dataset.open); current = c; writeForm(c.input); $("#cIni").value = c.initials; $("#cStaff").value = c.staff;
       $("#cNow").hidden = false; $("#cNow").innerHTML = `<h2>${esc(c.initials)}（${esc(c.staff || "担当なし")}）</h2><p class="note">${c.input.posted ? "相談シート " + esc(c.input.posted) + "　" : ""}${c.input.flag ? `<span class="pill warn">${esc(c.input.flag)}</span> ` : ""}${esc(c.input.notes || "")}</p>`;
       go(); renderRetry(); $("#cNow").scrollIntoView({ behavior: "smooth" }); }));
-    document.querySelectorAll("[data-cdel]").forEach((b) => (b.onclick = () => { if (!confirm("このお客様の保存を消しますか？")) return; customers = R.remove(customers, b.dataset.cdel); R.store(null, customers); renderCust(); }));
+    document.querySelectorAll("[data-cdel]").forEach((b) => (b.onclick = () => { if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "本当に消す"; setTimeout(() => { b.dataset.sure = ""; b.textContent = "消す"; }, 4000); return; } customers = R.remove(customers, b.dataset.cdel); persist(); renderCust(); }));
   }
   $("#cQ").oninput = renderCust; $("#cStaffF").onchange = renderCust; $("#cRejOnly").onchange = renderCust;
   $("#cSave").onclick = () => {
     const res = R.save(customers, { initials: $("#cIni").value, staff: $("#cStaff").value, input: readForm() });
     if (!res.ok) { $("#cMsg").textContent = res.error; $("#cMsg").style.color = "var(--ng)"; return; }
-    customers = res.list; current = res.item; if (!R.store(null, customers)) { $("#cMsg").textContent = "この端末に保存できませんでした（プライベートモード等）"; $("#cMsg").style.color = "var(--ng)"; return; }
+    customers = res.list; current = res.item; if (!persist()) { $("#cMsg").textContent = "この端末に保存できませんでした（プライベートモード等）"; $("#cMsg").style.color = "var(--ng)"; return; }
     $("#cIni").value = res.item.initials; $("#cMsg").textContent = `${res.item.initials} を保存しました（この端末だけ）。`; $("#cMsg").style.color = ""; renderCust();
   };
   $("#cImport").onclick = () => $("#cFile").click();
@@ -268,19 +309,18 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     const f = $("#cFile").files[0]; if (!f) return;
     const r = R.importText(customers, await f.text()); $("#cFile").value = "";
     if (!r.ok) { $("#cMsg").textContent = r.error; $("#cMsg").style.color = "var(--ng)"; return; }
-    customers = r.list; R.store(null, customers);
+    customers = r.list; persist();
     $("#cMsg").textContent = `読み込みました: 新しく ${r.added}人、更新 ${r.updated}人${r.skipped ? `、読めなかった ${r.skipped}人` : ""}。`; $("#cMsg").style.color = ""; renderCust();
   };
   $("#cExport").onclick = () => {
-    const blob = new Blob([R.exportText(customers)], { type: "application/json" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `loandesk_customers_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    showExport(R.exportText(customers), "お客様（書き出し）", `loandesk_customers_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`);
   };
   // 否決と再挑戦（開いているお客様の履歴）
   $("#hLender").innerHTML = R.LENDERS.map((l) => `<option>${esc(l.name)}</option>`).join("");
   $("#hReason").innerHTML = Object.entries(R.REASONS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
   $("#hResult").onchange = () => { $("#hReason").disabled = $("#hResult").value !== "reject"; };
   const STG = { pre: "事前", main: "本審査" };
-  function saveCurrent() { const res = R.save(customers, { initials: current.initials, staff: current.staff, input: current.input }); if (res.ok) { customers = res.list; current = res.item; R.store(null, customers); } }
+  function saveCurrent() { const res = R.save(customers, { initials: current.initials, staff: current.staff, input: current.input }); if (res.ok) { customers = res.list; current = res.item; persist(); } }
   function renderRetry() {
     if (!current) { $("#retry").hidden = true; return; }
     $("#retry").hidden = false;
@@ -309,6 +349,27 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     current.input.history = (current.input.history || []).concat([h]); saveCurrent(); renderRetry(); renderCust();
   };
   renderCust();
+  // 共有版: 共有データにつながったら、全員の一覧に切り替える（つながらなければファイル版のまま）
+  (async () => {
+    const db = window.claude && window.claude.use ? await window.claude.use("db").catch(() => null) : null;
+    if (!db) return;
+    shared = db;
+    const who = await window.claude.use("user").catch(() => null);
+    const canWrite = who ? await who.can("data.write").catch(() => null) : null;
+    const v = R.viewState({ shared: true, canWrite });
+    $("#cHead").textContent = v.head;
+    $("#cMsg").innerHTML = v.readOnly ? `<span class="ro-note">${esc(v.msg)}</span>` : esc(v.msg);
+    document.body.classList.toggle("ro", v.readOnly);
+    $("#cCount").textContent = "全員の一覧を読み込んでいます…";
+    const timer = setTimeout(() => { $("#cCount").textContent = "全員の一覧にまだつながりません。表示が古い場合があります"; }, 10000);
+    db.collection(R.COLLECTION).onSnapshot((snap) => {
+      if (!snap.metadata.fromCache) clearTimeout(timer);
+      const r = R.fromSnapshot(snap.docs.map((d) => ({ id: d.id, data: d.data() })));
+      customers = r.customers; synced = r.synced;
+      if (current) current = customers.find((c) => c.id === current.id) || current;
+      renderCust(); if (current && !$("#retry").hidden) renderRetry();
+    }, () => { clearTimeout(timer); $("#cCount").textContent = "全員の一覧が読めませんでした。ページを開き直してください"; });
+  })();
   $("#go").onclick = go;
   $("#settle").onchange = go;
   document.querySelectorAll("[data-rej]").forEach((e) => (e.onchange = go));
