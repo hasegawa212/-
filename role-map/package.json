@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "report": "node tools/report.js",
-    "serve": "python3 -m http.server 5190"
+    "serve": "python3 -m http.server 5190",
+    "sheet": "node tools/seat-sheet.js --write && NODE_PATH=$(npm root -g) node tools/seat-sheet-pdf.js && python3 tools/build-pack.py"
   }
 }

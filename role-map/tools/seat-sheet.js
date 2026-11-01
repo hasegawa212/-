@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 // 立候補シートの別紙「席ごとのやること」：割り当て案（data/handoff.js）から、席ごとに引き受ける仕事と見るルールを A4 で出す
 // 社員に配る紙なので、人の名前・代表に残す仕事・今手伝っている人は出さない
-// node tools/seat-sheet.js > "../経営管理/05_人事・労務/評価・教育/立候補シート_別紙_席ごとのやること.html"
+// npm run sheet（HTML → PDF → 立候補パックの組み直し）。HTML だけなら node tools/seat-sheet.js --write
+const path = require("node:path");
+const fs = require("node:fs");
 const RM = require("../lib/rolemap");
 const D = require("../data/roles");
 const PLAN = require("../data/handoff");
 const SEATS = require("../data/seats");
 
+const DIR = path.join(__dirname, "..", "..", "経営管理", "05_人事・労務", "評価・教育");
+const OUT = path.join(DIR, "立候補シート_別紙_席ごとのやること.html");
 const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const GROUPS = [["E", "いまある役職・役割"], ["M", "経営"], ["S", "営業"], ["P", "仕入れ・業務"], ["K", "管理"]];
 
@@ -16,12 +20,14 @@ function buildSeatSheet() {
   const item = (t) => `<li><span class="nm">${esc(t.name)}</span><span class="fq">${esc(t.freq)}</span>${PLAN[t.id].note ? `<small>${esc(PLAN[t.id].note)}</small>` : ""}</li>`;
   const block = (seat) => {
     const v = h.bySeat[seat];
+    if (!v) return `<section class="seat"><div class="sh"><span class="id">${esc(seat)}</span><span class="sn">${esc(SEATS[seat])}</span></div>` +
+      `<p class="none">この別紙で足す仕事はありません。職務は「社内公募ポジション一覧」のとおりです。</p></section>`;
     return `<section class="seat"><div class="sh"><span class="id">${esc(seat)}</span><span class="sn">${esc(SEATS[seat])}</span></div>` +
       (v.move.length ? `<h4>引き受ける仕事</h4><ul>${v.move.map(item).join("")}</ul>` : "") +
       (v.rule.length ? `<h4 class="r">全員のルール：守られているかを見る</h4><ul>${v.rule.map(item).join("")}</ul>` : "") + "</section>";
   };
   const body = GROUPS.map(([p, label]) => {
-    const seats = order.filter((s) => s.startsWith(p + "-") && h.bySeat[s]);
+    const seats = order.filter((s) => s.startsWith(p + "-"));
     return seats.length ? `<h2>${esc(label)}</h2><div class="grid">${seats.map(block).join("")}</div>` : "";
   }).join("");
   const stops = D.tasks.filter((t) => PLAN[t.id] && PLAN[t.id].kind === "stop");
@@ -53,6 +59,7 @@ function buildSeatSheet() {
   li{font-size:11.5px;line-height:1.5;margin:2px 0}
   li .fq{display:inline-block;margin-left:6px;font-size:9.5px;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:0 6px;vertical-align:1px}
   li small{display:block;color:var(--sub);font-size:10.5px}
+  .none{margin:4px 0 0;font-size:11px;color:var(--sub);line-height:1.5}
   .stop{margin-top:14px;font-size:11.5px;color:var(--sub)}
   .foot{margin-top:16px;font-size:10px;color:var(--sub);border-top:1px solid var(--line);padding-top:8px;line-height:1.6}
   @media (max-width:640px){.doc{margin:0;padding:20px 16px}.grid{grid-template-columns:1fr}.head{flex-direction:column;align-items:flex-start}.head .co{text-align:left}}
@@ -74,5 +81,8 @@ function buildSeatSheet() {
 `;
 }
 
-module.exports = { buildSeatSheet };
-if (require.main === module) process.stdout.write(buildSeatSheet());
+module.exports = { buildSeatSheet, esc, OUT, DIR };
+if (require.main === module) {
+  if (process.argv.includes("--write")) { fs.writeFileSync(OUT, buildSeatSheet()); console.error("wrote " + OUT); }
+  else process.stdout.write(buildSeatSheet());
+}
