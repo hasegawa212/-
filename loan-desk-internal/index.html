@@ -36,6 +36,26 @@ th{font-size:11.5px;color:var(--muted);font-weight:500;border-top:0}
 .rank{font-family:var(--n);font-weight:700;color:var(--accent)}
 ol,ul{margin:0;padding-left:20px}
 .note{font-size:12px;color:var(--muted);margin:0}
+button.sub{padding:10px;letter-spacing:.02em}
+button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line)}
+.mini{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px}
+.mini span{flex:1 1 160px;min-width:0}
+.mini button{width:auto;padding:6px 12px;font-size:12.5px;letter-spacing:0}
+.steps{list-style:none;padding:0;margin:0}
+.steps li{display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.steps li b{font-family:var(--n);min-width:92px}
+.steps li.late{color:var(--ng)}
+@media (max-width:600px){
+  #out table thead{display:none}
+  #out table tr{display:grid;grid-template-columns:28px 1fr;column-gap:6px;padding:10px 0;border-top:1px solid var(--line)}
+  #out table td{border:0;padding:2px 0}
+  #out table td:first-child{grid-row:span 5}
+  #out table td:nth-child(3)::before{content:"当社の実績　";color:var(--muted);font-size:11.5px}
+  #out table td:nth-child(5)::before{content:"保証会社　";color:var(--muted);font-size:11.5px}
+  #out table td:nth-child(6)::before{content:"仲介　";color:var(--muted);font-size:11.5px}
+}
+.bar{height:8px;border-radius:4px;background:var(--sunk);overflow:hidden;margin:6px 0}
+.bar i{display:block;height:100%;background:var(--accent)}
 </style>
 </head>
 <body>
@@ -52,6 +72,7 @@ ol,ul{margin:0;padding-left:20px}
       <label>借入額（万円）<input id="loan" type="number" inputmode="numeric" value="2290"></label>
       <label>他の借入の毎月の返済（万円）<input id="debt" type="number" inputmode="decimal" step="0.1" value="0"></label>
       <label>直近6か月の否決（件）<input id="rej" type="number" inputmode="numeric" value="0"></label>
+      <label>決済の目安（月）<input id="settle" type="month"></label>
     </div>
     <div class="grid" style="margin-top:10px">
       <label class="chk"><input id="single" type="checkbox" checked>単身</label>
@@ -61,7 +82,31 @@ ol,ul{margin:0;padding-left:20px}
       <div class="grid" id="rejList" style="margin-top:6px"></div></div>
     <div style="margin-top:12px"><button id="go" type="button">出す順番を出す</button></div>
   </div>
+  <div class="card">
+    <h2>お客様を保存する（この端末だけ）</h2>
+    <div class="grid">
+      <label>イニシャル（例: S.T）<input id="cIni" autocomplete="off" maxlength="8" placeholder="S.T"></label>
+      <label>担当<input id="cStaff" autocomplete="off" maxlength="10"></label>
+      <label>&nbsp;<button id="cSave" type="button" class="sub">今の条件を保存</button></label>
+    </div>
+    <p class="note" id="cMsg" style="margin-top:6px">名前・電話・住所は保存しません。イニシャルと上の条件だけを、この端末に残します。</p>
+    <div id="cList" style="margin-top:8px"></div>
+  </div>
   <div id="out"></div>
+  <div class="card">
+    <h2>審査の結果を足す（否決の記録）</h2>
+    <p class="note" style="margin-bottom:8px">結果が出たら、ここに足すと通過率と順番がすぐ出し直されます。名前は入れません。足した記録は「書き出す」で集計担当に渡し、案件表に入れてもらいます。</p>
+    <div class="grid">
+      <label>金融機関<select id="rLender"></select></label>
+      <label>段階<select id="rStage"><option value="pre">事前審査</option><option value="main">本審査</option></select></label>
+      <label>結果<select id="rResult"><option value="reject">否決</option><option value="pass">通過</option></select></label>
+      <label>否決の理由<select id="rReason"></select></label>
+      <label>月<input id="rMonth" type="month"></label>
+      <label class="chk" style="align-self:end"><input id="rSingle" type="checkbox">単身</label>
+    </div>
+    <div class="grid" style="margin-top:10px"><button id="rAdd" type="button" class="sub">記録を足す</button><button id="rExport" type="button" class="sub ghost">書き出す（JSON）</button></div>
+    <div id="rList" style="margin-top:8px"></div>
+  </div>
   <p class="note" id="calib"></p>
 </main>
 <script src="../loan-screening-app/lib/policy.js"></script>
@@ -73,6 +118,10 @@ ol,ul{margin:0;padding-left:20px}
 <script src="../loan-screening-app/lib/screening.js"></script>
 <script src="data/lenders.js"></script>
 <script src="data/guarantors.js"></script>
+<script src="data/outcomes.js"></script>
+<script src="lib/outcomes.js"></script>
+<script src="lib/schedule.js"></script>
+<script src="lib/customers.js"></script>
 <script src="lib/recommend.js"></script>
 <script>
 (function () {
@@ -81,16 +130,40 @@ ol,ul{margin:0;padding-left:20px}
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   $("#employ").innerHTML = Object.entries(L.EMPLOY).map(([k, v]) => `<option value="${k}"${k === "contract" ? " selected" : ""}>${v.label}</option>`).join("");
   $("#rejList").innerHTML = R.LENDERS.map((l, i) => `<label class="chk"><input type="checkbox" data-rej="${esc(l.name)}" id="rej_${i}">${esc(l.name)}</label>`).join("");
+  const RKEY = "ldi_records_v1";
+  const loadRec = () => { try { const v = JSON.parse(localStorage.getItem(RKEY) || "[]"); return Array.isArray(v) ? v.filter(R.validRecord) : []; } catch (e) { return []; } };
+  const saveRec = (l) => { try { localStorage.setItem(RKEY, JSON.stringify(l)); } catch (e) {} };
+  let records = loadRec();
+  $("#rLender").innerHTML = R.LENDERS.map((l) => `<option>${esc(l.name)}</option>`).join("");
+  $("#rReason").innerHTML = Object.entries(R.REASONS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  $("#rResult").onchange = () => { $("#rReason").disabled = $("#rResult").value !== "reject"; };
+  const STAGE_JP = { pre: "事前", main: "本審査" };
+  function renderRec() {
+    $("#rList").innerHTML = records.length ? records.map((r, i) => `<div class="mini"><span>${esc(r.month || "")} ${esc(r.lender)}・${STAGE_JP[r.stage]}・${r.result === "pass" ? "通過" : "否決（" + esc(R.REASONS[r.reason]) + "）"}${r.single ? "・単身" : ""}</span><button type="button" class="ghost" data-del="${i}">消す</button></div>`).join("") : `<p class="note">この端末で足した記録はまだありません。</p>`;
+    document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { records.splice(+b.dataset.del, 1); saveRec(records); renderRec(); go(); }));
+  }
+  $("#rAdd").onclick = () => {
+    const r = { lender: $("#rLender").value, stage: $("#rStage").value, result: $("#rResult").value, single: $("#rSingle").checked };
+    if (r.result === "reject") r.reason = $("#rReason").value;
+    if ($("#rMonth").value) r.month = $("#rMonth").value;
+    if (!R.validRecord(r)) return;
+    records.push(r); saveRec(records); renderRec(); go();
+  };
+  $("#rExport").onclick = () => {
+    const blob = new Blob([JSON.stringify({ kind: "loan-desk-records", v: 1, exported: new Date().toISOString().slice(0, 10), records }, null, 1)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `loandesk_records_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  renderRec();
   const DEC = { approve: ["ok", "承認見込み"], conditional: ["warn", "条件付き"], hold: ["ng", "保留"], reject: ["ng", "否決見込み"] };
   function go() {
     const loan = +$("#loan").value || 0, inc = +$("#income").value || 0;
     const x = Object.assign({}, L.SAMPLE, { pref: $("#pref").value, age: +$("#age").value, income: inc, incomePrev: inc, incomePrev2: inc, tenure: +$("#tenure").value,
       employ: $("#employ").value, price: loan, down: 0, costs: 0, collateral: loan, car: +$("#debt").value || 0, scholarship: 0,
       rejectedLenders: [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej),
-      priorRejects: Math.max(+$("#rej").value || 0, document.querySelectorAll("[data-rej]:checked").length), single: $("#single").checked, motiveDoc: $("#motive").checked });
-    const r = R.recommend(x);
+      priorRejects: Math.max(+$("#rej").value || 0, document.querySelectorAll("[data-rej]:checked").length), single: $("#single").checked, motiveDoc: $("#motive").checked, settle: $("#settle").value });
+    const r = R.recommend(x, { records });
     const row = (c, i) => `<tr><td class="rank">${i + 1}</td><td><b>${esc(c.lender.name)}</b><br><span class="note">${esc(c.lender.note)}</span></td>
-      <td class="num">通過 ${c.lender.pass}／${c.n}</td><td><span class="pill ${DEC[c.screen.decision][0]}">${DEC[c.screen.decision][1]}</span><br><span class="note num">負担率 ${L.r1(c.screen.dti)}%</span></td>
+      <td class="num">通過 ${c.lender.pass}／${c.n}<br><span class="note">事前 ${c.stats.pre.pass}／${c.stats.pre.pass + c.stats.pre.reject}・本 ${c.stats.main.pass}／${c.stats.main.pass + c.stats.main.reject}<br>単身 ${c.stats.single.pass}／${c.stats.single.pass + c.stats.single.reject}</span>${c.stats.reasons.filter((q) => q.key !== "unknown").length ? `<br><span class="note">否決: ${c.stats.reasons.filter((q) => q.key !== "unknown").map((q) => esc(q.label) + q.n).join("・")}</span>` : ""}</td><td><span class="pill ${DEC[c.screen.decision][0]}">${DEC[c.screen.decision][1]}</span><br><span class="note num">負担率 ${L.r1(c.screen.dti)}%</span></td>
       <td>${c.guarantors.length ? c.guarantors.map((g) => esc(g.name) + (g.src === "要確認" ? "<span class=\"note\">（要確認）</span>" : "")).join("<br>") : `<span class="note">要確認</span>`}${c.guarantorNote ? `<br><span class="pill warn">${esc(c.guarantorNote)}</span>` : ""}</td>
       <td>${esc(c.broker)}${c.brokerAlt ? `<br><span class="note">または ${esc(c.brokerAlt)}</span>` : ""}</td></tr>`;
     $("#out").innerHTML = `
@@ -98,16 +171,45 @@ ol,ul{margin:0;padding-left:20px}
         <div class="wrap"><table><thead><tr><th></th><th>金融機関</th><th>当社の実績</th><th>審査エンジン</th><th>保証会社</th><th>仲介会社</th></tr></thead>
         <tbody>${r.candidates.map(row).join("") || `<tr><td colspan="6">この条件で出せる候補がありません。</td></tr>`}</tbody></table></div>
         <p class="note" style="margin-top:8px">${esc(r.rule)}</p></div>
+      ${r.schedule ? `<div class="card"><h2>申込みの期限（${esc(r.schedule.label)}で逆算）</h2>
+        <p style="margin:0 0 8px"><span class="pill ${r.schedule.status === "ok" ? "ok" : r.schedule.status === "tight" ? "warn" : "ng"}">${r.schedule.status === "ok" ? "間に合う" : r.schedule.status === "tight" ? "余裕なし" : "間に合わない"}</span> ${esc(r.schedule.message)}</p>
+        <ol class="steps">${r.schedule.steps.map((s) => `<li class="${s.late ? "late" : ""}"><b>${esc(s.text)}</b><span>${esc(s.label)}${s.late ? "（過ぎている）" : s.days <= 7 ? `（あと${s.days}日）` : ""}</span></li>`).join("")}</ol>
+        <p class="note" style="margin-top:8px">${esc(r.schedule.note)}</p></div>` : `<div class="card"><p class="note">「決済の目安（月）」を入れると、事前審査・本申込みの期限を逆算して出します。</p></div>`}
       <div class="card"><h2>進め方</h2><ol>${r.plan.map((p) => `<li>${esc(p)}</li>`).join("")}</ol></div>
       <div class="card"><h2>申し込む前に用意すること</h2><ul>${r.prepare.map((p) => `<li>${esc(p)}</li>`).join("")}</ul></div>
       ${r.avoid.length || r.excluded.length ? `<div class="card"><h2>最初には出さない</h2><ul>
         ${r.avoid.map((c) => `<li><b>${esc(c.lender.name)}</b>：${esc(c.reason)}</li>`).join("")}
         ${r.excluded.map((c) => `<li><b>${esc(c.lender.name)}</b>：${esc(c.reason)}</li>`).join("")}</ul></div>` : ""}
       <div class="card"><h2>保証会社について</h2><p style="margin:0">${esc(r.guarantorNote)}</p>${r.rejectedGuarantors.length ? `<p style="margin:8px 0 0"><b>否決済みの保証会社:</b> ${r.rejectedGuarantors.map((id) => esc((R.GUARANTORS[id] || { name: id }).name)).join("・")}</p>` : ""}</div>
+      <div class="card"><h2>否決の理由（${esc(r.period)}${records.length ? `＋この端末の${records.length}件` : ""}）</h2>
+        <p style="margin:0">否決 ${r.reasonSummary.total}件のうち、理由の記録があるのは ${r.reasonSummary.known}件（${Math.round(r.reasonSummary.coverage * 100)}%）。</p>
+        <div class="bar"><i style="width:${Math.round(r.reasonSummary.coverage * 100)}%"></i></div>
+        <ul>${r.reasonSummary.list.filter((q) => q.key !== "unknown").map((q) => `<li>${esc(q.label)}：${q.n}件</li>`).join("")}</ul>
+        <p class="note" style="margin-top:6px">否決が出たら、24時間以内に理由のタグを残す（銀行審査状況パイプライン運用ガイド 6章）。理由が分かるほど、出す前の準備が具体的になります。</p></div>
       <div class="card"><h2>金融機関に伝えること</h2><p style="margin:0">${esc(r.disclosure)}</p></div>
       <p class="note">${esc(r.note)}</p>`;
   }
+  // お客様の保存（イニシャルだけ・この端末だけ）
+  const FORM = { pref: "#pref", age: "#age", income: "#income", tenure: "#tenure", employ: "#employ", loan: "#loan", debt: "#debt", rej: "#rej", settle: "#settle" };
+  const readForm = () => { const o = {}; for (const [k, sel] of Object.entries(FORM)) o[k] = $(sel).type === "number" ? +$(sel).value : $(sel).value;
+    o.single = $("#single").checked; o.motive = $("#motive").checked; o.rejected = [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej); return o; };
+  const writeForm = (o) => { for (const [k, sel] of Object.entries(FORM)) if (o[k] != null) $(sel).value = o[k];
+    $("#single").checked = !!o.single; $("#motive").checked = !!o.motive; document.querySelectorAll("[data-rej]").forEach((e) => (e.checked = (o.rejected || []).includes(e.dataset.rej))); };
+  let customers = R.load();
+  function renderCust() {
+    $("#cList").innerHTML = customers.length ? customers.map((c, i) => `<div class="mini"><span><b>${esc(c.initials)}</b>　${esc(c.staff || "担当なし")}　<span class="note">${esc(c.input.age || "")}歳・${esc(c.input.income || "")}万・${esc(c.input.pref || "")}${c.input.settle ? "・決済 " + esc(c.input.settle) : ""}・${esc(c.updated)}</span></span><button type="button" data-open="${i}">開く</button><button type="button" class="ghost" data-cdel="${i}">消す</button></div>`).join("") : `<p class="note">保存したお客様はまだいません。</p>`;
+    document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => { const c = customers[+b.dataset.open]; writeForm(c.input); $("#cIni").value = c.initials; $("#cStaff").value = c.staff; go(); $("#out").scrollIntoView({ behavior: "smooth" }); }));
+    document.querySelectorAll("[data-cdel]").forEach((b) => (b.onclick = () => { if (!confirm("このお客様の保存を消しますか？")) return; customers = R.remove(customers, customers[+b.dataset.cdel].id); R.store(null, customers); renderCust(); }));
+  }
+  $("#cSave").onclick = () => {
+    const res = R.save(customers, { initials: $("#cIni").value, staff: $("#cStaff").value, input: readForm() });
+    if (!res.ok) { $("#cMsg").textContent = res.error; $("#cMsg").style.color = "var(--ng)"; return; }
+    customers = res.list; R.store(null, customers); $("#cIni").value = res.item.initials;
+    $("#cMsg").textContent = `${res.item.initials} を保存しました（この端末だけ）。`; $("#cMsg").style.color = ""; renderCust();
+  };
+  renderCust();
   $("#go").onclick = go;
+  $("#settle").onchange = go;
   document.querySelectorAll("[data-rej]").forEach((e) => (e.onchange = go));
   const c = L.CALIBRATION;
   $("#calib").textContent = `審査エンジンの答え合わせ（${c.period}）: ${c.n}件中${c.match}件一致（実際に通った ${c.approvedCaught}、否決 ${c.rejectsCaught}）。${c.note}`;

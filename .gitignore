@@ -28,3 +28,6 @@ _site/
 # LOAN DESK の答え合わせ用の案件表（お客様単位のデータ。名前を伏せていても入れない）
 loan_screening_cases*.csv
 *_private_map.json
+
+# LOAN DESK 社内版: 端末から書き出した審査の記録（集計担当に渡すだけ。入れない）
+loandesk_records_*.json
