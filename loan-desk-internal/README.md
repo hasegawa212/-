@@ -3,7 +3,7 @@
 当社の住宅ローン審査の実績と、公開版 LOAN DESK の審査エンジン（`../loan-screening-app/lib/`）を組み合わせて、**どの金融機関にどの順番で出すか**と**仲介に入ってもらう会社**を出す社内ツールです。
 
 - 開き方: リポジトリを取得したうえで `loan-desk-internal/index.html` を直接開く。公開版のエンジンを相対パスで読むので、フォルダの位置関係を変えない
-- テスト: `cd loan-desk-internal && npm test`（40）
+- テスト: `cd loan-desk-internal && npm test`（39）
 - **公開しない。** GitHub Pages・Netlify の公開設定には入れていない。追加もしない
 
 ## 仕組み
