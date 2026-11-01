@@ -32,3 +32,4 @@ loan_screening_cases*.csv
 # LOAN DESK 社内版: 端末から書き出した審査の記録（集計担当に渡すだけ。入れない）
 loandesk_records_*.json
 loandesk_customers_*.json
+loandesk_customers_retry_*.json

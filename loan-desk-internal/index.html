@@ -93,6 +93,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     <div class="grid" style="margin-top:10px">
       <label>探す（姓・担当・県）<input id="cQ" type="search" autocomplete="off"></label>
       <label>担当で絞る<select id="cStaffF"><option value="">全員</option></select></label>
+      <label class="chk" style="align-self:end"><input id="cRejOnly" type="checkbox">否決ありだけ（再挑戦）</label>
     </div>
     <div class="grid" style="margin-top:10px">
       <button id="cImport" type="button" class="sub ghost">読み込む（相談シート・ほかの端末）</button>
@@ -103,6 +104,20 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     <div id="cList" style="margin-top:4px;max-height:520px;overflow:auto"></div>
   </div>
   <div class="card" id="cNow" hidden></div>
+  <div class="card" id="retry" hidden>
+    <h2>否決と再挑戦</h2>
+    <p class="note" style="margin-bottom:8px">このお客様が申し込んだ結果を入れると、いつ・どこに出し直せるかを出します。名前・メモは入れません。</p>
+    <div class="grid">
+      <label>金融機関<select id="hLender"></select></label>
+      <label>段階<select id="hStage"><option value="pre">事前審査</option><option value="main">本審査</option></select></label>
+      <label>結果<select id="hResult"><option value="reject">否決</option><option value="pass">通過</option></select></label>
+      <label>月<input id="hMonth" type="month"></label>
+      <label>否決の理由<select id="hReason"></select></label>
+      <label>&nbsp;<button id="hAdd" type="button" class="sub">履歴に足す</button></label>
+    </div>
+    <div id="hList" style="margin-top:8px"></div>
+    <div id="hPlan" style="margin-top:8px"></div>
+  </div>
   <div id="out"></div>
   <div class="card">
     <h2>審査の結果を足す（否決の記録）</h2>
@@ -134,6 +149,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
 <script src="lib/schedule.js"></script>
 <script src="lib/customers.js"></script>
 <script src="lib/recommend.js"></script>
+<script src="lib/retry.js"></script>
 <script>
 (function () {
   "use strict";
@@ -205,7 +221,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
   let current = null; // 開いているお客様（掲載日・前提を保存し直すときに引き継ぐ）
   const readForm = () => { const o = {}; for (const [k, sel] of Object.entries(FORM)) o[k] = $(sel).type === "number" ? +$(sel).value : $(sel).value;
     o.single = $("#single").checked; o.motive = $("#motive").checked; o.rejected = [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej);
-    if (current && current.initials === R.normInitials($("#cIni").value) && current.staff === $("#cStaff").value.trim()) { o.posted = current.input.posted || ""; o.notes = current.input.notes || ""; }
+    if (current && current.initials === R.normInitials($("#cIni").value) && current.staff === $("#cStaff").value.trim()) { o.posted = current.input.posted || ""; o.notes = current.input.notes || ""; o.history = current.input.history || []; }
     return o; };
   const writeForm = (o) => { for (const [k, sel] of Object.entries(FORM)) $(sel).value = o[k] != null ? o[k] : ($(sel).type === "number" ? 0 : "");
     $("#single").checked = !!o.single; $("#motive").checked = !!o.motive; document.querySelectorAll("[data-rej]").forEach((e) => (e.checked = (o.rejected || []).includes(e.dataset.rej))); };
@@ -227,18 +243,20 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
   function renderCust() {
     const sf = $("#cStaffF").value;
     $("#cStaffF").innerHTML = `<option value="">全員</option>` + R.staffs(customers).map((n) => `<option${n === sf ? " selected" : ""}>${esc(n)}</option>`).join("");
-    const shown = R.search(customers, $("#cQ").value).filter((c) => !sf || c.staff === sf);
+    const rejOnly = $("#cRejOnly").checked;
+    const rejN = (c) => (c.input.history || []).filter((h) => h.result === "reject").length;
+    const shown = R.search(customers, $("#cQ").value).filter((c) => (!sf || c.staff === sf) && (!rejOnly || rejN(c) > 0));
     $("#cCount").textContent = customers.length ? `${shown.length}人を表示（保存 ${customers.length}人）` : "";
     $("#cList").innerHTML = shown.length ? shown.map((c) => { const i = c.input, f = firstOf(c);
-      return `<div class="mini"><span><b>${esc(c.initials)}</b>　${esc(c.staff || "担当なし")}${i.posted ? `　<span class="note">${esc(i.posted)}</span>` : ""}<br><span class="note">${i.age ? esc(i.age) + "歳・" : ""}${i.income ? esc(i.income) + "万・" : ""}${esc(i.pref || "")}${i.employ ? "・" + esc(EMP_JP[i.employ] || "") : ""}${i.single ? "・単身" : ""}${i.settle ? "・決済 " + esc(i.settle) : ""}</span><br>${i.flag ? `<span class="pill warn">${esc(i.flag)}</span>` : f ? `<span class="pill ${DEC[f.dec][0]}">${esc(f.name)}・${DEC[f.dec][1]}</span>` : ""}</span><button type="button" data-open="${esc(c.id)}">開く</button><button type="button" class="ghost" data-cdel="${esc(c.id)}">消す</button></div>`; }).join("")
+      return `<div class="mini"><span><b>${esc(c.initials)}</b>　${esc(c.staff || "担当なし")}${i.posted ? `　<span class="note">${esc(i.posted)}</span>` : ""}<br><span class="note">${i.age ? esc(i.age) + "歳・" : ""}${i.income ? esc(i.income) + "万・" : ""}${esc(i.pref || "")}${i.employ ? "・" + esc(EMP_JP[i.employ] || "") : ""}${i.single ? "・単身" : ""}${i.settle ? "・決済 " + esc(i.settle) : ""}</span><br>${rejN(c) ? (() => { const t = R.retryPlan({ single: !!i.single }, i.history, {}); return `<span class="pill ng">否決 ${rejN(c)}件</span> <span class="pill ${t.when.status === "now" ? "ok" : "warn"}">${t.when.status === "now" ? "今から再挑戦できる" : t.from ? t.from.replace(/^(\d{4})-0?(\d+)$/, "$1年$2月") + "から" : "申込月を確認"}</span><br>`; })() : ""}${i.flag ? `<span class="pill warn">${esc(i.flag)}</span>` : f ? `<span class="pill ${DEC[f.dec][0]}">${esc(f.name)}・${DEC[f.dec][1]}</span>` : ""}</span><button type="button" data-open="${esc(c.id)}">開く</button><button type="button" class="ghost" data-cdel="${esc(c.id)}">消す</button></div>`; }).join("")
       : `<p class="note">${customers.length ? "条件に合うお客様がいません。" : "保存したお客様はまだいません。「読み込む」で相談シートの全員を入れられます。"}</p>`;
     const byId = (id) => customers.find((c) => c.id === id);
     document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => { const c = byId(b.dataset.open); current = c; writeForm(c.input); $("#cIni").value = c.initials; $("#cStaff").value = c.staff;
       $("#cNow").hidden = false; $("#cNow").innerHTML = `<h2>${esc(c.initials)}（${esc(c.staff || "担当なし")}）</h2><p class="note">${c.input.posted ? "相談シート " + esc(c.input.posted) + "　" : ""}${c.input.flag ? `<span class="pill warn">${esc(c.input.flag)}</span> ` : ""}${esc(c.input.notes || "")}</p>`;
-      go(); $("#cNow").scrollIntoView({ behavior: "smooth" }); }));
+      go(); renderRetry(); $("#cNow").scrollIntoView({ behavior: "smooth" }); }));
     document.querySelectorAll("[data-cdel]").forEach((b) => (b.onclick = () => { if (!confirm("このお客様の保存を消しますか？")) return; customers = R.remove(customers, b.dataset.cdel); R.store(null, customers); renderCust(); }));
   }
-  $("#cQ").oninput = renderCust; $("#cStaffF").onchange = renderCust;
+  $("#cQ").oninput = renderCust; $("#cStaffF").onchange = renderCust; $("#cRejOnly").onchange = renderCust;
   $("#cSave").onclick = () => {
     const res = R.save(customers, { initials: $("#cIni").value, staff: $("#cStaff").value, input: readForm() });
     if (!res.ok) { $("#cMsg").textContent = res.error; $("#cMsg").style.color = "var(--ng)"; return; }
@@ -256,6 +274,39 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
   $("#cExport").onclick = () => {
     const blob = new Blob([R.exportText(customers)], { type: "application/json" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `loandesk_customers_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+  // 否決と再挑戦（開いているお客様の履歴）
+  $("#hLender").innerHTML = R.LENDERS.map((l) => `<option>${esc(l.name)}</option>`).join("");
+  $("#hReason").innerHTML = Object.entries(R.REASONS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+  $("#hResult").onchange = () => { $("#hReason").disabled = $("#hResult").value !== "reject"; };
+  const STG = { pre: "事前", main: "本審査" };
+  function saveCurrent() { const res = R.save(customers, { initials: current.initials, staff: current.staff, input: current.input }); if (res.ok) { customers = res.list; current = res.item; R.store(null, customers); } }
+  function renderRetry() {
+    if (!current) { $("#retry").hidden = true; return; }
+    $("#retry").hidden = false;
+    const hist = current.input.history || [];
+    $("#hList").innerHTML = hist.length ? hist.map((h, i) => `<div class="mini"><span>${esc(h.month || "月不明")} ${esc(h.lender)}・${STG[h.stage]}・${h.result === "pass" ? "通過" : "否決（" + esc(R.REASONS[h.reason] || "理由不明") + "）"}</span><button type="button" class="ghost" data-hdel="${i}">消す</button></div>`).join("") : `<p class="note">履歴はまだありません。</p>`;
+    document.querySelectorAll("[data-hdel]").forEach((b) => (b.onclick = () => { hist.splice(+b.dataset.hdel, 1); current.input.history = hist; saveCurrent(); renderRetry(); renderCust(); }));
+    if (!hist.some((h) => h.result === "reject")) { $("#hPlan").innerHTML = ""; return; }
+    const i = current.input;
+    const x = Object.assign({}, L.SAMPLE, { pref: $("#pref").value, age: +$("#age").value, income: +$("#income").value, incomePrev: +$("#income").value, incomePrev2: +$("#income").value, tenure: +$("#tenure").value,
+      employ: $("#employ").value, price: +$("#loan").value, down: 0, costs: 0, collateral: +$("#loan").value, car: +$("#debt").value || 0, scholarship: 0, single: $("#single").checked, motiveDoc: $("#motive").checked, settle: $("#settle").value });
+    const p = R.retryPlan(x, hist, { records });
+    const gText = (c) => c.guarantors.length ? c.guarantors.map((g) => esc(g.name)).join("・") : "要確認";
+    const list = (arr) => arr.length ? `<ol>${arr.map((c) => `<li><b>${esc(c.lender.name)}</b>（保証: ${gText(c)}）<span class="pill ${DEC[c.screen.decision][0]}">${DEC[c.screen.decision][1]}</span></li>`).join("")}</ol>` : `<p class="note">この条件で出せる金融機関が残っていません。借入額・物件・時期を見直してください。</p>`;
+    $("#hPlan").innerHTML = `
+      <p style="margin:0 0 6px"><span class="pill ${p.when.status === "now" ? "ok" : p.when.status === "wait" ? "warn" : "ng"}">${p.when.status === "now" ? "今から出せる" : p.when.status === "wait" ? "待つ" : "要確認"}</span> ${esc(p.when.text)}</p>
+      <h2 style="margin-top:10px">直すこと</h2><ul>${p.fixes.map((f) => `<li><b>${esc(f.label)}</b>：${esc(f.text)}</li>`).join("")}</ul>
+      <h2 style="margin-top:10px">次に出す順番</h2>${list(p.when.status === "wait" && p.nextAfterWait ? p.nextAfterWait : p.next)}
+      ${p.when.status === "wait" ? `<p class="note">${esc(p.from.replace(/^(\d{4})-0?(\d+)$/, "$1年$2月"))}になって、直近6か月の否決が記録から外れたあとの順番です。</p>` : ""}
+      <h2 style="margin-top:10px">出さない先</h2><ul>${p.exclude.filter((c) => /否決済み/.test(c.reason || "")).map((c) => `<li><b>${esc(c.lender.name)}</b>：${esc(c.reason)}</li>`).join("") || "<li>なし</li>"}</ul>
+      <p class="note" style="margin-top:8px">${esc(p.tell)}。${esc(p.rule)}。${esc(p.note)}</p>`;
+  }
+  $("#hAdd").onclick = () => {
+    if (!current) return;
+    const h = R.cleanHist({ lender: $("#hLender").value, stage: $("#hStage").value, result: $("#hResult").value, month: $("#hMonth").value, reason: $("#hReason").value });
+    if (!h) return;
+    current.input.history = (current.input.history || []).concat([h]); saveCurrent(); renderRetry(); renderCust();
   };
   renderCust();
   $("#go").onclick = go;

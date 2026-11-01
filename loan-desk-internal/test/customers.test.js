@@ -74,3 +74,25 @@ test("同じ姓・同じ担当でも、掲載日が違えば別のお客様と�
   assert.equal(l.length, 2);
   assert.equal(C.normInitials("朽﨑"), "朽﨑");
 });
+
+test("審査の履歴は 金融機関・段階・結果・月・理由キー だけを残す（メモや名前は落とす）", () => {
+  const r = C.save([], { initials: "斎藤", staff: "上田", input: { history: [
+    { lender: "JA", stage: "pre", result: "reject", month: "2026-10", reason: "borrower_single", memo: "本人が…", name: "斎藤理央" },
+    { lender: "水戸信用金庫", stage: "main", result: "pass", month: "2026-07" },
+    { lender: "", result: "reject" }, { lender: "筑波銀行", result: "reject", reason: "これは自由文" } ] } }, "a");
+  const h = r.item.input.history;
+  assert.equal(h.length, 3);
+  assert.deepEqual(Object.keys(h[0]).sort(), ["lender", "month", "reason", "result", "stage"]);
+  assert.equal(h[2].reason, "unknown");
+  assert.doesNotMatch(JSON.stringify(r.item), /理央|本人が|自由文/);
+});
+
+test("読み込みで同じお客様が来たら、審査の履歴は両方を合わせる（手元のほうが新しくても否決を落とさない）", () => {
+  const mine = C.save([], { initials: "斎藤", staff: "上田", input: { age: 27, posted: "2026-10-01" } }, "2026-10-20 00:00").list;
+  const retry = C.save([], { initials: "斎藤", staff: "上田", input: { age: 27, posted: "2026-10-01", history: [{ lender: "JA", stage: "pre", result: "reject", month: "2026-10", reason: "borrower_single" }] } }, "2026-10-01 00:00").list;
+  const r = C.importText(mine, C.exportText(retry));
+  assert.equal(r.updated, 1);
+  assert.equal(r.list[0].input.history.length, 1);
+  assert.equal(r.list[0].updated, "2026-10-20 00:00");
+  assert.equal(C.importText(r.list, C.exportText(retry)).updated, 0, "同じものをもう一度読んでも変わらない");
+});
