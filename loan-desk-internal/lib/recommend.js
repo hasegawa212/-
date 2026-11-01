@@ -3,7 +3,7 @@
 (function (root, factory) {
   const isNode = typeof module === "object" && module.exports;
   const LSA = isNode ? require("../../loan-screening-app/lib/screening.js") : root.LSA;
-  const D = isNode ? Object.assign({}, require("../data/lenders.js"), require("../data/guarantors.js")) : root.LDI;
+  const D = isNode ? Object.assign({}, require("../data/lenders.js"), require("../data/guarantors.js"), require("../data/outcomes.js"), require("./outcomes.js"), require("./schedule.js")) : root.LDI;
   const m = factory(LSA, D);
   if (isNode) module.exports = m;
   else Object.assign((root.LDI = root.LDI || {}), m);
@@ -36,7 +36,9 @@
   }
 
   function recommend(x, opts) {
-    const lenders = (opts && opts.lenders) || D.LENDERS;
+    // 実績 = 否決の記録の集計（＋この端末で足した記録）。opts.lenders を渡したときはそれをそのまま使う
+    const outcomes = D.merge(D.OUTCOMES, (opts && opts.records) || []);
+    const lenders = (opts && opts.lenders) || D.applyOutcomes(D.LENDERS, outcomes);
     const pref = x.pref || "";
     const rejected = rejectedSet(x);
     const rejectedLenders = new Set(x.rejectedLenders || []);
@@ -60,7 +62,10 @@
       const item = { lender: l, guarantors, guarantorNote, screen, rate: passRate(l), n, broker: l.broker || "増子建設", brokerAlt: l.alt || "",
         score: lowerBound(l) * FIT[screen.decision] * (l.areas[0] === pref ? HOME : 1) };
       if (screen.decision === "reject" || screen.decision === "hold") { item.reason = screen.knockouts[0] || screen.checks.filter((c) => c.status === "ng").map((c) => c.label).join("・") || (screen.holdReason || "審査エンジンで否決・保留の見込み"); excluded.push(item); continue; }
+      item.stats = l.stats || D.statsOf(null);
       if (n >= AVOID_N && l.pass / n <= AVOID_RATE) { item.reason = `当社の実績で ${n}件中 通過${l.pass}件`; avoid.push(item); continue; }
+      const sg = item.stats.single, sn = sg.pass + sg.reject;
+      if (x.single && sn >= AVOID_N && sg.pass / sn <= AVOID_RATE) { item.reason = `単身のお客様では ${sn}件中 通過${sg.pass}件`; avoid.push(item); continue; }
       candidates.push(item);
     }
     candidates.sort((a, b) => b.score - a.score);
@@ -81,8 +86,16 @@
     if (x.single && !x.motiveDoc) prepare.push("購入動機書（勤務先・地元とのつながり・この家を選んだ理由・将来の計画）");
     if (top) top.screen.conditions.forEach((c) => { if (!prepare.includes(c) && !(/購入動機/.test(c) && prepare.some((p) => /購入動機/.test(p)))) prepare.push(c); });
     prepare.push("本人開示（CIC・JICC・KSC）で信用情報を確かめる");
+    // 否決の理由で多いものを、出す前の確認に入れる（上位の候補の記録から）
+    const why = {};
+    planItems.forEach((c) => c.stats.reasons.forEach((r) => { if (r.key !== "unknown") why[r.key] = (why[r.key] || 0) + r.n; }));
+    const CHECK = { property_road_access: "接道（2m以上・公道か私道か）を出す前に確かめる", property_atemono: "物件の評価（充て物）が出るか、事前に金融機関に相談する", property_kakaku: "物件の評価（土地の評価・価格）が借入額に見合うか確かめる",
+      borrower_employment: "雇用契約書（ない場合は在籍証明書・就業条件明示書）をそろえる", borrower_single: "単身者は購入動機書を必ず付ける", borrower_dansin_kokuji: "団信の告知（通院・服薬）を先に聞いておく",
+      borrower_cic: "信用情報（CIC・JICC・KSC）を本人開示で先に確かめる", guarantor: "保証会社の判断で否決の例がある。保証会社のルートを確かめる", dealer: "保証会社が業者（売主・仲介）を審査する。当社と仲介会社の関係を最初に伝える" };
+    Object.entries(why).sort((a, b) => b[1] - a[1]).forEach(([k]) => { if (CHECK[k] && !prepare.includes(CHECK[k])) prepare.push(CHECK[k]); });
+    const sched = x.settle ? D.schedule({ settle: x.settle, type: top ? top.lender.type : "regional", today: opts && opts.today, retry: planItems.length > 1 }) : null;
     return {
-      pref, candidates, excluded, avoid, outOfArea, plan, planItems, prepare, rejectedGuarantors: [...rejected],
+      pref, schedule: sched, reasonSummary: D.reasonSummary(outcomes), period: D.OUTCOMES_PERIOD, candidates, excluded, avoid, outOfArea, plan, planItems, prepare, rejectedGuarantors: [...rejected],
       guarantorNote: LSA.GUARANTOR_NOTE + " 保証会社は金融機関とは別に審査し、お客様だけでなく業者（売主・仲介）も審査する。銀行を変えても保証会社が同じなら、同じ判断になりやすい。",
       rule: "同時に複数の金融機関へ申し込まない。申込情報が信用情報に残り、否決が続く原因になる。否決されたら理由を確かめてから次に出す",
       disclosure: "当社が売主であること、仲介会社との関係（グループ会社を含む）は、最初から金融機関に伝える。名前を出さないために仲介や売主を立てる組み方はしない",
