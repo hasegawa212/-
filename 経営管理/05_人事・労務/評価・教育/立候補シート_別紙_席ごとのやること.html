@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>立候補シート 別紙｜席ごとのやること</title>
+<style>
+  :root{--ink:#1b1b1f;--sub:#5b5b66;--line:#e3dfd4;--gold:#a8863a;--gold-soft:#f5efe1;--paper:#fff;--bg:#ecebe7}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo","IPAGothic",sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .doc{max-width:794px;margin:24px auto;background:var(--paper);padding:40px 48px 32px;box-shadow:0 2px 10px rgba(0,0,0,.12)}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid var(--gold);padding-bottom:10px;gap:12px}
+  .head h1{margin:0;font-size:24px;letter-spacing:.08em}
+  .head .co{font-size:11px;color:var(--sub);text-align:right;line-height:1.6}
+  .lead{margin:12px 0 4px;font-size:12px;line-height:1.75;color:var(--sub)}
+  .lead b{color:var(--ink)}
+  h2{font-size:14px;margin:16px 0 8px;padding-left:10px;border-left:4px solid var(--gold);break-after:avoid}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .seat{border:1px solid var(--line);border-radius:8px;padding:9px 11px;break-inside:avoid}
+  .sh{display:flex;gap:8px;align-items:baseline;margin-bottom:4px}
+  .sh .id{font-weight:800;color:var(--gold);font-size:13px}
+  .sh .sn{font-weight:700;font-size:13px}
+  h4{margin:6px 0 2px;font-size:10.5px;color:var(--sub);font-weight:700}
+  h4.r{color:#8a5a00}
+  ul{margin:0;padding-left:16px}
+  li{font-size:11.5px;line-height:1.5;margin:2px 0}
+  li .fq{display:inline-block;margin-left:6px;font-size:9.5px;color:var(--sub);border:1px solid var(--line);border-radius:999px;padding:0 6px;vertical-align:1px}
+  li small{display:block;color:var(--sub);font-size:10.5px}
+  .stop{margin-top:14px;font-size:11.5px;color:var(--sub)}
+  .foot{margin-top:16px;font-size:10px;color:var(--sub);border-top:1px solid var(--line);padding-top:8px;line-height:1.6}
+  @media (max-width:640px){.doc{margin:0;padding:20px 16px}.grid{grid-template-columns:1fr}.head{flex-direction:column;align-items:flex-start}.head .co{text-align:left}}
+  @page{size:A4;margin:12mm}
+  @media print{html,body{background:#fff}.doc{margin:0;max-width:none;padding:0;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="head"><h1>席ごとのやること</h1><div class="co">立候補シート 別紙（案）<br>株式会社 Martial Arts　2026-10-28 時点</div></div>
+  <p class="lead">Slack（2026年9月1日〜10月28日）で実際に動いている仕事をもとに、<b>それぞれの席が何を引き受けるか</b>をまとめました。立候補するときは、この仕事を自分がやる前提で書いてください。<br>
+  「全員のルール」は全員が守るもので、その席の人は<b>守られているかを毎日・毎週見て、声をかける</b>役目です。頻度は今のペースです。</p>
+  <h2>いまある役職・役割</h2><div class="grid"><section class="seat"><div class="sh"><span class="id">E-1</span><span class="sn">営業部長</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">週次KPIへの一人ひとりへのコメント・全員フィードバック</span><span class="fq">毎週</span><small>一人ひとりへのコメントは部長。代表は全体へのひと言だけ</small></li></ul></section><section class="seat"><div class="sh"><span class="id">E-2</span><span class="sn">営業課長</span></div><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">商談中は「商談ルーム」に入る（代表が聞ける状態にする）</span><span class="fq">毎日</span><small>全員が守る。課長が見る</small></li></ul></section><section class="seat"><div class="sh"><span class="id">E-3</span><span class="sn">係長代理</span></div><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">在宅訪問：#07に日付スレッドを立て、回った建物・部屋ごとの結果を記録</span><span class="fq">毎日</span><small>全員が記録。係長代理が毎日見る</small></li><li><span class="nm">アポ・商談のボイレコを#18に上げ、AIで要約</span><span class="fq">都度</span><small>全員が提出。係長代理が出ていない人に声をかける</small></li></ul></section><section class="seat"><div class="sh"><span class="id">E-5</span><span class="sn">業務責任者（仕入れ〜決済）</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">案件進捗の個別会議（全体会議の後）</span><span class="fq">毎週</span><small>案件の進み具合は業務責任者が回す</small></li></ul><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">案件ごとの議事録スレッド（No.付き）で書類・審査・金消の連絡</span><span class="fq">都度</span><small>議事録の催促を代表がしない</small></li></ul></section><section class="seat"><div class="sh"><span class="id">E-7</span><span class="sn">管理部 課長</span></div><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">勤怠連絡（休暇・遅刻・早退・振替休日）を#10に投稿</span><span class="fq">都度</span><small>代表への理由の共有も含めて、決まった形で</small></li></ul></section><section class="seat"><div class="sh"><span class="id">E-8</span><span class="sn">配車（営業部スケジュール）</span></div><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">給油報告（宇佐美以外で入れた理由も）</span><span class="fq">毎日</span></li><li><span class="nm">社用車の事故・故障報告</span><span class="fq">都度</span></li></ul></section></div><h2>経営</h2><div class="grid"><section class="seat"><div class="sh"><span class="id">M-1</span><span class="sn">経営企画・代表補佐</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">月曜の全体会議（12:00）の告知・出席確認と進行</span><span class="fq">毎週</span><small>告知・出席確認・進行。代表は話す側に回る</small></li><li><span class="nm">経費精算の内容確認・承認</span><span class="fq">毎月</span><small>一次確認まで。最終承認は代表</small></li></ul></section></div><h2>営業</h2><div class="grid"><section class="seat"><div class="sh"><span class="id">S-2</span><span class="sn">新人教育 責任者</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">新入社員のフォーム・ツール登録（経費精算・KPI）</span><span class="fq">都度</span><small>入社初日のチェックリストにする</small></li></ul></section><section class="seat"><div class="sh"><span class="id">S-3</span><span class="sn">数字・案件管理</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">停滞案件アラート（案件シートの停滞日数）</span><span class="fq">毎日</span><small>9/11から止まっている。テスト案件を消して再開</small></li></ul><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">見込み報告をsales-analysis botに投げて#02に記録</span><span class="fq">都度</span></li><li><span class="nm">案件相談シートを#04に提出（kari bot宛）</span><span class="fq">都度</span><small>提出が減った理由を最初に確かめる</small></li></ul></section><section class="seat"><div class="sh"><span class="id">S-4</span><span class="sn">書類フォロー（#19）</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">CIC提出・マイホーム（事前審査）報告を#25に投稿</span><span class="fq">都度</span><small>使われなくなった#25を続けるか、#19にまとめるか決める</small></li></ul><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">お客様からの預かり書類を#19（file-bot-2）に投稿</span><span class="fq">都度</span><small>止まった書類を代表に戻さない</small></li></ul></section><section class="seat"><div class="sh"><span class="id">S-6</span><span class="sn">商談研修の運営</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">商談研修のまとめを#16に投稿</span><span class="fq">都度</span></li><li><span class="nm">研修後のフィードバックテスト・ロープレ評価</span><span class="fq">都度</span></li></ul></section><section class="seat"><div class="sh"><span class="id">S-8</span><span class="sn">集客・Web/SNS 対応</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">Web・口コミ・電話番号の監視（平穏報告）</span><span class="fq">毎日</span><small>異常が出たときに動く人を決める</small></li><li><span class="nm">LP・HPからの反響対応</span><span class="fq">都度</span><small>反響が来たら誰が何分以内に返すかを決める</small></li><li><span class="nm">紹介パートナー募集の立ち上げ（LP・Meta広告）</span><span class="fq">単発</span></li></ul></section><section class="seat"><div class="sh"><span class="id">S-10</span><span class="sn">社内ツール・bot 管理</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">週次KPI・月次進捗・KGI/KPIリマインド・売上ダッシュボードの自動投稿</span><span class="fq">毎日</span><small>bot の設定と宛先の見直しごと渡す</small></li><li><span class="nm">出勤前準備チェックリストの報告（ワークフロー）</span><span class="fq">毎日</span><small>宛先から退職者・外部を外し、新人を入れる</small></li><li><span class="nm">当日の予定（カレンダー）を朝8時に#07へ自動投稿</span><span class="fq">毎日</span></li><li><span class="nm">在宅訪問マップの自動投稿（9時）</span><span class="fq">毎日</span><small>記録0件のまま。続けるかも含めて任せる</small></li><li><span class="nm">社内ツールの開発・保守（顧客管理アプリ・CRM・点検アプリ・自動テレアポ・名刺アプリ・ルールポータル等）</span><span class="fq">毎日</span><small>日々の修正と問い合わせ窓口。大きな作り直しは代表と相談</small></li></ul></section></div><h2>仕入れ・業務</h2><div class="grid"><section class="seat"><div class="sh"><span class="id">P-2</span><span class="sn">リフォーム管理 副担当</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">リフォーム業者の単価比較・新しい業者探し</span><span class="fq">単発</span><small>比較表を作って代表は決めるだけ</small></li></ul></section></div><h2>管理</h2><div class="grid"><section class="seat"><div class="sh"><span class="id">K-1</span><span class="sn">管理部 副担当</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">会社書類・明細をアルリット（社内NAS）に格納依頼</span><span class="fq">都度</span></li></ul><h4 class="r">全員のルール：守られているかを見る</h4><ul><li><span class="nm">個人経費精算（20日12時締め）の申請</span><span class="fq">毎月</span></li></ul></section><section class="seat"><div class="sh"><span class="id">K-2</span><span class="sn">振込・入金照合の準備</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">毎月10日：管理物件オーナーへの家賃送金と家賃補填の振込（記録シート）</span><span class="fq">毎月</span><small>記録シートと金額の準備まで。振込の実行は代表</small></li></ul></section><section class="seat"><div class="sh"><span class="id">K-3</span><span class="sn">採用（広告・母集団）</span></div><h4>引き受ける仕事</h4><ul><li><span class="nm">応募者への電話・カジュアル面談・面談設定</span><span class="fq">毎日</span><small>一次の電話と日程調整。最終面接は代表</small></li><li><span class="nm">採用広告（Meta広告・採用LP・Indeed）の企画と打合せ</span><span class="fq">都度</span></li></ul></section></div>
+  <p class="stop">やめるもの：賃貸仲介・日報提出・見込み在宅の報告（使っていないチャンネル。必要なら別のチャンネルにまとめて閉じる）</p>
+  <p class="foot">席の一覧と立候補のルールは「社内公募ポジション一覧と立候補制度」と「立候補シート」を見てください。この別紙は案で、席が決まったあと本人と話して調整します。社外秘。</p>
+</div>
+</body>
+</html>
