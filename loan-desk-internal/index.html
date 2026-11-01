@@ -83,15 +83,26 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     <div style="margin-top:12px"><button id="go" type="button">出す順番を出す</button></div>
   </div>
   <div class="card">
-    <h2>お客様を保存する（この端末だけ）</h2>
+    <h2>お客様（この端末だけ）</h2>
     <div class="grid">
-      <label>イニシャル（例: S.T）<input id="cIni" autocomplete="off" maxlength="8" placeholder="S.T"></label>
+      <label>イニシャルか姓（例: S.T／斎藤）<input id="cIni" autocomplete="off" maxlength="8" placeholder="斎藤"></label>
       <label>担当<input id="cStaff" autocomplete="off" maxlength="10"></label>
       <label>&nbsp;<button id="cSave" type="button" class="sub">今の条件を保存</button></label>
     </div>
-    <p class="note" id="cMsg" style="margin-top:6px">名前・電話・住所は保存しません。イニシャルと上の条件だけを、この端末に残します。</p>
-    <div id="cList" style="margin-top:8px"></div>
+    <p class="note" id="cMsg" style="margin-top:6px">下の名前・電話・住所は保存しません。呼び名と上の条件だけを、この端末に残します。</p>
+    <div class="grid" style="margin-top:10px">
+      <label>探す（姓・担当・県）<input id="cQ" type="search" autocomplete="off"></label>
+      <label>担当で絞る<select id="cStaffF"><option value="">全員</option></select></label>
+    </div>
+    <div class="grid" style="margin-top:10px">
+      <button id="cImport" type="button" class="sub ghost">読み込む（相談シート・ほかの端末）</button>
+      <button id="cExport" type="button" class="sub ghost">書き出す</button>
+      <input id="cFile" type="file" accept="application/json,.json" hidden>
+    </div>
+    <p class="note" id="cCount" style="margin-top:8px"></p>
+    <div id="cList" style="margin-top:4px;max-height:520px;overflow:auto"></div>
   </div>
+  <div class="card" id="cNow" hidden></div>
   <div id="out"></div>
   <div class="card">
     <h2>審査の結果を足す（否決の記録）</h2>
@@ -189,23 +200,62 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
       <div class="card"><h2>金融機関に伝えること</h2><p style="margin:0">${esc(r.disclosure)}</p></div>
       <p class="note">${esc(r.note)}</p>`;
   }
-  // お客様の保存（イニシャルだけ・この端末だけ）
+  // お客様（呼び名＝イニシャルか姓・この端末だけ）
   const FORM = { pref: "#pref", age: "#age", income: "#income", tenure: "#tenure", employ: "#employ", loan: "#loan", debt: "#debt", rej: "#rej", settle: "#settle" };
+  let current = null; // 開いているお客様（掲載日・前提を保存し直すときに引き継ぐ）
   const readForm = () => { const o = {}; for (const [k, sel] of Object.entries(FORM)) o[k] = $(sel).type === "number" ? +$(sel).value : $(sel).value;
-    o.single = $("#single").checked; o.motive = $("#motive").checked; o.rejected = [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej); return o; };
-  const writeForm = (o) => { for (const [k, sel] of Object.entries(FORM)) if (o[k] != null) $(sel).value = o[k];
+    o.single = $("#single").checked; o.motive = $("#motive").checked; o.rejected = [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej);
+    if (current && current.initials === R.normInitials($("#cIni").value) && current.staff === $("#cStaff").value.trim()) { o.posted = current.input.posted || ""; o.notes = current.input.notes || ""; }
+    return o; };
+  const writeForm = (o) => { for (const [k, sel] of Object.entries(FORM)) $(sel).value = o[k] != null ? o[k] : ($(sel).type === "number" ? 0 : "");
     $("#single").checked = !!o.single; $("#motive").checked = !!o.motive; document.querySelectorAll("[data-rej]").forEach((e) => (e.checked = (o.rejected || []).includes(e.dataset.rej))); };
+  const EMP_JP = Object.fromEntries(Object.entries(L.EMPLOY).map(([k, v]) => [k, v.label]));
+  // 一覧の1行ごとの第一候補（開かなくても分かるように。重いので結果を覚えておく）
+  const firstCache = new Map();
+  function firstOf(c) {
+    const i = c.input; if (i.flag || !(i.age > 0 && i.income > 0)) return null;
+    const key = c.id + "|" + c.updated + "|" + records.length;
+    if (firstCache.has(key)) return firstCache.get(key);
+    const x = Object.assign({}, L.SAMPLE, { pref: i.pref, age: i.age, income: i.income, incomePrev: i.income, incomePrev2: i.income, tenure: i.tenure || 0, employ: i.employ || "regular",
+      price: i.loan || 2500, down: 0, costs: 0, collateral: i.loan || 2500, car: i.debt || 0, scholarship: 0, rejectedLenders: i.rejected || [],
+      priorRejects: Math.max(i.rej || 0, (i.rejected || []).length), single: !!i.single, motiveDoc: !!i.motive, term: Math.min(35, 80 - i.age) });
+    const r = R.recommend(x, { records }); const t = r.planItems[0];
+    const v = t ? { name: t.lender.name, dec: t.screen.decision } : { name: "出せる候補なし", dec: "reject" };
+    firstCache.set(key, v); return v;
+  }
   let customers = R.load();
   function renderCust() {
-    $("#cList").innerHTML = customers.length ? customers.map((c, i) => `<div class="mini"><span><b>${esc(c.initials)}</b>　${esc(c.staff || "担当なし")}　<span class="note">${esc(c.input.age || "")}歳・${esc(c.input.income || "")}万・${esc(c.input.pref || "")}${c.input.settle ? "・決済 " + esc(c.input.settle) : ""}・${esc(c.updated)}</span></span><button type="button" data-open="${i}">開く</button><button type="button" class="ghost" data-cdel="${i}">消す</button></div>`).join("") : `<p class="note">保存したお客様はまだいません。</p>`;
-    document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => { const c = customers[+b.dataset.open]; writeForm(c.input); $("#cIni").value = c.initials; $("#cStaff").value = c.staff; go(); $("#out").scrollIntoView({ behavior: "smooth" }); }));
-    document.querySelectorAll("[data-cdel]").forEach((b) => (b.onclick = () => { if (!confirm("このお客様の保存を消しますか？")) return; customers = R.remove(customers, customers[+b.dataset.cdel].id); R.store(null, customers); renderCust(); }));
+    const sf = $("#cStaffF").value;
+    $("#cStaffF").innerHTML = `<option value="">全員</option>` + R.staffs(customers).map((n) => `<option${n === sf ? " selected" : ""}>${esc(n)}</option>`).join("");
+    const shown = R.search(customers, $("#cQ").value).filter((c) => !sf || c.staff === sf);
+    $("#cCount").textContent = customers.length ? `${shown.length}人を表示（保存 ${customers.length}人）` : "";
+    $("#cList").innerHTML = shown.length ? shown.map((c) => { const i = c.input, f = firstOf(c);
+      return `<div class="mini"><span><b>${esc(c.initials)}</b>　${esc(c.staff || "担当なし")}${i.posted ? `　<span class="note">${esc(i.posted)}</span>` : ""}<br><span class="note">${i.age ? esc(i.age) + "歳・" : ""}${i.income ? esc(i.income) + "万・" : ""}${esc(i.pref || "")}${i.employ ? "・" + esc(EMP_JP[i.employ] || "") : ""}${i.single ? "・単身" : ""}${i.settle ? "・決済 " + esc(i.settle) : ""}</span><br>${i.flag ? `<span class="pill warn">${esc(i.flag)}</span>` : f ? `<span class="pill ${DEC[f.dec][0]}">${esc(f.name)}・${DEC[f.dec][1]}</span>` : ""}</span><button type="button" data-open="${esc(c.id)}">開く</button><button type="button" class="ghost" data-cdel="${esc(c.id)}">消す</button></div>`; }).join("")
+      : `<p class="note">${customers.length ? "条件に合うお客様がいません。" : "保存したお客様はまだいません。「読み込む」で相談シートの全員を入れられます。"}</p>`;
+    const byId = (id) => customers.find((c) => c.id === id);
+    document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => { const c = byId(b.dataset.open); current = c; writeForm(c.input); $("#cIni").value = c.initials; $("#cStaff").value = c.staff;
+      $("#cNow").hidden = false; $("#cNow").innerHTML = `<h2>${esc(c.initials)}（${esc(c.staff || "担当なし")}）</h2><p class="note">${c.input.posted ? "相談シート " + esc(c.input.posted) + "　" : ""}${c.input.flag ? `<span class="pill warn">${esc(c.input.flag)}</span> ` : ""}${esc(c.input.notes || "")}</p>`;
+      go(); $("#cNow").scrollIntoView({ behavior: "smooth" }); }));
+    document.querySelectorAll("[data-cdel]").forEach((b) => (b.onclick = () => { if (!confirm("このお客様の保存を消しますか？")) return; customers = R.remove(customers, b.dataset.cdel); R.store(null, customers); renderCust(); }));
   }
+  $("#cQ").oninput = renderCust; $("#cStaffF").onchange = renderCust;
   $("#cSave").onclick = () => {
     const res = R.save(customers, { initials: $("#cIni").value, staff: $("#cStaff").value, input: readForm() });
     if (!res.ok) { $("#cMsg").textContent = res.error; $("#cMsg").style.color = "var(--ng)"; return; }
-    customers = res.list; R.store(null, customers); $("#cIni").value = res.item.initials;
-    $("#cMsg").textContent = `${res.item.initials} を保存しました（この端末だけ）。`; $("#cMsg").style.color = ""; renderCust();
+    customers = res.list; current = res.item; if (!R.store(null, customers)) { $("#cMsg").textContent = "この端末に保存できませんでした（プライベートモード等）"; $("#cMsg").style.color = "var(--ng)"; return; }
+    $("#cIni").value = res.item.initials; $("#cMsg").textContent = `${res.item.initials} を保存しました（この端末だけ）。`; $("#cMsg").style.color = ""; renderCust();
+  };
+  $("#cImport").onclick = () => $("#cFile").click();
+  $("#cFile").onchange = async () => {
+    const f = $("#cFile").files[0]; if (!f) return;
+    const r = R.importText(customers, await f.text()); $("#cFile").value = "";
+    if (!r.ok) { $("#cMsg").textContent = r.error; $("#cMsg").style.color = "var(--ng)"; return; }
+    customers = r.list; R.store(null, customers);
+    $("#cMsg").textContent = `読み込みました: 新しく ${r.added}人、更新 ${r.updated}人${r.skipped ? `、読めなかった ${r.skipped}人` : ""}。`; $("#cMsg").style.color = ""; renderCust();
+  };
+  $("#cExport").onclick = () => {
+    const blob = new Blob([R.exportText(customers)], { type: "application/json" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `loandesk_customers_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   renderCust();
   $("#go").onclick = go;
