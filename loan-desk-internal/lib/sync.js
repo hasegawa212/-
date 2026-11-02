@@ -2,7 +2,7 @@
 // 共有データの行の名前は c＋16進8桁（FNV-1a）。中身は customers.js と同じきまりで整える
 (function (root, factory) {
   const isNode = typeof module === "object" && module.exports;
-  const C = isNode ? require("./customers.js") : root.LDI;
+  const C = isNode ? Object.assign({}, require("./customers.js"), require("./outcomes.js")) : root.LDI;
   const m = factory(C);
   if (isNode) module.exports = m;
   else Object.assign((root.LDI = root.LDI || {}), m);
@@ -19,9 +19,11 @@
 
   // synced: 前に同期した内容（docId → JSON 文字列）。customers: 今の一覧
   // 戻り値 sets（保存する行）・deletes（消す行）・next（書いたあとの同期の記録）。synced は書き換えない
-  function diff(synced, customers) {
+  // key: 行の名前の決め方（既定はお客様の docId。記録は (r) => r.id）
+  function diff(synced, customers, key) {
+    const k0 = key || ((c) => docId(c.id));
     const next = new Map(synced || []);
-    const now = new Map((customers || []).map((c) => [docId(c.id), c]));
+    const now = new Map((customers || []).map((c) => [k0(c), c]));
     const sets = [], deletes = [];
     for (const [k, c] of now) { const j = JSON.stringify(c); if (next.get(k) !== j) { next.set(k, j); sets.push({ docId: k, data: JSON.parse(j) }); } }
     for (const k of [...next.keys()]) if (!now.has(k)) { next.delete(k); deletes.push(k); }
@@ -36,6 +38,18 @@
     const customers = r.ok ? r.list : [];
     const synced = new Map(customers.map((c) => [docId(c.id), JSON.stringify(c)]));
     return { customers, synced };
+  }
+
+  // 審査の結果（記録）の共有: 行の名前は r＋ランダム。形の正しい記録だけを読む
+  const RECORDS = "records";
+  function newRecordId() { return "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function recordsFromSnapshot(docs) {
+    const records = [];
+    for (const d of docs || []) {
+      const r = d && d.data && Object.assign({}, d.data, { id: d.id });
+      if (r && C.validRecord && C.validRecord(r)) records.push(r);
+    }
+    return { records, synced: new Map(records.map((r) => [r.id, JSON.stringify(r)])) };
   }
 
   function viewState(o) {
@@ -56,5 +70,5 @@
     return "全員の一覧に保存できませんでした。少し待ってからもう一度保存してください";
   }
 
-  return { COLLECTION, docId, diff, fromSnapshot, viewState, errorText };
+  return { RECORDS, newRecordId, recordsFromSnapshot, COLLECTION, docId, diff, fromSnapshot, viewState, errorText };
 });

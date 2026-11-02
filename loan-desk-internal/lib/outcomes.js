@@ -2,10 +2,11 @@
 // 記録 = 当社の集計（data/outcomes.js）＋ この端末で足した記録（名前なし。金融機関・段階・結果・理由・単身かだけ）
 (function (root, factory) {
   const isNode = typeof module === "object" && module.exports;
-  const m = factory();
+  const D = isNode ? require("../data/outcomes.js") : root.LDI || {};
+  const m = factory(D);
   if (isNode) module.exports = m;
   else Object.assign((root.LDI = root.LDI || {}), m);
-})(typeof self !== "undefined" ? self : this, function () {
+})(typeof self !== "undefined" ? self : this, function (D) {
   "use strict";
   // 否決の理由（銀行審査状況パイプライン運用ガイド 6章のタグ＋保証会社・業者・信用情報）
   const REASONS = {
@@ -50,8 +51,9 @@
     if (!["pre", "main"].includes(r.stage) || !["pass", "reject"].includes(r.result)) return false;
     if (r.result === "reject" && !REASONS[r.reason]) return false;
     if (typeof r.single !== "boolean") return false;
-    const extra = Object.keys(r).filter((k) => !["lender", "stage", "result", "reason", "single", "month"].includes(k));
+    const extra = Object.keys(r).filter((k) => !["id", "lender", "stage", "result", "reason", "single", "month"].includes(k));
     if (extra.length) return false;
+    if (r.id != null && !(typeof r.id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(r.id))) return false;
     if (r.month != null && !/^\d{4}-\d{2}$/.test(r.month)) return false;
     return true;
   }
@@ -101,5 +103,28 @@
     return { total: n, known, list, coverage: n ? known / n : 0 };
   }
 
-  return { REASONS, ALIAS, normLender, reasonOf, validRecord, merge, statsOf, applyOutcomes, reasonSummary };
+  // 集計の期間「2024/07〜2026/10」の終わり → "2026-10"
+  function periodEnd(period) { const m = /(\d{4})\/(\d{2})\s*$/.exec(String(period || "")); return m ? `${m[1]}-${m[2]}` : ""; }
+
+  // お客様の「否決と再挑戦」の履歴を、通過率の記録にする（二度入力しない）
+  // 集計（data/outcomes.js）の期間より後の月だけ。月のない履歴は数えない（もう集計に入っているかもしれないため）
+  function fromHistory(customers, after) {
+    const out = [];
+    for (const c of customers || []) {
+      for (const h of (c.input && c.input.history) || []) {
+        if (!h.month || !(h.month > (after || ""))) continue;
+        const r = { lender: h.lender, stage: h.stage, result: h.result, single: !!(c.input && c.input.single), month: h.month };
+        if (h.result === "reject") r.reason = REASONS[h.reason] ? h.reason : "unknown";
+        if (validRecord(r)) out.push(r);
+      }
+    }
+    return out;
+  }
+
+  // 順番の計算に使う記録 = 足した記録 ＋ お客様の履歴（集計の期間より後）
+  function allRecords(records, customers, period) {
+    return (records || []).filter(validRecord).concat(fromHistory(customers, periodEnd(period != null ? period : D.OUTCOMES_PERIOD)));
+  }
+
+  return { periodEnd, fromHistory, allRecords, REASONS, ALIAS, normLender, reasonOf, validRecord, merge, statsOf, applyOutcomes, reasonSummary };
 });

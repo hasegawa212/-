@@ -49,3 +49,24 @@ test("共有版の書き出しはページの保存機能（downloads）を使�
   assert.match(js, /claude\.use\("downloads"\)/);
   assert.match(js, /dl\.save\(\{ filename, data: text \}\)/);
 });
+
+test("順番・一覧・再挑戦の計算は、足した記録＋お客様の履歴（R.allRecords）を使う", () => {
+  assert.doesNotMatch(js, /\{ records \}/, "足した記録だけで計算しない");
+  assert.ok((js.match(/R\.allRecords\(records, /g) || []).length >= 1);
+  assert.match(js, /function stats\(\)/);
+});
+
+test("審査の結果も共有版では全員で共有する（records の共有データ）。閲覧だけの人は足せない", () => {
+  assert.match(js, /collection\(R\.RECORDS\)\.onSnapshot/);
+  assert.match(js, /function persistRec\(/);
+  assert.match(js, /R\.newRecordId\(\)/);
+  assert.match(html, /body\.ro #rAdd/);
+  assert.equal((js.match(/saveRec\(records\)/g) || []).length, 1, "端末への保存は persistRec の中の1か所だけ");
+});
+
+test("読み込みの順番: shared・customers は、最初に使う renderRec より前で宣言する（宣言前に読むと画面が止まる）", () => {
+  const at = (re) => js.search(re);
+  assert.ok(at(/let shared\b/) >= 0 && at(/let shared\b/) < at(/function renderRec\(/));
+  assert.ok(at(/let [^;]*\bcustomers = \[\]/) >= 0 && at(/let [^;]*\bcustomers = \[\]/) < at(/function renderRec\(/));
+  assert.doesNotMatch(js, /typeof customers/);
+});
