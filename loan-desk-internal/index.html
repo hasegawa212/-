@@ -38,7 +38,7 @@ th{font-size:11.5px;color:var(--muted);font-weight:500;border-top:0}
 ol,ul{margin:0;padding-left:20px}
 .note{font-size:12px;color:var(--muted);margin:0}
 #expBox textarea{width:100%;min-height:140px;font:12px var(--n);padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--sunk);color:var(--ink)}
-body.ro #cSave,body.ro #cImport,body.ro #hAdd,body.ro [data-cdel],body.ro [data-hdel]{display:none!important}
+body.ro #cSave,body.ro #cImport,body.ro #hAdd,body.ro #rAdd,body.ro [data-del],body.ro [data-cdel],body.ro [data-hdel]{display:none!important}
 .ro-note{display:block;background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13px}
 button.sub{padding:10px;letter-spacing:.02em}
 button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line)}
@@ -137,6 +137,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     </div>
     <div class="grid" style="margin-top:10px"><button id="rAdd" type="button" class="sub">記録を足す</button><button id="rExport" type="button" class="sub ghost">書き出す（JSON）</button></div>
     <div id="rList" style="margin-top:8px"></div>
+    <p class="note" id="rMsg" style="margin-top:6px"></p>
   </div>
   <p class="note" id="calib"></p>
 </main>
@@ -181,20 +182,38 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
   const loadRec = () => { try { const v = JSON.parse(localStorage.getItem(RKEY) || "[]"); return Array.isArray(v) ? v.filter(R.validRecord) : []; } catch (e) { return []; } };
   const saveRec = (l) => { try { localStorage.setItem(RKEY, JSON.stringify(l)); } catch (e) {} };
   let records = loadRec();
+  // 共有データ（共有版のときだけ入る）とお客様の一覧。下の関数より前で宣言しておく
+  let shared = null, writing = Promise.resolve(), customers = [];
+  // 順番の計算に使う記録 = 足した記録 ＋ お客様の「否決と再挑戦」の履歴（二度入力しない）
+  function stats() { return R.allRecords(records, customers); }
+  // 審査の結果の保存先: 共有版は全員の記録（records）、ファイル版はこの端末
+  let syncedRec = new Map();
+  function persistRec() {
+    if (!shared) { saveRec(records); return; }
+    records = records.map((r) => (r.id ? r : Object.assign({ id: R.newRecordId() }, r)));
+    const d = R.diff(syncedRec, records, (r) => r.id);
+    syncedRec = d.next;
+    const jobs = d.sets.map((x) => () => shared.collection(R.RECORDS).doc(x.docId).set(x.data))
+      .concat(d.deletes.map((k) => () => shared.collection(R.RECORDS).doc(k).delete()));
+    writing = writing.then(async () => { for (const job of jobs) { try { await job(); } catch (e) { $("#rMsg").textContent = R.errorText(e && e.code); } } });
+  }
   $("#rLender").innerHTML = R.LENDERS.map((l) => `<option>${esc(l.name)}</option>`).join("");
   $("#rReason").innerHTML = Object.entries(R.REASONS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
   $("#rResult").onchange = () => { $("#rReason").disabled = $("#rResult").value !== "reject"; };
   const STAGE_JP = { pre: "事前", main: "本審査" };
   function renderRec() {
-    $("#rList").innerHTML = records.length ? records.map((r, i) => `<div class="mini"><span>${esc(r.month || "")} ${esc(r.lender)}・${STAGE_JP[r.stage]}・${r.result === "pass" ? "通過" : "否決（" + esc(R.REASONS[r.reason]) + "）"}${r.single ? "・単身" : ""}</span><button type="button" class="ghost" data-del="${i}">消す</button></div>`).join("") : `<p class="note">この端末で足した記録はまだありません。</p>`;
-    document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { records.splice(+b.dataset.del, 1); saveRec(records); renderRec(); go(); }));
+    $("#rList").innerHTML = records.length ? records.map((r, i) => `<div class="mini"><span>${esc(r.month || "")} ${esc(r.lender)}・${STAGE_JP[r.stage]}・${r.result === "pass" ? "通過" : "否決（" + esc(R.REASONS[r.reason]) + "）"}${r.single ? "・単身" : ""}</span><button type="button" class="ghost" data-del="${i}">消す</button></div>`).join("") : `<p class="note">${shared ? "全員で" : "この端末で"}足した記録はまだありません。</p>`;
+    const fromH = stats().length - records.length;
+    $("#rMsg").textContent = fromH ? `お客様の「否決と再挑戦」に入れた結果 ${fromH}件も、通過率に入っています（二度入れなくてよい）。` : "";
+    document.querySelectorAll("[data-del]").forEach((b) => (b.onclick = () => { records.splice(+b.dataset.del, 1); persistRec(); renderRec(); go(); }));
   }
   $("#rAdd").onclick = () => {
     const r = { lender: $("#rLender").value, stage: $("#rStage").value, result: $("#rResult").value, single: $("#rSingle").checked };
     if (r.result === "reject") r.reason = $("#rReason").value;
     if ($("#rMonth").value) r.month = $("#rMonth").value;
     if (!R.validRecord(r)) return;
-    records.push(r); saveRec(records); renderRec(); go();
+    if (shared) r.id = R.newRecordId();
+    records.push(r); persistRec(); renderRec(); go();
   };
   $("#rExport").onclick = () => {
     showExport(JSON.stringify({ kind: "loan-desk-records", v: 1, exported: new Date().toISOString().slice(0, 10), records }, null, 1), "審査の記録（書き出し）", `loandesk_records_${new Date().toISOString().slice(0, 10).replace(/-/g, "")}.json`);
@@ -207,7 +226,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
       employ: $("#employ").value, price: loan, down: 0, costs: 0, collateral: loan, car: +$("#debt").value || 0, scholarship: 0,
       rejectedLenders: [...document.querySelectorAll("[data-rej]:checked")].map((e) => e.dataset.rej),
       priorRejects: Math.max(+$("#rej").value || 0, document.querySelectorAll("[data-rej]:checked").length), single: $("#single").checked, motiveDoc: $("#motive").checked, settle: $("#settle").value });
-    const r = R.recommend(x, { records });
+    const r = R.recommend(x, { records: stats() });
     const row = (c, i) => `<tr><td class="rank">${i + 1}</td><td><b>${esc(c.lender.name)}</b><br><span class="note">${esc(c.lender.note)}</span></td>
       <td class="num">通過 ${c.lender.pass}／${c.n}<br><span class="note">事前 ${c.stats.pre.pass}／${c.stats.pre.pass + c.stats.pre.reject}・本 ${c.stats.main.pass}／${c.stats.main.pass + c.stats.main.reject}<br>単身 ${c.stats.single.pass}／${c.stats.single.pass + c.stats.single.reject}</span>${c.stats.reasons.filter((q) => q.key !== "unknown").length ? `<br><span class="note">否決: ${c.stats.reasons.filter((q) => q.key !== "unknown").map((q) => esc(q.label) + q.n).join("・")}</span>` : ""}</td><td><span class="pill ${DEC[c.screen.decision][0]}">${DEC[c.screen.decision][1]}</span><br><span class="note num">負担率 ${L.r1(c.screen.dti)}%</span></td>
       <td>${c.guarantors.length ? c.guarantors.map((g) => esc(g.name) + (g.src === "要確認" ? "<span class=\"note\">（要確認）</span>" : "")).join("<br>") : `<span class="note">要確認</span>`}${c.guarantorNote ? `<br><span class="pill warn">${esc(c.guarantorNote)}</span>` : ""}</td>
@@ -249,18 +268,18 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
   const firstCache = new Map();
   function firstOf(c) {
     const i = c.input; if (i.flag || !(i.age > 0 && i.income > 0)) return null;
-    const key = c.id + "|" + c.updated + "|" + records.length;
+    const key = c.id + "|" + c.updated + "|" + stats().length;
     if (firstCache.has(key)) return firstCache.get(key);
     const x = Object.assign({}, L.SAMPLE, { pref: i.pref, age: i.age, income: i.income, incomePrev: i.income, incomePrev2: i.income, tenure: i.tenure || 0, employ: i.employ || "regular",
       price: i.loan || 2500, down: 0, costs: 0, collateral: i.loan || 2500, car: i.debt || 0, scholarship: 0, rejectedLenders: i.rejected || [],
       priorRejects: Math.max(i.rej || 0, (i.rejected || []).length), single: !!i.single, motiveDoc: !!i.motive, term: Math.min(35, 80 - i.age) });
-    const r = R.recommend(x, { records }); const t = r.planItems[0];
+    const r = R.recommend(x, { records: stats() }); const t = r.planItems[0];
     const v = t ? { name: t.lender.name, dec: t.screen.decision } : { name: "出せる候補なし", dec: "reject" };
     firstCache.set(key, v); return v;
   }
-  let customers = R.load();
+  customers = R.load();
   // 保存先: 共有版（claude.ai のページの共有データ）なら全員の一覧、ファイル版ならこの端末（lib/sync.js）
-  let shared = null, synced = new Map(), writing = Promise.resolve();
+  let synced = new Map();
   function persist() {
     if (!shared) return R.store(null, customers);
     const d = R.diff(synced, customers);
@@ -326,12 +345,12 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     $("#retry").hidden = false;
     const hist = current.input.history || [];
     $("#hList").innerHTML = hist.length ? hist.map((h, i) => `<div class="mini"><span>${esc(h.month || "月不明")} ${esc(h.lender)}・${STG[h.stage]}・${h.result === "pass" ? "通過" : "否決（" + esc(R.REASONS[h.reason] || "理由不明") + "）"}</span><button type="button" class="ghost" data-hdel="${i}">消す</button></div>`).join("") : `<p class="note">履歴はまだありません。</p>`;
-    document.querySelectorAll("[data-hdel]").forEach((b) => (b.onclick = () => { hist.splice(+b.dataset.hdel, 1); current.input.history = hist; saveCurrent(); renderRetry(); renderCust(); }));
+    document.querySelectorAll("[data-hdel]").forEach((b) => (b.onclick = () => { hist.splice(+b.dataset.hdel, 1); current.input.history = hist; saveCurrent(); renderRetry(); renderCust(); renderRec(); go(); }));
     if (!hist.some((h) => h.result === "reject")) { $("#hPlan").innerHTML = ""; return; }
     const i = current.input;
     const x = Object.assign({}, L.SAMPLE, { pref: $("#pref").value, age: +$("#age").value, income: +$("#income").value, incomePrev: +$("#income").value, incomePrev2: +$("#income").value, tenure: +$("#tenure").value,
       employ: $("#employ").value, price: +$("#loan").value, down: 0, costs: 0, collateral: +$("#loan").value, car: +$("#debt").value || 0, scholarship: 0, single: $("#single").checked, motiveDoc: $("#motive").checked, settle: $("#settle").value });
-    const p = R.retryPlan(x, hist, { records });
+    const p = R.retryPlan(x, hist, { records: stats() });
     const gText = (c) => c.guarantors.length ? c.guarantors.map((g) => esc(g.name)).join("・") : "要確認";
     const list = (arr) => arr.length ? `<ol>${arr.map((c) => `<li><b>${esc(c.lender.name)}</b>（保証: ${gText(c)}）<span class="pill ${DEC[c.screen.decision][0]}">${DEC[c.screen.decision][1]}</span></li>`).join("")}</ol>` : `<p class="note">この条件で出せる金融機関が残っていません。借入額・物件・時期を見直してください。</p>`;
     $("#hPlan").innerHTML = `
@@ -346,7 +365,7 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
     if (!current) return;
     const h = R.cleanHist({ lender: $("#hLender").value, stage: $("#hStage").value, result: $("#hResult").value, month: $("#hMonth").value, reason: $("#hReason").value });
     if (!h) return;
-    current.input.history = (current.input.history || []).concat([h]); saveCurrent(); renderRetry(); renderCust();
+    current.input.history = (current.input.history || []).concat([h]); saveCurrent(); renderRetry(); renderCust(); renderRec(); go();
   };
   renderCust();
   // 共有版: 共有データにつながったら、全員の一覧に切り替える（つながらなければファイル版のまま）
@@ -369,6 +388,11 @@ button.ghost{background:var(--sunk);color:var(--ink);border:1px solid var(--line
       if (current) current = customers.find((c) => c.id === current.id) || current;
       renderCust(); if (current && !$("#retry").hidden) renderRetry();
     }, () => { clearTimeout(timer); $("#cCount").textContent = "全員の一覧が読めませんでした。ページを開き直してください"; });
+    db.collection(R.RECORDS).onSnapshot((snap) => {
+      const r = R.recordsFromSnapshot(snap.docs.map((d) => ({ id: d.id, data: d.data() })));
+      records = r.records; syncedRec = r.synced;
+      renderRec(); go();
+    }, () => { $("#rMsg").textContent = "全員の審査の記録が読めませんでした。ページを開き直してください"; });
   })();
   $("#go").onclick = go;
   $("#settle").onchange = go;
