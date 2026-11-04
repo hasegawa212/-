@@ -30,6 +30,7 @@ test("否決の理由: 備考から寄せる（業者NG・接道・充て物・�
   assert.equal(O.reasonOf("property_collateral", "接道なし指摘"), "property_road_access");
   assert.equal(O.reasonOf("unknown", "充て物審査"), "property_atemono");
   assert.equal(O.reasonOf("unknown", "保証会社NG"), "guarantor");
+  assert.equal(O.reasonOf("unknown", "全国保証：否決（10/22 打ち合わせ）。銀行の回答は総合的判断のみ"), "guarantor", "保証会社の名前＋否決も保証会社の判断");
   assert.equal(O.reasonOf("single", ""), "borrower_single");
   assert.equal(O.reasonOf("unknown", "総合的判断・全国保証"), "unknown");
   assert.equal(O.reasonOf("unknown", "物件待ち"), "unknown");

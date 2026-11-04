@@ -36,7 +36,7 @@
     const MAP = { property_collateral: "property_kakaku", employment: "borrower_employment", single: "borrower_single", danshin: "borrower_dansin_kokuji", cic: "borrower_cic" };
     if (MAP[t]) return MAP[t];
     if (/単身/.test(n)) return "borrower_single";
-    if (/保証会社NG|保証会社.*否決|保証NG/.test(n)) return "guarantor";
+    if (/保証会社NG|保証会社.*否決|保証NG|(全国保証|しんきん保証|信金保証)[^。]*否決/.test(n)) return "guarantor";
     if (/雇用契約/.test(n)) return "borrower_employment";
     if (/土地評価|物件での否決|物件の評価/.test(n)) return "property_kakaku";
     return "unknown";

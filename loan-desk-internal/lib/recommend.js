@@ -90,9 +90,13 @@
     const why = {};
     planItems.forEach((c) => c.stats.reasons.forEach((r) => { if (r.key !== "unknown") why[r.key] = (why[r.key] || 0) + r.n; }));
     const CHECK = { property_road_access: "接道（2m以上・公道か私道か）を出す前に確かめる", property_atemono: "物件の評価（充て物）が出るか、事前に金融機関に相談する", property_kakaku: "物件の評価（土地の評価・価格）が借入額に見合うか確かめる",
-      borrower_employment: "雇用契約書（ない場合は在籍証明書・就業条件明示書）をそろえる", borrower_single: "単身者は購入動機書を必ず付ける", borrower_dansin_kokuji: "団信の告知（通院・服薬）を先に聞いておく",
+      borrower_employment: "雇用契約書（ない場合は在籍証明書・就業条件明示書）をそろえる", borrower_single: "単身者は購入動機書を付ける（住所の変更が多い人は、この場所に住み続ける理由を書く）", borrower_dansin_kokuji: "団信の告知（通院・服薬）を先に聞いておく",
       borrower_cic: "信用情報（CIC・JICC・KSC）を本人開示で先に確かめる", guarantor: "保証会社の判断で否決の例がある。保証会社のルートを確かめる", dealer: "保証会社が業者（売主・仲介）を審査する。当社と仲介会社の関係を最初に伝える" };
-    Object.entries(why).sort((a, b) => b[1] - a[1]).forEach(([k]) => { if (CHECK[k] && !prepare.includes(CHECK[k])) prepare.push(CHECK[k]); });
+    Object.entries(why).sort((a, b) => b[1] - a[1]).forEach(([k]) => {
+      if (!CHECK[k] || prepare.includes(CHECK[k])) return;
+      if (k === "borrower_single" && prepare.some((p) => /購入動機/.test(p))) return; // 動機書は上で出している
+      prepare.push(CHECK[k]);
+    });
     const sched = x.settle ? D.schedule({ settle: x.settle, type: top ? top.lender.type : "regional", today: opts && opts.today, retry: planItems.length > 1 }) : null;
     return {
       pref, schedule: sched, reasonSummary: D.reasonSummary(outcomes), period: D.OUTCOMES_PERIOD, candidates, excluded, avoid, outOfArea, plan, planItems, prepare, rejectedGuarantors: [...rejected],
