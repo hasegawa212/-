@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Halo Burst</title>
+<style>
+  :root { --bg:#05040b; --fg:#f3f1ff; --dim:#9a95b8; --a:#7cf7c8; --b:#c48bff; --c:#ff7ad9; --gold:#ffd166; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--fg); overflow:hidden;
+    font-family: -apple-system, "Hiragino Sans", "Helvetica Neue", system-ui, sans-serif; }
+  canvas { display:block; width:100vw; height:100vh; cursor:none; }
+  .hud { position:fixed; top:18px; padding:8px 14px; border-radius:12px; background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08); text-align:center; pointer-events:none; min-width:56px; }
+  .hud small { display:block; font-size:10px; letter-spacing:.18em; color:var(--dim); }
+  .hud b { font-size:22px; font-variant-numeric:tabular-nums; }
+  #hudScore { left:18px; } #hudCombo { left:50%; transform:translateX(-50%); } #hudTime { right:18px; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="hud" id="hudScore"><small>SCORE</small><b id="score">0</b></div>
+<div class="hud" id="hudCombo"><small>COMBO</small><b id="combo">×1</b></div>
+<div class="hud" id="hudTime"><small>TIME</small><b id="time">60</b></div>
+<script src="logic.js"></script>
+<script>
+(function () {
+  "use strict";
+  var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  var W = 0, H = 0, DPR = 1;
+  var $score = document.getElementById("score"), $combo = document.getElementById("combo"), $time = document.getElementById("time");
+  var BEST_KEY = "halo_burst_best_v1";
+  function loadBest() { try { return +localStorage.getItem(BEST_KEY) || 0; } catch (e) { return 0; } }
+  function saveBest(v) { try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) {} }
+
+  var state = "title";             // title | play | over
+  var rings = [], parts = [], texts = [], stars = [];
+  var score = 0, combo = 0, maxCombo = 0, hits = 0, clicks = 0, best = loadBest();
+  var tStart = 0, nextSpawn = 0, overAt = 0, now = 0;
+  var mouse = { x: -100, y: -100 };
+  var COLORS = ["#7cf7c8", "#c48bff", "#ff7ad9", "#6fd3ff"];
+
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    stars = [];
+    for (var i = 0; i < Math.round(W * H / 5000); i++)
+      stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.3 + .2, tw: Math.random() * 6 });
+  }
+  window.addEventListener("resize", resize); resize();
+
+  function start() {
+    state = "play"; rings = []; parts = []; texts = [];
+    score = 0; combo = 0; maxCombo = 0; hits = 0; clicks = 0;
+    tStart = now; nextSpawn = now + 0.4;
+  }
+
+  function spawn() {
+    var d = HB.difficulty(now - tStart);
+    var r0 = Math.min(W, H) * (0.07 + Math.random() * 0.04);
+    var m = r0 + 30;
+    rings.push({ x: m + Math.random() * (W - 2 * m), y: m + 70 + Math.random() * (H - 2 * m - 70),
+      r0: r0, born: now, life: d.life, gold: Math.random() < HB.RULES.goldChance,
+      color: COLORS[(Math.random() * COLORS.length) | 0] });
+    nextSpawn = now + d.spawn * (0.75 + Math.random() * 0.5);
+  }
+
+  function burst(x, y, color, n) {
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, s = 80 + Math.random() * 320;
+      parts.push({ x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: .5 + Math.random() * .4, born: now, color: color });
+    }
+  }
+  function float(x, y, text, color) { texts.push({ x: x, y: y, text: text, color: color, born: now }); }
+
+  function breakCombo(x, y) {
+    if (combo > 0) float(x, y, "MISS", "#ff6b6b");
+    combo = 0;
+  }
+
+  cv.addEventListener("mousemove", function (e) { mouse.x = e.clientX; mouse.y = e.clientY; });
+  cv.addEventListener("mousedown", function (e) {
+    mouse.x = e.clientX; mouse.y = e.clientY;
+    if (state === "title") return start();
+    if (state === "over") { if (now - overAt > 1) start(); return; }
+    clicks++;
+    var h = HB.hit(rings, e.clientX, e.clientY, now, combo);
+    if (h.index < 0) { breakCombo(e.clientX, e.clientY); return; }
+    var g = rings.splice(h.index, 1)[0];
+    combo = h.combo; maxCombo = Math.max(maxCombo, combo); hits++; score += h.points;
+    burst(g.x, g.y, g.gold ? "#ffd166" : g.color, h.center ? 34 : 20);
+    float(g.x, g.y - 10, "+" + h.points + (h.center ? "  CENTER" : "") + (g.gold ? "  GOLD" : ""), g.gold ? "#ffd166" : "#fff");
+  });
+  cv.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  window.addEventListener("keydown", function (e) {
+    if (e.key === "f" || e.key === "F") {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+      else document.exitFullscreen && document.exitFullscreen();
+    }
+  });
+
+  function update(dt) {
+    if (state === "play") {
+      var left = HB.RULES.duration - (now - tStart);
+      if (left <= 0) {
+        state = "over"; overAt = now; rings = [];
+        if (score > best) { best = score; saveBest(best); }
+      } else {
+        if (now >= nextSpawn) spawn();
+        for (var i = rings.length - 1; i >= 0; i--) {
+          if (HB.radiusAt(rings[i], now) <= 0) { var g = rings.splice(i, 1)[0]; breakCombo(g.x, g.y); }
+        }
+      }
+    }
+    parts = parts.filter(function (p) {
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.92; p.vy *= 0.92;
+      return now - p.born < p.life;
+    });
+    texts = texts.filter(function (t) { return now - t.born < 0.9; });
+    $score.textContent = score.toLocaleString();
+    $combo.textContent = "×" + HB.multiplier(combo) + (combo ? "  " + combo : "");
+    $time.textContent = state === "play" ? Math.ceil(HB.RULES.duration - (now - tStart)) : HB.RULES.duration;
+  }
+
+  function glowCircle(x, y, r, color, w, alpha) {
+    ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = color; ctx.lineWidth = w;
+    ctx.shadowColor = color; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+  }
+
+  function drawTitle(t1, t2, lines) {
+    ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var size = Math.min(W / 7, 120);
+    ctx.font = "800 " + size + "px -apple-system, 'Helvetica Neue', sans-serif";
+    var grd = ctx.createLinearGradient(W / 2 - size * 3, 0, W / 2 + size * 3, 0);
+    grd.addColorStop(0, "#7cf7c8"); grd.addColorStop(.5, "#c48bff"); grd.addColorStop(1, "#ff7ad9");
+    ctx.fillStyle = grd; ctx.shadowColor = "#c48bff"; ctx.shadowBlur = 40;
+    ctx.fillText(t1, W / 2, H / 2 - size * 0.55);
+    ctx.shadowBlur = 0; ctx.fillStyle = "#f3f1ff";
+    ctx.font = "600 " + Math.max(14, size * 0.2) + "px -apple-system, 'Hiragino Sans', sans-serif";
+    ctx.fillText(t2, W / 2, H / 2 + size * 0.25);
+    ctx.fillStyle = "#9a95b8"; ctx.font = "500 15px -apple-system, 'Hiragino Sans', sans-serif";
+    lines.forEach(function (l, i) { ctx.fillText(l, W / 2, H / 2 + size * 0.25 + 40 + i * 24); });
+    ctx.restore();
+  }
+
+  function draw() {
+    ctx.fillStyle = "#05040b"; ctx.fillRect(0, 0, W, H);
+    var vg = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, Math.max(W, H) * .7);
+    vg.addColorStop(0, "rgba(60,30,110,.25)"); vg.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    stars.forEach(function (s) {
+      ctx.globalAlpha = .35 + .35 * Math.sin(now * 1.5 + s.tw);
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+
+    rings.forEach(function (g) {
+      var r = HB.radiusAt(g, now), k = (now - g.born) / g.life, c = g.gold ? "#ffd166" : g.color;
+      glowCircle(g.x, g.y, g.r0, c, 1, .18);                       // 出現時の大きさ（ガイド）
+      glowCircle(g.x, g.y, r, c, 4, 1);                            // 縮むリング
+      glowCircle(g.x, g.y, r * HB.RULES.centerRatio, "#ffffff", 1.5, .55); // 中心ゾーン
+      ctx.fillStyle = c; ctx.globalAlpha = .9;
+      ctx.beginPath(); ctx.arc(g.x, g.y, 3, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+      if (k > .7) glowCircle(g.x, g.y, r + 6, "#ff6b6b", 1.5, (k - .7) / .3); // 消えかけ警告
+    });
+
+    parts.forEach(function (p) {
+      ctx.globalAlpha = 1 - (now - p.born) / p.life; ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.2, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    texts.forEach(function (t) {
+      var k = (now - t.born) / .9;
+      ctx.globalAlpha = 1 - k; ctx.fillStyle = t.color; ctx.textAlign = "center";
+      ctx.font = "700 18px -apple-system, 'Helvetica Neue', sans-serif";
+      ctx.fillText(t.text, t.x, t.y - k * 40);
+    });
+    ctx.globalAlpha = 1;
+
+    if (state === "title") {
+      drawTitle("Halo Burst", "iPhone をマウスにして、縮むリングを撃ち抜け", [
+        "中心に当てると ×2 ・ 金のリングは ×3 ・ 外す/逃すとコンボが切れる",
+        "BEST " + best.toLocaleString(),
+        "クリックでスタート ・ F で全画面"
+      ]);
+    } else if (state === "over") {
+      var acc = clicks ? Math.round(hits / clicks * 100) : 0;
+      drawTitle("Rank " + HB.rank(score), score.toLocaleString() + " 点", [
+        "命中 " + hits + " ・ 命中率 " + acc + "% ・ 最大コンボ " + maxCombo,
+        (score >= best && score > 0 ? "★ 自己ベスト更新！" : "BEST " + best.toLocaleString()),
+        "クリックでもう一度"
+      ]);
+    }
+
+    // 照準
+    ctx.save(); ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.shadowColor = "#c48bff"; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(mouse.x, mouse.y, 11, 0, Math.PI * 2);
+    ctx.moveTo(mouse.x - 18, mouse.y); ctx.lineTo(mouse.x - 6, mouse.y);
+    ctx.moveTo(mouse.x + 6, mouse.y); ctx.lineTo(mouse.x + 18, mouse.y);
+    ctx.moveTo(mouse.x, mouse.y - 18); ctx.lineTo(mouse.x, mouse.y - 6);
+    ctx.moveTo(mouse.x, mouse.y + 6); ctx.lineTo(mouse.x, mouse.y + 18);
+    ctx.stroke(); ctx.restore();
+  }
+
+  var last = performance.now();
+  function frame(ts) {
+    var dt = Math.min(0.05, (ts - last) / 1000); last = ts; now = ts / 1000;
+    update(dt); draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
