@@ -1,0 +1,6 @@
+{
+  "name": "iphone-mouse",
+  "private": true,
+  "description": "iPhone を Mac のマウスにする（Bluetooth のみ）＋ 照準ゲーム Halo Burst",
+  "scripts": { "test": "node --test test/*.test.js" }
+}
